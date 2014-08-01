@@ -117,9 +117,15 @@ contains
     do i=1,k+2
       x1(i) = real(i-1)/real(k+1)
     end do
-    do i=1,k+1
-      x2(i) = real(i-1)/real(k)
-    end do
+
+    if ( k == 0 ) then
+      x2(1) = 0.5
+    else
+      do i=1,k+1
+        x2(i) = real(i-1)/real(k)
+      end do
+    endif
+
     if ( k == 0 ) x2(1) = 0.5_r_def
     ! this value isn't needed and is always multipled by 0 
     x2(k+2) = 0.0_r_def

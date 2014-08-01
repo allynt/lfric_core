@@ -52,7 +52,8 @@ ifeq '$(FC)' 'ifort'
   FFLAGS_OPTIMISATION = -O0
   FFLAGS_DEBUG        = -g -traceback
   FFLAGS_WARNINGS     = -warn all -warn errors
-  FFLAGS_RUNTIME      = -check all
+  FFLAGS_INIT         = -ftrapuv
+  FFLAGS_RUNTIME      = -check all -fpe0
   F_MOD_DESTINATION_ARG = -module $(OBJ_DIR)
   IFORT_VERSION = $(shell ifort -v 2>&1 | awk '{ print $$NF }' \
                    | awk -F . '{ printf "%03i%02i%02i", $$1, $$2, $$3 }')
@@ -61,6 +62,8 @@ ifeq '$(FC)' 'ifort'
 else ifeq '$(FC)' 'xlf'
   $(info ** Chosen IBM XL Fortran compiler)
 
+  FFLAGS_INIT         = -qinitalloc=0xffffffff -qinitauto=0xffffffff
+  FFLAGS_RUNTIME      = -qfloat=nans -qflttrap=enable:invalid:nanq:overflow:underflow:zerodivide
   F_MOD_DESTINATION_ARG = -qmoddir=$(OBJ_DIR)
 
 else ifeq '$(FC)' 'gfortran'
@@ -69,7 +72,9 @@ else ifeq '$(FC)' 'gfortran'
   FFLAGS_OPTIMISATION = -O0
   FFLAGS_DEBUG        = -g
   FFLAGS_WARNINGS     = -Wall -Werror
-  FFLAGS_RUNTIME      = -fcheck=all
+  FFLAGS_INIT         = -finit-integer=31173 -finit-real=snan \
+                        -finit-logical=true -finit-character=85
+  FFLAGS_RUNTIME      = -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow
   F_MOD_DESTINATION_ARG = -J $(OBJ_DIR)
   GFORTRAN_VERSION = $(shell gfortran --version 2>&1 \
                        | sed -n 's/.*[[:space:]]\{1,\}\([[:digit:]]\{1,\}\.[[:digit:]]\{1,\}\.[[:digit:]]\{1,\}\)[[:space:]]\{,\}.*/\1/p' \
@@ -81,7 +86,8 @@ else ifeq '$(FC)' 'nagfor'
 
   FFLAGS_OPTIMISATION = -O0
   FFLAGS_DEBUG        = -g -gline -colour
-  FFLAGS_RUNTIME      =  -C=all -mtrace=all -nan
+  FFLAGS_INIT         = -nan
+  FFLAGS_RUNTIME      = -C=all -C=undefined -mtrace=all -nan
   F_MOD_DESTINATION_ARG = -mdir $(OBJ_DIR)
 
 else ifeq '$(FC)' 'pgfortran'
@@ -112,4 +118,4 @@ ifdef PE_ENV
 endif
 
 FFLAGS += $(FFLAGS_COMPILER) $(FFLAGS_OPTIMISATION) $(FFLAGS_DEBUG) \
-          $(FFLAGS_WARNINGS) $(FFLAGS_RUNTIME)
+          $(FFLAGS_WARNINGS) $(FFLAGS_INIT) $(FFLAGS_RUNTIME)
