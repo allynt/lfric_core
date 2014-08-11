@@ -15,7 +15,7 @@ contains
   subroutine v3_rhs_kernel_test()
     use pFUnit_Mod
     use v3_rhs_kernel_mod,        only : RHS_v3_code
-    use gaussian_quadrature_mod,  only : gaussian_quadrature_type, ngp_h, ngp_v
+    use gaussian_quadrature_mod,  only : gaussian_quadrature_type, ngp_h, ngp_v, GQ3
     use constants_mod,            only : r_def
     implicit none
 
@@ -33,10 +33,10 @@ contains
     real(kind=r_def) :: fx, fy, fz
     integer :: df, dim, gp1, gp2
     
-    gq=gaussq%get_instance()
+    gq=gaussq%get_instance(GQ3)
     
-    call gq%get_xgp_h(xgp_h)
-    call gq%get_xgp_v(xgp_v)
+    xgp_h = gq%get_xgp_h()
+    xgp_v = gq%get_xgp_v()
     
     x_vert(1,:) = (/ 0.0_r_def, 0.0_r_def, 0.0_r_def /)
     x_vert(2,:) = (/ 1.0_r_def, 0.0_r_def, 0.0_r_def /)

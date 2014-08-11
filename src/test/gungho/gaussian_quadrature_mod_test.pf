@@ -14,17 +14,22 @@ contains
   @test
   subroutine test_gaussian_quadrature()
     use pFUnit_Mod
-    use gaussian_quadrature_mod
+    use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3, &
+                                        ngp_h, ngp_v
     use constants_mod, only : r_def
     implicit none
 
     real(kind=r_def) :: polynomial(ngp_h,ngp_v)
     real(kind=r_def) :: result, answer, epsilon
     real(kind=r_def) :: basis_func
+    integer          :: test_gq
 
     type(gaussian_quadrature_type) :: gaussian_quadrature
 
-    gaussian_quadrature  = gaussian_quadrature%get_instance()
+    gaussian_quadrature  = gaussian_quadrature%get_instance(GQ3)
+
+    test_gq = gaussian_quadrature%which()
+    @assertEqual(test_gq,GQ3)
 
     polynomial = 0.33333333333333333333333_r_def
 

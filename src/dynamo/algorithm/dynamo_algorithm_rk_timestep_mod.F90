@@ -27,7 +27,7 @@ module dynamo_algorithm_rk_timestep_mod
   use solver_mod,   only: solver_algorithm
   use argument_mod, only: v0, v1, v2, v3
   use constants_mod, only : r_def
-  use gaussian_quadrature_mod, only : gaussian_quadrature_type
+  use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3
                                                                                                                                                 
   implicit none
 
@@ -58,6 +58,7 @@ contains
                                        rr_prediction(:)                        
     
     integer :: theta_fs, u_fs, rho_fs
+    integer :: theta_gq, u_gq, rho_gq
     integer :: n, nt
     integer :: stage, num_rk_stage, st
     real(kind=r_def), allocatable :: ak(:,:)
@@ -79,26 +80,44 @@ contains
                
  ! Local fields
     theta_fs  = theta%which_function_space()
+    theta_gq  = theta%which_gaussian_quadrature()
     u_fs      = u%which_function_space()
+    u_gq      = u%which_gaussian_quadrature()
     rho_fs    = rho%which_function_space()
+    rho_gq    = rho%which_gaussian_quadrature()
 
-    theta_n   = field_type( fs%get_instance(theta_fs) )
-    u_n       = field_type( fs%get_instance(u_fs) )
-    rho_n     = field_type( fs%get_instance(rho_fs) )
-    r_theta   = field_type( fs%get_instance(theta_fs) )
-    r_u       = field_type( fs%get_instance(u_fs) )
-    r_rho     = field_type( fs%get_instance(rho_fs) )
-    theta_inc = field_type( fs%get_instance(theta_fs) )
-    u_inc     = field_type( fs%get_instance(u_fs) )
-    rho_inc   = field_type( fs%get_instance(rho_fs), gq%get_instance() )
-    chi_v3(1) = field_type( fs%get_instance(rho_fs) )
-    chi_v3(2) = field_type( fs%get_instance(rho_fs) )
-    chi_v3(3) = field_type( fs%get_instance(rho_fs) )
+    theta_n   = field_type( vector_space = fs%get_instance(theta_fs), &
+                            gq = gq%get_instance(theta_gq) )
+    u_n       = field_type( vector_space = fs%get_instance(u_fs), &
+                            gq = gq%get_instance(u_gq) )
+    rho_n     = field_type( vector_space = fs%get_instance(rho_fs), &
+                            gq = gq%get_instance(rho_gq) )
+    r_theta   = field_type( vector_space = fs%get_instance(theta_fs), &
+                            gq = gq%get_instance(theta_gq) )
+    r_u       = field_type( vector_space = fs%get_instance(u_fs), &
+                            gq = gq%get_instance(u_gq) )
+    r_rho     = field_type( vector_space = fs%get_instance(rho_fs), &
+                            gq = gq%get_instance(rho_gq) )
+    theta_inc = field_type( vector_space = fs%get_instance(theta_fs), &
+                            gq = gq%get_instance(theta_gq) )
+    u_inc     = field_type( vector_space = fs%get_instance(u_fs), &
+                            gq = gq%get_instance(u_gq) )
+    rho_inc   = field_type( vector_space = fs%get_instance(rho_fs), &
+                            gq = gq%get_instance(rho_gq) )
+    chi_v3(1) = field_type( vector_space = fs%get_instance(rho_fs), &
+                            gq = gq%get_instance(rho_gq) )
+    chi_v3(2) = field_type( vector_space = fs%get_instance(rho_fs), &
+                            gq = gq%get_instance(rho_gq) )
+    chi_v3(3) = field_type( vector_space = fs%get_instance(rho_fs), &
+                            gq = gq%get_instance(rho_gq) )
     
     do stage = 1,num_rk_stage
-      rt_prediction(stage) = field_type( fs%get_instance(theta_fs), gq%get_instance() ) 
-      ru_prediction(stage) = field_type( fs%get_instance(u_fs), gq%get_instance() )
-      rr_prediction(stage) = field_type( fs%get_instance(rho_fs), gq%get_instance() )
+      rt_prediction(stage) = field_type( vector_space = fs%get_instance(theta_fs),&
+                                         gq = gq%get_instance(theta_gq) )
+      ru_prediction(stage) = field_type( vector_space = fs%get_instance(u_fs),&
+                                         gq = gq%get_instance(u_gq) )
+      rr_prediction(stage) = field_type( vector_space = fs%get_instance(rho_fs), &
+                                         gq = gq%get_instance(rho_gq) )
     end do   
 
     !Construct PSy layer given a list of kernels. This is the line the code

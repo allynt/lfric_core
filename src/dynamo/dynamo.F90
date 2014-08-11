@@ -26,7 +26,7 @@ program dynamo
   use function_space_mod,      only : function_space_type, V0, V1, V2, V3
   use log_mod,                 only : log_event, LOG_LEVEL_INFO
   use set_up_mod,              only : set_up
-  use gaussian_quadrature_mod, only : gaussian_quadrature_type
+  use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3
 
   implicit none
 
@@ -45,23 +45,23 @@ program dynamo
 
   do coord = 1,3
     chi(coord) = field_type( vector_space = function_space%get_instance( V0 ),&
-                             gq = gq%get_instance() )
+                             gq = gq%get_instance(GQ3) )
   end do
                
   theta = field_type( vector_space = function_space%get_instance( V0 ),       &
-                      gq = gq%get_instance() )
+                      gq = gq%get_instance(GQ3) )
                     
   xi = field_type( vector_space = function_space%get_instance( V1 ),          &
-                      gq = gq%get_instance() )
+                      gq = gq%get_instance(GQ3) )
                     
   u = field_type( vector_space = function_space%get_instance( V2 ),           &
-                      gq = gq%get_instance() )
+                      gq = gq%get_instance(GQ3) )
 
   rho = field_type( vector_space = function_space%get_instance( V3 ),         &
-                      gq = gq%get_instance() )
+                      gq = gq%get_instance(GQ3) )
 
   exner = field_type( vector_space = function_space%get_instance( V3 ),       &
-                      gq = gq%get_instance() )
+                      gq = gq%get_instance(GQ3) )
                                            
 
   call dynamo_algorithm_rk_timestep( chi, u, rho, theta, exner, xi)                       

@@ -61,6 +61,10 @@ module field_mod
     !! the field lives
     procedure         :: which_function_space
 
+    !> function returns the enumerated integer for the Gaussian quadrature
+    !! associated with this field 
+    procedure         :: which_gaussian_quadrature
+
   end type field_type
 
   interface field_type
@@ -117,16 +121,12 @@ contains
   function field_constructor( vector_space, gq ) result(self)
 
     type(function_space_type), target, intent(in) :: vector_space
-    type(gaussian_quadrature_type), optional, target, intent(in) :: gq
+    type(gaussian_quadrature_type), target, intent(in) :: gq
 
     type(field_type), target :: self
 
     self%vspace => vector_space
-    if ( present( gq ) ) then
-      self%gaussian_quadrature => gq
-    else
-      self%gaussian_quadrature => null()
-    end if
+    self%gaussian_quadrature => gq
 
     ! allocate the array in memory
     allocate(self%data(self%vspace%get_undf()))
@@ -218,5 +218,14 @@ contains
     fs = self%vspace%which()
     return
   end function which_function_space
+
+  function which_gaussian_quadrature(self) result(gq)
+    implicit none
+    class(field_type), intent(in) :: self
+    integer :: gq
+    
+    gq = self%gaussian_quadrature%which()
+    return
+  end function which_gaussian_quadrature
 
 end module field_mod

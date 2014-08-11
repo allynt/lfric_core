@@ -15,7 +15,7 @@ module solver_mod
                                       LOG_LEVEL_DEBUG
   use field_mod,               only : field_type
   use function_space_mod,      only : function_space_type
-  use gaussian_quadrature_mod, only : gaussian_quadrature_type
+  use gaussian_quadrature_mod, only : gaussian_quadrature_type, GQ3
 
   use psy,             only : invoke_inner_prod,                               &
                               invoke_axpy, invoke_minus_field_data,            &
@@ -72,7 +72,7 @@ contains
     ! others
     real(kind=r_def)                   :: err,sc_err, tol, init_err
     integer                            :: iter
-    integer                            :: rhs_fs
+    integer                            :: rhs_fs, rhs_gq
     type(function_space_type)          :: fs
     type( gaussian_quadrature_type )   :: gq 
 
@@ -87,7 +87,9 @@ contains
     call invoke_set_field_scalar(0.0_r_def, lhs)
 
     rhs_fs = rhs%which_function_space()
-    v = field_type(fs%get_instance(rhs_fs), gq%get_instance() )
+    rhs_gq = rhs%which_gaussian_quadrature()
+    v = field_type(vector_space = fs%get_instance(rhs_fs), &
+                   gq = gq%get_instance(rhs_gq) )
     !PSY call invoke ( set_field_scalar(0.0_r_def, v))
     call invoke_set_field_scalar(0.0_r_def, v)
 
@@ -102,7 +104,8 @@ contains
     !PSY call invoke ( inner_prod(v,v,err))
     call invoke_inner_prod(v,v,err)
 
-    res = field_type(fs%get_instance(rhs_fs) )    
+    res = field_type(vector_space = fs%get_instance(rhs_fs), &
+                     gq = gq%get_instance(rhs_gq) )
     !PSY call invoke ( minus_field_data(rhs,v,res))
     call invoke_minus_field_data(rhs,v,res)
 
@@ -120,17 +123,20 @@ contains
     omega  = 1.0_r_def
     norm   = 1.0_r_def
 
-    cr = field_type(fs%get_instance(rhs_fs) )
+    cr = field_type(vector_space = fs%get_instance(rhs_fs), &
+                    gq = gq%get_instance(rhs_gq) )
     !PSY call invoke ( copy_field_data(res,cr))
     call invoke_copy_field_data(res,cr)
 
-    p = field_type(fs%get_instance(rhs_fs) )
+    p = field_type(vector_space = fs%get_instance(rhs_fs), &
+                   gq = gq%get_instance(rhs_gq) )
     !PSY call invoke ( set_field_scalar(0.0_r_def, p))
     call invoke_set_field_scalar(0.0_r_def, p)
 
-    t = field_type(fs%get_instance(rhs_fs),                                &
-         gq%get_instance() )
-    s = field_type(fs%get_instance(rhs_fs) )
+    t = field_type(vector_space = fs%get_instance(rhs_fs), &
+                   gq = gq%get_instance(rhs_gq) )
+    s = field_type(vector_space = fs%get_instance(rhs_fs), &
+                   gq = gq%get_instance(rhs_gq) )
     !PSY call invoke ( set_field_scalar(0.0_r_def, v))
     call invoke_set_field_scalar(0.0_r_def, v)
 

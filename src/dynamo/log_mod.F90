@@ -105,7 +105,8 @@ contains
   !> Log an event to the terminal.
   !>
   !> The event description is sent to the terminal along with timestamp and
-  !> level information.
+  !> level information. For the most serious events (a severity level equal to
+  !> or greater than LOG_LEVEL_ERROR), execution of the code will be aborted.
   !>
   !> @param message A description of the event.
   !> @param level   The severity of the event. Defaults to cInfoLevel.
@@ -148,6 +149,12 @@ contains
 
       write (unit, '(A,A,A,A,A,A,A)') date_string, time_string, zone_string, &
                                       ':', tag, ': ', trim( message )
+
+      ! If the severity level of the event is serious enough, stop the code.
+      if ( level >= LOG_LEVEL_ERROR )then
+        stop
+      end if
+
     end if
 
   end subroutine log_event

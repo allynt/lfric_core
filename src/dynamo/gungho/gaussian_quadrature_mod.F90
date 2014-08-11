@@ -27,6 +27,9 @@ type, public :: gaussian_quadrature_type
   private
   !> allocatable arrays which holds the values of the gaussian quadrature
   real(kind=r_def), allocatable :: xgp(:), xgp_h(:,:), wgp(:), wgp_h(:)
+
+  !> enumerated integer representing this instance of the gaussian_quadrature
+  integer :: gq
 contains
   !> Function returns a pointer to the Gaussian quadrature. If a Gaussian quadrature
   !> quadrature had not yet been created, it creates one before returning the pointer
@@ -60,21 +63,24 @@ contains
   !! @param bindex The index of the basis function
   procedure :: poly1d_deriv  
   
-  !> subroutine returns the array xgp_h
-  !! @param self the calling gp
-  !! @param real xgp_h the 2-d array to hold the values
+  !> function returns the 2-d array of horizontal quadrature points
   procedure :: get_xgp_h
   
-  !> subroutine returns the array xgp_v
-  !! @param self the calling gp
-  !! @param real xgp the 1-d array to hold the values
+  !> function returns the 1-d array of vertical quadrature points
   procedure :: get_xgp_v
+
+  !> function returns the enumerated integer for the gaussian_quadrature
+  !! which is this gaussian_quadrature
+  procedure :: which
 
 end type
 
 !-------------------------------------------------------------------------------
 ! Module parameters
 !-------------------------------------------------------------------------------
+!> integer that defines the type of Gaussian quadrature required
+integer, public, parameter      :: GQ3 = 203
+
 !> integer The number of gaussian quadrature points in the vertical
 integer, public, parameter      :: ngp_v = 3
 !> integer The number of gaussian quadrature points in the horizontal
@@ -83,29 +89,40 @@ integer, public, parameter      :: ngp_v = 3
 integer, public, parameter      :: ngp_h = 9
 !> All fields are integrated onto a fixed Guassian quadrature.
 !> This is a static copy of that Gaussian quadrature object 
-type(gaussian_quadrature_type), target, allocatable, save :: gq
+type(gaussian_quadrature_type), target, allocatable, save :: gq_3
 
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
 contains
 
-function get_instance() result(instance)
+function get_instance(gaussian_quadrature) result(instance)
+
+  use log_mod, only : log_event, LOG_LEVEL_ERROR
+
   implicit none
 
+  integer :: gaussian_quadrature
   type(gaussian_quadrature_type), pointer :: instance
 
-  if(.not.allocated(gq)) then
-    allocate(gq)
-    call init_gauss(gq) 
-  end if
-
-  instance => gq
+  select case (gaussian_quadrature)
+  case (GQ3)
+    if(.not.allocated(gq_3)) then
+      allocate(gq_3)
+      call init_gauss(gq_3, GQ3) 
+    end if
+    instance => gq_3
+  case default
+    ! Not a recognised Gaussian quadrature. Logging an event with severity:
+    ! LOG_LEVEL_ERROR will cause execution to abort
+    call log_event( 'Gaussian quadrature type not recognised in '// &
+                    'gaussian_quadrature%get_instance', LOG_LEVEL_ERROR )
+  end select
 
   return
 end function get_instance
  
-subroutine init_gauss(self)
+subroutine init_gauss(self, gq)
   !-----------------------------------------------------------------------------
   ! Subroutine to compute the Gaussian points (xgp) and (wgp) wgphts 
   !-----------------------------------------------------------------------------
@@ -115,6 +132,7 @@ subroutine init_gauss(self)
 
   integer             :: i, j, m
   real(kind=r_def)    :: p1, p2, p3, pp, z, z1
+  integer, intent(in) :: gq
   
   allocate( self%xgp(ngp_v) )
   allocate( self%wgp(ngp_v) ) 
@@ -175,6 +193,8 @@ subroutine init_gauss(self)
       m = m + 1
     end do
   end do
+
+  self%gq = gq
 
   return
 end subroutine init_gauss
@@ -345,25 +365,34 @@ function poly1d_deriv(self, order,ik,xindex,x,bindex)
 !> Function to return the quadrature points in the horizontal
 !> @param[in] self the calling quadrature rule
 !> @param[in] xgp_h the array to copy the quadrature points into
-subroutine get_xgp_h(self,xgp_h)
+function get_xgp_h(self) result(xgp_h)
   implicit none
   class(gaussian_quadrature_type), intent(in) :: self
-  real(kind=r_def), intent(out) :: xgp_h(ngp_h,2)
+  real(kind=r_def) :: xgp_h(ngp_h,2)
 
   xgp_h(:,:) = self%xgp_h(:,:)
   return
-end subroutine get_xgp_h 
+end function get_xgp_h 
 
 !> Function to return the quadrature points in the vertical
 !> @param[in] self the calling quadrature rule
 !> @param[in] xgp_v the array to copy the quadrature points into
-subroutine get_xgp_v(self,xgp_v)
+function get_xgp_v(self) result(xgp_v)
   implicit none
   class(gaussian_quadrature_type), intent(in) :: self
-  real(kind=r_def), intent(out) :: xgp_v(ngp_v)
+  real(kind=r_def) :: xgp_v(ngp_v)
 
   xgp_v(:) = self%xgp(:)
   return
-end subroutine get_xgp_v
+end function get_xgp_v
+
+function which(self) result(gq)
+  implicit none
+  class(gaussian_quadrature_type),  intent(in) :: self
+  integer :: gq
+  
+  gq = self%gq
+  return
+end function which
 
 end module gaussian_quadrature_mod

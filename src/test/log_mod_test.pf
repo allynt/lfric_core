@@ -131,8 +131,7 @@ contains
     parameters = [ level_parameter_type( LOG_LEVEL_TRACE,   ':TRACE:' ), &
                    level_parameter_type( LOG_LEVEL_DEBUG,   ':DEBUG:' ), &
                    level_parameter_type( LOG_LEVEL_INFO,    ':INFO :' ), &
-                   level_parameter_type( LOG_LEVEL_WARNING, ':WARN :' ), &
-                   level_parameter_type( LOG_LEVEL_ERROR,   ':ERROR:' ) ]
+                   level_parameter_type( LOG_LEVEL_WARNING, ':WARN :' ) ]
 
   end function getParameters
 
@@ -261,7 +260,6 @@ contains
     call log_event( 'chedder',    LOG_LEVEL_DEBUG )
     call log_event( 'wenslydale', LOG_LEVEL_INFO )
     call log_event( 'gloucester', LOG_LEVEL_WARNING )
-    call log_event( 'stilton',    LOG_LEVEL_ERROR )
 
     rewind( INFO_UNIT )
     if ( this%level <= LOG_LEVEL_TRACE ) then
@@ -288,11 +286,7 @@ contains
       @assertEqual( ':WARN :', tag )
       @assertEqual( 'gloucester', message )
     end if
-    if ( this%level <= LOG_LEVEL_ERROR ) then
-      read( ALERT_UNIT, '(23X,A8,A)' ) tag, message
-      @assertEqual( ':ERROR:', tag )
-      @assertEqual( 'stilton', message )
-    end if
+
     read( ALERT_UNIT, '(A)', iostat = status ) message
     @assertEqual( iostat_end, status )
 

@@ -15,7 +15,7 @@ module field_mod_test
   use constants_mod,           only : r_def, i_def
   use mesh_mod,                only : num_cells, v_unique_dofs, num_layers
   use gaussian_quadrature_mod, only : gaussian_quadrature_type, &
-                                      ngp_h, ngp_v
+                                      ngp_h, ngp_v, GQ3
   use basis_function_mod,      only : v0_basis, &
                                       v0_diff_basis, &
                                       v0_nodal_coords
@@ -119,14 +119,14 @@ contains
     type( function_space_type )      :: func_space
     type( field_type )               :: f_field
     type( field_proxy_type )         :: f_field_proxy
-    type( gaussian_quadrature_type ) :: gq
+    type( gaussian_quadrature_type ) :: gaussian_quadrature
     integer                          :: num_dofs,num_unique_dofs
     integer                          :: testncell,       &
                                         testnlayers
-    integer :: i,j, fs
+    integer :: i,j, fs, gq
 
     f_field = field_type( vector_space = func_space%get_instance(V0), &
-                          gq = gq%get_instance() )
+                          gq = gaussian_quadrature%get_instance(GQ3) )
 
     f_field_proxy = f_field % get_proxy( )
 
@@ -139,6 +139,9 @@ contains
 
     fs = f_field%which_function_space()
     @assertEqual(fs,V0)
+
+    gq = f_field%which_gaussian_quadrature()
+    @assertEqual(gq,GQ3)
 
   end subroutine test_field_data
 
@@ -157,8 +160,10 @@ contains
     type( function_space_type ) :: function_space
     type( field_type )          :: test_field
     type( field_proxy_type )    :: test_field_accessor
+    type( gaussian_quadrature_type ) :: gaussian_quadrature
 
-    test_field          = field_type( function_space%get_instance( V0 ) )
+    test_field          = field_type( function_space%get_instance( V0 ), &
+                          gq = gaussian_quadrature%get_instance(GQ3) )
     test_field_accessor = test_field%get_proxy()
 
     ! test the procedures of the type
@@ -168,7 +173,7 @@ contains
 
     @assertEqual( test_field%which_function_space(), V0 )
 
-    @assertFalse( associated( test_field_accessor%gaussian_quadrature ) )
+    @assertEqual( test_field%which_gaussian_quadrature(), GQ3 )
 
   end subroutine test_half_field
 

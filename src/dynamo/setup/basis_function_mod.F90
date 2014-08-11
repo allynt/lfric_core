@@ -21,7 +21,7 @@ module basis_function_mod
   use reference_element_mod
 
   use constants_mod, only: r_def
-  use gaussian_quadrature_mod, only: gaussian_quadrature_type, &
+  use gaussian_quadrature_mod, only: gaussian_quadrature_type, GQ3, &
                                      ngp_v, ngp_h !parameter for how many GQ points
 
   implicit none
@@ -119,7 +119,7 @@ contains
 
     ! Create a gq object for now - Todo: we probably don't need to instantiate
     ! gq as all we ever do is call a method from it. Sort out later
-    gq=>gq%get_instance()
+    gq=>gq%get_instance(GQ3)
 
     ! positional arrays - need two, i.e quadratic and linear for RT1
     do i=1,k+2
