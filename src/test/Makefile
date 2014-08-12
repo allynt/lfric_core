@@ -54,7 +54,8 @@ $(TEST_OBJ_DIR)/%.o: $(TEST_OBJ_DIR)/%.F90
 	      -I$(TARGET_OBJ_DIR) -o $@ $<
 
 .PRECIOUS: $(TEST_OBJ_DIR)/%.F90
-$(TEST_OBJ_DIR)/%.F90: %.pf $(TEST_OBJ_DIR) $(TEST_OBJ_SUBDIRS)
+$(TEST_OBJ_DIR)/%.F90: %.pf $(TEST_OBJ_DIR) $(TEST_OBJ_SUBDIRS) \
+                       $(PFUNIT_INSTALL)/bin/pFUnitParser.py
 	@echo Generating $@
 	$(PFUNIT_INSTALL)/bin/pFUnitParser.py $< $@
 

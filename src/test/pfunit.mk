@@ -25,6 +25,9 @@ endif
 pfunit: compilertest $(PFUNIT_BUILD)
 	$(MAKE) -C $(PFUNIT_BUILD) install
 
+$(PFUNIT_INSTALL)/include/driver.F90: pfunit
+$(PFUNIT_INSTALL)/bin/pFUnitParser.py: pfunit
+
 $(PFUNIT_BUILD):
 	mkdir $@
 	cd $@; $(CMAKE) -DCMAKE_Fortran_COMPILER=$(FC) \
