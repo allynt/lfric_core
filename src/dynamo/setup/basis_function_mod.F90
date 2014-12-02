@@ -173,30 +173,30 @@ contains
     x2(k+2) = 0.0_r_def
 
     ! some look arrays based upon reference cube topology
-    face_idx = (/ 1, k+2, k+2, 1, 1, k+2 /)
+    face_idx = (/ 1, 1, k+2, k+2, 1, k+2 /)
 
-    edge_idx(:,1) = (/ 1, k+2, k+2, 1, 1, k+2, k+2, 1,   1,   k+2, k+2, 1   /)
-    edge_idx(:,2) = (/ 1, 1,   1,   1, 1, 1,   k+2, k+2, k+2, k+2, k+2, k+2 /)
+    edge_idx(:,1) = (/ 1, 1, k+2, k+2, 1, k+2, k+2, 1,   1,   1,   k+2, k+2 /)
+    edge_idx(:,2) = (/ 1, 1, 1,   1,   1, 1,   k+2, k+2, k+2, k+2, k+2, k+2 /)
 
-    j2l_face(1,:) = (/ 2, 3, 1 /)
-    j2l_face(2,:) = (/ 3, 2, 1 /)
-    j2l_face(3,:) = (/ 2, 3, 1 /)
-    j2l_face(4,:) = (/ 3, 2, 1 /)
+    j2l_face(1,:) = (/ 3, 2, 1 /)
+    j2l_face(2,:) = (/ 2, 3, 1 /)
+    j2l_face(3,:) = (/ 3, 2, 1 /)
+    j2l_face(4,:) = (/ 2, 3, 1 /)
     j2l_face(5,:) = (/ 2, 1, 3 /)
     j2l_face(6,:) = (/ 2, 1, 3 /)
 
-    j2l_edge(1 ,:) = (/ 1, 2, 3 /)
-    j2l_edge(2 ,:) = (/ 2, 1, 3 /)
-    j2l_edge(3 ,:) = (/ 1, 2, 3 /)
-    j2l_edge(4 ,:) = (/ 2, 1, 3 /)
+    j2l_edge(1 ,:) = (/ 2, 1, 3 /)
+    j2l_edge(2 ,:) = (/ 1, 2, 3 /)
+    j2l_edge(3 ,:) = (/ 2, 1, 3 /)
+    j2l_edge(4 ,:) = (/ 1, 2, 3 /)
     j2l_edge(5 ,:) = (/ 2, 3, 1 /)
     j2l_edge(6 ,:) = (/ 2, 3, 1 /)
     j2l_edge(7 ,:) = (/ 2, 3, 1 /)
     j2l_edge(8 ,:) = (/ 2, 3, 1 /)
-    j2l_edge(9 ,:) = (/ 1, 2, 3 /)
-    j2l_edge(10,:) = (/ 2, 1, 3 /)
-    j2l_edge(11,:) = (/ 1, 2, 3 /)
-    j2l_edge(12,:) = (/ 2, 1, 3 /)
+    j2l_edge(9 ,:) = (/ 2, 1, 3 /)
+    j2l_edge(10,:) = (/ 1, 2, 3 /)
+    j2l_edge(11,:) = (/ 2, 1, 3 /)
+    j2l_edge(12,:) = (/ 1, 2, 3 /)
 
     !-----------------------------------------------------------------------------
     ! Section for test/trial functions of CG spaces 
@@ -568,20 +568,20 @@ contains
           end do
        end do
        w2_nodal_coords(1,i)= &
-             unit_vec_w2(i,1)*x1(lx(i)) + (1.0 - unit_vec_w2(i,1))*x2(lx(i))
+             unit_vec_w2(i,1)*x1(lx(i)) + (1.0_r_def - unit_vec_w2(i,1))*x2(lx(i))
        w2_nodal_coords(2,i)= &
-             unit_vec_w2(i,2)*x1(ly(i)) + (1.0 - unit_vec_w2(i,2))*x2(ly(i))
+             unit_vec_w2(i,2)*x1(ly(i)) + (1.0_r_def - unit_vec_w2(i,2))*x2(ly(i))
        w2_nodal_coords(3,i)= &
-             unit_vec_w2(i,3)*x1(lz(i)) + (1.0 - unit_vec_w2(i,3))*x2(lz(i))
+             unit_vec_w2(i,3)*x1(lz(i)) + (1.0_r_def - unit_vec_w2(i,3))*x2(lz(i))
 
        w2_basis_order(1,i) = order - int(1 - unit_vec_w2(i,1))
        w2_basis_order(2,i) = order - int(1 - unit_vec_w2(i,2))
        w2_basis_order(3,i) = order - int(1 - unit_vec_w2(i,3))
 
        w2_basis_vector(:,i) = unit_vec_w2(i,:)
-       w2_basis_x(:,1,i) = unit_vec_w2(i,1) *x1(:) + (1.0 - unit_vec_w2(i,1))*x2(:)
-       w2_basis_x(:,2,i) = unit_vec_w2(i,2) *x1(:) + (1.0 - unit_vec_w2(i,2))*x2(:)
-       w2_basis_x(:,3,i) = unit_vec_w2(i,3) *x1(:) + (1.0 - unit_vec_w2(i,3))*x2(:)
+       w2_basis_x(:,1,i) = unit_vec_w2(i,1) *x1(:) + (1.0_r_def - unit_vec_w2(i,1))*x2(:)
+       w2_basis_x(:,2,i) = unit_vec_w2(i,2) *x1(:) + (1.0_r_def - unit_vec_w2(i,2))*x2(:)
+       w2_basis_x(:,3,i) = unit_vec_w2(i,3) *x1(:) + (1.0_r_def - unit_vec_w2(i,3))*x2(:)
     end do
     w2_basis_index(1,:) = lx(1:w_unique_dofs(3,2))
     w2_basis_index(2,:) = ly(1:w_unique_dofs(3,2))

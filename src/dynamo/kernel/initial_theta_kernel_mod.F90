@@ -16,8 +16,10 @@ module initial_theta_kernel_mod
 use kernel_mod,              only : kernel_type
 use argument_mod,            only: arg_type, &          ! the type
                                    gh_rw, gh_read, w0, fe, cells ! the enums
-use constants_mod,           only: pi, r_def
-
+use constants_mod,           only: pi, r_def, earth_radius
+use mesh_generator_mod,      only: xyz2llr
+use mesh_mod,                only: l_spherical
+use generate_global_gw_fields_mod, only: generate_global_gw_pert
 implicit none
 
 !-------------------------------------------------------------------------------
@@ -83,17 +85,36 @@ subroutine initial_theta_code(nlayers,ndf,map,theta,chi_1,chi_2,chi_3)
   real(kind=r_def), parameter :: a      = 5000.0_r_def
   real(kind=r_def), parameter :: h      = 10000.0_r_def
   real(kind=r_def)            :: x, y, z
+
+  real(kind=r_def)            :: lat, lon, r
+  real(kind=r_def)            :: theta_pert
    
   ! compute the pointwise theta profile
-  do k = 0, nlayers-1
-    do df = 1, ndf
-       x = chi_1(map(df) + k)
-       y = chi_2(map(df) + k)
-       z = chi_3(map(df) + k)
-       theta(map(df) + k) = theta0 * sin ( pi * z / h )                        &
-                          / ( 1.0_r_def + ( x - xc )**2/a**2 )                      
+  if ( l_spherical ) then
+    do k = 0, nlayers-1
+      do df = 1, ndf
+         x = chi_1(map(df) + k)
+         y = chi_2(map(df) + k)
+         z = chi_3(map(df) + k)
+
+         call xyz2llr(x, y, z, lon, lat, r)
+         theta_pert = generate_global_gw_pert(lon,lat,r-earth_radius)
+
+         theta(map(df) + k) =  theta_pert
+       end do
     end do
-  end do
+  else
+    do k = 0, nlayers-1
+      do df = 1, ndf
+         x = chi_1(map(df) + k)
+         y = chi_2(map(df) + k)
+         z = chi_3(map(df) + k)
+
+         theta(map(df) + k) = theta0 * sin ( pi * z / h )                        &
+                            / ( 1.0_r_def + ( x - xc )**2/a**2 )   
+      end do
+    end do
+  end if
   
 end subroutine initial_theta_code
 

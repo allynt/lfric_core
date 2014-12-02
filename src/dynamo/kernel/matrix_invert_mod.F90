@@ -95,5 +95,36 @@ contains
     end do
     
   end subroutine matrix_invert
-  
+
+!> @detailsComputes the inverse of 3x3 matrix using the exact formula
+!> @param[in] a Real 3x3 array. Holds the values of the matrix to be inverted
+!> @param[return] a_inv Real 3x3 array. Holds the values of the computed inverse
+  function matrix_invert_3x3(A) result ( A_inv )
+    use constants_mod, only: r_def
+
+    implicit none 
+    real(kind=r_def), intent(in) :: A(3,3)
+    real(kind=r_def)             :: A_inv(3,3)
+    real(kind=r_def)             :: det_inv
+
+! Form inverse determinant
+    det_inv = (A(1,1)*(A(2,2)*A(3,3) - A(2,3)*A(3,2)) &
+             - A(1,2)*(A(2,1)*A(3,3) - A(2,3)*A(3,1)) &
+             + A(1,3)*(A(2,1)*A(3,2) - A(3,1)*A(2,2)))
+    det_inv = 1.0_r_def/det_inv
+
+! Form inverse  
+    A_inv(1,1) =  (A(2,2)*A(3,3) - A(2,3)*A(3,2))*det_inv
+    A_inv(1,2) = -(A(1,2)*A(3,3) - A(1,3)*A(3,2))*det_inv
+    A_inv(1,3) =  (A(1,2)*A(2,3) - A(1,3)*A(2,2))*det_inv
+    A_inv(2,1) = -(A(2,1)*A(3,3) - A(2,3)*A(3,1))*det_inv
+    A_inv(2,2) =  (A(1,1)*A(3,3) - A(1,3)*A(3,1))*det_inv
+    A_inv(2,3) = -(A(1,1)*A(2,3) - A(1,3)*A(2,1))*det_inv
+    A_inv(3,1) =  (A(2,1)*A(3,2) - A(2,2)*A(3,1))*det_inv
+    A_inv(3,2) = -(A(1,1)*A(3,2) - A(1,2)*A(3,1))*det_inv
+    A_inv(3,3) =  (A(1,1)*A(2,2) - A(1,2)*A(2,1))*det_inv
+
+    return
+  end function matrix_invert_3x3
+
 end module matrix_invert_mod

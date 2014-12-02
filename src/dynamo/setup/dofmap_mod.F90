@@ -356,9 +356,12 @@ subroutine orientation_populate(ncells, ndf, ndf_entity, orientation)
           if ( cell_next(next_face,next_cell) == cell) common_face = next_face
         end do
         face_orientation(face,cell) = 1
-! if neighbouring faces are in set (1,1),(1,4),(2,2),(2,3),(3,3),(3,2),(4,4),(4,1)
+! if neighbouring faces are in set (1,1),(1,2),(2,2),(3,3),(3,4),(4,4)
+! or the reverse (2,1), (4,3)
 ! then reverse orientation of one element
-        if ( face == common_face .or. face + common_face == 5 ) then
+        if ( face == common_face &
+        .or. face + common_face == 3 &
+        .or. face + common_face == 7 ) then
           face_orientation(common_face,next_cell) = -1
         else
           face_orientation(common_face,next_cell) = 1
@@ -387,7 +390,7 @@ subroutine orientation_populate(ncells, ndf, ndf_entity, orientation)
             edge_orientation(common_edge,next_cell) = -1
           end if  
         else
-! else if neighbouring edges are (1,3), (1,4) or (2,3), (2,4) + sy,metric changes then        
+! else if neighbouring edges are (1,3), (1,4) or (2,3), (2,4) + symmetric changes then        
 ! if edges are in the same direction then reverse orientation         
           if ( vert_1 == vert_1_next ) then
             edge_orientation(common_edge,next_cell) = -1
@@ -427,7 +430,11 @@ subroutine orientation_populate(ncells, ndf, ndf_entity, orientation)
       end do
     end do 
   end do
-
+    do cell = 0, ncells
+      do df = 1,ndf
+       if ( orientation(cell,df) == -1 ) write(6,*) cell,df
+      end do
+    end do    
 end subroutine orientation_populate
 
 end module dofmap_mod

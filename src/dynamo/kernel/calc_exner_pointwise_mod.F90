@@ -30,10 +30,10 @@ function calc_exner_pointwise(rho, theta, exner_s, rho_s, theta_s) result(exner)
   real(kind=r_def), intent(in)  :: rho, theta, exner_s, rho_s, theta_s
 
 ! linear
-  exner = kappa / ( 1.0_r_def + kappa ) * exner_s * ( rho/rho_s + theta/theta_s )
+  exner = kappa / ( 1.0_r_def - kappa ) * exner_s * ( rho/rho_s + theta/theta_s )
   
 ! nonlinear  
-!   exner = ( rd/p_zero * rho * theta ) ** (  ( 1.0_r_def + kappa ) / kappa )
+!   exner = ( rd/p_zero * rho * theta ) ** (  ( 1.0_r_def - kappa ) / kappa )
 
 end function calc_exner_pointwise
 

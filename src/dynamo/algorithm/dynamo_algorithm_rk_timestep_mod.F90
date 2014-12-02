@@ -151,7 +151,7 @@ contains
 !================================================================================    
     ! Timestep
     nt = 30 ! number of timesteps
-    output_freq = nt
+    output_freq = nt 
     do n = 1,nt
       call log_event( '/****************************************************************************/ ', &
                       LOG_LEVEL_INFO )

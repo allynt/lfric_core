@@ -90,7 +90,7 @@ subroutine compute_mass_matrix(cell,nlayers,  &
     end do
     call coordinate_jacobian(ndf_w0, ngp_h, ngp_v, chi_1_e, chi_2_e, chi_3_e,  &
                              diff_basis_w0, jac, dj)
-    call coordinate_jacobian_inverse(ngp_h, ngp_v, jac, dj, jac_inv)
+    call coordinate_jacobian_inverse(ngp_h, ngp_v, jac, jac_inv)
 
 ! W0 mass matrix
     do df2 = 1, ndf_w0

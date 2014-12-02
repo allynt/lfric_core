@@ -57,8 +57,8 @@ contains
     
 ! Create uniform grid for output (nx,ny,nz)
     nx(1) = 100
-    nx(2) = 2
-    nx(3) = 10 
+    nx(2) = 50
+    nx(3) = 11 
 
     allocate( x_out(3,nx(3),nx(2),nx(1)), f_out(n_out,nx(3),nx(2),nx(1)) )
 

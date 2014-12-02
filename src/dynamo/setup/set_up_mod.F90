@@ -57,8 +57,10 @@ contains
     num_layers = 5
     element_order = 0
     l_spherical = .false.
-    dx = 6000.0_r_def
+! Horizontal spacings for cartesian grid    
+    dx = 6000.0_r_def 
     dy = 1000.0_r_def
+! Vertical spacing for all grids    
     dz = 2000.0_r_def
     filename = 'ugrid_quads_2d.nc' 
     call log_event( "set_up: generating/reading the mesh", LOG_LEVEL_INFO )

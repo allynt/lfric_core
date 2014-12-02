@@ -54,6 +54,8 @@ integer, allocatable ::  face_on_cell(:,:), edge_on_cell(:,:)
 
   type(domain_limits) :: domain_size
 
+  real(kind=r_def) :: domain_top
+
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
@@ -125,13 +127,13 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
   do j=1,ny
     do i=1,nx
 ! j-1 cell (South face)
-      cell_next(1,id) = id - nx
+      cell_next(2,id) = id - nx
 ! i+1 cell (East face)
-      cell_next(2,id) = id + 1
+      cell_next(3,id) = id + 1
 ! j+1 cell (North face)
-      cell_next(3,id) = id + nx      
+      cell_next(4,id) = id + nx      
 ! i-1 cell (West face)
-      cell_next(4,id) = id - 1
+      cell_next(1,id) = id - 1
 ! k-1 cell (bottom face)
       cell_next(5,id) = id - nx*ny
 ! k+1 cell (top face)
@@ -145,24 +147,24 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
 ! South
   id = 1
   do i=1,nx
-    cell_next(1,id) = nx*ny-nx+i
+    cell_next(2,id) = nx*ny-nx+i
     id = id + 1
   end do
   
 ! North  
   id = nx*ny
   do i=nx,1,-1
-    cell_next(3,id) = i
+    cell_next(4,id) = i
     id = id - 1
   end do
   
   id = 1
   do j=1,ny
 ! West     
-    cell_next(4,id) = id + nx -1
+    cell_next(1,id) = id + nx -1
     id = id + nx -1
 ! East
-    cell_next(2,id) = id - nx + 1
+    cell_next(3,id) = id - nx + 1
     id = id + 1
   end do
   
@@ -189,15 +191,15 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
   do j=1,ny
     do i=1,nx
       vert_on_cell(1,id) = id
-      vert_on_cell(2,id) = cell_next(2,id)
-      vert_on_cell(3,id) = cell_next(2,cell_next(3,id))
-      vert_on_cell(4,id) = cell_next(3,id)
+      vert_on_cell(2,id) = cell_next(3,id)
+      vert_on_cell(3,id) = cell_next(3,cell_next(4,id))
+      vert_on_cell(4,id) = cell_next(4,id)
       
       jd = id + nx*ny
       vert_on_cell(5,id) = jd
-      vert_on_cell(6,id) = cell_next(2,jd)
-      vert_on_cell(7,id) = cell_next(2,cell_next(3,jd))
-      vert_on_cell(8,id) = cell_next(3,jd)
+      vert_on_cell(6,id) = cell_next(3,jd)
+      vert_on_cell(7,id) = cell_next(3,cell_next(4,jd))
+      vert_on_cell(8,id) = cell_next(4,jd)
       
       id = id + 1
     end do
@@ -226,6 +228,7 @@ subroutine mesh_generator_biperiodic( ncells, nx, ny, nlayers, dx, dy, dz )
       end do
     end do
   end do
+  domain_top = dz * real(nlayers)
 
   call set_domain_size()
    
@@ -287,7 +290,7 @@ end subroutine mesh_generator_biperiodic
 subroutine mesh_generator_cubedsphere( filename, ncells, nlayers, dz )
 
   use log_mod,              only: log_event, log_scratch_space, &
-                                  LOG_LEVEL_INFO, LOG_LEVEL_ERROR
+                                  LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR
   use ugrid_2d_mod,         only: ugrid_2d_type
   use ugrid_file_mod,       only: ugrid_file_type 
   use ncdf_quad_mod,        only: ncdf_quad_type 
@@ -389,6 +392,8 @@ subroutine mesh_generator_cubedsphere( filename, ncells, nlayers, dz )
       mesh_vertex(3,j+k*nvert_in) = mesh_vertex(3,j) + dz*real(k)
     end do
   end do
+! Depth of atmosphere
+  domain_top = dz * real(nlayers)
 
 ! Convert (long,lat,r) -> (x,y,z)
   do j=1,nvert_in
@@ -419,28 +424,28 @@ subroutine mesh_generator_cubedsphere( filename, ncells, nlayers, dz )
   call set_domain_size()
  
 ! Diagnostic information  
-  call log_event( 'grid connectivity', LOG_LEVEL_INFO )
+  call log_event( 'grid connectivity', LOG_LEVEL_DEBUG )
   do i = 1, ncells * nlayers
     write( log_scratch_space, '(7i6)' ) i, &
                               cell_next(1,i), cell_next(2,i), cell_next(3,i), &
                               cell_next(4,i), cell_next(5,i), cell_next(6,i)
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+    call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
   end do
-  call log_event( 'verts on cells', LOG_LEVEL_INFO )
+  call log_event( 'verts on cells', LOG_LEVEL_DEBUG )
   do i = 1, ncells * nlayers
     write( log_scratch_space, '(9i6)' ) i, &
                               vert_on_cell(1,i), vert_on_cell(2,i), &
                               vert_on_cell(3,i), vert_on_cell(4,i), &
                               vert_on_cell(5,i), vert_on_cell(6,i), &
                               vert_on_cell(7,i), vert_on_cell(8,i)
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+    call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
   end do
 
-  call log_event( 'vert coords', LOG_LEVEL_INFO )
+  call log_event( 'vert coords', LOG_LEVEL_DEBUG )
   do i = 1, nvert_g
     write( log_scratch_space, '(i6,4e16.8)' ) &
          i, mesh_vertex(1,i), mesh_vertex(2,i), mesh_vertex(3,i)
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+    call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
   end do 
 
 end subroutine mesh_generator_cubedsphere
@@ -457,7 +462,7 @@ end subroutine mesh_generator_cubedsphere
 subroutine mesh_connectivity( ncells )
 
   use log_mod, only : log_event, log_scratch_space, &
-                      LOG_LEVEL_INFO, LOG_LEVEL_ERROR
+                      LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR
 
   integer, intent( in ) :: ncells
  
@@ -669,14 +674,17 @@ subroutine set_domain_size()
     domain_size%maximum%x =  2.0_r_def*pi
     domain_size%minimum%y = -0.5_r_def*pi
     domain_size%maximum%y =  0.5_r_def*pi
+    domain_size%minimum%z =  0.0_r_def
+    domain_size%maximum%z =  domain_top
   else
     domain_size%minimum%x =  minval(mesh_vertex(1,:))
     domain_size%maximum%x =  maxval(mesh_vertex(1,:))
     domain_size%minimum%y =  minval(mesh_vertex(2,:))
     domain_size%maximum%y =  maxval(mesh_vertex(2,:))
+    domain_size%minimum%z =  minval(mesh_vertex(3,:))
+    domain_size%maximum%z =  maxval(mesh_vertex(3,:))  
   end if
-  domain_size%minimum%z =  minval(mesh_vertex(3,:))
-  domain_size%maximum%z =  maxval(mesh_vertex(3,:))
+
 
 end subroutine set_domain_size
 
@@ -717,5 +725,34 @@ pure function cart2sphere_vector(x_vec, cartesian_vec) result ( spherical_vec )
      spherical_vec(2) = spherical_vec(2)*r
 
 end function cart2sphere_vector
+
+!-------------------------------------------------------------------------------
+!> @brief Function to convert a vector in sperical coordinates to one in
+!> cartesian coodinates
+!> @param[in]  llr location in spherical coodinates
+!> @param[in]  dlambda input vector in spherical coordinates
+!> @param[return] dx output vector in cartesian coordinates
+function sphere2cart_vector( dlambda, llr ) result ( dx )
+  use constants_mod,     only: r_def
+  use matrix_invert_mod, only: matrix_invert_3x3
+  implicit none
+
+  real(kind=r_def), intent(in)  :: dlambda(3)
+  real(kind=r_def), intent(in)  :: llr(3)
+  real(kind=r_def)              :: dx(3)
+
+  real(kind=r_def)              :: A(3,3), A_inv(3,3)
+
+! Form transformation matrix
+  A(1,:) = (/ -sin(llr(1)),              cos(llr(1)),              0.0_r_def   /)
+  A(2,:) = (/ -sin(llr(2))*cos(llr(1)), -sin(llr(2))*sin(llr(1)), -cos(llr(2)) /)
+  A(3,:) = (/  cos(llr(2))*cos(llr(1)),  cos(llr(2))*sin(llr(1)), -sin(llr(2)) /)
+! form inverse
+  A_inv = matrix_invert_3x3(A)
+  dx(:) = matmul(A_inv, dlambda)
+  return
+
+end function sphere2cart_vector
+
 
 end module mesh_generator_mod

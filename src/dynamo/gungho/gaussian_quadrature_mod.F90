@@ -73,11 +73,11 @@ end type
 integer, public, parameter      :: GQ3 = 203
 
 !> integer The number of gaussian quadrature points in the vertical
-integer, public, parameter      :: ngp_v = 3
+integer, public, parameter      :: ngp_v = 2
 !> integer The number of gaussian quadrature points in the horizontal
 !! nqp_h=ngp_v*ngp_v for quads. They can be different (triangles or hexes)
 !! but there is no setup code for this
-integer, public, parameter      :: ngp_h = 9
+integer, public, parameter      :: ngp_h = 4
 !> All fields are integrated onto a fixed Guassian quadrature.
 !> This is a static copy of that Gaussian quadrature object 
 type(gaussian_quadrature_type), target, allocatable, save :: gq_3

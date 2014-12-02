@@ -23,18 +23,20 @@ contains
     type(gaussian_quadrature_type) :: gq
     real(kind=r_def) :: f_data(1), rhs1(8), rhs2(8), rhs3(8)
     real(kind=r_def) :: answer, tol
-    real(kind=r_def) :: basis(1,8,9,3), basis_f(3,1,9,3)
-    
+    real(kind=r_def), allocatable :: basis(:,:,:,:), &
+                                     basis_f(:,:,:,:), &
+				     diff_basis(:,:,:,:)   
+    real(kind=r_def), allocatable :: xgp_h(:,:), xgp_v(:)   				     
     integer :: ndf_w0, map_w0(8), ndf_f, map_f(1)
     real(kind=r_def) :: chi(8,3)
-    real(kind=r_def) :: diff_basis(3,8,9,3) 
     real(kind=r_def) :: x_vert(8,3)
-    real(kind=r_def) :: xgp_h(9,2), xgp_v(3)
     real(kind=r_def) :: fx, fy, fz, dx, dy, dz, t_vec(3)
     integer :: df, dim, gp1, gp2
     
     gq=gq%get_instance(GQ3)
-    
+
+    allocate(xgp_h(ngp_h,2), xgp_v(ngp_v) )
+
     xgp_h = gq%get_xgp_h()
     xgp_v = gq%get_xgp_v()
     
@@ -48,6 +50,11 @@ contains
     x_vert(8,:) = (/ 0.0_r_def, 1.0_r_def, 1.0_r_def /)    
     
     ndf_w0 = 8
+    ndf_f = 1
+    allocate( basis_f   (3,ndf_f,ngp_h,ngp_v), &
+              basis     (1,ndf_w0,ngp_h,ngp_v), &
+	      diff_basis(3,ndf_w0,ngp_h,ngp_v) )
+
     do df = 1,ndf_w0
       map_w0(df) = df
       do gp2 = 1,ngp_v
@@ -68,7 +75,6 @@ contains
     end do
     chi(:,:) = x_vert(:,:)
 
-    ndf_f = 1
     map_f(1) = 1
     t_vec = (/ 1.0_r_def, 2.0_r_def, -1.0_r_def /)
     basis_f(1,:,:,:) = t_vec(1)

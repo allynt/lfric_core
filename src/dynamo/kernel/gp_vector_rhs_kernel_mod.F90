@@ -59,9 +59,9 @@ end function gp_vector_rhs_kernel_constructor
 !> field into a scalar space by decomposing the vector into orthogonal
 !> components in cartesian or spherical polar coordinates.
 !> @details Computes rhs_i = int (gamma * f_i dx) for a vector field f which  is
-!>          decomposed into orthogonal components and a seperate right hand side
+!>          decomposed into orthogonal components and a separate right hand side
 !>          field is computed for each component, this allows a vector field to
-!>          be projected into three seperate scalar fields suitable for further
+!>          be projected into three separate scalar fields suitable for further
 !>          manipulation
 !! @param[in] nlayers Integer the number of layers
 !! @param[in] ndf The number of degrees of freedom per cell

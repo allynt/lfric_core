@@ -17,7 +17,7 @@ contains
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
-!> Subroutine Computes the element Jacobian of the coordinate transform from
+!> @brief Subroutine Computes the element Jacobian of the coordinate transform from
 !! reference space \hat{\chi} to physical space \chi assuming the coordinate
 !! field is in W0
 !! @param[in] ndf        Integer. The size of the chi arrays
@@ -41,7 +41,7 @@ real(kind=r_def), intent(in)  :: diff_basis(3,ndf,ngp_h,ngp_v)
 real(kind=r_def), intent(out) :: jac(3,3,ngp_h,ngp_v)
 real(kind=r_def), intent(out) :: dj(ngp_h,ngp_v)
 
-! ! Hardwired values for cartesian domain
+! Hardwired values for cartesian domain
 real(kind=r_def) :: dx = 6000.0_r_def, &
                  dy = 1000.0_r_def, &
                  dz = 2000.0_r_def
@@ -58,7 +58,7 @@ do j = 1,ngp_v
         jac(3,dir,i,j) = jac(3,dir,i,j) + chi_3(df)*diff_basis(dir,df,i,j)
       end do              
     end do 
-! ! Hard wired values for cartesian biperiodic domain this needs correcting
+! Hard wired values for cartesian biperiodic domain this needs correcting
     jac(:,:,i,j) = 0.0_r_def
     jac(1,1,i,j) = dx
     jac(2,2,i,j) = dy
@@ -74,16 +74,26 @@ do j = 1,ngp_v
 end do
 
 end subroutine coordinate_jacobian
-
-subroutine coordinate_jacobian_inverse(ngp_h, ngp_v, jac, dj, jac_inv)
+!> @brief Subroutine Computes the inverse of the Jacobian of the coordinate transform from
+!! reference space \hat{\chi} to physical space \chi 
+!! @param[in] ngp_h      Integer. The number of quadrature points in horizontal direction
+!! @param[in] ngp_v      Integer. The number of quadrature points in vertical direction
+!! @param[in] jac        Real 3-dim array. Holds the values of the Jacobian 
+!!                       on quadrature points
+!! @param[out] jac_inv   Real 3-dim array  Holds the values of the inverse of the Jacobian
+!!                       on quadrature points
+subroutine coordinate_jacobian_inverse(ngp_h, ngp_v, jac, jac_inv)
 !-------------------------------------------------------------------------------
 ! Compute the inverse of the Jacobian J^{i,j} = d chi_i / d \hat{chi_j} and the 
 ! derterminant det(J)
 !-------------------------------------------------------------------------------
 
+use matrix_invert_mod, only: matrix_invert_3x3
+
+implicit none
+
 integer,          intent(in)  :: ngp_h, ngp_v
 real(kind=r_def), intent(in)  :: jac(3,3,ngp_h,ngp_v)
-real(kind=r_def), intent(in)  :: dj(ngp_h,ngp_v)
 real(kind=r_def), intent(out) :: jac_inv(3,3,ngp_h,ngp_v)
 
 integer :: i, k
@@ -91,28 +101,7 @@ integer :: i, k
 ! Calculates the inverse Jacobian from the analytic inversion formula
 do k = 1,ngp_v
    do i = 1,ngp_h
-      jac_inv(:,:,i,k) = 0.0_r_def      
-!      
-      jac_inv(1,1,i,k) = ( jac(2,2,i,k)*jac(3,3,i,k) -            &
-                           jac(2,3,i,k)*jac(3,2,i,k) ) / dj(i,k)
-      jac_inv(1,2,i,k) = ( jac(1,3,i,k)*jac(3,2,i,k) -            &
-                           jac(1,2,i,k)*jac(3,3,i,k) ) / dj(i,k)
-      jac_inv(1,3,i,k) = ( jac(1,2,i,k)*jac(2,3,i,k) -            &
-                           jac(1,3,i,k)*jac(2,2,i,k) ) / dj(i,k)
-
-      jac_inv(2,1,i,k) = ( jac(2,3,i,k)*jac(3,1,i,k) -            &
-                           jac(2,1,i,k)*jac(3,3,i,k) ) / dj(i,k)
-      jac_inv(2,2,i,k) = ( jac(1,1,i,k)*jac(3,3,i,k) -            &
-                           jac(1,3,i,k)*jac(3,1,i,k) ) / dj(i,k)
-      jac_inv(2,3,i,k) = ( jac(1,3,i,k)*jac(2,1,i,k) -            &
-                           jac(1,1,i,k)*jac(2,3,i,k) ) / dj(i,k)
-
-      jac_inv(3,1,i,k) = ( jac(2,1,i,k)*jac(3,2,i,k) -            &
-                           jac(2,2,i,k)*jac(3,1,i,k) ) / dj(i,k)
-      jac_inv(3,2,i,k) = ( jac(1,2,i,k)*jac(3,1,i,k) -            &
-                           jac(1,1,i,k)*jac(3,2,i,k) ) / dj(i,k)
-      jac_inv(3,3,i,k) = ( jac(1,1,i,k)*jac(2,2,i,k) -            &
-                           jac(1,2,i,k)*jac(2,1,i,k) ) / dj(i,k) 
+     jac_inv(:,:,i,k) = matrix_invert_3x3(jac(:,:,i,k))
    end do
 end do
 

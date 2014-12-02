@@ -11,9 +11,11 @@
 
 module assign_coordinate_kernel_mod
 use kernel_mod,              only : kernel_type
-use constants_mod,           only : r_def
+use constants_mod,           only : r_def, earth_radius
 use argument_mod,            only : arg_type, &          ! the type
-                                    gh_read, gh_write, any_space, fe, cells ! the enums                                 
+                                    gh_read, gh_write, any_space, fe, cells ! the enums       
+use mesh_mod,                only : dz, l_spherical  
+
 implicit none
 
 !-------------------------------------------------------------------------------
@@ -73,7 +75,9 @@ subroutine assign_coordinate_code(nlayers,ndf,nverts,map,chi_1,chi_2,chi_3, &
   !Internal variables
   integer          :: k, df, dfk, vert
   
-  real(kind=r_def) :: interp_weight, x, y, z
+  real(kind=r_def) :: interp_weight, x, y, z, radius_correction
+
+  radius_correction = 1.0_r_def
   
   ! compute the representation of the coordinate field
   do k = 0, nlayers-1
@@ -92,12 +96,14 @@ subroutine assign_coordinate_code(nlayers,ndf,nverts,map,chi_1,chi_2,chi_3, &
         z = z + interp_weight*vertex_coords(3,vert,k+1)
       end do
 ! For spherical domains we need to project x,y,z back onto spherical shells
-! This still needs to be done
-    
+      if ( l_spherical ) then
+        radius_correction = earth_radius + (real(k) + chi_hat_node(3,df))*dz
+        radius_correction = radius_correction/sqrt(x*x + y*y + z*z)
+      end if  
       dfk = map(df)+k 
-      chi_1(dfk) = x
-      chi_2(dfk) = y
-      chi_3(dfk) = z
+      chi_1(dfk) = x*radius_correction
+      chi_2(dfk) = y*radius_correction
+      chi_3(dfk) = z*radius_correction
     end do
   end do
   

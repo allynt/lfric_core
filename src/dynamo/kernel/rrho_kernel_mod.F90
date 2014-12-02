@@ -17,6 +17,8 @@ use argument_mod,            only : arg_type, &          ! the type
                                     gh_read, gh_write, w0, w2, w3, fe, cells ! the enums
 use reference_profile_mod,   only : reference_profile
 use constants_mod,           only : n_sq, gravity, r_def
+use mesh_generator_mod,      only : xyz2llr, sphere2cart_vector
+use mesh_mod,                only : l_spherical
 
 implicit none
 
@@ -98,21 +100,22 @@ subroutine rrho_code(nlayers,ndf_w3, map_w3, w3_basis, gq, r_rho,              &
   type(gaussian_quadrature_type), intent(inout) :: gq
 
   !Internal variables
-  integer               :: df, k, loc
+  integer               :: df, k, loc 
   integer               :: qp1, qp2
   
-  real(kind=r_def), dimension(ndf_w0) :: chi_1_e, chi_2_e, chi_3_e
-  real(kind=r_def), dimension(ndf_w2) :: u_e
-  real(kind=r_def), dimension(ngp_h,ngp_v)        :: dj
-  real(kind=r_def), dimension(3,3,ngp_h,ngp_v)    :: jac
-  real(kind=r_def), dimension(ndf_w3) :: rrho_e
-  real(kind=r_def) :: rho_s_at_quad, z_at_quad, exner_s_at_quad, &
-                      theta_s_at_quad, div_u_at_quad,            &
-                      div_term, buoy_term 
-  real(kind=r_def) :: u_at_quad(3), k_vec(3), vec_term
+  real(kind=r_def), dimension(ndf_w0)           :: chi_1_e, chi_2_e, chi_3_e
+  real(kind=r_def), dimension(ndf_w2)           :: u_e
+  real(kind=r_def), dimension(ndf_w3)           :: rrho_e 
+  real(kind=r_def), dimension(ngp_h,ngp_v)      :: dj
+  real(kind=r_def), dimension(3,3,ngp_h,ngp_v)  :: jac
+  real(kind=r_def) :: rho_s_at_quad,  exner_s_at_quad, &
+                      theta_s_at_quad, div_u_at_quad,  &
+                      div_term, buoy_term ,vec_term
+  real(kind=r_def) :: u_at_quad(3), k_sphere(3), k_cart(3), &
+                      x_at_quad(3), llr(3)
   real(kind=r_def), pointer :: wgp_h(:), wgp_v(:)
-  
-  k_vec = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
+
+  k_sphere = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
 
   wgp_h => gq%get_wgp_h()
   wgp_v => gq%get_wgp_v()
@@ -136,12 +139,14 @@ subroutine rrho_code(nlayers,ndf_w3, map_w3, w3_basis, gq, r_rho,              &
   ! compute the RHS integrated over one cell
     do qp2 = 1, ngp_v
       do qp1 = 1, ngp_h
-        z_at_quad = 0.0_r_def
+        x_at_quad(:) = 0.0_r_def
         do df = 1, ndf_w0
-          z_at_quad = z_at_quad + chi_3_e(df)*w0_basis(1,df,qp1,qp2)
+          x_at_quad(1) = x_at_quad(1) + chi_1_e(df)*w0_basis(1,df,qp1,qp2) 
+          x_at_quad(2) = x_at_quad(2) + chi_2_e(df)*w0_basis(1,df,qp1,qp2)
+          x_at_quad(3) = x_at_quad(3) + chi_3_e(df)*w0_basis(1,df,qp1,qp2)
         end do
         call reference_profile(exner_s_at_quad, rho_s_at_quad, & 
-                               theta_s_at_quad, z_at_quad)
+                               theta_s_at_quad, x_at_quad)
         u_at_quad(:) = 0.0_r_def
         div_u_at_quad = 0.0_r_def
         do df = 1, ndf_w2
@@ -149,9 +154,17 @@ subroutine rrho_code(nlayers,ndf_w3, map_w3, w3_basis, gq, r_rho,              &
           div_u_at_quad = div_u_at_quad + u_e(df)*w2_diff_basis(1,df,qp1,qp2)
         end do
        
+        if ( l_spherical ) then
+          call xyz2llr(x_at_quad(1), x_at_quad(2), x_at_quad(3), &
+                       llr(1), llr(2), llr(3))
+          k_cart(:) = sphere2cart_vector(k_sphere, llr)   
+        else
+          k_cart(:) = k_sphere(:)
+        end if     
+
         div_term  =  - rho_s_at_quad*div_u_at_quad 
-        vec_term = dot_product(k_vec,matmul(jac(:,:,qp1,qp2),u_at_quad))                               
-        buoy_term =  n_sq/gravity*rho_s_at_quad*vec_term
+        vec_term  = dot_product(matmul(jac(:,:,qp1,qp2),u_at_quad),k_cart)
+        buoy_term = n_sq/gravity*rho_s_at_quad*vec_term
         
         do df = 1, ndf_w3
           rrho_e(df) = rrho_e(df) + wgp_h(qp1)*wgp_v(qp2)*w3_basis(1,df,qp1,qp2)*( buoy_term + div_term )

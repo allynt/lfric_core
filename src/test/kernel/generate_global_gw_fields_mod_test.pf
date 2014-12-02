@@ -1,0 +1,51 @@
+!-----------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown, 
+! Met Office and NERC 2014. 
+! However, it has been created with the help of the GungHo Consortium, 
+! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-----------------------------------------------------------------------------
+
+!> Test the find_output_cell module 
+!>
+module generate_global_gw_fields_mod_test
+
+  implicit none 
+
+contains
+
+  !> Empty test to ensure that module is found
+  !>
+  @test
+  subroutine generate_global_gw_fields_test( )
+    use pFUnit_Mod  
+    use constants_mod,                 only : r_def, rd, p_zero
+    use generate_global_gw_fields_mod, only: generate_global_gw_fields
+
+    real(kind=r_def) :: lat, z, tol
+    real(kind=r_def) :: exner, theta, rho, u(3)
+    real(kind=r_def) :: exner_ans, theta_ans, rho_ans, u_ans(3)
+
+    lat = 0.0_r_def
+    z   = 0.0_r_def
+
+    call generate_global_gw_fields(lat, z, exner, u, theta, rho)
+
+    exner_ans = 1.0_r_def
+    rho_ans   = p_zero/(rd*300.0_r_def)
+    theta_ans = 300.0_r_def
+    u_ans(:)  = 0.0_r_def
+!    u_ans(1)  = 20.0_r_def
+
+    tol = 1.0e-10_r_def
+
+    @assertEqual( theta_ans, theta, tol )  
+    @assertEqual( exner_ans, exner, tol )  
+    @assertEqual( rho_ans,   rho,   tol ) 
+    @assertEqual( u_ans(1),  u(1),  tol )
+    @assertEqual( u_ans(2),  u(2),  tol )
+    @assertEqual( u_ans(3),  u(3),  tol )
+
+  end subroutine generate_global_gw_fields_test
+
+end module generate_global_gw_fields_mod_test
+

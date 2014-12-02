@@ -106,7 +106,7 @@ subroutine calc_exner_code(nlayers,ndf_w3,map_w3,w3_basis,gq,exner, &
   real(kind=r_def) :: rho_at_quad, rho_s_at_quad,                                 &
                    theta_at_quad, theta_s_at_quad,                             &
                    exner_s_at_quad
-  real(kind=r_def) :: rhs_eos, z_at_quad 
+  real(kind=r_def) :: rhs_eos, x_at_quad(3)
   real(kind=r_def), pointer :: wgp_h(:), wgp_v(:)
 
   wgp_h => gq%get_wgp_h()
@@ -130,12 +130,14 @@ subroutine calc_exner_code(nlayers,ndf_w3,map_w3,w3_basis,gq,exner, &
       rhs_e(df1) = 0.0_r_def
       do qp2 = 1, ngp_v
         do qp1 = 1, ngp_h
-          z_at_quad = 0.0_r_def
+          x_at_quad(:) = 0.0_r_def
           do df2 = 1, ndf_w0
-            z_at_quad = z_at_quad + chi_3_e(df2)*w0_basis(1,df2,qp1,qp2)
-          end do
+            x_at_quad(1) = x_at_quad(1) + chi_1_e(df2)*w0_basis(1,df2,qp1,qp2)
+            x_at_quad(2) = x_at_quad(2) + chi_2_e(df2)*w0_basis(1,df2,qp1,qp2)
+            x_at_quad(3) = x_at_quad(3) + chi_3_e(df2)*w0_basis(1,df2,qp1,qp2)
+          end do          
           call reference_profile(exner_s_at_quad, rho_s_at_quad, &
-                                 theta_s_at_quad, z_at_quad)
+                                 theta_s_at_quad, x_at_quad)
           rho_at_quad = 0.0_r_def
           do df2 = 1, ndf_w3
             rho_at_quad = rho_at_quad + rho_e(df2)*w3_basis(1,df2,qp1,qp2)

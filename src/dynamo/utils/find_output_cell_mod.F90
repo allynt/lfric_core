@@ -6,8 +6,8 @@
 !-------------------------------------------------------------------------------
 module find_output_cell_mod
 
-use constants_mod,        only: r_def, large_real
-use mesh_generator_mod,   only: xyz2llr 
+use constants_mod,        only: r_def, large_real, earth_radius
+use mesh_generator_mod,   only: llr2xyz
 use field_mod,            only: field_type, field_proxy_type 
 use mesh_mod,             only: l_spherical
 use coord_algorithms_mod, only: cartesian_distance
@@ -34,7 +34,7 @@ contains
   real(kind=r_def)                :: min_distance, distance
   integer                         :: df, cell
   integer, pointer                :: map(:) => null()
-  real(kind=r_def)                :: xi(3), gamma(1), chi_cell(3), x_phys(3)
+  real(kind=r_def)                :: xi(3), gamma(1), chi_cell(3), chi_in(3)
 
 ! find horizontal centre point of cell  
   xi = (/ 0.5_r_def, 0.5_r_def, 0.0_r_def /)
@@ -43,6 +43,11 @@ contains
   chi_proxy(2) = chi(2)%get_proxy()
   chi_proxy(3) = chi(3)%get_proxy()
 
+  chi_in(:) = x_in(:)
+  if ( l_spherical ) then
+    call llr2xyz(x_in(1), x_in(2), x_in(3) + earth_radius, &
+                 chi_in(1), chi_in(2), chi_in(3))
+  end if
   min_distance = large_real
   do cell = 1,chi_proxy(1)%vspace%get_ncell()
     map => chi_proxy(1)%vspace%get_cell_dofmap(cell)
@@ -53,18 +58,8 @@ contains
       chi_cell(2) = chi_cell(2) + gamma(1)*chi_proxy(2)%data(map(df))
       chi_cell(3) = chi_cell(3) + gamma(1)*chi_proxy(3)%data(map(df))
     end do
-    if ( l_spherical ) then
-      call xyz2llr( chi_cell(1),  &
-                    chi_cell(2),  &
-                    chi_cell(3),  &
-                    x_phys(1), & 
-                    x_phys(2), & 
-                    x_phys(3))
-    else
-      x_phys(:) = chi_cell(:)
-    end if
 
-    distance = cartesian_distance(x_in, x_phys)
+    distance = cartesian_distance(chi_in, chi_cell)
 
     if ( distance < min_distance ) then
       out_cell = cell

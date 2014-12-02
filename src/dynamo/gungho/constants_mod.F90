@@ -82,9 +82,9 @@ real(kind=r_def), parameter :: omega_unscaled = 7.292116E-5_r_def
 real(kind=r_def), parameter :: earth_radius_unscaled = 6371229.0_r_def
 
 ! Small earth scalings
-real(kind=r_def), parameter :: earth_scaling = 1.0_r_def
-real(kind=r_def)            :: omega = omega_unscaled*earth_scaling
-real(kind=r_def)            :: earth_radius = earth_radius_unscaled*earth_scaling
+real(kind=r_def), parameter :: earth_scaling = 125.0_r_def
+real(kind=r_def)            :: omega = omega_unscaled*earth_scaling*0.0_r_def
+real(kind=r_def)            :: earth_radius = earth_radius_unscaled/earth_scaling
 
 end module constants_mod
 

@@ -16,6 +16,8 @@ use kernel_mod,              only : kernel_type
 use argument_mod,            only : arg_type, &          ! the type
                                     gh_read, gh_inc, w3, w2, w0, fe, cells ! the enums
 use constants_mod,           only : n_sq, gravity, cp, r_def
+use mesh_generator_mod,      only : xyz2llr, sphere2cart_vector
+use mesh_mod,                only : l_spherical
 
 implicit none
 
@@ -109,20 +111,21 @@ subroutine ru_code(nlayers,ndf_w2, map_w2, w2_basis, w2_diff_basis, gq,        &
   type(gaussian_quadrature_type), intent(inout) :: gq
 
   !Internal variables
-  integer               :: df, k, loc
+  integer               :: df, k, loc 
   integer               :: qp1, qp2
   
   real(kind=r_def), dimension(ndf_w0) :: chi_1_e, chi_2_e, chi_3_e
   real(kind=r_def), dimension(ngp_h,ngp_v)        :: dj
   real(kind=r_def), dimension(3,3,ngp_h,ngp_v)    :: jac
-  real(kind=r_def) :: rho_e(ndf_w3), theta_e(ndf_w0)
-  real(kind=r_def) :: k_vec(3), grad_theta_s_at_quad(3), ru_e(ndf_w2)
+  real(kind=r_def) :: rho_e(ndf_w3), theta_e(ndf_w0), ru_e(ndf_w2)
+  real(kind=r_def) :: k_sphere(3), k_cart(3), grad_theta_s_at_quad(3), &
+                      jac_v(3), x_at_quad(3), llr(3)
   real(kind=r_def), pointer :: wgp_h(:), wgp_v(:)
-  real(kind=r_def) :: exner_at_quad, rho_at_quad, theta_at_quad, z_at_quad, &
-                      exner_s_at_quad, rho_s_at_quad, theta_s_at_quad,      &
+  real(kind=r_def) :: exner_at_quad, rho_at_quad, theta_at_quad, &
+                      exner_s_at_quad, rho_s_at_quad, theta_s_at_quad,         &
                       grad_term, buoy_term
-  
-  k_vec = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
+
+  k_sphere = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
 
   wgp_h => gq%get_wgp_h()
   wgp_v => gq%get_wgp_v()
@@ -153,27 +156,36 @@ subroutine ru_code(nlayers,ndf_w2, map_w2, w2_basis, w2_diff_basis, gq,        &
         end do
         theta_at_quad = 0.0_r_def
         grad_theta_s_at_quad(:) = 0.0_r_def
-        z_at_quad = 0.0_r_def
+        x_at_quad(:) = 0.0_r_def
         do df = 1, ndf_w0
           theta_at_quad   = theta_at_quad                                      &
                           + theta_e(df)*w0_basis(1,df,qp1,qp2)
-          z_at_quad = z_at_quad + chi_3_e(df)*w0_basis(1,df,qp1,qp2)
+          x_at_quad(1) = x_at_quad(1) + chi_1_e(df)*w0_basis(1,df,qp1,qp2)
+          x_at_quad(2) = x_at_quad(2) + chi_2_e(df)*w0_basis(1,df,qp1,qp2)
+          x_at_quad(3) = x_at_quad(3) + chi_3_e(df)*w0_basis(1,df,qp1,qp2)
         end do
+
         call reference_profile(exner_s_at_quad, rho_s_at_quad, &
-                               theta_s_at_quad, z_at_quad)
+                               theta_s_at_quad, x_at_quad)
+
         exner_at_quad = calc_exner_pointwise(rho_at_quad, theta_at_quad,       & 
                                              exner_s_at_quad, rho_s_at_quad,   & 
                                              theta_s_at_quad)
-               
-        grad_theta_s_at_quad(3) = n_sq/gravity*theta_s_at_quad       
+        if ( l_spherical ) then
+          call xyz2llr(x_at_quad(1), x_at_quad(2), x_at_quad(3), &
+                       llr(1), llr(2), llr(3))
+          k_cart(:) = sphere2cart_vector(k_sphere, llr)   
+        else
+          k_cart(:) = k_sphere(:)
+        end if      
+        
         do df = 1, ndf_w2
-          buoy_term = dot_product(                                             &
-                      matmul(jac(:,:,qp1,qp2),w2_basis(:,df,qp1,qp2)),         &
-                      theta_at_quad/theta_s_at_quad*gravity*k_vec(:))
-          grad_term = cp * (theta_s_at_quad * w2_diff_basis(1,df,qp1,qp2)      &
-                           + dot_product(w2_basis(:,df,qp1,qp2),               &
-                                         grad_theta_s_at_quad(:))              &
-                           )*exner_at_quad
+          jac_v = matmul(jac(:,:,qp1,qp2),w2_basis(:,df,qp1,qp2))
+          buoy_term = dot_product( jac_v, k_cart ) &
+                    *(gravity*theta_at_quad/theta_s_at_quad)
+          grad_term = cp*exner_at_quad*theta_s_at_quad*( &
+                      n_sq/gravity*dot_product( jac_v, k_cart ) + &
+                      w2_diff_basis(1,df,qp1,qp2) )
         
           ru_e(df) = ru_e(df) +  wgp_h(qp1)*wgp_v(qp2)*( grad_term + buoy_term )
         end do
@@ -183,7 +195,6 @@ subroutine ru_code(nlayers,ndf_w2, map_w2, w2_basis, w2_diff_basis, gq,        &
       r_u( map_w2(df) + k ) =  r_u( map_w2(df) + k ) + 0.125_r_def*ru_e(df)
     end do 
   end do 
-  
   call enforce_bc_w2(nlayers,ndf_w2,map_w2,boundary_value,r_u)
 end subroutine ru_code
 
