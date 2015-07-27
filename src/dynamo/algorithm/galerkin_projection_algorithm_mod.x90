@@ -20,7 +20,8 @@ module galerkin_projection_algorithm_mod
   use quadrature_mod,          only: quadrature_type
   use function_space_mod,      only: function_space_type, W0, W3
   use operator_mod,            only: operator_type
-                
+  use mesh_mod,                only: mesh_type
+
   implicit none
 
   private 
@@ -32,13 +33,21 @@ contains
 !>          of field f_out. Solves M*f_out = rhs where rhs = int(gamma*f_in)
 !>          and gamma is a test function from the same space as f_out and M is 
 !>          the mass matrix for the space of f_out.
-!>          If f_in is in a vector space then it is decomposed into orthogonal components 
-!>          and the galerkin projection of each component is computed.
+!>          If f_in is in a vector space then it is decomposed into
+!>          orthogonal components and the galerkin projection of each
+!>          component is computed.
 !> @param[out] f_out A field to project to
 !> @param[in]  f_in  The field to project
+!> @param[in]  mesh The mesh object the model for fields
 !> @param[in]  chi   A 3D coordinate field
 !> @param[in]  space_dimension The dimension of the space f_in (scalar or vector)
-  subroutine galerkin_projection_algorithm(f_out, f_in, chi, space_dimension, qr, mm) 
+  subroutine galerkin_projection_algorithm( f_out           &
+                                          , f_in            &
+                                          , mesh            &
+                                          , chi             &
+                                          , space_dimension &
+                                          , qr              &
+                                          , mm ) 
     
     implicit none
 
@@ -48,6 +57,7 @@ contains
     type( field_type ), intent(inout) :: f_out(space_dimension)
 ! Field to intput
     type( field_type ), intent(inout) :: f_in  
+    type( mesh_type),   intent(in)    :: mesh
 ! Coordinate fields
     type( field_type ), intent(inout) :: chi(3)  
     type( quadrature_type ), intent(in) :: qr
@@ -62,7 +72,7 @@ contains
 ! Create continuous fields to project data into
     out_fs = f_out(1)%which_function_space()
     do dir = 1,space_dimension
-      rhs(dir) = field_type( vector_space = fs%get_instance(out_fs) )
+      rhs(dir) = field_type( vector_space = fs%get_instance(mesh, out_fs) )
       call invoke_set_field_scalar(0.0_r_def, rhs(dir))
     end do
     
@@ -88,9 +98,19 @@ contains
        space = f_out(1)%which_function_space()
        do dir = 1,space_dimension
           if( present(mm) .and. space /= W3 ) then
-             call solver_algorithm( f_out(dir), rhs(dir), chi,  SOLVER_OPTION, mm=mm )
+             call solver_algorithm( f_out(dir)    &
+                                  , rhs(dir)      &
+                                  , mesh          &
+                                  , chi           &
+                                  , SOLVER_OPTION &
+                                  , mm=mm )
           else
-             call solver_algorithm( f_out(dir), rhs(dir), chi,  SOLVER_OPTION, qr=qr )
+             call solver_algorithm( f_out(dir)    & 
+                                  , rhs(dir)      &
+                                  , mesh          &
+                                  , chi           &
+                                  , SOLVER_OPTION &
+                                  , qr=qr )
           end if
        end do
     end if

@@ -17,6 +17,7 @@
 module function_space_mod
 
 use constants_mod, only : r_def
+use mesh_mod,  only: mesh_type
 
 implicit none
 
@@ -60,6 +61,8 @@ contains
   !> Function returns a pointer to a function space. If the required function
   !> space had not yet been created, it creates one before returning the pointer
   !> to it
+  !> @param[in] mesh           The parent mesh of the function space
+  !> @param[in] function_space The function space id (e.g. W0)
   procedure, nopass :: get_instance
 !> Function to get the total unique degrees of freedom for this space
 !! returns an integer
@@ -158,7 +161,7 @@ type(function_space_type), target, allocatable, save :: w3_function_space
 !-------------------------------------------------------------------------------
 contains
 
-function get_instance(function_space) result(instance)
+function get_instance(mesh, function_space) result(instance)
   use basis_function_mod,      only : &
               w0_order, w1_order, w2_order, w3_order, &
               w0_nodal_coords, w1_nodal_coords, w2_nodal_coords, w3_nodal_coords, &
@@ -173,13 +176,15 @@ function get_instance(function_space) result(instance)
               w0_dofmap, w1_dofmap, w2_dofmap, w3_dofmap, &
               w0_orientation, w1_orientation, w2_orientation, w3_orientation
 
-  use slush_mod, only : num_cells, w_unique_dofs, num_layers
+  use slush_mod, only : w_unique_dofs
+
 
   implicit none
 
+  type (mesh_type) :: mesh
   integer :: function_space
-
   type(function_space_type), pointer :: instance 
+  
 
   select case (function_space)
   case (W0)
@@ -187,7 +192,7 @@ function get_instance(function_space) result(instance)
       allocate(w0_function_space)   
       call init_function_space(self=w0_function_space, &
          order = w0_order, &
-         num_cells = num_cells , num_layers = num_layers, &
+         mesh=mesh,&
          num_dofs = w_unique_dofs(1,2), &
          num_unique_dofs = w_unique_dofs(1,1) ,  &
          dim_space = 1, dim_space_diff = 3,  &
@@ -204,7 +209,7 @@ function get_instance(function_space) result(instance)
       allocate(w1_function_space) 
       call init_function_space(self=w1_function_space, &
          order = w1_order, &
-         num_cells = num_cells ,num_layers = num_layers, &
+         mesh=mesh,&
          num_dofs = w_unique_dofs(2,2), &
          num_unique_dofs = w_unique_dofs(2,1) ,  &
          dim_space = 3, dim_space_diff = 3,  &
@@ -221,7 +226,7 @@ function get_instance(function_space) result(instance)
       allocate(w2_function_space)
       call init_function_space(self=w2_function_space, &
          order = w2_order, &
-         num_cells = num_cells ,num_layers = num_layers, &
+         mesh=mesh,&
          num_dofs = w_unique_dofs(3,2), &
          num_unique_dofs = w_unique_dofs(3,1) ,  &
          dim_space = 3, dim_space_diff = 1,  &
@@ -238,7 +243,7 @@ function get_instance(function_space) result(instance)
       allocate(w3_function_space)
       call init_function_space(self=w3_function_space, &
          order = w3_order, &
-         num_cells = num_cells ,num_layers = num_layers, &
+         mesh=mesh,&
          num_dofs = w_unique_dofs(4,2), &
          num_unique_dofs = w_unique_dofs(4,1) ,  &
          dim_space = 1, dim_space_diff = 1,  &
@@ -260,7 +265,7 @@ end function get_instance
 
 
 !> Subroutine initialises a function space.
-!! @param[in] num_cells
+!! @param[in] mesh object to assign function space to
 !! @param[in] num_dofs
 !! @param[in] num_unique_dofs
 !! @param[in] dim_space The dimension of this function space
@@ -269,7 +274,7 @@ end function get_instance
 !! @param[in] ngp_v The number of guassian quadrature points in the vertical
 subroutine init_function_space(self, &
                                order, &
-                               num_cells,num_layers, &
+                               mesh,&
                                num_dofs, &
                                num_unique_dofs,  &
                                dim_space, dim_space_diff,  &
@@ -281,9 +286,12 @@ subroutine init_function_space(self, &
                                basis_vector, basis_x)
   implicit none
 
-  class(function_space_type) :: self
-  integer, intent(in) :: order, num_cells, num_layers, num_dofs, num_unique_dofs
-  integer, intent(in) :: dim_space, dim_space_diff
+  class(function_space_type)  :: self
+  integer, intent(in)         :: order
+  type(mesh_type), intent(in) :: mesh
+  integer, intent(in)         :: num_dofs, num_unique_dofs
+  integer, intent(in)         :: dim_space, dim_space_diff
+
 ! The following four arrays have intent inout because the move_allocs in the
 ! code need access to the arrays to free them in their original locations
   integer,          intent(inout), allocatable  :: dofmap(:,:)
@@ -294,8 +302,8 @@ subroutine init_function_space(self, &
   integer,          intent(inout), allocatable  :: basis_order(:,:),  basis_index(:,:)
   real(kind=r_def), intent(inout), allocatable  :: basis_vector(:,:), basis_x(:,:,:)
   self%order           =  order
-  self%ncell           =  num_cells
-  self%nlayers         =  num_layers
+  self%ncell           =  mesh%get_ncells_2d()
+  self%nlayers         =  mesh%get_nlayers()
   self%ndf             =  num_dofs
   self%undf            =  num_unique_dofs
   self%dim_space       =  dim_space

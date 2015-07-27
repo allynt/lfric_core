@@ -36,6 +36,7 @@ module solver_mod
 
   use quadrature_mod,  only : quadrature_type
   use operator_mod,    only : operator_type
+  use mesh_mod,        only : mesh_type
 
   implicit none
   private
@@ -55,6 +56,7 @@ contains
 !! jacobi: a fixed number of jacobi iterations
 !> @param[inout] lhs The field to be solved for (x)
 !> @param[inout] rhs The right hand side field (b)
+!> @param[in]    mesh The mesh object the model for fields
 !> @param[in]    chi The coordinate array fields
 !> @param[in]    solver_type (optional) The type of iterative solver to use for
 !>               continuous systems
@@ -62,13 +64,16 @@ contains
 !> @param[in] qr Quadrature type, optional. The quadrature rule.
 !! Either qr or mm are required, but not both.
 
-  subroutine solver_algorithm(lhs, rhs, chi, solver_type, qr, mm)
+  subroutine solver_algorithm(lhs, rhs, mesh, chi, solver_type, qr, mm)
     implicit none
     type(field_type), intent(inout)    :: lhs
     type(field_type), intent(inout)    :: rhs
+    type(mesh_type),  intent(in)       :: mesh
+
     ! chi is really intent(in) but this currently causes
     ! problems because PSyclone makes everything (inout)
     type(field_type), intent(inout)       :: chi(3)
+
     integer, intent(in)                :: solver_type
     type(quadrature_type), optional, intent(in) :: qr
     type(operator_type),   optional, intent(inout) :: mm
@@ -96,15 +101,15 @@ contains
        else
        select case ( solver_type )
           case ( CG_SOLVER )
-            call cg_solver_algorithm(lhs, rhs, mm)
+            call cg_solver_algorithm(lhs, rhs, mm, mesh)
           case ( BICG_SOLVER )
-            call bicg_solver_algorithm(lhs, rhs, mm)
+            call bicg_solver_algorithm(lhs, rhs, mm, mesh)
           case ( JACOBI_SOLVER )
-            call jacobi_solver_algorithm(lhs, rhs, mm, NUM_JACOBI_ITERS)
+            call jacobi_solver_algorithm(lhs, rhs, mm, mesh, NUM_JACOBI_ITERS)
           case ( GMRES_SOLVER )
-            call gmres_solver_algorithm(lhs, rhs, mm)
+            call gmres_solver_algorithm(lhs, rhs, mm, mesh)
           case ( GCR_SOLVER )
-            call gcr_solver_algorithm(lhs, rhs, mm)
+            call gcr_solver_algorithm(lhs, rhs, mm, mesh)
           case default
             write( log_scratch_space, '(A)' )  'Invalid linear solver choice, stopping'
             call log_event( log_scratch_space, LOG_LEVEL_ERROR )
@@ -128,11 +133,13 @@ contains
 !! @param[in]  rhs_field The input b
 !! @param[inout] lhs_field The answer, x
 !! @param[in] mm operator type, the mass matrix
-  subroutine bicg_solver_algorithm(lhs, rhs, mm)
+!! @param[in] mesh The mesh object the model for fields
+  subroutine bicg_solver_algorithm(lhs, rhs, mm, mesh)
     implicit none
-    type(field_type), intent(inout)    :: lhs
-    type(field_type), intent(in)       :: rhs
-    type(operator_type), intent(inout)    :: mm
+    type(field_type),    intent(inout) :: lhs
+    type(field_type),    intent(in)    :: rhs
+    type(operator_type), intent(inout) :: mm
+    type(mesh_type),     intent(in)    :: mesh
 
     ! The temporary fields
     type(field_type)                   :: res, cr, p, v, s, t, cs
@@ -158,13 +165,13 @@ contains
     call invoke_set_field_scalar(0.0_r_def, lhs)
 
     rhs_fs = rhs%which_function_space()
-    v = field_type(vector_space = fs%get_instance(rhs_fs) )
+    v = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
     call invoke_set_field_scalar(0.0_r_def, v)
     call invoke_set_field_scalar(0.0_r_def, v)
     call invoke( matrix_vector_kernel_mm_type(v,lhs,mm) )
 
 
-    res = field_type(vector_space = fs%get_instance(rhs_fs) )
+    res = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
     !PSY call invoke ( minus_field_data(rhs,v,res))
     call invoke_minus_field_data(rhs,v,res)
 
@@ -185,20 +192,20 @@ contains
     omega  = 1.0_r_def
     norm   = 1.0_r_def
 
-    cr = field_type(vector_space = fs%get_instance(rhs_fs) )
+    cr = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
     !PSY call invoke ( copy_field_data(res,cr))
     call invoke_copy_field_data(res,cr)
 
-    p = field_type(vector_space = fs%get_instance(rhs_fs) )
+    p = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
     !PSY call invoke ( set_field_scalar(0.0_r_def, p))
     call invoke_set_field_scalar(0.0_r_def, p)
 
-    t = field_type(vector_space = fs%get_instance(rhs_fs) )
+    t = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
-    s = field_type(vector_space = fs%get_instance(rhs_fs) )
+    s = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
-    cs = field_type(vector_space = fs%get_instance(rhs_fs) )
+    cs = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
     !PSY call invoke ( set_field_scalar(0.0_r_def, v))
     call invoke_set_field_scalar(0.0_r_def, v)
@@ -281,11 +288,13 @@ contains
 !! @param[in] rhs_field The input b
 !! @param[inout] lhs_field The answer, x
 !! @param[in] mm The mass matrix
-  subroutine cg_solver_algorithm(lhs, rhs, mm)
+!! @param[in] mesh The mesh object the model for fields
+  subroutine cg_solver_algorithm(lhs, rhs, mm, mesh)
     implicit none
-    type(field_type), intent(inout)    :: lhs
-    type(field_type), intent(in)       :: rhs
-    type(operator_type), intent(inout)    :: mm
+    type(field_type),    intent(inout) :: lhs
+    type(field_type),    intent(in)    :: rhs
+    type(operator_type), intent(inout) :: mm
+    type(mesh_type),     intent(in)    :: mesh
 
     ! The temporary fields
     type(field_type)                   :: res, p, Ap
@@ -305,9 +314,9 @@ contains
 
     rhs_fs = rhs%which_function_space()
 
-    res = field_type(vector_space = fs%get_instance(rhs_fs) )
-    p   = field_type(vector_space = fs%get_instance(rhs_fs) )
-    Ap   = field_type(vector_space = fs%get_instance(rhs_fs) )
+    res = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
+    p   = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
+    Ap   = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
 !! First guess: lhs = rhs
 !    !PSY call invoke ( copy_field_data(rhs,lhs))
@@ -396,16 +405,18 @@ contains
 !! @param[in] rhs_field The input b
 !! @param[inout] lhs_field The answser, x
 !! @param[in] mm operator type, the mass matrix
+!! @param[in] mesh The mesh object the model for fields
 !! @param[in] n_iter The number of Jacobi iterations to perform
-  subroutine jacobi_solver_algorithm(lhs, rhs, mm, n_iter)
+  subroutine jacobi_solver_algorithm(lhs, rhs, mm, mesh, n_iter)
 
 
   implicit none
 
-  integer,          intent(in)    :: n_iter
-  type(field_type), intent(inout) :: lhs, rhs
+  integer,             intent(in)    :: n_iter
+  type(field_type),    intent(inout) :: lhs, rhs
   type(operator_type), intent(inout) :: mm
-  type(field_type)                :: Ax, lumped_weight, res
+  type(mesh_type),     intent(in)    :: mesh
+  type(field_type)                   :: Ax, lumped_weight, res
 
   real(kind=r_def), parameter :: MU = 0.9_r_def
 
@@ -415,10 +426,10 @@ contains
 
   rhs_fs = rhs%which_function_space()
 
-  Ax = field_type(vector_space = fs%get_instance(rhs_fs) )
+  Ax = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
-  lumped_weight = field_type(vector_space = fs%get_instance(rhs_fs) )
-  res = field_type(vector_space = fs%get_instance(rhs_fs) )
+  lumped_weight = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
+  res = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
 ! Compute mass lump
   !PSY call invoke ( set_field_scalar(1.0_r_def, Ax))
@@ -459,15 +470,16 @@ contains
 !! @param[in] rhs_field The input b
 !! @param[inout] lhs_field The answser, x
 !! @param[in] mm The mass matrix
-  subroutine gmres_solver_algorithm(lhs, rhs, mm)
+!! @param[in] mesh The mesh object the model for fields
+  subroutine gmres_solver_algorithm(lhs, rhs, mm, mesh)
 
     use constants_mod, only: GCRK
 
     implicit none
-    type(field_type), intent(inout)    :: lhs
-    type(field_type), intent(in)       :: rhs
-    type(operator_type), intent(inout)    :: mm
-
+    type(field_type),    intent(inout) :: lhs
+    type(field_type),    intent(in)    :: rhs
+    type(operator_type), intent(inout) :: mm
+    type(mesh_type),     intent(in)    :: mesh
     ! The temporary fields
     type(field_type)                   :: Ax, r, s, w, v(GCRK)
 
@@ -481,14 +493,14 @@ contains
     type(function_space_type)          :: fs
 
     rhs_fs = rhs%which_function_space()
-    Ax = field_type(vector_space = fs%get_instance(rhs_fs) )
+    Ax = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
-    r  = field_type(vector_space = fs%get_instance(rhs_fs) )
-    s  = field_type(vector_space = fs%get_instance(rhs_fs) )
-    w   = field_type(vector_space = fs%get_instance(rhs_fs) )
+    r  = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
+    s  = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
+    w   = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
     do iter = 1,GCRK
-      v(iter) = field_type(vector_space = fs%get_instance(rhs_fs) )
+      v(iter) = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
     end do
 
     !PSY call invoke ( inner_prod(rhs,rhs,err))
@@ -635,14 +647,16 @@ contains
 !! @param[in] rhs_field The input b
 !! @param[inout] lhs_field The answser, x
 !! @param[in] mm operator type, the mass matrix
-  subroutine gcr_solver_algorithm(lhs, rhs, mm)
+!! @param[in] mesh The mesh object the model for fields
+  subroutine gcr_solver_algorithm(lhs, rhs, mm, mesh)
 
     use constants_mod, only: GCRK
 
     implicit none
-    type(field_type), intent(inout)    :: lhs
-    type(field_type), intent(in)       :: rhs
-    type(operator_type), intent(inout)    :: mm
+    type(field_type),    intent(inout) :: lhs
+    type(field_type),    intent(in)    :: rhs
+    type(operator_type), intent(inout) :: mm
+    type(mesh_type),     intent(in)    :: mesh
 
     ! The temporary fields
     type(field_type)                   :: Ax, r, s(GCRK), v(GCRK)
@@ -657,14 +671,14 @@ contains
 
     rhs_fs = rhs%which_function_space()
 
-    Ax = field_type(vector_space = fs%get_instance(rhs_fs) )
+    Ax = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
-    r  = field_type(vector_space = fs%get_instance(rhs_fs) )
+    r  = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
     do iter = 1,GCRK
-      s(iter)  = field_type(vector_space = fs%get_instance(rhs_fs) )
+      s(iter)  = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
 
-      v(iter)  = field_type(vector_space = fs%get_instance(rhs_fs) )
+      v(iter)  = field_type(vector_space = fs%get_instance(mesh, rhs_fs) )
     end do
     !PSY call invoke ( inner_prod(rhs,rhs,err))
     call invoke_inner_prod( rhs, rhs, err )

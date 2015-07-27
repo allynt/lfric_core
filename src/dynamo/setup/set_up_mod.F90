@@ -15,7 +15,7 @@
 
 module set_up_mod
 
-  use constants_mod,              only : r_def, str_def, PI, QUAD
+  use constants_mod,              only : i_def, r_def, str_def, PI, QUAD
   use function_space_mod,         only : function_space_type
   use reference_element_mod,      only : reference_cube, &
                                          reference_element, nfaces, nedges, nverts
@@ -35,7 +35,7 @@ contains
   subroutine set_up(mesh)
 
     use log_mod,         only : log_event, LOG_LEVEL_INFO
-    use slush_mod,       only : num_cells, num_layers, element_order,         &
+    use slush_mod,       only : element_order,                                &
                                 l_spherical, w_unique_dofs, w_dof_entity,     &
                                 dx, dy, num_cells_x, num_cells_y,             &
                                 xproc, yproc, local_rank, total_ranks,        &
@@ -61,8 +61,8 @@ contains
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
 
 
-    real(r_def) :: dz
-
+    real(r_def)    :: dz
+    integer(i_def) :: nlayers
     !Get the processor decomposition
     !Code is not set up to run in parallel - so hardcode for now
     xproc = 1
@@ -76,7 +76,7 @@ contains
     l_fplane      = .true.
     num_cells_x   = 12
     num_cells_y   = 12
-    num_layers    = 5
+    nlayers       = 5
     element_order = 0
     l_spherical   = .true.
 ! Horizontal spacings for cartesian grid    
@@ -116,9 +116,7 @@ contains
                               local_rank, &
                               total_ranks)
 
-    num_cells = partition%get_num_cells_in_layer()
-
-    mesh = mesh_type(partition, global_mesh, num_layers, dz)
+    mesh = mesh_type(partition, global_mesh, nlayers, dz)
 
 ! -----------------------------------------------------------
 ! Initialise FE elements on the mesh constructed above

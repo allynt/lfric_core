@@ -796,7 +796,7 @@ end function partition_constructor
 
   do i = 1,number_of_cells
     cell_id = input_cells%dat
-    call global_mesh%get_vert_on_cell(cell_id,verts)
+    call global_mesh%get_vert_on_cell(cell_id, verts)
     do j = 1,nverts_h
       call global_mesh%get_cell_on_vert( verts(j), cells )
       do k = 1,global_mesh%get_max_cells_per_vertex()

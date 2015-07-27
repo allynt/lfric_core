@@ -115,31 +115,35 @@ contains
 
     qr => qr%get_instance(QR3,9,3)
 
-    theta_n   = field_type( vector_space = fs%get_instance(theta_fs) )
-    u_n       = field_type( vector_space = fs%get_instance(u_fs) )
-    rho_n     = field_type( vector_space = fs%get_instance(rho_fs) )
-    r_theta   = field_type( vector_space = fs%get_instance(theta_fs) )
-    r_u       = field_type( vector_space = fs%get_instance(u_fs) )
-    r_rho     = field_type( vector_space = fs%get_instance(rho_fs) )
-    theta_inc = field_type( vector_space = fs%get_instance(theta_fs) )
-    u_inc     = field_type( vector_space = fs%get_instance(u_fs) )
-    rho_inc   = field_type( vector_space = fs%get_instance(rho_fs) )
-    mass_flux = field_type( vector_space = fs%get_instance(u_fs) )
-    rhs_xi    = field_type( vector_space = fs%get_instance(xi_fs) )
-    geopotential = field_type( vector_space = fs%get_instance(theta_fs) )
+    theta_n      = field_type( vector_space = fs%get_instance(mesh, theta_fs) )
+    u_n          = field_type( vector_space = fs%get_instance(mesh, u_fs) )
+    rho_n        = field_type( vector_space = fs%get_instance(mesh, rho_fs) )
+    r_theta      = field_type( vector_space = fs%get_instance(mesh, theta_fs) )
+    r_u          = field_type( vector_space = fs%get_instance(mesh, u_fs) )
+    r_rho        = field_type( vector_space = fs%get_instance(mesh, rho_fs) )
+    theta_inc    = field_type( vector_space = fs%get_instance(mesh, theta_fs) )
+    u_inc        = field_type( vector_space = fs%get_instance(mesh, u_fs) )
+    rho_inc      = field_type( vector_space = fs%get_instance(mesh, rho_fs) )
+    mass_flux    = field_type( vector_space = fs%get_instance(mesh, u_fs) )
+    rhs_xi       = field_type( vector_space = fs%get_instance(mesh, xi_fs) )
+    geopotential = field_type( vector_space = fs%get_instance(mesh, theta_fs) )
 
     do stage = 1,num_rk_stage
-      rt_prediction(stage) = field_type( vector_space = fs%get_instance(theta_fs) )
-      ru_prediction(stage) = field_type( vector_space = fs%get_instance(u_fs) )
-      rr_prediction(stage) = field_type( vector_space = fs%get_instance(rho_fs) )
+      rt_prediction(stage) = field_type                                        &
+                             (vector_space = fs%get_instance(mesh, theta_fs))
+      ru_prediction(stage) = field_type                                        &
+                             (vector_space = fs%get_instance(mesh, u_fs))
+      rr_prediction(stage) = field_type                                        &
+                             (vector_space = fs%get_instance(mesh, rho_fs))
     end do
 
-    mm_w0 = operator_type(fs%get_instance(W0),fs%get_instance(W0))
-    mm_w1 = operator_type(fs%get_instance(W1),fs%get_instance(W1))
-    mm_w2 = operator_type(fs%get_instance(W2),fs%get_instance(W2))
+    mm_w0 = operator_type(fs%get_instance(mesh, W0),fs%get_instance(mesh, W0))
+    mm_w1 = operator_type(fs%get_instance(mesh, W1),fs%get_instance(mesh, W1))
+    mm_w2 = operator_type(fs%get_instance(mesh, W2),fs%get_instance(mesh, W2))
 
     do stage = 1,3
-      projected_field(stage) = field_type( vector_space = fs%get_instance(theta_fs) )
+      projected_field(stage) = field_type                                      &
+                               (vector_space = fs%get_instance(mesh, theta_fs))
     end do
 
     !Construct PSy layer given a list of kernels. This is the line the code
@@ -161,16 +165,50 @@ contains
                  compute_mass_matrix_kernel_w1_type(mm_w1, chi, qr),           &
                  compute_mass_matrix_kernel_w2_type(mm_w2, chi, qr) )
 
-    call galerkin_projection_algorithm(projected_field(1),                     &
-         theta, chi, SCALAR_FIELD, qr, mm=mm_w0)
-    call interpolated_output(mesh, 0, SCALAR_FIELD, projected_field(1), chi, 'theta_')
-    call invoke_set_field_scalar(0.0_r_def, projected_field(1))
-    call galerkin_projection_algorithm(projected_field(1),                     &
-         rho,   chi,  SCALAR_FIELD, qr, mm=mm_w0)
-    call interpolated_output(mesh, 0, SCALAR_FIELD, projected_field(1), chi, 'rho___')
-    call galerkin_projection_algorithm(projected_field(:),                     &
-         u,     chi, VECTOR_FIELD, qr, mm=mm_w0)
-    call interpolated_output(mesh, 0, VECTOR_FIELD, projected_field(:), chi, 'u_____')
+    call galerkin_projection_algorithm( projected_field(1)                     &
+                                      , theta                                  &
+                                      , mesh                                   &
+                                      , chi                                    &
+                                      , SCALAR_FIELD                           &
+                                      , qr                                     &
+                                      , mm=mm_w0 )
+    call interpolated_output( 0                                                &
+                            , SCALAR_FIELD                                     &
+                            , projected_field(1)                               &
+                            , mesh                                             &
+                            , chi                                              &
+                            , 'theta_' )
+
+    call invoke_set_field_scalar( 0.0_r_def, projected_field(1) )
+
+    call galerkin_projection_algorithm( projected_field(1)                     &
+                                      , rho                                    &
+                                      , mesh                                   &
+                                      , chi                                    &
+                                      , SCALAR_FIELD                           &
+                                      , qr                                     &
+                                      , mm=mm_w0 )
+
+    call interpolated_output( 0                                                &
+                            , SCALAR_FIELD                                     &
+                            , projected_field(1)                               &
+                            , mesh                                             &
+                            , chi                                              &
+                            , 'rho___' )
+
+    call galerkin_projection_algorithm( projected_field(:)                     &
+                                      , u                                      &
+                                      , mesh                                   &
+                                      , chi                                    &
+                                      , VECTOR_FIELD                           &
+                                      , qr                                     &
+                                      , mm=mm_w0 )
+    call interpolated_output( 0                                                &
+                            , VECTOR_FIELD                                     &
+                            , projected_field(:)                               &
+                            , mesh                                             &
+                            , chi                                              &
+                            , 'u_____' )
 
     !==========================================================================
     ! Timestep
@@ -196,13 +234,20 @@ contains
         call invoke_set_field_scalar(0.0_r_def, r_u)
 !PSY        call invoke(flux_rhs_kernel_type( r_u, u, rho, chi, qr ) )
         call invoke_flux_rhs( r_u, u, rho, chi, qr ) 
-        call solver_algorithm( mass_flux, r_u, chi, solver_option, mm=mm_w2)
+
+        call solver_algorithm( mass_flux     &
+                             , r_u           &
+                             , mesh          &
+                             , chi           &
+                             , solver_option &
+                             , mm=mm_w2 )
+
         ! compute rrho = div(F)
         call invoke( rrho_kernel_type  ( rr_prediction(stage), mass_flux, qr ) )
         ! Compute vorticity
         call invoke_set_field_scalar(0.0_r_def, rhs_xi)
         call invoke( vorticity_rhs_kernel_type( rhs_xi, u, chi, qr ) )
-        call solver_algorithm( xi, rhs_xi, chi, solver_option, mm=mm_w1)
+        call solver_algorithm( xi, rhs_xi, mesh, chi, solver_option, mm=mm_w1)
 
         ! Compute new rhs
         !PSY call invoke ( set_field_scalar(0.0_r_def, rt_prediction(stage)))
@@ -229,9 +274,24 @@ contains
         end do
 
         ! Invert mass matrices
-        call solver_algorithm( theta_inc, r_theta, chi, SOLVER_OPTION, mm=mm_w0)
-        call solver_algorithm( u_inc,     r_u,     chi, SOLVER_OPTION, mm=mm_w2)
-        call solver_algorithm( rho_inc,   r_rho,   chi, SOLVER_OPTION, qr=qr)
+        call solver_algorithm( theta_inc     &
+                             , r_theta       &
+                             , mesh          &
+                             , chi           &
+                             , SOLVER_OPTION &
+                             , mm=mm_w0 )
+        call solver_algorithm( u_inc         &
+                             , r_u           &
+                             , mesh          &
+                             , chi           &
+                             , SOLVER_OPTION &
+                             , mm=mm_w2 )
+        call solver_algorithm( rho_inc       &
+                             , r_rho         &
+                             , mesh          &
+                             , chi           &
+                             , SOLVER_OPTION &
+                             , qr=qr )
 
         ! add increments
         !PSY call invoke ( axpy(dt, theta_inc, theta_n, theta))
@@ -249,15 +309,47 @@ contains
       end do
 
       if ( mod(n, output_freq) == 0 ) then
-        call galerkin_projection_algorithm(projected_field(1),                  &
-             theta, chi, SCALAR_FIELD, qr, mm=mm_w0)
-        call interpolated_output(mesh, n, SCALAR_FIELD, projected_field(1), chi, 'theta_')
-        call galerkin_projection_algorithm(projected_field(1),                  &
-             rho,   chi, SCALAR_FIELD, qr, mm=mm_w0)
-        call interpolated_output(mesh, n, SCALAR_FIELD, projected_field(1), chi, 'rho___')
-        call galerkin_projection_algorithm(projected_field(:),                  &
-             u,     chi, VECTOR_FIELD, qr, mm=mm_w0)
-        call interpolated_output(mesh, n, VECTOR_FIELD, projected_field(:), chi, 'u_____')
+        call galerkin_projection_algorithm( projected_field(1) &
+                                          , theta              &
+                                          , mesh               &
+                                          , chi                &
+                                          , SCALAR_FIELD       &
+                                          , qr                 &
+                                          , mm=mm_w0 )
+        call interpolated_output( n                  &
+                                , SCALAR_FIELD       & 
+                                , projected_field(1) &
+                                , mesh               &
+                                , chi                &
+                                , 'theta_' )
+
+        call galerkin_projection_algorithm( projected_field(1) &
+                                          , rho                &
+                                          , mesh               &
+                                          , chi                &
+                                          , SCALAR_FIELD       &
+                                          , qr                 &
+                                          , mm=mm_w0 )
+        call interpolated_output( n                   &
+                                , SCALAR_FIELD        &
+                                , projected_field(1), &
+                                , mesh                &
+                                , chi                 &
+                                , 'rho___' )
+
+        call galerkin_projection_algorithm( projected_field(:) &
+                                          , u                  &
+                                          , mesh               &
+                                          , chi                &
+                                          , VECTOR_FIELD       &
+                                          , qr                 &
+                                          , mm=mm_w0)
+        call interpolated_output( n                            &
+                                , VECTOR_FIELD                 &
+                                , projected_field(:)           &
+                                , mesh                         &
+                                , chi                          &
+                                , 'u_____' )
       end if
 
       write( log_scratch_space, '(A,I0)' ) 'End of timestep ', n

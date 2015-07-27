@@ -24,13 +24,14 @@ contains
     use function_space_mod,         only : function_space_type, W0, W2, W3
     use rtheta_kernel_mod, &
                                     only : rtheta_code
-    use constants_mod,              only : r_def
+    use constants_mod,              only : r_def, PLANE_BI_PERIODIC
     use quadrature_mod,             only : quadrature_type, QR3
+    use mesh_mod,                   only : mesh_type
 
    implicit none
     type(function_space_type) :: fs
     type( quadrature_type), pointer :: qr => null()
-
+    type(mesh_type)  :: mesh
     real(kind=r_def) :: tol
     real(kind=r_def), allocatable, dimension(:) :: answer
 
@@ -63,14 +64,19 @@ contains
     tol = 1.0e-6_r_def  
     qr => qr%get_instance(QR3,9,3)
 
+    ! Dummy mesh mod has 9 cells, 3 layers
+    mesh = mesh_type(PLANE_BI_PERIODIC)
+
     ! build some function spaces ...
-    call fs_build()
-    
+    call fs_build(mesh)
+
+
+
     ! Test kernel
-    r_theta = field_type( vector_space = fs%get_instance( W0 ) )
-    theta   = field_type( vector_space = fs%get_instance( W0 ) )
-    f       = field_type( vector_space = fs%get_instance( W2 ) )
-    rho     = field_type( vector_space = fs%get_instance( W3 ) )
+    r_theta = field_type( vector_space = fs%get_instance( mesh, W0 ) )
+    theta   = field_type( vector_space = fs%get_instance( mesh, W0 ) )
+    f       = field_type( vector_space = fs%get_instance( mesh, W2 ) )
+    rho     = field_type( vector_space = fs%get_instance( mesh, W3 ) )
 
     r_theta_proxy   = r_theta%get_proxy()
     theta_proxy     = theta%get_proxy()

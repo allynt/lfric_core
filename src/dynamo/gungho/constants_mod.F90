@@ -127,6 +127,10 @@ module constants_mod
   real    (r_def), parameter :: RMDI = -huge(0.0_r_def)        !< Missing data indicator value for real numbers
   integer (i_def), parameter :: IMDI = -huge(0_i_def)          !< Missing data indicator value for integer numbers
 
+  ! Grid Types
+  integer(i_def), parameter :: PLANE             = 1
+  integer(i_def), parameter :: PLANE_BI_PERIODIC = 2
+  
  !> @}
  !> @name Formulation switches
  logical, parameter :: L_NONLINEAR = .true.

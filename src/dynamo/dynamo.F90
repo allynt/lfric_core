@@ -118,16 +118,14 @@ program dynamo
   call set_up(mesh)
 
   do coord = 1,3
-    chi(coord) = field_type( vector_space = function_space%get_instance( W0 ) )
+    chi(coord) = field_type                                                    &
+                 (vector_space = function_space%get_instance(mesh, W0))
   end do
 
-  theta = field_type( vector_space = function_space%get_instance( W0 ) )
-
-  xi = field_type( vector_space = function_space%get_instance( W1 ) )
-
-  u = field_type( vector_space = function_space%get_instance( W2 ) )
-
-  rho = field_type( vector_space = function_space%get_instance( W3 ) )
+  theta = field_type(vector_space = function_space%get_instance(mesh, W0))
+  xi    = field_type(vector_space = function_space%get_instance(mesh, W1))
+  u     = field_type(vector_space = function_space%get_instance(mesh, W2))
+  rho   = field_type(vector_space = function_space%get_instance(mesh, W3))
 
   n_fields = 1
   allocate(state(1:n_fields))

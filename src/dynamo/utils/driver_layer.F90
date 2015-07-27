@@ -23,13 +23,13 @@ contains
 !>          dumps the value to file
 !> @deprecated This is a tempoary implementation until a proper i/o + plotting
 !> stategy is implemented
-!> @param[in] mesh  The mesh object the model runs on
 !> @param[in] step  The current timestep
 !> @param[in] n_out The number of output fields to generate from f
 !> @param[in] f     A field to compute output data from
+!> @param[in] mesh  The mesh object the model runs on
 !> @param[in] chi   A 3D coordinate field
 !> @param[in] fname The name of the field to be output
-  subroutine interpolated_output(mesh, step, n_out, f, chi, fname) 
+  subroutine interpolated_output(step, n_out, f, mesh, chi, fname) 
 
     use log_mod,                   only: log_event, log_scratch_space, LOG_LEVEL_INFO
     use constants_mod,             only: r_def  
@@ -37,6 +37,7 @@ contains
     use find_output_cell_mod,      only: find_output_cell
     use evaluate_output_field_mod, only: evaluate_output_field    
     use mesh_mod,                  only: mesh_type, domain_limits
+    use coord_transform_mod,       only: xyz2llr
 
     implicit none
 ! Mesh
@@ -60,6 +61,7 @@ contains
     character(8)                  :: outtime
 
     type (domain_limits) :: domain_size
+
 
 ! Create uniform grid for output (nx,ny,nz)
     nx(1) = 100

@@ -23,25 +23,28 @@ contains
                                            field_proxy_type
     use function_space_mod,         only : function_space_type, W0, W1, W2, W3
     use ru_kernel_mod,              only : ru_code
-    use constants_mod,              only : r_def, GRAVITY
+    use constants_mod,              only : r_def, PLANE_BI_PERIODIC, GRAVITY
     use quadrature_mod,             only : quadrature_type, QR3
     use slush_mod,                  only : l_spherical
     use reference_profile_mod,      only : reference_profile
     use initial_rho_kernel_mod,     only : initial_rho_code
+    use mesh_mod,                   only : mesh_type
 
    implicit none
     type(field_type) :: chi(3)
     type(field_proxy_type )   :: chi_p(3) 
     type(function_space_type) :: fs
     type( quadrature_type), pointer :: qr => null()
+    type(mesh_type)  :: mesh
 
     real(kind=r_def) :: tol
     real(kind=r_def) :: answer
 
     integer :: i, j, k, cell
     real(kind=r_def), parameter :: dx = 6000.0_r_def, &
-                                   dy = 1000.0_r_def, &
-                                   dz = 2000.0_r_def
+                                   dy = 1000.0_r_def
+    real(r_def) :: dz
+
     real(kind=r_def) :: junk1, junk2
 ! Required for calling kernel 
     type( field_type ) :: r_u, u, mass_flux, rho, xi, theta, phi
@@ -72,12 +75,18 @@ contains
     qr => qr%get_instance(QR3,9,3)
     l_spherical = .false.
 
+    ! Dummy mesh mod has 9 cells, 3 layers
+    mesh = mesh_type(PLANE_BI_PERIODIC)
+    dz   = mesh%get_dz()
+
     ! build some function spaces ...
-    call fs_build()
-    
+    call fs_build(mesh)
+
+
+
     ! make a coordinate field with a function space
     do i = 1,3
-      chi(i) = field_type( vector_space = fs%get_instance( W0 ) )
+      chi(i) = field_type( vector_space = fs%get_instance( mesh, W0 ) )
       chi_p(i) = chi(i)%get_proxy()
     end do
     ! Compute coordinates
@@ -95,13 +104,13 @@ contains
     end do
 
     ! Test kernel
-    r_u   = field_type( vector_space = fs%get_instance( W2 ) )
-    u     = field_type( vector_space = fs%get_instance( W2 ) )
-    mass_flux = field_type( vector_space = fs%get_instance( W2 ) )
-    rho   = field_type( vector_space = fs%get_instance( W3 ) )
-    xi    = field_type( vector_space = fs%get_instance( W1 ) )
-    theta = field_type( vector_space = fs%get_instance( W0 ) )
-    phi   = field_type( vector_space = fs%get_instance( W0 ) )
+    r_u       = field_type( vector_space = fs%get_instance( mesh, W2 ) )
+    u         = field_type( vector_space = fs%get_instance( mesh, W2 ) )
+    mass_flux = field_type( vector_space = fs%get_instance( mesh, W2 ) )
+    rho       = field_type( vector_space = fs%get_instance( mesh, W3 ) )
+    xi        = field_type( vector_space = fs%get_instance( mesh, W1 ) )
+    theta     = field_type( vector_space = fs%get_instance( mesh, W0 ) )
+    phi       = field_type( vector_space = fs%get_instance( mesh, W0 ) )
 
     r_u_proxy  = r_u%get_proxy()
     u_proxy    = u%get_proxy()

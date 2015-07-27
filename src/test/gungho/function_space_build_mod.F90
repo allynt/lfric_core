@@ -22,7 +22,7 @@ module function_space_build_mod
 
 contains
 
-  subroutine fs_build()
+  subroutine fs_build(mesh)
 
     use basis_function_mod,         only : &
               w0_nodal_coords, w1_nodal_coords, w2_nodal_coords, w3_nodal_coords, &
@@ -38,12 +38,13 @@ contains
                     w0_orientation, w1_orientation, w2_orientation, w3_orientation
 
 
-
-    use slush_mod, only: num_cells, w_unique_dofs, num_layers
+    use mesh_mod,  only: mesh_type
+    use slush_mod, only: w_unique_dofs
     
     implicit none
 
 
+    type (mesh_type), intent(in) :: mesh
     integer          :: scalar, vector
     integer          :: nqp_h, nqp_v
     real(kind=r_def), pointer :: xp(:,:) => null()
@@ -51,9 +52,10 @@ contains
     
     integer :: undf_l, ndf_l
     integer :: W0_l, W1_l, W2_l, W3_l
+    integer :: num_cells
 
     undf_l = 1
-    ndf_l = 2
+    ndf_l  = 2
 
     W0_l = W0 - W0 + 1
     W1_l = W1 - W0 + 1
@@ -62,48 +64,52 @@ contains
 
     scalar=1
     vector=3
-    num_cells = 9
-    num_layers = 3
+
+    num_cells = mesh%get_ncells_2d()
+
     ! Quads at lowest order
     ! w0
     w_unique_dofs(1,1) = 36
-    w_unique_dofs(1,2)  = 8
-    !w1
+    w_unique_dofs(1,2) = 8
+
+    ! w1
     w_unique_dofs(2,1) = 99
-    w_unique_dofs(2,2)  = 12
-    !w2
+    w_unique_dofs(2,2) = 12
+
+    ! w2
     w_unique_dofs(3,1) = 90
     w_unique_dofs(3,2)  = 6
-    !w3
+
+    ! w3
     w_unique_dofs(4,1) = 27
     w_unique_dofs(4,2)  = 1
     
-    if(.not.allocated(w0_nodal_coords))  &
-         allocate(w0_nodal_coords(3,w_unique_dofs(1,2)))
-    if(.not.allocated(w1_nodal_coords) ) &
-         allocate(w1_nodal_coords(3,w_unique_dofs(2,2)))
-    if(.not.allocated(w2_nodal_coords) ) &
+    if (.not.allocated(w0_nodal_coords))                                       &
+       allocate(w0_nodal_coords(3,w_unique_dofs(1,2)))
+    if (.not.allocated(w1_nodal_coords))                                       &
+       allocate(w1_nodal_coords(3,w_unique_dofs(2,2)))
+    if (.not.allocated(w2_nodal_coords))                                       &
        allocate(w2_nodal_coords(3,w_unique_dofs(3,2)))
-    if(.not.allocated(w3_nodal_coords) ) &
-         allocate(w3_nodal_coords(3,w_unique_dofs(4,2)))
+    if (.not.allocated(w3_nodal_coords))                                       &
+       allocate(w3_nodal_coords(3,w_unique_dofs(4,2)))
     
-    if(.not.allocated(w0_dofmap) ) &
-         allocate( w0_dofmap(w_unique_dofs(1,2),1:num_cells) )
-    if(.not.allocated(w1_dofmap) ) &
-         allocate( w1_dofmap(w_unique_dofs(2,2),1:num_cells) )
-    if(.not.allocated(w2_dofmap) ) &
-         allocate( w2_dofmap(w_unique_dofs(3,2),1:num_cells) )
-    if(.not.allocated(w3_dofmap) ) &
-         allocate( w3_dofmap(w_unique_dofs(4,2),1:num_cells) )
+    if (.not.allocated(w0_dofmap))                                             &
+       allocate( w0_dofmap(w_unique_dofs(1,2),1:num_cells) )
+    if (.not.allocated(w1_dofmap))                                             &
+       allocate( w1_dofmap(w_unique_dofs(2,2),1:num_cells) )
+    if (.not.allocated(w2_dofmap))                                             &
+       allocate( w2_dofmap(w_unique_dofs(3,2),1:num_cells) )
+    if (.not.allocated(w3_dofmap))                                             &
+       allocate( w3_dofmap(w_unique_dofs(4,2),1:num_cells) )
     
-    if(.not.allocated(test_map_w0) ) &
-         allocate( test_map_w0(w_unique_dofs(1,2),1:num_cells) )
-    if(.not.allocated(test_map_w1) ) &
+    if (.not.allocated(test_map_w0))                                           &
+       allocate( test_map_w0(w_unique_dofs(1,2),1:num_cells) )
+    if (.not.allocated(test_map_w1))                                           &
        allocate( test_map_w1(w_unique_dofs(2,2),1:num_cells) )
-    if(.not.allocated(test_map_w2) ) &
-         allocate( test_map_w2(w_unique_dofs(3,2),1:num_cells) )
-    if(.not.allocated(test_map_w3) ) &
-         allocate( test_map_w3(w_unique_dofs(4,2),1:num_cells) )
+    if (.not.allocated(test_map_w2))                                           &
+       allocate( test_map_w2(w_unique_dofs(3,2),1:num_cells) )
+    if (.not.allocated(test_map_w3))                                           &
+       allocate( test_map_w3(w_unique_dofs(4,2),1:num_cells) )
        
     if(.not.allocated( w0_orientation) ) then  ! reasonable assumption!
        allocate( w0_orientation(num_cells, w_unique_dofs(1,2) ))
@@ -240,7 +246,7 @@ contains
 
     w0_dof_on_vert_boundary(:,:) = 1
 
-    w0_func_space = w0_func_space%get_instance( W0 )
+    w0_func_space = w0_func_space%get_instance( mesh, W0 )
 
     w1_dofmap =  reshape( [ &
          1, 5, 9,13,17,20,23,26, 2, 6,10,14,  & 
@@ -375,7 +381,7 @@ contains
     w1_dof_on_vert_boundary(1:4,1) = 0
     w1_dof_on_vert_boundary(9:12,2) = 0
 
-    w1_func_space = w1_func_space%get_instance( W1 )
+    w1_func_space = w1_func_space%get_instance( mesh, W1 )
 
     w2_dofmap =  reshape( [ &
          1, 4, 7,10,13,14, &
@@ -461,7 +467,7 @@ contains
     w2_dof_on_vert_boundary(5,1) = 0
     w2_dof_on_vert_boundary(6,2) = 0
 
-    w2_func_space = w2_func_space%get_instance( W2 )
+    w2_func_space = w2_func_space%get_instance( mesh, W2 )
 
     w3_dofmap =  reshape( [ &
     1, &
@@ -505,7 +511,7 @@ contains
 
     w3_dof_on_vert_boundary(:,:) = 1         
 
-    w3_func_space = w3_func_space%get_instance( W3 )
+    w3_func_space = w3_func_space%get_instance( mesh, W3 )
     
   end subroutine fs_build
 
