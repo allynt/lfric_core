@@ -203,14 +203,12 @@
         command scripting = "rose task-run --verbose --debug --app-key=check_dynamo"
 
     [[generate_{{label}}_cubedsphere]]
-        # The generate_cubedsphere executable will always dump its output to
-        # the current working directory so it must be moved to where it is
-        # needed. This removal only happens if the file was generated correctly.
+        # generate_cubedsphere writes ugrid to $DESTINATION_DIRECTORY
         inherit = {{family}}, {{family}}_COMPILER, REMOTE
         command scripting = """
                             mkdir -p $DESTINATION_DIRECTORY
                             mkdir -p data
-                            $SOURCE_DIRECTORY/bin/generate_cubedsphere 4 && mv data/ugrid_quads_2d.nc $DESTINATION_DIRECTORY
+                            $SOURCE_DIRECTORY/bin/generate_cubedsphere -ndivs 4 -o $DESTINATION_DIRECTORY/ugrid_quads_2d.nc
                             """
 
     [[check_{{label}}_cubedsphere_metadata]]
