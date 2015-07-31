@@ -96,7 +96,7 @@ module constants_mod
   !> @name Small Earth scalings
   !> @{
   real(kind=r_def), parameter :: EARTH_SCALING = 125.0_r_def !< Scaling factor to modify Earth parameters.
-  real(kind=r_def)            :: omega = OMEGA_UNSCALED*EARTH_SCALING*0.0_r_def !< Scale up rotation [rad/s].
+  real(kind=r_def)            :: omega = OMEGA_UNSCALED*EARTH_SCALING !< Scale up rotation [rad/s].
   real(kind=r_def)            :: earth_radius = EARTH_RADIUS_UNSCALED/EARTH_SCALING !< Scale down Earth radius [m].
   !> @}
 

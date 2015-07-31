@@ -69,7 +69,7 @@ subroutine rotation_vector_sphere(ndf, ngp_h, ngp_v, chi_1, chi_2, chi_3, v0_bas
 ! Compute the rotation vector Omega = (0, 2*cos(lat), 2*sin(lat)) on quadrature points 
 !-------------------------------------------------------------------------------
 
-use coord_transform_mod, only: xyz2ll
+use coord_transform_mod, only: xyz2llr, sphere2cart_vector
 
 integer,          intent(in)  :: ndf, ngp_h, ngp_v
 real(kind=r_def), intent(in)  :: chi_1(ndf), chi_2(ndf), chi_3(ndf)
@@ -77,7 +77,7 @@ real(kind=r_def), intent(in), dimension(1,ndf,ngp_h,ngp_v) :: v0_basis
 real(kind=r_def), intent(out) :: rotation_vec(3,ngp_h,ngp_v)
 
 integer :: i, j, df
-real(kind=r_def) :: x, y, z, lat, long
+real(kind=r_def) :: x, y, z, lat, long, r
 
 lat = 0.0_r_def
 long = 0.0_r_def
@@ -93,10 +93,12 @@ do j = 1, ngp_v
         y = y + chi_2(df)*v0_basis(1,df,i,j)
         z = z + chi_3(df)*v0_basis(1,df,i,j)        
     end do 
-    call xyz2ll(x,y,z,long,lat)
+    call xyz2llr(x,y,z,long,lat,r)
     rotation_vec(1,i,j) = 0.0_r_def
     rotation_vec(2,i,j) = 2.0_r_def*omega*cos(lat)
     rotation_vec(3,i,j) = 2.0_r_def*omega*sin(lat)
+
+    rotation_vec(:,i,j) = sphere2cart_vector( rotation_vec(:,i,j),(/long, lat, r/) )
   end do
 end do
 
