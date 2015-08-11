@@ -139,25 +139,39 @@ INSERT OR REPLACE INTO programs VALUES ( "{name}" );
     #
     def getProgramSourceList( self ):
         cursor = self._database.cursor()
-        cursor.execute( 'SELECT file, program_unit FROM programs, provides WHERE program_unit = name' )
+        cursor.execute( 'SELECT file, program_unit FROM programs, provides' \
+                        + ' WHERE program_unit = name' )
 
         for row in cursor.fetchall():
-            sources = self._recurseDependencies( row['file'], row['program_unit'] )
+            treeStack = []
+            sources = self._recurseDependencies( row['file'],         \
+                                                 row['program_unit'], \
+                                                 treeStack )
             uniqueSources = set( sources )
             yield row['program_unit'], list(uniqueSources)
 
     ###########################################################################
     # Recursively descend the dependency tree.
     #
-    def _recurseDependencies( self, filename, program_unit ):
+    def _recurseDependencies( self, filename, program_unit, treeStack ):
         dependencies = [filename]
+        treeStack.append( filename )
 
         cursor = self._database.cursor()
-        cursor.execute( 'SELECT file, dependee FROM dependencies, provides WHERE program_unit = dependee AND dependor = ?', \
+        cursor.execute( 'SELECT file, dependee FROM dependencies, provides'  \
+                        + ' WHERE program_unit = dependee AND dependor = ?', \
                         [program_unit] )
         for row in cursor.fetchall():
-            dependencies.extend( self._recurseDependencies( row['file'], \
-                                                            row['dependee'] ) )
+            if row['file'] not in treeStack:
+                dependencies.extend( self._recurseDependencies( row['file'], \
+                                                                row['dependee'], \
+                                                                treeStack ) )
+            else:
+                message = 'Recursive dependency chain: {} : {}'
+                raise Exception( message.format( ' : '.join( treeStack ), \
+                                                             row['file'] ) )
+
+        treeStack.pop()
 
         return dependencies
 
