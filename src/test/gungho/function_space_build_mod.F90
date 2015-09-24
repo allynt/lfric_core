@@ -46,12 +46,25 @@ contains
            wtheta_dof_on_vert_boundary,                                        &
            w2v_dof_on_vert_boundary, w2h_dof_on_vert_boundary
 
-    use dofmap_mod,              only : &
-                    w0_dofmap, w1_dofmap, w2_dofmap, w3_dofmap, wtheta_dofmap, &
-                    w2v_dofmap, w2h_dofmap,                                    &
-                    w0_orientation, w1_orientation, w2_orientation,            &
-                    w3_orientation, wtheta_orientation, w2v_orientation,       &
-                    w2h_orientation
+  use dofmap_mod,              only : &
+              w0_dofmap, w1_dofmap, w2_dofmap, w3_dofmap, wtheta_dofmap, &
+              w2v_dofmap, w2h_dofmap, &
+              w0_orientation, w1_orientation, w2_orientation, w3_orientation, &
+              wtheta_orientation, w2v_orientation, w2h_orientation, &
+              w0_global_dof_id, w0_last_dof_owned, w0_last_dof_annexed, &
+              w0_last_dof_halo, &
+              w1_global_dof_id, w1_last_dof_owned, w1_last_dof_annexed, &
+              w1_last_dof_halo, &
+              w2_global_dof_id, w2_last_dof_owned, w2_last_dof_annexed, &
+              w2_last_dof_halo, &
+              w3_global_dof_id, w3_last_dof_owned, w3_last_dof_annexed, &
+              w3_last_dof_halo,&
+              wtheta_global_dof_id, wtheta_last_dof_owned, &
+              wtheta_last_dof_annexed, wtheta_last_dof_halo, &
+              w2v_global_dof_id, w2v_last_dof_owned, &
+              w2v_last_dof_annexed, w2v_last_dof_halo, &
+              w2h_global_dof_id, w2h_last_dof_owned, &
+              w2h_last_dof_annexed, w2h_last_dof_halo
 
 
     use mesh_mod,  only: mesh_type
@@ -222,7 +235,37 @@ contains
        allocate( w2h_dof_on_vert_boundary(w_unique_dofs(7,2),2) )
     end if
 
-    ! w0 space
+    if(.not.allocated( w0_global_dof_id) ) &
+       allocate( w0_global_dof_id(w_unique_dofs(1,1)) )
+    if(.not.allocated( w1_global_dof_id) ) &
+       allocate( w1_global_dof_id(w_unique_dofs(2,1)) )
+    if(.not.allocated( w2_global_dof_id) ) &
+       allocate( w2_global_dof_id(w_unique_dofs(3,1)) )
+    if(.not.allocated( w3_global_dof_id) ) &
+       allocate( w3_global_dof_id(w_unique_dofs(4,1)) )
+    if(.not.allocated( wtheta_global_dof_id) ) &
+       allocate( wtheta_global_dof_id(w_unique_dofs(5,1)) )
+    if(.not.allocated( w2v_global_dof_id) ) &
+       allocate( w2v_global_dof_id(w_unique_dofs(6,1)) )
+    if(.not.allocated( w2h_global_dof_id) ) &
+       allocate( w2h_global_dof_id(w_unique_dofs(7,1)) )
+
+    if(.not.allocated( w0_last_dof_halo) ) &
+       allocate( w0_last_dof_halo( 1 ) )
+    if(.not.allocated( w1_last_dof_halo) ) &
+       allocate( w1_last_dof_halo( 1 ) )
+    if(.not.allocated( w2_last_dof_halo) ) &
+       allocate( w2_last_dof_halo( 1 ) )
+    if(.not.allocated( w3_last_dof_halo) ) &
+       allocate( w3_last_dof_halo( 1 ) )
+    if(.not.allocated( wtheta_last_dof_halo) ) &
+       allocate( wtheta_last_dof_halo( 1 ) )
+    if(.not.allocated( w2h_last_dof_halo) ) &
+       allocate( w2h_last_dof_halo( 1 ) )
+    if(.not.allocated( w2v_last_dof_halo) ) &
+       allocate( w2v_last_dof_halo( 1 ) )
+
+    ! make some the w0 space
     w0_dofmap =  reshape( [ &
          1, 5, 9,13, 2, 6,10,14, &
          5,17,21, 9, 6,18,22,10,  &
@@ -320,6 +363,14 @@ contains
          ], shape(w0_nodal_coords) )
 
     w0_dof_on_vert_boundary(:,:) = 1
+
+    w0_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36 ]
+
+    w0_last_dof_owned = 36
+    w0_last_dof_annexed = 36
+    w0_last_dof_halo(1) = 36
 
     w0_func_space = w0_func_space%get_instance( mesh, W0 )
 
@@ -458,6 +509,20 @@ contains
     w1_dof_on_vert_boundary(1:4,1) = 0
     w1_dof_on_vert_boundary(9:12,2) = 0
 
+    w1_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, &
+                        37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, &
+                        49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, &
+                        61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, &
+                        73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, &
+                        85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, &
+                        97, 98, 99 ]
+
+    w1_last_dof_owned = 99
+    w1_last_dof_annexed = 99
+    w1_last_dof_halo(1) = 99
+
     w1_func_space = w1_func_space%get_instance( mesh, W1 )
 
    ! w2 space
@@ -546,6 +611,19 @@ contains
     w2_dof_on_vert_boundary(5,1) = 0
     w2_dof_on_vert_boundary(6,2) = 0
 
+    w2_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, &
+                        37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, &
+                        49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, &
+                        61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, &
+                        73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, &
+                        85, 86, 87, 88, 89, 90 ]
+
+    w2_last_dof_owned = 90
+    w2_last_dof_annexed = 90
+    w2_last_dof_halo(1) = 90
+
     w2_func_space = w2_func_space%get_instance( mesh, W2 )
 
    ! w3 space
@@ -591,6 +669,14 @@ contains
          ], shape(w3_nodal_coords) )
 
     w3_dof_on_vert_boundary(:,:) = 1         
+
+    w3_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                        25, 26, 27 ]
+
+    w3_last_dof_owned = 27
+    w3_last_dof_annexed = 27
+    w3_last_dof_halo(1) = 27
 
     w3_func_space = w3_func_space%get_instance( mesh, W3 )
 
@@ -647,6 +733,14 @@ contains
     wtheta_dof_on_vert_boundary(1,1) = 0
     wtheta_dof_on_vert_boundary(2,2) = 0
 
+    wtheta_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                            25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36 ]
+
+    wtheta_last_dof_owned = 36
+    wtheta_last_dof_annexed = 36
+    wtheta_last_dof_halo(1) = 36
+
     wtheta_func_space = wtheta_func_space%get_instance( mesh, Wtheta )
 
     ! w2v space
@@ -702,6 +796,13 @@ contains
     w2v_dof_on_vert_boundary(1,1) = 0
     w2v_dof_on_vert_boundary(2,2) = 0
 
+    w2v_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                         13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                         25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36 ]
+
+    w2v_last_dof_owned = 36
+    w2v_last_dof_annexed = 36
+    w2v_last_dof_halo(1) = 36
 
     w2v_func_space = w2v_func_space%get_instance( mesh, W2V )
 
@@ -772,6 +873,16 @@ contains
          ], shape(w2h_nodal_coords) )
 
     w2h_dof_on_vert_boundary(:,:) = 1
+
+    w2h_global_dof_id = [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, &
+                         13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, &
+                         25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, &
+                         37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, &
+                         49, 50, 51, 52, 53, 54 ]
+
+    w2h_last_dof_owned = 54
+    w2h_last_dof_annexed = 54
+    w2h_last_dof_halo(1) = 54
 
     w2h_func_space = w2h_func_space%get_instance( mesh, W2H )
 

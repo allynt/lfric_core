@@ -108,11 +108,13 @@ module mesh_mod
     !==========================================================================
     ! Local partition base level
     integer(i_def), private :: ncells_2d         !< Number of cells in partition
+    integer(i_def), private :: ncells_2d_with_ghost  !< Number of cells in partition including ghost cells
     integer(i_def), private :: nverts_2d         !< Number of verts in partition
     integer(i_def), private :: nedges_2d         !< Number of edges in partition
 
     ! Local partition 3d-mesh
     integer(i_def), private :: ncells            !< Total number of cells in mesh
+    integer(i_def), private :: ncells_with_ghost !< Total number of cells in mesh including ghost cells
     integer(i_def), private :: nverts            !< Total number of verts in mesh
     integer(i_def), private :: nedges            !< Total number of edges in mesh
     integer(i_def), private :: nfaces            !< Total number of faces in mesh
@@ -155,10 +157,16 @@ module mesh_mod
     !> Edge ids on cell
     integer(i_def), allocatable, private :: edge_on_cell (:,:)
 
-    !> The rank of the "owner" of each of the vertex entities around each cell
+    !> The cell that "owns" the vertex entities around each cell
+    integer(i_def), allocatable :: vert_cell_owner( :, : )
+
+    !> The cell that "owns" the edge entities around each cell
+    integer(i_def), allocatable :: edge_cell_owner( :, : )
+
+    !> The rank of the partition that "owns" the vertex entities around each cell
     integer(i_def), allocatable :: vertex_ownership( :, : )
 
-    !> The rank of the "owner" of each of the edge entities around each cell
+    !> The rank of the partition that "owns" the edge entities around each cell
     integer(i_def), allocatable :: edge_ownership( :, : )
 
     !==========================================================================
@@ -177,6 +185,7 @@ module mesh_mod
     procedure, public :: get_id
     procedure, public :: get_nlayers
     procedure, public :: get_ncells_2d
+    procedure, public :: get_ncells_2d_with_ghost
     procedure, public :: get_nedges_2d
     procedure, public :: get_nverts_2d
     procedure, public :: get_ncells
@@ -198,11 +207,15 @@ module mesh_mod
     procedure, public :: get_domain_size
     procedure, public :: get_domain_top
     procedure, public :: get_dz
-    !> Get the ownership of a vertex
+    !> Gets the local id of the cell the "owns" a particular vertex entity
+    procedure, public :: get_vertex_cell_owner
+    !> Gets the local id of the cell the "owns" a particular edge entity
+    procedure, public :: get_edge_cell_owner
+    !> Returns whether the given vertex entity is owned by the local partition
     procedure, public :: is_vertex_owned
-    !> Get the ownership of an edge
+    !> Returns whether the given edge entity is owned by the local partition
     procedure, public :: is_edge_owned
-    !> Get the ownership of a cell
+    !> Returns whether the given cell is owned by the local partition
     procedure, public :: is_cell_owned
     !> Get the number of core cells from the partition object
     !> @return core_cells The total number of core cells on the local partition
@@ -219,6 +232,14 @@ module mesh_mod
     !> @return halo_cells The total number of halo cells of the particular depth 
     !> on the local partition
     procedure, public :: get_num_cells_halo
+    !> Get the total number of ghost cells in a slice around the local partition
+    !> @return ghost_cells The total number of ghost cells around the local partition
+    procedure, public :: get_num_cells_ghost
+    !> Returns the global index of the cell that corresponds to the given
+    !> local index on the local partition
+    !> @param[in] lid The id of a cell in local index space
+    !> @return gid The id of a cell in global index space
+    procedure, public :: get_gid_from_lid
     procedure, public :: set_colours
     procedure, public :: get_ncolours
     procedure, public :: get_colours_w0
@@ -483,6 +504,21 @@ contains
   end function get_ncells_2d
 
 
+  !> Gets the number of cells in a horizontal layer including ghost cells
+  !> @return Number of cells on a horizontal layer in the mesh object
+  function get_ncells_2d_with_ghost(self) result (ncells_2d_with_ghost)
+
+    ! Returns number of 3d-cells in each layer of this mesh
+
+    implicit none
+    class(mesh_type), intent(in) :: self
+    integer(i_def) :: ncells_2d_with_ghost
+
+    ncells_2d_with_ghost = self%ncells_2d_with_ghost
+
+  end function get_ncells_2d_with_ghost
+
+
   !> Type-bound function
   !> @return Number of edges on horizontal layer in the mesh object
   !>         which is one horizontal edge in thickness
@@ -663,41 +699,65 @@ contains
   end function get_domain_size
 
 
+  function get_vertex_cell_owner( self, vertex, cell ) result (cell_owner)
+
+    class(mesh_type), intent(in) :: self
+
+    integer(i_def), intent( in ) :: cell, vertex
+    integer(i_def)               :: cell_owner
+
+    cell_owner = self%vert_cell_owner( vertex, cell )
+
+  end function get_vertex_cell_owner
+
+
+  function get_edge_cell_owner( self, edge, cell ) result (cell_owner)
+
+    class(mesh_type), intent(in) :: self
+
+    integer(i_def), intent( in ) :: cell, edge
+    integer(i_def)               :: cell_owner
+
+    cell_owner = self%edge_cell_owner( edge, cell )
+
+  end function get_edge_cell_owner
+
+
   function is_vertex_owned( self, vertex, cell ) result (owner)
 
-  class(mesh_type), intent(in) :: self
+    class(mesh_type), intent(in) :: self
 
-  integer, intent( in ) :: cell, vertex
-  logical               :: owner
+    integer, intent( in ) :: cell, vertex
+    logical               :: owner
 
-  owner=.false.
-  if (self%vertex_ownership( vertex, cell )==self%partition%get_local_rank())owner=.true.
+    owner=.false.
+    if (self%vertex_ownership( vertex, cell )==self%partition%get_local_rank())owner=.true.
 
   end function is_vertex_owned
 
 
   function is_edge_owned( self, edge, cell ) result (owner)
 
-  class(mesh_type), intent(in) :: self
+    class(mesh_type), intent(in) :: self
 
-  integer, intent( in ) :: cell, edge
-  logical               :: owner
+    integer, intent( in ) :: cell, edge
+    logical               :: owner
 
-  owner=.false.
-  if(self%edge_ownership( edge, cell )==self%partition%get_local_rank())owner=.true.
+    owner=.false.
+    if(self%edge_ownership( edge, cell )==self%partition%get_local_rank())owner=.true.
 
   end function is_edge_owned
 
 
   function is_cell_owned( self, cell ) result (owner)
 
-  class(mesh_type), intent(in) :: self
+    class(mesh_type), intent(in) :: self
 
-  integer, intent( in ) :: cell
-  logical               :: owner
+    integer, intent( in ) :: cell
+    logical               :: owner
 
-  owner=.false.
-  if(self%partition%get_cell_owner(cell)==self%partition%get_local_rank())owner=.true.
+    owner=.false.
+    if(self%partition%get_cell_owner(cell)==self%partition%get_local_rank())owner=.true.
 
   end function is_cell_owned
 
@@ -753,6 +813,32 @@ contains
     end if
 
   end function get_num_cells_halo
+
+
+  function get_num_cells_ghost( self ) result ( ghost_cells )
+    implicit none
+
+    class(mesh_type), intent(in) :: self
+
+    integer(i_def) :: ghost_cells
+
+    ghost_cells = self%partition%get_num_cells_ghost()
+
+  end function get_num_cells_ghost
+
+
+  function get_gid_from_lid( self, lid ) result ( gid )
+    implicit none
+
+    class(mesh_type), intent(in) :: self
+
+    integer(i_def), intent(in) :: lid           ! local index
+    integer(i_def)             :: gid           ! global index
+
+    gid=self%partition%get_gid_from_lid(lid)
+
+  end function get_gid_from_lid
+
 
   !============================================================================
   !> @brief  Returns count of colours used in colouring mesh.
@@ -935,34 +1021,30 @@ contains
 
     type(mesh_type) :: self
 
-    integer :: num_in_list ! number of cells in a partitioned layer
-    integer :: i, j, k     ! loop counters
+    integer(i_def) :: i, j        ! loop counters
 
     ! Arrays used in entity ownership calculation - see their names
     ! for a descriptioin of what they actually contain
-    integer, allocatable :: cells_on_vertex( : )
-    integer, allocatable :: cells_on_vertex_owner( : )
-    integer, allocatable :: vertices_on_cell( : )
-    integer, allocatable :: edges_on_cell( : )
-    integer, allocatable :: cells_on_edge( : )
-    integer, allocatable :: cells_on_edge_owner( : )
+    integer(i_def), allocatable :: verts( : )
+    integer(i_def), allocatable :: edges( : )
 
     self%partition  = partition
-
-    nlayers         = nlayers_in
-    ncells_2d       = partition%get_num_cells_in_layer()
 
     mesh_id_counter = mesh_id_counter+1
     self%mesh_id    = mesh_id_counter
 
     self%dz         = dz
-    self%nlayers    = nlayers
-    self%ncells_2d  = ncells_2d
-    self%ncells     = ncells_2d * nlayers
-    self%domain_top = dz * real(nlayers)
+    self%nlayers    = nlayers_in
+    self%ncells_2d  = partition%get_num_cells_in_layer()
+    self%ncells     = self%ncells_2d * self%nlayers
+    self%domain_top = dz * real(self%nlayers)
     self%ncolours   = -1     ! Initialise ncolours to error status
+    self%ncells_2d_with_ghost = self%ncells_2d + partition%get_num_cells_ghost()
+    self%ncells_with_ghost = ( self%ncells_2d + &
+                                partition%get_num_cells_ghost() ) * self%nlayers
 
-    ncells          = self%ncells
+    ncells_2d       = self%ncells_2d_with_ghost
+    ncells          = self%ncells_with_ghost
     nlayers         = self%nlayers
 
 
@@ -981,76 +1063,53 @@ contains
     call mesh_connectivity (self)
     call set_domain_size   (self)
 
-    ! Get number of cells in a partitioned layer
-    num_in_list = partition%get_num_cells_in_layer()
+    !Assign ownership of cell vertices and cell edges
 
-    !Assign ownership of call vertices
     allocate( &
-       self%vertex_ownership( global_mesh%get_nverts_per_cell(), num_in_list ) &
-            )
-    allocate( cells_on_vertex( global_mesh%get_max_cells_per_vertex() ) )
-    allocate( cells_on_vertex_owner( global_mesh%get_max_cells_per_vertex() ) )
-    allocate( vertices_on_cell( global_mesh%get_nverts_per_cell() ) )
-    do i = 1, num_in_list
-      call global_mesh%get_vert_on_cell( partition%get_gid_from_lid(i), &
-                                         vertices_on_cell )
+      self%vertex_ownership( global_mesh%get_nverts_per_cell(), ncells_2d ) )
+    allocate( &
+      self%edge_ownership( global_mesh%get_nedges_per_cell(), ncells_2d ) )
+
+    allocate( &
+      self%vert_cell_owner( global_mesh%get_nverts_per_cell(), ncells_2d ) )
+    allocate( &
+      self%edge_cell_owner( global_mesh%get_nedges_per_cell(), ncells_2d ) )
+
+    allocate( verts( global_mesh%get_nverts_per_cell() ) )
+    allocate( edges( global_mesh%get_nedges_per_cell() ) )
+    do i = 1, ncells_2d
+      ! vertex ownership
+      call global_mesh%get_vert_on_cell(partition%get_gid_from_lid(i), verts)
       do j = 1,global_mesh%get_nverts_per_cell()
-        call global_mesh%get_cell_on_vert( vertices_on_cell(j), &
-                                           cells_on_vertex )
-        cells_on_vertex_owner(:)=0
-        do k = 1,global_mesh%get_max_cells_per_vertex()
-         ! If cell_on_vertex is 0 then this is a vertex with fewer than
-         ! max_cells_per_vertex cells around it, so don't process
-         ! non-existent cells
-          if( cells_on_vertex(k) > 0 )then
-            if( partition%get_lid_from_gid( cells_on_vertex(k) ) > 0 )then
-              cells_on_vertex_owner(k) = partition%get_cell_owner( &
-                              partition%get_lid_from_gid( cells_on_vertex(k) ) &
-                                                                 )
-            else
-             ! This is so far off in the halos, this partition is definitely not
-             ! the owner so mark with a rank_no higher than total_ranks
-             cells_on_vertex_owner(k) = partition%get_total_ranks() + 1  
-            end if
-          end if
-        end do
-        self%vertex_ownership(j,i) = maxval( cells_on_vertex_owner )
+        self%vert_cell_owner(j,i)=partition%get_lid_from_gid( &
+                                   global_mesh%get_vert_cell_owner( verts(j) ) &
+                                                            )
+        if(self%vert_cell_owner(j,i) > 0)then
+          self%vertex_ownership(j,i) = partition%get_cell_owner( &
+                                                     self%vert_cell_owner(j,i) &
+                                                               )
+        else
+          self%vertex_ownership(j,i) = partition%get_total_ranks() + 1
+        end if
       end do
-    end do
-    deallocate( vertices_on_cell )
-    deallocate( cells_on_vertex_owner )
-    deallocate( cells_on_vertex )
 
-    !Assign ownership of call edges
-    allocate( &
-         self%edge_ownership( global_mesh%get_nedges_per_cell(), num_in_list ) &
-            )
-    allocate( cells_on_edge(2) )
-    allocate( cells_on_edge_owner(2) )
-    allocate( edges_on_cell( global_mesh%get_nedges_per_cell() ) )
-    do i = 1, num_in_list
-      call global_mesh%get_edge_on_cell( partition%get_gid_from_lid(i), &
-                                         edges_on_cell )
+      ! edge ownership
+      call global_mesh%get_edge_on_cell(partition%get_gid_from_lid(i), edges)
       do j = 1,global_mesh%get_nedges_per_cell()
-        call global_mesh%get_cell_on_edge( edges_on_cell(j), &
-                                           cells_on_edge )
-        do k = 1,2
-          if( partition%get_lid_from_gid( cells_on_edge(k) ) > 0 )then
-            cells_on_edge_owner(k)=partition%get_cell_owner( &
-                                partition%get_lid_from_gid( cells_on_edge(k) ) &
-                                                           )
-          else
-           ! This is so far off in the halos, this partition is definitely not
-           ! the owner so mark with a rank_no higher than total_ranks
-           cells_on_edge_owner(k) = partition%get_total_ranks() + 1 
-          end if
-        end do
-        self%edge_ownership(j,i) = maxval( cells_on_edge_owner )
+        self%edge_cell_owner(j,i)=partition%get_lid_from_gid( &
+                                   global_mesh%get_edge_cell_owner( edges(j) ) &
+                                                            )
+        if(self%edge_cell_owner(j,i) > 0)then
+          self%edge_ownership(j,i) = partition%get_cell_owner( &
+                                                     self%edge_cell_owner(j,i) &
+                                                             )
+        else
+          self%edge_ownership(j,i) = partition%get_total_ranks() + 1
+        end if
       end do
     end do
-    deallocate( edges_on_cell )
-    deallocate( cells_on_edge_owner )
-    deallocate( cells_on_edge )
+    deallocate( verts )
+    deallocate( edges )
 
   end function mesh_constructor
 
@@ -1071,6 +1130,8 @@ contains
     integer(i_def), intent(in) :: mesh_cfg
     type(mesh_type)            :: self
 
+    integer(i_def), parameter :: nverts_per_cell = 8
+    integer(i_def), parameter :: nedges_per_cell = 12
 
     self%dz              = 2000.0_r_def
     self%nverts_per_cell = 8
@@ -1111,6 +1172,8 @@ contains
     allocate( self%face_on_cell      ( self%nfaces_per_cell, self%ncells_2d) )
     allocate( self%edge_on_cell      ( self%nedges_per_cell, self%ncells_2d) )
     allocate( self%vertex_coords     ( 3, self%nverts) )
+    allocate( self%vert_cell_owner   ( nverts_per_cell, self%ncells_2d ) )
+    allocate( self%edge_cell_owner   ( nedges_per_cell, self%ncells_2d ) )
 
 
 

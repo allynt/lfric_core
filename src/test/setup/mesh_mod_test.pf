@@ -111,6 +111,11 @@ contains
     @assertEqual ( 9, test_integer )
 
     !-------------------------------------------------------------------
+    ! Test get_ncells_2d_with_ghost
+    test_integer = mesh_1%get_ncells_2d_with_ghost()
+    @assertEqual ( 9, test_integer )
+
+    !-------------------------------------------------------------------
     ! Test get_nverts_2d
     test_integer = mesh_1%get_nverts_2d()
     @assertEqual ( 16, test_integer )
@@ -388,6 +393,58 @@ contains
     test_integer = mesh_1%get_id()
     test_integer2 = mesh_2%get_id()
     @assertFalse ( test_integer == test_integer2 )
+
+    !-------------------------------------------------------------------
+    ! Test get_vert_cell_owner
+    test_integer=mesh_1%get_vertex_cell_owner(2,4)
+    @assertEqual( 5, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_edge_cell_owner
+    test_integer=mesh_1%get_edge_cell_owner(4,4)
+    @assertEqual( 7, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test is_vertex_owned
+    @assertTrue( mesh_1%is_vertex_owned(1,1) )
+
+    !-------------------------------------------------------------------
+    ! Test is_edge_owned
+    @assertTrue( mesh_1%is_edge_owned(1,1) )
+
+    !-------------------------------------------------------------------
+    ! Test is_vertex_owned
+    @assertTrue( mesh_1%is_vertex_owned(1,1) )
+
+    !-------------------------------------------------------------------
+    ! Test get_num_cells_core
+    test_integer=( mesh_1%get_num_cells_core() )
+    @assertEqual( 9, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_num_cells_owned
+    test_integer=( mesh_1%get_num_cells_owned() )
+    @assertEqual( 0, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_halo_depth
+    test_integer=( mesh_1%get_halo_depth() )
+    @assertEqual( 1, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_num_cells_halo
+    test_integer=( mesh_1%get_num_cells_halo( 1 ) )
+    @assertEqual( 0, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_num_cells_ghost
+    test_integer=( mesh_1%get_num_cells_ghost() )
+    @assertEqual( 0, test_integer )
+
+    !-------------------------------------------------------------------
+    ! Test get_gid_from_lid
+    test_integer=( mesh_1%get_gid_from_lid( 1 ) )
+    @assertEqual( 1, test_integer )
 
   end subroutine test_mesh
 

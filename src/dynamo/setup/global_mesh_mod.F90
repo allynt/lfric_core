@@ -31,6 +31,10 @@ type, public :: global_mesh_type
   integer, allocatable :: edge_on_cell_2d(:,:)
 !> Full domain cells either side of an edge
   integer, allocatable :: cell_on_edge_2d(:,:)
+!> Full domain list the cells that vertices are allocated to
+  integer(i_def), allocatable :: vert_cell_owner(:)
+!> Full domain list the cells that edges are allocated to
+  integer(i_def), allocatable :: edge_cell_owner(:)
 !> Total number of vertices in the full domain
   integer              :: nverts
 !> Total number of edges in the full domain
@@ -112,6 +116,16 @@ contains
   !>         spherical coords [long,lat,radius] 
   procedure, public :: get_vert_coords
 
+  !> Gets the cell that a vertex has been allocated to
+  !> @param [in]  vert_gid   The global id of the requested vertex
+  !> @return The global cell id that the vertex has been allocated to
+  procedure, public :: get_vert_cell_owner
+
+  !> Gets the cell that an edge has been allocated to
+  !> @param [in]  edge_gid   The global id of the requested edge
+  !> @return The global cell id that the edge has been allocated to
+  procedure, public :: get_edge_cell_owner
+
 end type global_mesh_type
 
 interface global_mesh_type
@@ -156,6 +170,9 @@ integer :: num_nodes_per_face
 integer :: num_nodes_per_edge
 integer :: num_edges_per_face
 integer :: max_num_faces_per_node
+
+! loop counter over entities (vertices or edges)
+integer(i_def) :: ientity
 
 allocate( ncdf_quad_type :: file_handler )
 call ugrid_2d%set_file_handler( file_handler )
@@ -204,6 +221,20 @@ call calc_cell_on_edge( self%edge_on_cell_2d, &
                         nface_in, &
                         self%cell_on_edge_2d, &
                         nedge_in )
+
+! Allocate each vertex to the cell with the highest global cell index 
+! of the cells neighbouring the vertex
+allocate( self%vert_cell_owner(nvert_in) )
+do ientity=1,nvert_in
+  self%vert_cell_owner(ientity)=maxval( self%cell_on_vert_2d(:,ientity) )
+end do
+
+! Allocate each edge to the cell with the highest global cell index 
+! of the cells neighbouring the edge
+allocate( self%edge_cell_owner(nedge_in) )
+do ientity=1,nedge_in
+  self%edge_cell_owner(ientity)=maxval( self%cell_on_edge_2d(:,ientity) )
+end do
 
 end function global_mesh_constructor
 
@@ -495,6 +526,28 @@ subroutine get_vert_coords (self, vert_gid, vert_coords)
 end subroutine get_vert_coords
 
 
+function get_vert_cell_owner ( self, vert ) result ( cell )
+
+  implicit none
+  class (global_mesh_type), intent(in)  :: self
+  integer (i_def),          intent(in)  :: vert
+  integer (i_def)                       :: cell
+
+  cell = self%vert_cell_owner( vert )
+
+end function get_vert_cell_owner
+
+function get_edge_cell_owner ( self, edge ) result ( cell )
+
+  implicit none
+  class (global_mesh_type), intent(in)  :: self
+  integer (i_def),          intent(in)  :: edge
+  integer (i_def)                       :: cell
+
+  cell = self%edge_cell_owner( edge )
+
+end function get_edge_cell_owner
+
 !==============================================================================
 ! The following routines are only available when setting data for unit testing.
 !==============================================================================
@@ -530,6 +583,8 @@ function global_mesh_constructor_unit_test_data() result (self)
   allocate( self%cell_on_vert_2d (self%max_cells_per_vertex, nverts) )
   allocate( self%cell_on_edge_2d (2, nedges) )
   allocate( self%vert_coords     (3, nverts) )
+  allocate( self%vert_cell_owner (nverts) )
+  allocate( self%edge_cell_owner (nedges) )
 
   ! Note: These test coordinates are in [Long, Lat] in units of Radians
   self%vert_coords(1:2,1)  = [-2.0_r_def, -2.0_r_def]
@@ -620,6 +675,10 @@ function global_mesh_constructor_unit_test_data() result (self)
   self%cell_on_edge_2d(:,22) = [7, 0]
   self%cell_on_edge_2d(:,23) = [8, 0]
   self%cell_on_edge_2d(:,24) = [9, 0]
+
+  self%vert_cell_owner(:) = [1, 2, 3, 3, 4, 5, 6, 6, 7, 8, 9, 9, 7, 8, 9, 9]
+  self%edge_cell_owner(:) = [1, 2, 3, 1, 2, 3, 3, 4, 5, 6, 4, 5, 6, 6, &
+                             7, 8, 9, 7, 8, 9, 9, 7, 8, 9]
 
 end function global_mesh_constructor_unit_test_data
 

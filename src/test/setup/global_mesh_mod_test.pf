@@ -10,7 +10,7 @@
 module global_mesh_mod_test
 
   use pFUnit_Mod
-  use constants_mod, only : r_def
+  use constants_mod, only : r_def, i_def
 
   implicit none 
 
@@ -74,6 +74,7 @@ contains
   integer :: ncells_x
   integer :: ncells_y
   integer :: max_cells_on_vert
+  integer(i_def) :: cell_owner
 
   real(r_def) :: dx
   real(r_def) :: dy
@@ -164,6 +165,12 @@ contains
 
   max_cells_on_vert=global_mesh%get_max_cells_per_vertex()
   @assertEqual( 4, max_cells_on_vert )
+
+  cell_owner=global_mesh%get_vert_cell_owner(1)
+  @assertEqual( 93, cell_owner )
+
+  cell_owner=global_mesh%get_edge_cell_owner(1)
+  @assertEqual( 80, cell_owner )
 
   end subroutine test_global_mesh
 

@@ -16,7 +16,7 @@
 
 module function_space_mod
 
-use constants_mod,      only: r_def
+use constants_mod,      only: r_def, i_def
 use mesh_mod,           only: mesh_type
 use master_dofmap_mod,  only: master_dofmap_type
 use stencil_dofmap_mod, only: stencil_dofmap_type, &
@@ -59,6 +59,17 @@ type, public :: function_space_type
   real(kind=r_def), allocatable :: basis_vector(:,:)
   !! real 2 dimesional, allocatable array containing the basis x
   real(kind=r_def), allocatable :: basis_x(:,:,:)
+  !> A one dimensional, allocatable array which holds a unique global index for
+  !! every dof in the local domain
+  integer(kind=i_def), allocatable :: global_dof_id(:)
+  !> The index within the dofmap of the last "owned" dof
+  integer(kind=i_def) :: last_dof_owned
+  !> The index within the dofmap of the last "annexed" dof 
+  !! ("Annexed" dofs that those that are not owned, but are on owned cells)
+  integer(kind=i_def) :: last_dof_annexed
+  !> A one dimensional, allocatable array which holds the index in the dofmap
+  !! of the last of the halo dofs (from the various depths of halo)
+  integer(kind=i_def), allocatable :: last_dof_halo(:)
 
 contains
   !final :: destructor
@@ -230,8 +241,22 @@ function get_instance(mesh, function_space) result(instance)
   use dofmap_mod,              only : &
               w0_dofmap, w1_dofmap, w2_dofmap, w3_dofmap, wtheta_dofmap, &
               w2v_dofmap, w2h_dofmap, &
-              w0_orientation, w1_orientation, w2_orientation, w3_orientation, & 
-              wtheta_orientation, w2v_orientation, w2h_orientation
+              w0_orientation, w1_orientation, w2_orientation, w3_orientation, &
+              wtheta_orientation, w2v_orientation, w2h_orientation, &
+              w0_global_dof_id, w0_last_dof_owned, w0_last_dof_annexed, &
+              w0_last_dof_halo, &
+              w1_global_dof_id, w1_last_dof_owned, w1_last_dof_annexed, &
+              w1_last_dof_halo, &
+              w2_global_dof_id, w2_last_dof_owned, w2_last_dof_annexed, &
+              w2_last_dof_halo, &
+              w3_global_dof_id, w3_last_dof_owned, w3_last_dof_annexed, &
+              w3_last_dof_halo,&
+              wtheta_global_dof_id, wtheta_last_dof_owned, &
+              wtheta_last_dof_annexed, wtheta_last_dof_halo, &
+              w2v_global_dof_id, w2v_last_dof_owned, &
+              w2v_last_dof_annexed, w2v_last_dof_halo, &
+              w2h_global_dof_id, w2h_last_dof_owned, &
+              w2h_last_dof_annexed, w2h_last_dof_halo
 
   use slush_mod, only : w_unique_dofs
 
@@ -258,7 +283,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=w0_dof_on_vert_boundary, &
          orientation=w0_orientation, fs=W0, &
          basis_order=w0_basis_order, basis_index=w0_basis_index, &
-         basis_vector=w0_basis_vector, basis_x=w0_basis_x) 
+         basis_vector=w0_basis_vector, basis_x=w0_basis_x, &
+         global_dof_id=w0_global_dof_id, &
+         last_dof_owned=w0_last_dof_owned, &
+         last_dof_annexed=w0_last_dof_annexed, &
+         last_dof_halo=w0_last_dof_halo) 
     end if
     instance => w0_function_space
   case (W1)
@@ -275,7 +304,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=w1_dof_on_vert_boundary, &
          orientation=w1_orientation, fs=W1, &
          basis_order=w1_basis_order, basis_index=w1_basis_index, &
-         basis_vector=w1_basis_vector, basis_x=w1_basis_x )
+         basis_vector=w1_basis_vector, basis_x=w1_basis_x, &
+         global_dof_id=w1_global_dof_id, &
+         last_dof_owned=w1_last_dof_owned, &
+         last_dof_annexed=w1_last_dof_annexed, &
+         last_dof_halo=w1_last_dof_halo) 
     end if
     instance => w1_function_space
   case (W2)
@@ -292,7 +325,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=w2_dof_on_vert_boundary, &
          orientation=w2_orientation, fs=W2, &
          basis_order=w2_basis_order, basis_index=w2_basis_index, &
-         basis_vector=w2_basis_vector, basis_x=w2_basis_x )
+         basis_vector=w2_basis_vector, basis_x=w2_basis_x, &
+         global_dof_id=w2_global_dof_id, &
+         last_dof_owned=w2_last_dof_owned, &
+         last_dof_annexed=w2_last_dof_annexed, &
+         last_dof_halo=w2_last_dof_halo) 
     end if
     instance => w2_function_space
   case (W3)
@@ -309,7 +346,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=w3_dof_on_vert_boundary, &
          orientation=w3_orientation, fs=W3, &
          basis_order=w3_basis_order, basis_index=w3_basis_index, &
-         basis_vector=w3_basis_vector, basis_x=w3_basis_x )
+         basis_vector=w3_basis_vector, basis_x=w3_basis_x, &
+         global_dof_id=w3_global_dof_id, &
+         last_dof_owned=w3_last_dof_owned, &
+         last_dof_annexed=w3_last_dof_annexed, &
+         last_dof_halo=w3_last_dof_halo) 
     end if
     instance => w3_function_space
   case (Wtheta)
@@ -326,7 +367,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=wtheta_dof_on_vert_boundary, &
          orientation=wtheta_orientation, fs=Wtheta, &
          basis_order=wtheta_basis_order, basis_index=wtheta_basis_index, &
-         basis_vector=wtheta_basis_vector, basis_x=wtheta_basis_x )
+         basis_vector=wtheta_basis_vector, basis_x=wtheta_basis_x, &
+         global_dof_id=wtheta_global_dof_id, &
+         last_dof_owned=wtheta_last_dof_owned, &
+         last_dof_annexed=wtheta_last_dof_annexed, &
+         last_dof_halo=wtheta_last_dof_halo) 
     end if
     instance => wtheta_function_space
   case (W2V)
@@ -343,7 +388,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=w2v_dof_on_vert_boundary, &
          orientation=w2v_orientation, fs=W2V, &
          basis_order=w2v_basis_order, basis_index=w2v_basis_index, &
-         basis_vector=w2v_basis_vector, basis_x=w2v_basis_x )
+         basis_vector=w2v_basis_vector, basis_x=w2v_basis_x, &
+         global_dof_id=w2v_global_dof_id, &
+         last_dof_owned=w2v_last_dof_owned, &
+         last_dof_annexed=w2v_last_dof_annexed, &
+         last_dof_halo=w2v_last_dof_halo) 
     end if
     instance => w2v_function_space
   case (W2H)
@@ -360,7 +409,11 @@ function get_instance(mesh, function_space) result(instance)
          dof_on_vert_boundary=w2h_dof_on_vert_boundary, &
          orientation=w2h_orientation, fs=W2H, &
          basis_order=w2h_basis_order, basis_index=w2h_basis_index, &
-         basis_vector=w2h_basis_vector, basis_x=w2h_basis_x )
+         basis_vector=w2h_basis_vector, basis_x=w2h_basis_x, &
+         global_dof_id=w2h_global_dof_id, &
+         last_dof_owned=w2h_last_dof_owned, &
+         last_dof_annexed=w2h_last_dof_annexed, &
+         last_dof_halo=w2h_last_dof_halo) 
     end if
     instance => w2h_function_space
   case default
@@ -394,9 +447,11 @@ subroutine init_function_space(self, &
                                dof_on_vert_boundary, &
                                orientation ,fs, &
                                basis_order, basis_index, &
-                               basis_vector, basis_x)
-
-
+                               basis_vector, basis_x, &
+                               global_dof_id, &
+                               last_dof_owned, &
+                               last_dof_annexed, &
+                               last_dof_halo) 
   implicit none
 
   class(function_space_type)  :: self
@@ -414,6 +469,12 @@ subroutine init_function_space(self, &
   integer,          intent(in)                  :: fs
   integer,          intent(inout), allocatable  :: basis_order(:,:),  basis_index(:,:)
   real(kind=r_def), intent(inout), allocatable  :: basis_vector(:,:), basis_x(:,:,:)
+  integer (i_def),  intent(inout), allocatable  :: global_dof_id(:)
+  integer (i_def),  intent(in)                  :: last_dof_owned
+  integer (i_def),  intent(in)                  :: last_dof_annexed
+  integer (i_def),  intent(inout), allocatable  :: last_dof_halo(:)
+
+
   self%order           =  order
   self%ncell           =  mesh%get_ncells_2d()
   self%nlayers         =  mesh%get_nlayers()
@@ -434,7 +495,10 @@ subroutine init_function_space(self, &
   call move_alloc(basis_index,self%basis_index)
   call move_alloc(basis_vector,self%basis_vector)
   call move_alloc(basis_x,self%basis_x)
-
+  call move_alloc(global_dof_id,self%global_dof_id)
+  self%last_dof_owned   = last_dof_owned
+  self%last_dof_annexed = last_dof_annexed
+  call move_alloc(last_dof_halo,self%last_dof_halo)
   return
 end subroutine init_function_space
 

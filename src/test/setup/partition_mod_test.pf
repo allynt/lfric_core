@@ -12,7 +12,7 @@ module partition_mod_test
   use ESMF
   use pFUnit_Mod
   use partition_mod
-  use constants_mod, only : r_def
+  use constants_mod, only : r_def, i_def
   use suite_fixture_mod, only : get_esmf_handle
 
   implicit none 
@@ -98,6 +98,7 @@ contains
   integer :: num_cells_core
   integer :: num_cells_owned
   integer :: num_cells_halo
+  integer(i_def) :: num_cells_ghost
   integer :: cell_owner
   integer :: lid
   integer :: gid
@@ -138,6 +139,9 @@ contains
 
   num_cells_halo = partition%get_num_cells_halo(1)
   @assertEqual( 0, num_cells_halo )
+
+  num_cells_ghost = partition%get_num_cells_ghost()
+  @assertEqual( 0, num_cells_ghost )
 
   cell_owner = partition%get_cell_owner( 1 )
   @assertEqual( 0, cell_owner )
@@ -236,6 +240,9 @@ contains
 
   num_cells_halo = partition%get_num_cells_halo( 1 )
   @assertEqual( 0, num_cells_halo )
+
+  num_cells_ghost = partition%get_num_cells_ghost()
+  @assertEqual( 0, num_cells_ghost )
 
   cell_owner = partition%get_cell_owner( 1 )
   @assertEqual( 0, cell_owner )

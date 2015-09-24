@@ -83,7 +83,7 @@ contains
 
     ! Local values
     nlayers = mesh%get_nlayers()
-    ncells  = mesh%get_ncells_2d()
+    ncells  = mesh%get_ncells_2d_with_ghost()
     nface_g = mesh%get_nfaces()
     nedge_g = mesh%get_nedges()
     nvert_g = mesh%get_nverts()
