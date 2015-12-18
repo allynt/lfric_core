@@ -759,8 +759,8 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer, intent( in ) :: cell, vertex
-    logical               :: owner
+    integer(i_def), intent( in ) :: cell, vertex
+    logical(l_def)               :: owner
 
   owner = .false.
   if (self%vertex_ownership( vertex, cell )==self%partition%get_local_rank()) &
@@ -773,8 +773,8 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer, intent( in ) :: cell, edge
-    logical               :: owner
+    integer(i_def), intent( in ) :: cell, edge
+    logical(l_def)               :: owner
 
   owner = .false.
   if(self%edge_ownership( edge, cell )==self%partition%get_local_rank()) &
@@ -787,8 +787,8 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer, intent( in ) :: cell
-    logical               :: owner
+    integer(i_def), intent( in ) :: cell
+    logical(l_def)              :: owner
 
   owner = .false.
   if(self%partition%get_cell_owner(cell)==self%partition%get_local_rank()) &
@@ -802,7 +802,7 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer :: core_cells
+    integer(i_def) :: core_cells
 
     core_cells = self%partition%get_num_cells_core()
 
@@ -814,7 +814,7 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer :: owned_cells
+    integer(i_def) :: owned_cells
 
     owned_cells = self%partition%get_num_cells_owned()
 
@@ -826,7 +826,7 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer :: halo_depth
+    integer(i_def) :: halo_depth
 
     halo_depth = self%partition%get_halo_depth()
 
@@ -838,8 +838,8 @@ contains
 
     class(mesh_type), intent(in) :: self
 
-    integer, intent(in) :: depth
-    integer             :: halo_cells
+    integer(i_def), intent(in) :: depth
+    integer(i_def)             :: halo_cells
 
     if( depth > self%get_halo_depth() )then
       halo_cells = 0
@@ -920,7 +920,7 @@ contains
   function is_coloured(self) result(cstat)
     implicit none
     class(mesh_type), intent(in) :: self
-    logical                      :: cstat
+    logical(l_def)               :: cstat
 
     if(self%ncolours <= 0) then
       cstat = .false.
@@ -1136,6 +1136,8 @@ contains
 
     integer(i_def), parameter :: nverts_per_cell = 8
     integer(i_def), parameter :: nedges_per_cell = 12
+
+    self%partition = partition_type()
 
     self%nverts_per_cell = 8
     self%nedges_per_cell = 12

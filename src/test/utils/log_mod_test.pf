@@ -12,6 +12,7 @@ module log_mod_test
 
   use pFUnit_Mod
   use log_mod
+  use constants_mod, only: r_def, i_def
 
   implicit none
 
@@ -21,12 +22,12 @@ module log_mod_test
   public log_test_constructor, getParameters, &
          log_level_test, log_output_test, setUp, tearDown
 
-  integer, parameter :: INFO_UNIT  = 12
-  integer, parameter :: ALERT_UNIT = 13
+  integer(i_def), parameter :: INFO_UNIT  = 12
+  integer(i_def), parameter :: ALERT_UNIT = 13
 
   @testParameter
   type, public, extends( AbstractTestParameter ) :: level_parameter_type
-    integer,        public :: level
+    integer(i_def), public :: level
     character( 8 ), public :: expected_tag
   contains
     procedure :: toString
@@ -34,11 +35,11 @@ module log_mod_test
 
   @testCase(testParameters={getParameters()}, constructor=log_test_constructor)
   type, public, extends( ParameterizedTestCase ) :: log_test_type
-    integer        :: level
+    integer(i_def) :: level
     character( 8 ) :: expected_tag
 
-    integer :: dummy ! This is here only so procedures which do not use "this"
-                     ! have something they can hit.
+    integer(i_def) :: dummy ! This is here only so procedures which do not use
+                            ! "this" have something they can hit.
   contains
     procedure :: setUp
     procedure :: tearDown
@@ -100,7 +101,7 @@ contains
 
     class( log_test_type ), intent( inout ) :: this
 
-    integer :: condition
+    integer(i_def) :: condition
 
     !> @todo When we can run unit tests in more than one parallel configuration
     !>       (we only run on one process at the moment), we need to add tests
@@ -129,7 +130,7 @@ contains
 
     class( log_test_type ), intent( inout ) :: this
 
-    integer :: condition
+    integer(i_def) :: condition
 
     close( ALERT_UNIT, iostat=condition )
     @assertEqual( condition, 0 )
@@ -170,19 +171,19 @@ contains
 
     class( log_test_type ), intent( inout ) :: this
 
-    integer, parameter :: date_kind = selected_int_kind( 14 )
+    integer(i_def), parameter :: date_kind = selected_int_kind( 14 )
 
     integer( kind=date_kind ) :: current_stamp
     character( 28 )           :: current_date_string
-    integer                   :: current_subseconds
-    integer                   :: current_zone
+    integer(i_def)            :: current_subseconds
+    integer(i_def)            :: current_zone
     integer( kind=date_kind)  :: found_stamp
     character                 :: found_point
-    integer                   :: found_subseconds
-    integer                   :: found_zone
+    integer(i_def)            :: found_subseconds
+    integer(i_def)            :: found_zone
     character(  8 )           :: found_tag
     character( 80 )           :: found_message
-    integer                   :: status
+    integer(i_def)            :: status
 
     ! Check logging level is set to INFO. If it isn't, maybe another test
     ! altered it. Either way, something has gone wrong so we bail out.
@@ -245,14 +246,14 @@ contains
 
     class ( log_test_type ), intent( inout ) :: this
 
-    integer, parameter :: number_of_levels = 4
+    integer(i_def), parameter :: number_of_levels = 4
 
-    integer         :: levels( number_of_levels )
+    integer(i_def)  :: levels( number_of_levels )
     character( 22 ) :: messages( number_of_levels )
-    integer         :: level_index
+    integer(i_def) :: level_index
     character(  8 ) :: info_tag, alert_tag
     character( 80 ) :: info_message, alert_message
-    integer         :: info_status, alert_status
+    integer(i_def)   :: info_status, alert_status
 
     levels  = [ LOG_LEVEL_TRACE, LOG_LEVEL_DEBUG, &
                 LOG_LEVEL_INFO, LOG_LEVEL_WARNING ]
