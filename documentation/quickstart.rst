@@ -29,15 +29,15 @@ Dynamo environment to set up libraries and compiler:
 
  1. Source the setup script::
  
-      . /data/cr1/mhambley/modules/setup
+      . /data/users/lfric/modules/setup
 
  #. Load the modules::
 
-      module load environment/dynamo/compiler/gnufortran
+      module load environment/dynamo/gnu
 
     or::
 
-      module load environment/dynamo/compiler/intelfortran
+      module load environment/dynamo/intel
 
 Note that this process will replace the familiar modules provided by TIS.
 This will be the case for the lifetime of the terminal.
