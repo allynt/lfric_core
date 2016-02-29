@@ -16,7 +16,8 @@ use coord_transform_mod,            only : xyz2llr
 use generate_global_gw_fields_mod,  only : generate_global_gw_fields
 use idealised_config_mod,           only : idealised_test_gravity_wave, &
                                            idealised_test_cold_bubble,  &
-                                           idealised_test_warm_bubble
+                                           idealised_test_warm_bubble,  &
+                                           idealised_test_held_suarez
 use initial_temperature_config_mod, only : bvf_square
 use planet_config_mod,              only : scaled_radius, gravity, Cp, Rd, &
                                            kappa, p_zero
@@ -57,7 +58,7 @@ else                     ! BIPERIODIC PLANE DOMAIN
   z = x(3)
   ! Calculate theta and exner for each biperiodic test
   select case( itest_option )
-    case( idealised_test_gravity_wave )  ! Gravity wave test
+    case( idealised_test_gravity_wave,idealised_test_held_suarez)
       nsq_over_g = bvf_square/gravity
       theta_s = THETA_SURF * exp ( nsq_over_g * z )
       exner_s = EXNER_SURF - gravity**2/(Cp*THETA_SURF*bvf_square)   &

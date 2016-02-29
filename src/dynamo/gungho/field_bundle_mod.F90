@@ -22,9 +22,9 @@ contains
 
   subroutine clone_bundle(x, y, bundle_size)
 
-    use function_space_mod, only: function_space_type
-    use mesh_mod,           only: mesh_type
-    use configuration_mod,  only: element_order
+    use function_space_mod,        only: function_space_type
+    use mesh_mod,                  only: mesh_type
+    use finite_element_config_mod, only: element_order
 
     implicit none
     integer,          intent(in)    :: bundle_size
@@ -180,11 +180,11 @@ contains
 !> @param [in] bundle_size the number of fields in the bundle
   subroutine bundle_minmax(x, bundle_size)
 
-    use function_space_mod, only: function_space_type
-    use mesh_mod,           only: mesh_type
-    use psykal_lite_mod,    only: invoke_copy_field_data
-    use log_mod,            only: lOG_LEVEL_INFO   
-    use configuration_mod,  only: element_order
+    use function_space_mod,        only: function_space_type
+    use mesh_mod,                  only: mesh_type
+    use psykal_lite_mod,           only: invoke_copy_field_data
+    use log_mod,                   only: lOG_LEVEL_INFO   
+    use finite_element_config_mod, only: element_order
 
     implicit none
     integer,          intent(in) :: bundle_size
