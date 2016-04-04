@@ -118,7 +118,7 @@ contains
     integer, parameter :: timestep_limit  = 1000000
     integer            :: timestep_start
     integer            :: timestep_end   
-    integer            :: checkpoint_frequency
+    integer            :: checkpoint_frequency = 999
     integer            :: ierr
     character(len=str_long)         :: ioerrmsg=''
     character(len=str_max_filename) :: restart_stem_name
