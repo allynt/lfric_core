@@ -77,7 +77,7 @@ subroutine evaluate_output_field( mesh, field, chi, x_in, cell, nz, field_out )
   nlayers = field_proxy%vspace%get_nlayers()
   domain_top = mesh%get_domain_top()
 
-  allocate ( chi_cell(3,ndf), dgamma(3,ndf), out_layer(nz) )
+  allocate ( chi_cell(ndf,3), dgamma(3,ndf), out_layer(nz) )
   allocate ( eta(0:nlayers), STAT = alloc_error )
   if ( alloc_error /= 0 ) then
     call log_event( " evaluate_output_field: Unable to allocate "// &
@@ -100,9 +100,9 @@ subroutine evaluate_output_field( mesh, field, chi, x_in, cell, nz, field_out )
 ! Find the horizontal coordinates (x_out in [0,1]^2) corresponding to each 
 ! input point using a newton method with  a fixed number of iterations
   do df = 1,ndf 
-    chi_cell(1,df) = chi_proxy(1)%data( map(df) )
-    chi_cell(2,df) = chi_proxy(2)%data( map(df) )
-    chi_cell(3,df) = chi_proxy(3)%data( map(df) )
+    chi_cell(df,1) = chi_proxy(1)%data( map(df) )
+    chi_cell(df,2) = chi_proxy(2)%data( map(df) )
+    chi_cell(df,3) = chi_proxy(3)%data( map(df) )
   end do
 ! First guess of out point in reference element
   x_out(:) = (/ 0.5_r_def, 0.5_r_def, 0.0_r_def /)
@@ -122,9 +122,9 @@ subroutine evaluate_output_field( mesh, field, chi, x_in, cell, nz, field_out )
     call coordinate_jacobian( ndf, &
                               1,   &
                               1,   &
-                              chi_cell(1,:), &
-                              chi_cell(2,:), &
-                              chi_cell(3,:), &
+                              chi_cell(:,1), &
+                              chi_cell(:,2), &
+                              chi_cell(:,3), &
                               dgamma, &
                               jac, &
                               dj)
@@ -134,7 +134,7 @@ subroutine evaluate_output_field( mesh, field, chi, x_in, cell, nz, field_out )
     do df = 1, ndf
       gamma(:) = chi_proxy(1)%vspace%evaluate_basis(df, x_out)
       do dir = 1,3
-        g_func(dir) = g_func(dir) + chi_cell(dir,df)*gamma(1)
+        g_func(dir) = g_func(dir) + chi_cell(df,dir)*gamma(1)
       end do
     end do
     x_out(:) = x_out(:) - matmul(jac_inv, g_func)

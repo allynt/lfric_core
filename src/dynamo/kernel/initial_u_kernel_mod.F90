@@ -121,6 +121,7 @@ subroutine initial_u_code(nlayers, &
   real(kind=r_def), dimension(ndf_chi)         :: chi_1_cell, chi_2_cell, chi_3_cell
   real(kind=r_def), dimension(3)               :: u_physical, u_spherical, xyz, llr
   real(kind=r_def)                             :: integrand
+  real(kind=r_def), dimension(2)               :: option
 
   do k = 0, nlayers-1
     do df = 1, ndf_chi
@@ -148,12 +149,12 @@ subroutine initial_u_code(nlayers, &
             xyz(3) = xyz(3) + chi_3_cell(df)*chi_basis(1,df,qp1,qp2)
           end do
           call xyz2llr(xyz(1), xyz(2), xyz(3), llr(1), llr(2), llr(3))
-          u_spherical = analytic_wind(llr, profile, &
-                                      2, (/U0, rotation_angle/))
+          option = (/U0, rotation_angle/)
+          u_spherical = analytic_wind(llr, profile, 2, option)
           u_physical = sphere2cart_vector(u_spherical,llr) 
         else
-          u_physical = analytic_wind(xyz, profile, &
-                                     2, (/U0, V0/))
+          option = (/U0, V0/)
+          u_physical = analytic_wind(xyz, profile, 2, option)
         end if
         do df = 1, ndf 
           integrand = dot_product(matmul(jacobian(:,:,qp1,qp2),&

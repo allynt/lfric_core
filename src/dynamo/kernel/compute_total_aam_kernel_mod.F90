@@ -133,7 +133,8 @@ subroutine compute_total_aam_code(                                              
   real(kind=r_def), dimension(ndf_w3)          :: rho_e, aam_e
   real(kind=r_def), dimension(ndf_w2)          :: u_e
 
-  real(kind=r_def) :: u_at_quad(3), scaled_omega_vec(3), r_vec(3), am(3), x_vec(3), u_vec(3)
+  real(kind=r_def) :: u_at_quad(3), scaled_omega_vec(3), r_vec(3), &
+                      am(3), x_vec(3), u_vec(3), j_u(3)
   real(kind=r_def) :: rho_at_quad
   real(kind=r_def), parameter :: z_hat(3) = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
 
@@ -178,8 +179,9 @@ subroutine compute_total_aam_code(                                              
           u_at_quad(:) = u_at_quad(:) &
                        + u_e(df)*w2_basis(:,df,qp1,qp2)
         end do
-
-        u_vec(:) = cart2sphere_vector(x_vec,matmul(jac(:,:,qp1,qp2),u_at_quad)) &
+   
+        j_u = matmul(jac(:,:,qp1,qp2),u_at_quad)
+        u_vec(:) = cart2sphere_vector(x_vec,j_u) &
                  + cross_product(scaled_omega_vec,r_vec)*dj(qp1,qp2)
 
         am(:) = cross_product(r_vec,u_vec)

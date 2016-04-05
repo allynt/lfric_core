@@ -152,11 +152,8 @@ subroutine vorticity_advection_code(nlayers,                                    
   real(kind=r_def), dimension(ndf_w2)          :: ru_e, f_e
   real(kind=r_def), dimension(ndf_w1)          :: xi_e
 
-  real(kind=r_def) :: xi_at_quad(3), &
-                      f_at_quad(3),     &
-                      jac_v(3), &
-                      vorticity(3), &
-                      v(3)
+  real(kind=r_def), dimension(3) :: xi_at_quad, f_at_quad, jac_v, &
+                                    vorticity, v, j_xi, j_f
   real(kind=r_def) :: rho_at_quad, vorticity_term
   
   do k = 0, nlayers-1
@@ -201,8 +198,9 @@ subroutine vorticity_advection_code(nlayers,                                    
           xi_at_quad(:) = xi_at_quad(:) &
                         + xi_e(df)*w1_basis(:,df,qp1,qp2)
         end do
-        vorticity = cross_product(matmul(transpose(jac_inv(:,:,qp1,qp2)),xi_at_quad),&
-                                  matmul(jac    (:,:,qp1,qp2),f_at_quad))        
+        j_xi = matmul(transpose(jac_inv(:,:,qp1,qp2)),xi_at_quad)
+        j_f  = matmul(jac(:,:,qp1,qp2),f_at_quad)
+        vorticity = cross_product(j_xi, j_f)
         vorticity = vorticity/(dj(qp1,qp2)*rho_at_quad)
 
         do df = 1, ndf_w2

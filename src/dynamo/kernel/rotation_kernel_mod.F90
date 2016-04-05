@@ -129,7 +129,7 @@ subroutine rotation_code(nlayers,                                              &
   real(kind=r_def), dimension(ndf_w2)          :: ru_e, u_e
   real(kind=r_def), dimension(3,nqp_h,nqp_v)   :: rotation_vector
 
-  real(kind=r_def) :: u_at_quad(3), jac_v(3), v(3)
+  real(kind=r_def) :: u_at_quad(3), jac_v(3), v(3), jac_u(3)
   real(kind=r_def) :: omega_cross_u(3)
   real(kind=r_def) :: coriolis_term
 
@@ -170,8 +170,8 @@ subroutine rotation_code(nlayers,                                              &
         end do
 
         ! Rotation term
-        omega_cross_u = cross_product(rotation_vector(:,qp1,qp2), &
-                                      matmul(jac(:,:,qp1,qp2),u_at_quad))
+        jac_u = matmul(jac(:,:,qp1,qp2),u_at_quad)
+        omega_cross_u = cross_product(rotation_vector(:,qp1,qp2), jac_u)
         do df = 1, ndf_w2
           v  = w2_basis(:,df,qp1,qp2)
           jac_v = matmul(jac(:,:,qp1,qp2),v)/dj(qp1,qp2)

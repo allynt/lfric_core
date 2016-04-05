@@ -156,7 +156,7 @@ subroutine linear_ru_code(nlayers, r_u, u, rho, theta, phi, chi_1, chi_2, chi_3,
   real(kind=r_def), dimension(ndf_w2)          :: ru_e
   real(kind=r_def) :: grad_theta_s_at_quad(3), jac_v(3), x_at_quad(3), &
                       grad_phi_at_quad(3), v(3), omega_cross_u(3), &
-                      u_at_quad(3)
+                      u_at_quad(3), j_u(3)
   real(kind=r_def) :: exner_at_quad, rho_at_quad, theta_at_quad,       &
                       exner_s_at_quad, rho_s_at_quad, theta_s_at_quad, &
                       grad_term, buoy_term, coriolis_term
@@ -210,8 +210,8 @@ subroutine linear_ru_code(nlayers, r_u, u, rho, theta, phi, chi_1, chi_2, chi_3,
         do df = 1, ndf_w2
           u_at_quad(:) = u_at_quad(:) + u(map_w2(df)+k)*w2_basis(:,df,qp1,qp2)
         end do
-        omega_cross_u = cross_product(rotation_vector(:,qp1,qp2), &
-                                      matmul(jac(:,:,qp1,qp2),u_at_quad))
+        j_u = matmul(jac(:,:,qp1,qp2),u_at_quad)
+        omega_cross_u = cross_product(rotation_vector(:,qp1,qp2), j_u)
 
         call reference_profile(exner_s_at_quad, rho_s_at_quad, &
                                theta_s_at_quad, x_at_quad, test)

@@ -80,6 +80,7 @@ real(kind=r_def), intent(out) :: rotation_vec(3,ngp_h,ngp_v)
 
 integer :: i, j, df
 real(kind=r_def) :: x, y, z, lat, long, r
+real(kind=r_def) :: llr(3)
 
 lat = 0.0_r_def
 long = 0.0_r_def
@@ -100,7 +101,8 @@ do j = 1, ngp_v
     rotation_vec(2,i,j) = 2.0_r_def*scaled_omega*cos(lat)
     rotation_vec(3,i,j) = 2.0_r_def*scaled_omega*sin(lat)
 
-    rotation_vec(:,i,j) = sphere2cart_vector( rotation_vec(:,i,j),(/long, lat, r/) )
+    llr = (/long, lat, r/) 
+    rotation_vec(:,i,j) = sphere2cart_vector( rotation_vec(:,i,j),llr)
   end do
 end do
 
