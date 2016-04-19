@@ -24,23 +24,25 @@ AUTO_TOUCH_FILES = $(patsubst %.F90,$(OBJ_DIR)/%.t,$(AUTO_SRC))
 AUTO_TOUCH_FILES := $(patsubst %.f90,$(OBJ_DIR)/%.t,$(AUTO_TOUCH_FILES))
 
 EXISTING_TOUCH = $(shell find $(OBJ_DIR) -name "*.t")
-STALE_TOUCH = $(filter-out $(MANUAL_TOUCH_FILES) $(AUTO_TOUCH_FILES), $(EXISTING_TOUCH) )
+STALE_TOUCH = $(filter-out $(MANUAL_TOUCH_FILES) $(AUTO_TOUCH_FILES), \
+                           $(EXISTING_TOUCH) )
 
 IGNORE_ARGUMENTS := $(patsubst %,-ignore %,$(IGNORE_DEPENDENCIES))
 
 $(OBJ_DIR)/programs.mk: $(OBJ_DIR)/dependencies.mk | $(OBJ_DIR)
 	@echo -e $(VT_BOLD)Building$(VT_RESET) $@
-	$(Q)$(TOOL_DIR)/ProgramObjects -database $(DYNAMO_DEPENDENCY_DB) $@
+	$(Q)$(TOOL_DIR)/ProgramObjects -database $(OBJ_DIR)/dependencies.db $@
 
-$(OBJ_DIR)/dependencies.mk: $(MANUAL_TOUCH_FILES) $(AUTO_TOUCH_FILES) | $(OBJ_DIR)
+$(OBJ_DIR)/dependencies.mk: $(MANUAL_TOUCH_FILES) $(AUTO_TOUCH_FILES) \
+                            | $(OBJ_DIR)
 	@echo -e $(VT_BOLD)Building$(VT_RESET) $@
-	$(Q)$(TOOL_DIR)/DependencyRules -database $(DYNAMO_DEPENDENCY_DB) \
+	$(Q)$(TOOL_DIR)/DependencyRules -database $(OBJ_DIR)/dependencies.db \
 	                                $(DEPRULE_FLAGS) $@
 
 .PHONY: unused-check
 unused-check: $(OBJ_DIR)/dependencies.mk | $(OBJ_DIR)
 	@echo -e $(VT_BOLD)Checking for unused source$(VT_RESET)
-	$(Q)$(TOOL_DIR)/CheckForUnused -database $(DYNAMO_DEPENDENCY_DB) \
+	$(Q)$(TOOL_DIR)/CheckForUnused -database $(OBJ_DIR)/dependencies.db \
 	                               $(MANUAL_SRC) $(AUTO_SRC)
 
 .SECONDEXPANSION:
@@ -48,22 +50,22 @@ unused-check: $(OBJ_DIR)/dependencies.mk | $(OBJ_DIR)
 $(OBJ_DIR)/%.t: %.F90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
-	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
+	                             $(OBJ_DIR)/dependencies.db $< && touch $@
 
 $(OBJ_DIR)/%.t: %.f90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
-	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
+	                             $(OBJ_DIR)/dependencies.db $< && touch $@
 
 $(OBJ_DIR)/%.t: $(OBJ_DIR)/%.F90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
-	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
+	                             $(OBJ_DIR)/dependencies.db $< && touch $@
 
 $(OBJ_DIR)/%.t: $(OBJ_DIR)/%.f90 | $(OBJ_DIR) $$(dir $$@)
 	@echo -e $(VT_BOLD)Analysing$(VT_RESET) $<
 	$(Q)$(TOOL_DIR)/DependencyAnalyser $(IGNORE_ARGUMENTS) \
-	                                   $(DYNAMO_DEPENDENCY_DB) $< && touch $@
+	                             $(OBJ_DIR)/dependencies.db $< && touch $@
 
 $(OBJ_DIR) $(OBJ_SUBDIRS):
 	@echo -e $(VT_BOLD)Creating$(VT_RESET) $@

@@ -50,16 +50,22 @@ $(BIN_DIR) $(OBJ_DIR):
 # Build a set of "-I" arguments to seach the whole object tree:
 INCLUDE_ARGS = -I$(OBJ_DIR) $(patsubst %, -I$(OBJ_DIR)/%, $(SUBDIRS))
 
-$(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: %.F90 | $(OBJ_DIR) $(dir $@)
+$(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: %.F90 | $(dir $@)
 	@echo -e \$(VT_BOLD)Compile$(VT_RESET) $<
 	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
-	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
+	          $(F_MOD_DESTINATION_ARG)$(dir $@) \
 	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
 
-$(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: %.f90 | $(OBJ_DIR) $(dir $@)
+$(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: %.f90 | $(dir $@)
 	@echo -e \$(VT_BOLD)Compile$(VT_RESET) $<
 	$(Q)$(FC) $(FFLAGS) \
-	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
+	          $(F_MOD_DESTINATION_ARG)$(dir $@) \
+	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
+
+$(OBJ_DIR)/%.o $(OBJ_DIR)/%.mod: $(OBJ_DIR)/%.f90 | $(dir $@)
+	@echo -e \$(VT_BOLD)Compile$(VT_RESET) $<
+	$(Q)$(FC) $(FFLAGS) \
+	          $(F_MOD_DESTINATION_ARG)$(dir $@) \
 	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
 
 $(OBJ_DIR)/modules.a: $(ALL_MODULES)

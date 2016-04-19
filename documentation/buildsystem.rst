@@ -58,6 +58,31 @@ symbols but with run-time checking you could achieve it with:
 
   ``make fast-debug SYMBOLS=NO CHECKS=YES``
 
+Relocate Build Artifacts
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default all build related files end up in the directory "build" within the
+working copy. This is convenient for interactive development as it allows the
+generated source to be examined. Unfortunately there are a number of situations
+where this is less than ideal.
+
+The database engine used to store dependency information interacts badly with
+NFS exported mounts. If your working copy is stored on such a mount you may
+find that builds are very slow. They will tend to stall during the construction
+of ``programs.mk``.
+
+Another filesystem which can have problems is Lustre, often used on
+supercomputers. It is tuned for large parallel file access to a few files, not
+the many serial accesses to small files involved in compiling. Thus a working
+copy held on such a file system will be slow to compile and place unreasonable
+demands on the file server.
+
+Both these problems can be aleviated by relocating the build directory.
+
+This is achieved by simply exporting the ``DYNAMO_BUILD_ROOT`` environment
+variable. It should contain an absolute path to a suitible temporary space in
+which to perform the compile
+
 Verbose Building
 ^^^^^^^^^^^^^^^^
 
@@ -119,19 +144,6 @@ this up for you. e.g. On the desktop do
 ``module load base-environment/dynamo/base``.
 
 For further information an testing see `DynamoTesting`:trac:.
-
-Problems with NFS
-~~~~~~~~~~~~~~~~~
-
-The database engine used to store dependency information interacts badly with
-NFS exported mounts. If your working copy is stored on such a mount you may
-find that builds are very slow. They will tend to stall during the construction
-of ``programs.mk``.
-
-To fix this problem export an environment variable ``DYNAMO_DEPENDENCY_DB``
-which holds the full path of a file on a local disc.
-e.g. ``/var/tmp/$USER/dependency.db`` The database will henceforth be stored in
-this file.
 
 
 Choosing a Compiler

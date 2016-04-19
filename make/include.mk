@@ -9,7 +9,7 @@
 # It expects ROOT to point to the root of the project tree. i.e. the directory
 # containing the top level Makefile.
 #
-BUILD_DIR = $(ROOT)/build
+DYNAMO_BUILD_ROOT ?= $(ROOT)/build
 TOOL_DIR = $(ROOT)/tools
 MAKE_DIR = $(ROOT)/make
 

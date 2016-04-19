@@ -37,15 +37,15 @@ Dynamo environment to set up libraries and compiler:
 
  #. Load the modules
 
-      +--------------------+----------------------------------------------------------+
-      | Met Office Desktop | ``module load environment/dynamo/compiler/intelfortran`` |
-      |                    +----------------------------------------------------------+
-      |                    | ``module load environment/dynamo/compiler/gnufortran``   |
-      +--------------------+----------------------------------------------------------+
-      | Met Office XC-40   | ``module load meto-environment/dynamo/cce``              |
-      |                    +----------------------------------------------------------+
-      |                    | ``module load meto-environment/dynamo/intel``            |
-      +--------------------+----------------------------------------------------------+
+      +--------------------+-----------------------------------------------+
+      | Met Office Desktop | ``module load environment/dynamo/intel``      |
+      |                    +-----------------------------------------------+
+      |                    | ``module load environment/dynamo/gnu``        |
+      +--------------------+-----------------------------------------------+
+      | Met Office XC-40   | ``module load meto-environment/dynamo/cce``   |
+      |                    +-----------------------------------------------+
+      |                    | ``module load meto-environment/dynamo/intel`` |
+      +--------------------+-----------------------------------------------+
 
 Render your own video using the "gource" documentation target is only available
 on the Met Office desktop. You will need to do the following::
@@ -296,5 +296,5 @@ Slow builds
 
 You may find that builds stall around dependency analysis. If this is the case
 refer to the
-`build system documentation <https://puma.nerc.ac.uk/trac/GungHo/wiki/DynamoBuildSystem#ProblemswithNFS>`_.
+`build system documentation <https://puma.nerc.ac.uk/trac/GungHo/wiki/DynamoBuildSystem#RelocateBuildArtifacts>`_.
 

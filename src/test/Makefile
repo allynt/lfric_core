@@ -24,12 +24,12 @@ ifdef CRAY_ENVIRONMENT
 LD_COMPILER_LIBRARIES = stdc++
 endif
 
-PFUNIT_INSTALL_DIR      = $(BUILD_DIR)/pfunit-install
+PFUNIT_INSTALL_DIR      = $(DYNAMO_BUILD_ROOT)/pfunit-install
 PFUNIT_EXTRA_USAGE      = suite_fixture_mod
 PFUNIT_EXTRA_INITIALIZE = set_up_suite
 PFUNIT_EXTRA_FINALIZE   = tear_down_suite
 
-OBJ_DIR = $(BUILD_DIR)/tests
+OBJ_DIR = $(DYNAMO_BUILD_ROOT)/tests
 OBJ_SUBDIRS = $(patsubst %,$(OBJ_DIR)/%,$(filter-out data,$(shell find . -type d -not -path '*/.*' )))
 
 DRIVER_OBJ=$(OBJ_DIR)/driver.o
@@ -41,7 +41,7 @@ SUPPORT_SOURCE  = $(shell find -name "*.[Ff]90")
 SUPPORT_OBJECTS = $(addprefix $(OBJ_DIR)/,$(addsuffix .o,$(basename $(SUPPORT_SOURCE))))
 SUPPORT_MODINC  = $(patsubst %,-I%,$(dir $(SUPPORT_OBJECTS)))
 
-SUBJECT_DIR     = $(BUILD_DIR)/dynamo
+SUBJECT_DIR     = $(DYNAMO_BUILD_ROOT)/dynamo
 SUBJECT_SUBDIRS = $(shell find $(SUBJECT_DIR) -type d)
 SUBJECT_MODINC  = $(patsubst %,-I%,$(SUBJECT_SUBDIRS))
 
@@ -63,7 +63,7 @@ $(OBJ_DIR)/%.F90: %.pf | $(OBJ_DIR) $(OBJ_SUBDIRS) $(DRIVER_OBJ) \
 $(OBJ_DIR)/%.o: $(OBJ_DIR)/%.F90 $(SUPPORT_OBJECTS)
 	@echo -e $(VT_BOLD)Compiling$(VT_RESET) $<
 	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
-	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
+	          $(F_MOD_DESTINATION_ARG)$(dir $@) \
 	          $(SUBJECT_MODINC) $(SUPPORT_MODINC) \
 	          -I$(PFUNIT_INSTALL_DIR)/mod -c -o $@ $<
 
@@ -80,12 +80,12 @@ $(OBJ_DIR)/test: $(SUPPORT_OBJECTS) $(TEST_OBJECTS) $(DRIVER_OBJ) \
 # Replace OBJ_SUBDIR with mangling of % ?
 $(OBJ_DIR)/%.o: %.F90 | $(OBJ_SUBDIRS)
 	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
-	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
+	          $(F_MOD_DESTINATION_ARG)$(dir $@) \
 	          $(SUBJECT_MODINC) $(SUPPORT_MODINC) -c -o $@ $<
 
 $(OBJ_DIR)/%.o: %.f90 | $(OBJ_DIR)/data $(OBJ_SUBDIRS)
 	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
-	          $(F_MOD_DESTINATION_ARG)$(OBJ_DIR)/$(dir $@) \
+	          $(F_MOD_DESTINATION_ARG)$(dir $@) \
 	          $(SUBJECT_MODINC) $(SUPPORT_MODINC) -c -o $@ $<
 
 $(DRIVER_OBJ): | $(dir $(DRIVER_OBJ))

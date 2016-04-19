@@ -9,8 +9,6 @@ export IGNORE_DEPENDENCIES = netcdf MPI ESMF
 export EXTERNAL_DYNAMIC_LIBRARIES = esmf netcdff netcdf
 export EXTERNAL_STATIC_LIBRARIES  =
 
-export DYNAMO_DEPENDENCY_DB ?= $(OBJ_DIR)/dependencies.db
-
 export ROOT = ../..
 export PSYCLONE_DIR = $(ROOT)/src/psyclone
 
@@ -19,7 +17,7 @@ include $(MAKE_DIR)/compiler.mk
 include $(MAKE_DIR)/fortran/$(FORTRAN_COMPILER).mk
 include make/fortran/$(FORTRAN_COMPILER).mk
 
-OBJ_DIR = $(BUILD_DIR)/dynamo
+OBJ_DIR = $(DYNAMO_BUILD_ROOT)/dynamo
 
 EXTERNAL_DYNAMIC_LIBRARIES +=  $(LD_COMPILER_LIBRARIES)
 
@@ -79,4 +77,4 @@ $(OBJ_DIR):
 .PHONY: clean
 clean:
 	-rm -rf $(OBJ_DIR)
-	-rm -f bin/*
+	-rm -f $(ROOT)/bin/*

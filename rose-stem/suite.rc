@@ -60,6 +60,9 @@
             compile_with_{{label}}         => generate_{{label}}_biperiodic
 {%-    if not TARGET_SKIP_UNIT_TESTS %}
             compile_with_{{label}}         => unit_test_with_{{label}}
+            unit_test_with_{{label}}       => clean_build_{{label}}
+{%-    else %}
+            compile_with_{{label}}         => clean_build_{{label}}
 {%-    endif %}
             generate_{{label}}_cubedsphere => check_{{label}}_cubedsphere_metadata
             generate_{{label}}_cubedsphere => check_{{label}}_cubedsphere_data
@@ -115,7 +118,7 @@
         [[[environment]]]
             DYNAMO_SOURCE_DIRECTORY      = $SOURCE_ROOT/technical
             DYNAMO_DESTINATION_DIRECTORY = $OUTPUT_ROOT/technical
-            DYNAMO_DEPENDENCY_DB = {{TARGET_DEPENDENCY_DB_ROOT}}/technical.db
+            DYNAMO_BUILD_ROOT = {{TARGET_BUILD_ROOT}}/technical
         [[[directives]]]
 {%- for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
             {{DIRECTIVE}}
@@ -124,7 +127,7 @@
     [[purge_for_technical]]
         {#- This task is done locally since it's just file handling. #}
         inherit = TECHNICAL
-        script = "rm -rf $DYNAMO_SOURCE_DIRECTORY $DYNAMO_DESTINATION_DIRECTORY"
+        script = "rm -rf $DYNAMO_SOURCE_DIRECTORY $DYNAMO_DESTINATION_DIRECTORY $DYNAMO_BUILD_ROOT"
 
     [[export_for_technical]]
         {#- This task has to be done locally as the working copy may be   #}
@@ -137,9 +140,9 @@
 
     [[check_for_unused_source]]
         inherit = TECHNICAL
-        pre-script = {{command_list(LOCAL_BASE_SETUP, LOCAL_TECHNICAL_SETUP, LOCAL_REVEAL_SETUP, 'mkdir -p `dirname $DYNAMO_DEPENDENCY_DB`')}}
+        pre-script = {{command_list(LOCAL_BASE_SETUP, LOCAL_TECHNICAL_SETUP, LOCAL_REVEAL_SETUP)}}
         script = "make -C $DYNAMO_SOURCE_DIRECTORY/src/dynamo unused-check"
-        post-script = "rm $DYNAMO_DEPENDENCY_DB"
+        post-script = "rm -r $DYNAMO_BUILD_ROOT"
 
     [[api_documentation]]
         inherit = TECHNICAL
@@ -163,8 +166,8 @@
         [[[environment]]]
             DYNAMO_SOURCE_DIRECTORY      = $SOURCE_ROOT/{{label}}
             DYNAMO_DESTINATION_DIRECTORY = $OUTPUT_ROOT/{{label}}
-            DYNAMO_COMPILER = {{compiler}}
-            DYNAMO_TARGET   = {{TARGET_OPT}}
+            DYNAMO_COMPILER              = {{compiler}}
+            DYNAMO_TARGET                = {{TARGET_OPT}}
 
     [[{{family}}_BUILD_ENVIRONMENT]]
         inherit = TARGET
@@ -172,6 +175,8 @@
 {%-    for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
             {{DIRECTIVE}}
 {%-    endfor %}
+        [[[environment]]]
+            DYNAMO_BUILD_ROOT = {{TARGET_BUILD_ROOT}}/{{label}}
 
     [[{{family}}_RUN_ENVIRONMENT]]
         inherit = TARGET
@@ -217,14 +222,15 @@
         inherit    = {{family}}, {{family}}_BUILD_ENVIRONMENT
         pre-script = {{command_list(TARGET_BASE_SETUP, TARGET_BUILD_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
         script     = "rose task-run --app-key=compile --command-key={{build}}"
-        [[[environment]]]
-            DYNAMO_DEPENDENCY_DB   = {{TARGET_DEPENDENCY_DB_ROOT}}/{{label}}.db
-            DYNAMO_LOCAL_DIRECTORY = `dirname $DYNAMO_DEPENDENCY_DB`
 
     [[unit_test_with_{{label}}]]
         inherit = {{family}}, {{family}}_BUILD_ENVIRONMENT
         pre-script = {{command_list(TARGET_BASE_SETUP, TARGET_BUILD_SETUP, compiler_setup[compiler], TARGET_REVEAL_SETUP)}}
         script = "make -C $DYNAMO_SOURCE_DIRECTORY test"
+
+    [[clean_build_{{label}}]]
+        inherit = {{family}}, {{family}}_BUILD_ENVIRONMENT
+        script = "rm -rf $DYNAMO_BUILD_ROOT"
 
 {%- for config in science_configs %}
 {%-   set config_label = config | lower + '_' + label %}
