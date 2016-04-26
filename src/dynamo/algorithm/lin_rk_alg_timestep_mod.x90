@@ -42,9 +42,10 @@ module lin_rk_alg_timestep_mod
   use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
   use linear_ru_kernel_mod,              only: linear_ru_kernel_type
 
-  use field_mod,           only: field_type 
-  use function_space_mod,  only: function_space_type
-  use galerkin_projection_algorithm_mod, only : galerkin_projection_algorithm
+  use field_mod,                         only: field_type
+  use function_space_collection_mod,     only: function_space_collection
+  use function_space_mod,                only: function_space_type
+  use galerkin_projection_algorithm_mod, only: galerkin_projection_algorithm
   use quadrature_mod,      only: quadrature_type, GAUSSIAN
   use solver_mod,          only: solver_algorithm
   use driver_layer,        only: interpolated_output
@@ -103,7 +104,6 @@ contains
                                        rr_prediction(:) 
     type( field_type ) :: projected_field(3)                                       
     
-    type(function_space_type)  :: fs
     type(function_space_type), pointer :: theta_fs => null()
     type(function_space_type), pointer :: u_fs     => null()
     type(function_space_type), pointer :: rho_fs   => null()
@@ -125,11 +125,21 @@ contains
 
     !=== Section 1: Create field objects =====================================!         
     ! Local fields
-    theta_fs => fs%get_instance(mesh,element_order,theta%which_function_space())
-    u_fs     => fs%get_instance(mesh,element_order,u%which_function_space())
-    rho_fs   => fs%get_instance(mesh,element_order,rho%which_function_space())
-    w0_fs    => fs%get_instance(mesh,element_order,W0)
-    w2_fs    => fs%get_instance(mesh,element_order,W2)
+    theta_fs => function_space_collection%get_fs(mesh, &
+                                                 element_order, &
+                                                 theta%which_function_space())
+    u_fs     => function_space_collection%get_fs(mesh, &
+                                                 element_order, &
+                                                 u%which_function_space())
+    rho_fs   => function_space_collection%get_fs(mesh, &
+                                                 element_order, &
+                                                 rho%which_function_space())
+    w0_fs    => function_space_collection%get_fs(mesh, &
+                                                 element_order, &
+                                                 W0)
+    w2_fs    => function_space_collection%get_fs(mesh, &
+                                                 element_order, &
+                                                 W2)
 
     qr = quadrature_type(element_order+3, GAUSSIAN)
 
@@ -151,7 +161,9 @@ contains
     end do  
 
     ! Dummy W1 field needed for output algorithm
-    xi = field_type( vector_space = fs%get_instance(mesh, element_order, W1) )
+    xi = field_type( vector_space =                                           &
+                    function_space_collection%get_fs(mesh, element_order, W1) )
+
     call invoke_set_field_scalar(0.0_r_def, xi)
 
 

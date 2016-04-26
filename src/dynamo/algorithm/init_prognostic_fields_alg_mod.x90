@@ -31,8 +31,8 @@ module init_prognostic_fields_alg_mod
 
   ! Derived Types
   use mesh_mod,                        only: mesh_type
+  use function_space_collection_mod,   only: function_space_collection
   use field_mod,                       only: field_type
-  use function_space_mod,              only: function_space_type
   use quadrature_mod,                  only: quadrature_type, GAUSSIAN
 
   ! Handles
@@ -66,7 +66,6 @@ contains
     ! Control
     type( restart_type ), intent(in) :: restart
 
-    type( function_space_type )     :: fs
     type( quadrature_type )         :: qr
     type( field_type ), allocatable :: state(:)
 
@@ -98,21 +97,30 @@ contains
       write(log_scratch_space,'(A,A)') "Reading file:", &
             trim(restart%startfname("rho"))
       call log_event(log_scratch_space,LOG_LEVEL_INFO)
-      state(1) = field_type(vector_space = fs%get_instance(mesh, element_order, W3))
+
+      state(1) = field_type(vector_space =                                     &
+                        function_space_collection%get_fs(mesh,element_order, W3))
+
       call read_state_netcdf(n_fields, state(1), trim(restart%startfname("rho")))
       rho = state(1)
 
       write(log_scratch_space,'(A,A)') "Reading file:", &
             trim(restart%startfname("u"))
       call log_event(log_scratch_space,LOG_LEVEL_INFO)
-      state(2) = field_type(vector_space = fs%get_instance(mesh, element_order, W2))
+
+      state(2) = field_type(vector_space =                                      &
+                       function_space_collection%get_fs(mesh, element_order, W2))
+
       call read_state_netcdf(n_fields, state(2), trim(restart%startfname("u")))
       u = state(2)
 
       write(log_scratch_space,'(A,A)') "Reading file:", &
             trim(restart%startfname("theta"))
       call log_event(log_scratch_space,LOG_LEVEL_INFO)
-      state(3) = field_type(vector_space = fs%get_instance(mesh, element_order, W0))
+
+      state(3) = field_type(vector_space =                                      &
+                        function_space_collection%get_fs(mesh, element_order, W0))
+
       call read_state_netcdf(n_fields, state(3), &
            trim(restart%startfname("theta")))
       theta = state(3)
@@ -120,7 +128,10 @@ contains
       write(log_scratch_space,'(A,A)') "Reading file:", &
             trim(restart%startfname("xi"))
       call log_event(log_scratch_space,LOG_LEVEL_INFO)
-      state(4) = field_type(vector_space = fs%get_instance(mesh, element_order, W1))
+
+      state(4) = field_type(vector_space =                                      &
+                       function_space_collection%get_fs(mesh, element_order, W1))
+
       call read_state_netcdf(n_fields, state(4), trim(restart%startfname("xi")))
       xi = state(4)
 

@@ -7,13 +7,14 @@
 
 module convert_hcurl_field_kernel_mod_test
 
-  use constants_mod,              only : i_def, r_def
-  use field_mod,                  only : field_type, field_proxy_type
-  use fs_continuity_mod,          only : W0, W1
-  use function_space_mod,         only : function_space_type
-  use mesh_mod,                   only : mesh_type
+  use constants_mod,                 only : i_def, r_def
+  use function_space_collection_mod, only : function_space_collection_type, &
+                                            function_space_collection
+  use field_mod,                     only : field_type, field_proxy_type
+  use fs_continuity_mod,             only : W0, W1
+  use function_space_mod,            only : function_space_type
+  use mesh_mod,                      only : mesh_type
   use pFUnit_Mod
-  use quadrature_mod,             only : quadrature_type, GAUSSIAN
 
   implicit none
 
@@ -23,10 +24,12 @@ module convert_hcurl_field_kernel_mod_test
   @TestCase
   type, extends(TestCase), public :: convert_hcurl_field_test_type
     private
-    type(mesh_type)          :: mesh
-    type(field_type)         :: chi(3)
-    type(field_type)         :: comp_field
-    real(r_def), allocatable :: diff_basis_chi(:,:,:), basis(:,:,:)
+    type(mesh_type)                    :: mesh
+    type(function_space_type), pointer :: w0_fs => null()
+    type(function_space_type), pointer :: w1_fs => null()
+    type(field_type)                   :: chi(3)
+    type(field_type)                   :: comp_field
+    real(r_def), allocatable           :: diff_basis_chi(:,:,:), basis(:,:,:)
   contains
     procedure setUp
     procedure tearDown
@@ -48,12 +51,8 @@ contains
 
     class(convert_hcurl_field_test_type), intent(inout) :: this
 
-    type(function_space_type) :: fs
     type(field_proxy_type)    :: chi_p(3)
     type(field_proxy_type)    :: comp_p
-
-    type(function_space_type), pointer :: w0_fs => null()
-    type(function_space_type), pointer :: w1_fs => null()
 
     integer(i_def) :: ndf_chi, ndf
     integer(i_def) :: diff_dim_chi, dim_comp
@@ -63,12 +62,17 @@ contains
     reference_element = finite_element_shape_quadrilateral
     call reference_cube()
 
+    ! Create top level function space collection
+
+    function_space_collection = function_space_collection_type()
+
+
     this%mesh = mesh_type(PLANE_BI_PERIODIC)
 
-    w0_fs => fs%get_instance( this%mesh, element_order, W0 )
-    w1_fs => fs%get_instance( this%mesh, element_order, W1 )
+    this%w0_fs => function_space_collection%get_fs( this%mesh, element_order, W0 )
+    this%w1_fs => function_space_collection%get_fs( this%mesh, element_order, W1 )
 
-    this%comp_field = field_type( vector_space = w1_fs )
+    this%comp_field = field_type( vector_space = this%w1_fs )
     comp_p = this%comp_field%get_proxy()
 
     ndf      = comp_p%vspace%get_ndf( )
@@ -77,7 +81,7 @@ contains
     allocate(this%basis(dim_comp, ndf, ndf) )
 
     do i = 1,3
-      this%chi(i) = field_type( vector_space = w0_fs )
+      this%chi(i) = field_type( vector_space = this%w0_fs )
       chi_p(i)    = this%chi(i)%get_proxy()
     end do
     ndf_chi      = chi_p(1)%vspace%get_ndf( )
@@ -89,7 +93,6 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use function_space_mod,    only : purge_function_spaces
     use reference_element_mod, only : deallocate_reference
 
     implicit none
@@ -98,7 +101,7 @@ contains
 
     deallocate( this%diff_basis_chi, this%basis )
 
-    call purge_function_spaces()
+    call function_space_collection%clear()
     call deallocate_reference()
 
   end subroutine tearDown
@@ -118,10 +121,6 @@ contains
                               dy = 1000.0_r_def, &
                               dz = 2000.0_r_def
 
-    type(function_space_type) :: fs
-    type( quadrature_type)    :: qr
-
-    type(function_space_type), pointer :: w1_fs => null()
 
     real(r_def) :: answer
 
@@ -141,8 +140,6 @@ contains
 
     real(kind=r_def), pointer :: nodes(:,:) => null()
 
-    ! Setup
-    qr = quadrature_type(3, GAUSSIAN)
 
     ! Insert Psykal_lite unpacking code here
     do i = 1,3
@@ -163,9 +160,8 @@ contains
       end do
     end do
 
-    w1_fs => fs%get_instance( this%mesh, element_order, W1 )
     do i = 1,3
-      phys_field(i) = field_type( vector_space = w1_fs )
+      phys_field(i) = field_type( vector_space = this%w1_fs )
       phys_p(i) = phys_field(i)%get_proxy()
     end do
     comp_p = this%comp_field%get_proxy()

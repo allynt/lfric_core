@@ -9,9 +9,10 @@
 !!       Effectively these are generally wrapper functions to pointwise kernels
 module field_bundle_mod
 
-  use constants_mod,             only: i_def, r_def
-  use field_mod,                 only: field_type
-  use finite_element_config_mod, only: element_order
+  use constants_mod,                   only: i_def, r_def
+  use field_mod,                       only: field_type
+  use function_space_collection_mod,   only: function_space_collection
+  use finite_element_config_mod,       only: element_order
 
   implicit none
 
@@ -24,7 +25,6 @@ contains
 
   subroutine clone_bundle(x, y, bundle_size)
 
-    use function_space_mod,        only: function_space_type
     use mesh_mod,                  only: mesh_type
     use finite_element_config_mod, only: element_order
 
@@ -33,7 +33,6 @@ contains
     type(field_type), intent(in)    :: x(bundle_size)
     type(field_type), intent(inout) :: y(bundle_size)
 
-    type(function_space_type) :: fs
     type(mesh_type), pointer  :: mesh => null()
     integer(i_def)            :: fs_handle
     integer                   :: i
@@ -41,7 +40,10 @@ contains
     do i = 1,bundle_size   
       mesh => x(i)%get_mesh()
       fs_handle = x(i)%which_function_space()
-      y(i) = field_type( vector_space = fs%get_instance(mesh,element_order,fs_handle) )
+
+      y(i) = field_type( vector_space = &
+               function_space_collection%get_fs(mesh,element_order,fs_handle) )
+
     end do
   end subroutine clone_bundle
 !=============================================================================!
@@ -182,7 +184,6 @@ contains
 !> @param [in] bundle_size the number of fields in the bundle
   subroutine bundle_minmax(x, bundle_size)
 
-    use function_space_mod,        only: function_space_type
     use mesh_mod,                  only: mesh_type
     use psykal_lite_mod,           only: invoke_copy_field_data
     use log_mod,                   only: lOG_LEVEL_INFO   
@@ -192,7 +193,6 @@ contains
     integer,          intent(in) :: bundle_size
     type(field_type), intent(in) :: x(bundle_size)
     type(field_type)             :: y
-    type(function_space_type)    :: fs
     type(mesh_type),  pointer    :: mesh => null()
     integer(i_def)               :: fs_handle
     integer                      :: i
@@ -203,7 +203,9 @@ contains
       mesh => x(i)%get_mesh()
       fs_handle = x(1)%which_function_space()
 
-      y = field_type( vector_space = fs%get_instance(mesh,element_order,fs_handle) )
+      y = field_type( vector_space = &
+               function_space_collection%get_fs(mesh,element_order,fs_handle) )
+
       call invoke_copy_field_data( x(1), y ) 
       call y%log_minmax(LOG_LEVEL_INFO, 'field')
     end do

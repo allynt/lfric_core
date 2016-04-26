@@ -14,11 +14,12 @@
 !! discontinuous systems an exact solver can be used
 module solver_mod
 
-  use constants_mod,             only : r_def, str_def
-  use field_mod,                 only : field_type
-  use finite_element_config_mod, only : element_order
-  use fs_continuity_mod,         only : W3
-  use function_space_mod,        only : function_space_type
+  use constants_mod,                 only : r_def, str_def
+  use function_space_collection_mod, only : function_space_collection
+  use field_mod,                     only : field_type
+  use finite_element_config_mod,     only : element_order
+  use fs_continuity_mod,             only : W3
+  use function_space_mod,            only : function_space_type
   use log_mod,                   only : log_event,         &
                                         log_scratch_space, &
                                         LOG_LEVEL_ERROR,   &
@@ -174,7 +175,6 @@ contains
     type(field_type),    intent(in), optional :: mmd
     integer,             intent(in)    :: precond_option
 
-    type(function_space_type)          :: fs
     type(function_space_type), pointer :: rhs_fs => null()
 
     ! The temporary fields
@@ -199,7 +199,9 @@ contains
     omega  = 1.0_r_def
     norm   = 1.0_r_def
 
-    rhs_fs => fs%get_instance( mesh, element_order, rhs%which_function_space() )
+    rhs_fs => function_space_collection%get_fs( mesh, &
+                                                element_order, &
+                                                rhs%which_function_space() )
 
     v   = field_type( vector_space = rhs_fs )
     z   = field_type( vector_space = rhs_fs )
@@ -304,7 +306,6 @@ contains
     integer,             intent(in)    :: precond_option
     type(field_type),    intent(in), optional :: mmd
 
-    type(function_space_type)          :: fs
     type(function_space_type), pointer :: rhs_fs => null()
 
     ! The temporary fields
@@ -321,7 +322,9 @@ contains
 
     ! compute the residual this is a global sum to the PSy ---
 
-    rhs_fs => fs%get_instance( mesh, element_order, rhs%which_function_space() )
+    rhs_fs => function_space_collection%get_fs( mesh, &
+                                                element_order, &
+                                                rhs%which_function_space() )
 
     res = field_type(vector_space = rhs_fs )
     p   = field_type(vector_space = rhs_fs )
@@ -428,10 +431,11 @@ contains
 
   integer :: iter
 
-  type(function_space_type) :: fs
   type(function_space_type), pointer :: rhs_fs => null()
 
-  rhs_fs => fs%get_instance( mesh, element_order, rhs%which_function_space() )
+  rhs_fs => function_space_collection%get_fs( mesh, &
+                                              element_order, &
+                                              rhs%which_function_space() )
 
   diagonal = field_type( vector_space = rhs_fs )
   res      = field_type( vector_space = rhs_fs )
@@ -490,11 +494,12 @@ contains
     real(kind=r_def)                   :: err, sc_err, init_err
     integer                            :: iter, i, j, k, m
 
-    type(function_space_type)          :: fs
     type(function_space_type), pointer :: rhs_fs => null()
 
 
-    rhs_fs => fs%get_instance( mesh, element_order, rhs%which_function_space() )
+    rhs_fs => function_space_collection%get_fs( mesh, &
+                                                element_order, &
+                                                rhs%which_function_space() )
 
     Ax = field_type(vector_space = rhs_fs)
     r  = field_type(vector_space = rhs_fs)
@@ -654,10 +659,11 @@ contains
     real(kind=r_def)                   :: err, sc_err, init_err
     integer                            :: iter, m, n
 
-    type(function_space_type)          :: fs
     type(function_space_type), pointer :: rhs_fs => null()
 
-    rhs_fs => fs%get_instance( mesh, element_order, rhs%which_function_space() )
+    rhs_fs => function_space_collection%get_fs( mesh, &
+                                                element_order, &
+                                                rhs%which_function_space() )
 
     Ax = field_type(vector_space = rhs_fs)
     r  = field_type(vector_space = rhs_fs)

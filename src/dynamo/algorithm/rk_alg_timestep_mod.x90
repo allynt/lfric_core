@@ -54,6 +54,7 @@ module rk_alg_timestep_mod
 
   ! Derived Types
   use mesh_mod,                          only: mesh_type
+  use function_space_collection_mod,     only: function_space_collection
   use field_mod,                         only: field_type
   use function_space_mod,                only: function_space_type
   use fs_continuity_mod,                 only: W0, W1, W2, W3
@@ -125,7 +126,6 @@ contains
     type( field_type )              :: state(3), state_n(3), rhs(3), inc(3)
     type( field_type ), allocatable :: rhs_prediction(:,:)
 
-    type(function_space_type) :: fs
     type(function_space_type), pointer :: theta_fs => null()
     type(function_space_type), pointer :: u_fs     => null()
     type(function_space_type), pointer :: rho_fs   => null()
@@ -147,14 +147,22 @@ contains
 
     !=== Section 1: Create field objects =====================================!
     ! Function spaces
-    theta_fs => fs%get_instance( mesh, element_order, theta%which_function_space() )
-    u_fs     => fs%get_instance( mesh, element_order, u%which_function_space()     )
-    rho_fs   => fs%get_instance( mesh, element_order, rho%which_function_space()   )
-    xi_fs    => fs%get_instance( mesh, element_order, xi%which_function_space()    )
-    w0_fs    => fs%get_instance( mesh, element_order, W0 )
-    w1_fs    => fs%get_instance( mesh, element_order, W1 )
-    w2_fs    => fs%get_instance( mesh, element_order, W2 )
-    w3_fs    => fs%get_instance( mesh, element_order, W3 )
+    theta_fs => function_space_collection%get_fs( mesh, &
+                                                  element_order, &
+                                                  theta%which_function_space() )
+    u_fs     => function_space_collection%get_fs( mesh, &
+                                                  element_order, &
+                                                  u%which_function_space()     )
+    rho_fs   => function_space_collection%get_fs( mesh, &
+                                                  element_order, &
+                                                  rho%which_function_space()   )
+    xi_fs    => function_space_collection%get_fs( mesh, &
+                                                  element_order, &
+                                                  xi%which_function_space()    )
+    w0_fs    => function_space_collection%get_fs( mesh, element_order, W0 )
+    w1_fs    => function_space_collection%get_fs( mesh, element_order, W1 )
+    w2_fs    => function_space_collection%get_fs( mesh, element_order, W2 )
+    w3_fs    => function_space_collection%get_fs( mesh, element_order, W3 )
 
     qr = quadrature_type(element_order+3, GAUSSIAN)
 

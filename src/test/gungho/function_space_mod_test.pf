@@ -134,7 +134,6 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use function_space_mod,    only :purge_function_spaces
     use reference_element_mod, only : deallocate_reference
 
     implicit none
@@ -144,7 +143,6 @@ contains
     deallocate(this%test_basis)
     deallocate(this%test_diff_basis)
 
-    call purge_function_spaces()
     call deallocate_reference()
 
   end subroutine tearDown
@@ -229,9 +227,9 @@ contains
         basis_diff_function => fs2hk0_basis_diff_function
     end select
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     @assertEqual( this%function_space, test_fs%which() )
     @assertEqual( description%element_order, test_fs%get_element_order() )
@@ -284,9 +282,9 @@ contains
     integer(i_def),            pointer :: stencil_map(:,:) => null()
     integer(i_def),            pointer :: map(:)           => null()
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     stencil_dofmap => test_fs%get_stencil_dofmap(STENCIL_POINT,1)
     stencil_map => stencil_dofmap%get_dofmap(1)
@@ -310,9 +308,9 @@ contains
     integer(i_def),            pointer :: stencil_map(:,:) => null()
     integer(i_def),            pointer :: map(:)           => null()
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     stencil_dofmap => test_fs%get_stencil_dofmap( STENCIL_1DX, 3 )
     stencil_map    => stencil_dofmap%get_dofmap( 1 )
@@ -341,9 +339,9 @@ contains
     integer(i_def),            pointer :: stencil_map(:,:) => null()
     integer(i_def),            pointer :: map(:)           => null()
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     stencil_dofmap => test_fs%get_stencil_dofmap( STENCIL_1DY, 5 )
     stencil_map => stencil_dofmap%get_dofmap(1)
@@ -380,9 +378,9 @@ contains
 
     integer :: i
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     stencil_dofmap => test_fs%get_stencil_dofmap(STENCIL_CROSS,5)
     stencil_map => stencil_dofmap%get_dofmap(1)
@@ -405,9 +403,9 @@ contains
     type(function_space_type), pointer :: test_fs => null()
     type(mesh_type),           pointer :: mesh_out => null()
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     mesh_out => test_fs%get_mesh()
 
@@ -448,9 +446,9 @@ contains
 
     integer :: colour_idx
 
-    test_fs => test_fs%get_instance( this%mesh,     &
-                                     element_order, &
-                                     this%function_space )
+    test_fs => function_space_type( this%mesh,     &
+                                    element_order, &
+                                    this%function_space )
 
     ! Must set colours before use...
     call test_fs%set_colours()

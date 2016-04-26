@@ -7,7 +7,9 @@
 
 module runtime_constants_mod_test
 
-  use constants_mod, only : i_def, r_def
+  use constants_mod,                 only : i_def, r_def
+  use function_space_collection_mod, only : function_space_collection_type, &
+                                            function_space_collection
   use pFUnit_Mod
 
   implicit none
@@ -53,19 +55,22 @@ module runtime_constants_mod_test
       reference_element = finite_element_shape_quadrilateral
       call reference_cube()
 
+      ! Create top level function space collection
+
+      function_space_collection = function_space_collection_type()
+
     end subroutine setup
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine tearDown( this )
 
-      use function_space_mod,       only : purge_function_spaces
       use reference_element_mod,    only : deallocate_reference
 
       implicit none
 
       class(runtime_constants_test_type), intent(inout) :: this
 
-      call purge_function_spaces()
+      call function_space_collection%clear()
       call deallocate_reference()
 
     end subroutine tearDown
@@ -92,7 +97,6 @@ module runtime_constants_mod_test
 
       type(runtime_constants_type) :: rt_const
       type(mesh_type)              :: mesh
-      type(function_space_type)    :: fs
       type(operator_type)          :: mm_w3, mm_w2, mm_w1, mm_w0
       type(operator_type)          :: mm_w3_inv
       type(operator_type)          :: grad, curl, div
@@ -124,10 +128,10 @@ module runtime_constants_mod_test
       mesh = mesh_type(PLANE_BI_PERIODIC)
 
       ! Create function spaces
-      w0_fs => fs%get_instance( mesh, element_order, W0 )
-      w1_fs => fs%get_instance( mesh, element_order, W1 )
-      w2_fs => fs%get_instance( mesh, element_order, W2 )
-      w3_fs => fs%get_instance( mesh, element_order, W3 )
+      w0_fs => function_space_collection%get_fs( mesh, element_order, W0 )
+      w1_fs => function_space_collection%get_fs( mesh, element_order, W1 )
+      w2_fs => function_space_collection%get_fs( mesh, element_order, W2 )
+      w3_fs => function_space_collection%get_fs( mesh, element_order, W3 )
 
       ! Make a coordinate field with a function space
       do i = 1,3

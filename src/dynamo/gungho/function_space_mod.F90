@@ -35,8 +35,9 @@ use reference_element_mod, only: tangent_to_edge, normal_to_face               &
                                , select_entity_w2h, select_entity_w2v
 
 use fs_continuity_mod, only: W0, W1, W2, W3, Wtheta, W2V, W2H
-use fs_setup_mod,   only: ndof_setup, basis_setup, dofmap_setup
+use fs_setup_mod,      only: ndof_setup, basis_setup, dofmap_setup
 
+use linked_list_data_mod,  only : linked_list_data_type
 use linked_list_mod,       only : linked_list_type, &
                                   linked_list_item_type
 
@@ -44,21 +45,15 @@ use linked_list_mod,       only : linked_list_type, &
 implicit none
 
 private
-public :: purge_function_spaces
 public :: W0, W1, W2, W3, Wtheta, W2V, W2H
 
 !-------------------------------------------------------------------------------
 ! Public types
 !-------------------------------------------------------------------------------
 
-type, public :: function_space_type
+type, extends(linked_list_data_type), public :: function_space_type
 
   private
-
-  !> Function space id to identify this function space
-  !> This is used to ensure determine that the returned
-  !> function space is a singleton.
-  integer(i_def) :: fs_id
 
   !> Number of degrees of freedom associated with each cell
   integer(i_def) :: ndof_cell
@@ -90,6 +85,11 @@ type, public :: function_space_type
 
   !> Element base-order of dynamo function space
   integer(i_def) :: element_order
+
+  ! Function space polynomial order? dynamics is still to provide us
+  ! with a name for this, same as element order except for W0 
+  ! where is it equal to element_order+1
+  integer(i_def) :: fs_order
 
   !> Number of dimensions in this function space
   integer(i_def) :: dim_space
@@ -147,16 +147,6 @@ type, public :: function_space_type
   type(ESMF_DistGrid) :: distgrid
 
 contains
-
-  !> @detail Returns a pointer to a function space. 
-  !>         If the required function space does not exist,
-  !>         the function-space is created before returning the
-  !>         pointer to it.
-  !> @param[in] mesh           The parent mesh of the function space
-  !> @param[in] element_order  The element order of the function space
-  !> @param[in] function_space The function space id supported by dynamo
-  !>                           (e.g. W0)
-  procedure, public, nopass :: get_instance
 
 
   !> @brief Gets the total number of unique degrees of freedom for this space,
@@ -270,6 +260,9 @@ contains
   !> @brief Returns the element order of a function space
   procedure, public :: get_element_order
 
+  !> @brief Returns the order of a function space
+  procedure, public :: get_fs_order
+
   !> @brief Gets a routing table for halo swapping
   !> @param[in] depth The depth of halo swap to perform  
   !> @return haloHandle The routing table for swapping halos to the depth required
@@ -306,22 +299,17 @@ contains
   !> @brief  Invoke calculation of colouring for the member mesh.
   procedure, public  :: set_colours
 
+  procedure, public  :: clear
+
   !> Routine to destroy function_space_type
   final              :: function_space_destructor
 
 end type function_space_type
 
-!-------------------------------------------------------------------------------
-! Module parameters
-!-------------------------------------------------------------------------------
+interface function_space_type
+  module procedure fs_constructor
+end interface
 
-type (function_space_type), target, allocatable, save :: w0_function_space
-type (function_space_type), target, allocatable, save :: w1_function_space
-type (function_space_type), target, allocatable, save :: w2_function_space
-type (function_space_type), target, allocatable, save :: w3_function_space 
-type (function_space_type), target, allocatable, save :: wtheta_function_space
-type (function_space_type), target, allocatable, save :: w2v_function_space
-type (function_space_type), target, allocatable, save :: w2h_function_space
 
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines 
@@ -329,9 +317,26 @@ type (function_space_type), target, allocatable, save :: w2h_function_space
 contains
 
 !-------------------------------------------------------------------------------
-! Returns a pointer to a function space
+! Returns a pointer to a function space object
 !-------------------------------------------------------------------------------
-function get_instance(mesh, element_order, dynamo_fs) result(instance)
+!> @brief Stucture-Constructor for function_space_type object.
+!> @details This constructor function returns a pointer to an instantiated
+!>          function space. The pointer is to a function space singleton,
+!>          i.e. the function space is only created on the initial call,
+!>          all other calls just return a pointer to the function space.
+!> @param[in] mesh           The mesh upon which to base this function space
+!> @param[in] element_order  The element order for this function space, 0 being 
+!>                           the lowest element order for function spaces defined
+!>                           for dynamo.
+!>                           @b Note: This is not necessarily the same as the
+!>                           order of the function space
+!> @param[in] dynamo_fs      The integer number indicating which of the function
+!>                           spaces predefined for dynamo to base the
+!>                           instantiated function space on. Recognised integers
+!>                           are assigned to the function spaces "handles" in the
+!>                           fs_handles_mod module.
+!> @return    A pointer to the function space held in this module
+function fs_constructor(mesh, element_order, dynamo_fs) result(instance)
 
   implicit none
 
@@ -341,105 +346,27 @@ function get_instance(mesh, element_order, dynamo_fs) result(instance)
 
   type(function_space_type), pointer :: instance
 
-  instance => null()
-  select case (dynamo_fs)
+  allocate(instance)
 
-  case (w0)
-    if (allocated (w0_function_space)) then
-      instance => w0_function_space
-      return
-    else
-      allocate(w0_function_space)
-      instance => w0_function_space
-    end if
+  ! Set the id in the base class
+  call instance%set_id(1000000*mesh%get_id() + (1000*element_order) + dynamo_fs)
 
-
-  case (w1)
-    if (allocated (w1_function_space)) then
-      instance => w1_function_space
-      return
-    else
-      allocate(w1_function_space)
-      instance => w1_function_space
-    end if
-
-
-  case (w2)
-    if (allocated (w2_function_space)) then
-      instance => w2_function_space
-      return
-    else
-      allocate(w2_function_space)
-      instance => w2_function_space
-    end if
-
-
-  case (w3)
-    if (allocated (w3_function_space)) then
-      instance => w3_function_space
-      return
-    else
-      allocate(w3_function_space)
-      instance => w3_function_space
-    end if
-
-
-  case (wtheta)
-    if (allocated (wtheta_function_space)) then
-      instance => wtheta_function_space
-      return
-    else
-      allocate(wtheta_function_space)
-      instance => wtheta_function_space
-    end if
-
-
-  case (w2v)
-    if (allocated (w2v_function_space)) then
-      instance => w2v_function_space
-      return
-    else
-      allocate(w2v_function_space)
-      instance => w2v_function_space
-    end if
-
-
-  case (w2h)
-    if (allocated (w2h_function_space)) then
-      instance => w2h_function_space
-      return
-    else
-      allocate(w2h_function_space)
-      instance => w2h_function_space
-    end if
-
-
-  case default
-    write(log_scratch_space, '(2(A,I0),A)')                                    &
-      'Function space type not defined for Dynamo. Available types are '     //&
-      '[W0 | W1 | W2 | W3 | WTHETA | W2V | W2H]'
-    call log_event(log_scratch_space, LOG_LEVEL_ERROR)
-    return
-  end select
-
-  instance%fs_id = 1000000*mesh%get_id() + (1000*element_order) + dynamo_fs
   instance%mesh  => mesh
   instance%fs    =  dynamo_fs
 
+
   instance%element_order =  element_order
 
+  if (dynamo_fs == W0) then
+    instance%fs_order = element_order + 1
+  else
+    instance%fs_order = element_order
+  end if
   call init_function_space( instance )
 
   return
-end function get_instance
+end function fs_constructor
 
-!-----------------------------------------------------------------------------
-! Initialise a function space
-!-----------------------------------------------------------------------------
-!> @details Initialises a function space. This subroutine initialises a
-!>          function space which has not been previously instantiated by
-!>          the model.
-!> @param[inout] self The function space object being constructed
 
 subroutine init_function_space( self )
 
@@ -955,6 +882,20 @@ function get_element_order(self) result (element_order)
 end function get_element_order
 
 !-----------------------------------------------------------------------------
+!> @details Gets the order for this function space
+!> @return  The order of the function space
+function get_fs_order(self) result (fs_order)
+
+  implicit none
+  class(function_space_type), intent(in) :: self
+  integer(i_def) :: fs_order
+
+  fs_order = self%fs_order
+
+  return
+end function get_fs_order
+
+!-----------------------------------------------------------------------------
 ! Gets mesh object for this space
 !-----------------------------------------------------------------------------
 !> @brief Gets the mesh object for this space
@@ -1078,22 +1019,6 @@ function get_stencil_dofmap(self, stencil_shape, stencil_size) result(map)
   ! point at the head of the stencil_dofmap linked list
   loop => self%dofmap_list%get_head()
 
-  ! if the list is empty then create and add the stencil_dofmap
-
-  if ( .not. associated(loop) ) then
-    ! Empty list or end of list and we didn't find it
-    ! create stencil dofmap and add it 
-
-    call self%dofmap_list%insert_item( stencil_dofmap_type(stencil_shape,    &
-                                                           stencil_size,     &
-                                                           self%ndof_cell,   &
-                                                           self%mesh,        &
-                                                           self%master_dofmap))
-  end if
-
-  ! Point back at the head of the list
-  loop => self%dofmap_list%get_head()
-
   ! loop through list
   do
     if ( .not. associated(loop) ) then
@@ -1105,10 +1030,22 @@ function get_stencil_dofmap(self, stencil_shape, stencil_size) result(map)
                                                             self%ndof_cell,   &
                                                             self%mesh,        &
                                                             self%master_dofmap))
-     ! reset loop back to the head of the list
-     loop => self%dofmap_list%get_head()
+
+
+      ! At this point the desired stencil dofmap is the tail of the list
+      ! so just retrieve it and exit loop
+
+      loop => self%dofmap_list%get_tail()
+
+      ! 'cast' to the stencil_dofmap_type
+      select type(v => loop%payload)
+        type is (stencil_dofmap_type)
+          map => v
+      end select
+      exit
+
     end if
-    ! otherwise check for the id we want
+    ! otherwise search list for the id we want
     if ( id == loop%payload%get_id() ) then
       ! 'cast' to the stencil_dofmap_type
       select type(v => loop%payload)
@@ -1168,14 +1105,17 @@ subroutine get_colours(self, ncolours, ncells_per_colour, colour_map)
 end subroutine get_colours
 
 !-----------------------------------------------------------------------------
-! Function space destructor
+!  Function to clear up objects - called by destructor
 !-----------------------------------------------------------------------------
-
-subroutine function_space_destructor(self)
+!> @details Explcitly deallocates any allocatable arrays in the function space
+!>          to avoid memory leaks
+!> @return  Error status variable
+subroutine clear(self)
 
   implicit none
 
-  type (function_space_type), intent(inout) :: self
+  class (function_space_type), intent(inout) :: self
+  integer (i_def) :: err
 
   if (allocated(self%nodal_coords))   deallocate( self%nodal_coords )
   if (allocated(self%basis_order))    deallocate( self%basis_order )
@@ -1188,44 +1128,26 @@ subroutine function_space_destructor(self)
 
   if (allocated(self%dof_on_vert_boundary)) &
                                       deallocate( self%dof_on_vert_boundary )
-end subroutine function_space_destructor
+
+  err = self%master_dofmap%clear()
+  call self%dofmap_list%clear()
+
+end subroutine clear
 
 !-----------------------------------------------------------------------------
-! Forces call to finaliser to clear memory for any existing function spaces
-! Exists purely for pfunit tests
+! Function space destructor
+!-----------------------------------------------------------------------------
 
-subroutine purge_function_spaces()
-	
-implicit none
+subroutine function_space_destructor(self)
 
-if (allocated (w0_function_space)) then
-  deallocate(w0_function_space)
-end if
-	
-if (allocated (w1_function_space)) then
-  deallocate(w1_function_space)
-end if
+  implicit none
 
-if (allocated (w2_function_space)) then
-  deallocate(w2_function_space)
-end if
+  type (function_space_type), intent(inout) :: self
 
-if (allocated (w3_function_space)) then
-  deallocate(w3_function_space)
-end if
+  call self%clear()
 
-if (allocated (wtheta_function_space)) then
-  deallocate(wtheta_function_space)
-end if
+end subroutine function_space_destructor
 
-if (allocated (w2v_function_space)) then
-  deallocate(w2v_function_space)
-end if
 
-if (allocated (w2h_function_space)) then
-  deallocate(w2h_function_space)
-end if
-
-end subroutine purge_function_spaces
 
 end module function_space_mod

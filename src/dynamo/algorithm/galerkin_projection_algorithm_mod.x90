@@ -10,13 +10,13 @@
 
 module galerkin_projection_algorithm_mod
 
-  use constants_mod,             only: r_def
-  use field_mod,                 only: field_type
-  use finite_element_config_mod, only: element_order
-  use fs_continuity_mod,         only: W2, W3
-  use function_space_mod,        only: function_space_type
-  use gp_rhs_kernel_mod,         only: gp_rhs_kernel_type
-  use gp_vector_rhs_kernel_mod,  only: gp_vector_rhs_kernel_type
+  use constants_mod,                   only: r_def
+  use function_space_collection_mod,   only: function_space_collection
+  use field_mod,                       only: field_type
+  use finite_element_config_mod,       only: element_order
+  use fs_continuity_mod,               only: W2, W3
+  use gp_rhs_kernel_mod,               only: gp_rhs_kernel_type
+  use gp_vector_rhs_kernel_mod,        only: gp_vector_rhs_kernel_type
   use log_mod,                   only: log_event, log_scratch_space, LOG_LEVEL_INFO
   use mesh_mod,                  only: mesh_type
   use operator_mod,              only: operator_type
@@ -71,14 +71,15 @@ contains
     type( field_type )               :: w2_field
     integer                          :: dir, space 
 
-    type(function_space_type) :: fs
 
 
 ! Create continuous fields to project data into
     out_fs = f_out(1)%which_function_space()
     do dir = 1,space_dimension
       rhs(dir) = field_type(                                                   &
-               vector_space = fs%get_instance(mesh, element_order, out_fs) )
+               vector_space = function_space_collection%get_fs(mesh, &
+                                                               element_order, &
+                                                               out_fs) )
       call invoke_set_field_scalar(0.0_r_def, rhs(dir))
     end do
     
@@ -97,8 +98,11 @@ contains
        else
           write( log_scratch_space, '(A)' ) '    vector field ... '
           call log_event( log_scratch_space, LOG_LEVEL_INFO )
-          ! Create dummy W2 field for kernel to perform check agains
-          w2_field = field_type( vector_space = fs%get_instance(mesh, element_order, W2) ) 
+
+          ! Create dummy W2 field for kernel to perform check again
+          w2_field = field_type( vector_space =  &
+                              function_space_collection%get_fs(mesh, element_order, W2) ) 
+
           call invoke( gp_vector_rhs_kernel_type(rhs, f_in, chi, w2_field, qr) )
        end if
        space = f_out(1)%which_function_space()

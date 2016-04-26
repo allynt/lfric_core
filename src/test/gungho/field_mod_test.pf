@@ -10,8 +10,10 @@
 !-------------------------------------------------------------------------------
 module field_mod_test
 
-  use constants_mod,         only : i_def, r_def
-  use fs_continuity_mod,     only : W2
+  use constants_mod,                  only : i_def, r_def
+  use function_space_collection_mod,  only : function_space_collection_type, &
+                                             function_space_collection
+  use fs_continuity_mod,              only : W2
   use pFUnit_Mod
 
   implicit none
@@ -22,6 +24,7 @@ module field_mod_test
   @TestCase
   type, extends(TestCase), public :: field_test_type
     private
+    type(function_space_collection_type) :: fs_list
   contains
     procedure setUp
     procedure tearDown
@@ -45,19 +48,22 @@ contains
     reference_element = finite_element_shape_quadrilateral
     call reference_cube()
 
+    ! Create top level function space collection
+
+    function_space_collection = function_space_collection_type()
+
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use function_space_mod,    only : purge_function_spaces
     use reference_element_mod, only : deallocate_reference
 
     implicit none
 
     class(field_test_type), intent(inout) :: this
 
-    call purge_function_spaces()
+    call function_space_collection%clear()
     call deallocate_reference()
 
   end subroutine tearDown
@@ -81,7 +87,6 @@ contains
     type(field_proxy_type)    :: f2_p
 
     type(mesh_type)           :: mesh
-    type(function_space_type) :: fs
 
     type(function_space_type), pointer :: w2_fs    => null()
     type(mesh_type),           pointer :: mesh_out => null()
@@ -94,7 +99,7 @@ contains
     mesh = mesh_type(PLANE_BI_PERIODIC)
 
     ! Make a field with a function space
-    w2_fs => fs%get_instance( mesh, element_order, W2 )
+    w2_fs => function_space_collection%get_fs( mesh, element_order, W2 )
     f1 = field_type( vector_space = w2_fs )
 
     ! get the proxy

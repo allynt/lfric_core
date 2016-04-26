@@ -54,6 +54,7 @@ module iter_timestep_alg_mod
 
   ! Derived Types
   use mesh_mod,                          only: mesh_type
+  use function_space_collection_mod,     only: function_space_collection
   use field_mod,                         only: field_type
   use function_space_mod,                only: function_space_type
   use quadrature_mod,                    only: quadrature_type, GAUSSIAN
@@ -126,7 +127,6 @@ contains
     type( runtime_constants_type ) :: runtime_constants
 
     type(quadrature_type)     :: qr
-    type(function_space_type) :: fs
     type(function_space_type), pointer :: theta_fs => null()
     type(function_space_type), pointer :: rho_fs   => null()
     type(function_space_type), pointer :: u_fs     => null()
@@ -146,19 +146,19 @@ contains
 
     !=== Section 1: Create field objects =====================================!
     ! Local fields
-    theta_fs => fs%get_instance ( mesh, element_order                          &
-                                , theta%which_function_space() )
-    u_fs     => fs%get_instance ( mesh, element_order                          &
-                                , u%which_function_space()     )
-    rho_fs   => fs%get_instance ( mesh, element_order                          &
-                                , rho%which_function_space()   )
-    xi_fs    => fs%get_instance ( mesh, element_order                          &
-                                , xi%which_function_space()    )
+    theta_fs => function_space_collection%get_fs ( mesh, element_order        &
+                                                 ,theta%which_function_space() )
+    u_fs     => function_space_collection%get_fs ( mesh, element_order        &
+                                                 ,u%which_function_space()     )
+    rho_fs   => function_space_collection%get_fs ( mesh, element_order        &
+                                                 ,rho%which_function_space()   )
+    xi_fs    => function_space_collection%get_fs ( mesh, element_order        &
+                                                 ,xi%which_function_space()    )
 
-    w0_fs => fs%get_instance( mesh, element_order, W0 )
-    w1_fs => fs%get_instance( mesh, element_order, W1 )
-    w2_fs => fs%get_instance( mesh, element_order, W2 )
-    w3_fs => fs%get_instance( mesh, element_order, W3 )
+    w0_fs => function_space_collection%get_fs( mesh, element_order, W0 )
+    w1_fs => function_space_collection%get_fs( mesh, element_order, W1 )
+    w2_fs => function_space_collection%get_fs( mesh, element_order, W2 )
+    w3_fs => function_space_collection%get_fs( mesh, element_order, W3 )
 
     qr = quadrature_type(element_order+3, GAUSSIAN)
 

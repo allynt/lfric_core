@@ -11,6 +11,7 @@ module rhs_alg_mod
 
   use constants_mod,                     only: r_def
   use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
+  use function_space_collection_mod,     only: function_space_collection
   use field_bundle_mod,                  only: clone_bundle
   use field_mod,                         only: field_type
   use finite_element_config_mod,         only: element_order
@@ -83,7 +84,6 @@ contains
   type(field_type)          :: rhs_tmp(bundle_size)
   type(field_type)          :: f_star, ones, w2_multiplicity
 
-  type(function_space_type) :: fs
   type(function_space_type), pointer :: u_fs   => null()
   type(function_space_type), pointer :: rho_fs => null()
 
@@ -107,9 +107,12 @@ contains
   end if
 
 
-  if ( from_solver ) then    
+  if ( from_solver ) then
+
     ! Need to create u*rho^ref \in W2 for rhs_tmp(3) kernel -> sampled mass flux
-    u_fs => fs%get_instance( mesh, element_order, u%which_function_space() )
+    u_fs => function_space_collection%get_fs( mesh, &
+                                              element_order, &
+                                              u%which_function_space() )
 
     w2_multiplicity = field_type( vector_space = u_fs )
     call invoke_set_field_scalar( 0.0_r_def, w2_multiplicity )
@@ -138,7 +141,10 @@ contains
   call invoke_set_field_scalar( 0.0_r_def, rhs_tmp(2) )
   if ( from_solver ) then
     qr = quadrature_type(element_order+1, GAUSSIAN)
-    rho_fs => fs%get_instance( mesh, element_order, rho%which_function_space() )
+
+    rho_fs => function_space_collection%get_fs( mesh, &
+                                                element_order, &
+                                                rho%which_function_space() )
     ones = field_type( vector_space = rho_fs )
     call invoke_set_field_scalar( 1.0_r_def, ones )
     call invoke( rtheta_kernel_type( rhs_tmp(2), theta, u, ones, qr) )

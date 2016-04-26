@@ -7,14 +7,16 @@
 
 module sample_flux_kernel_mod_test
 
-  use constants_mod,      only : i_def, r_def
-  use field_mod,          only : field_type,      &
-                                 field_proxy_type
-  use fs_continuity_mod,  only : W2, W3
-  use function_space_mod, only : function_space_type
-  use mesh_mod,           only : mesh_type
+  use constants_mod,                 only : i_def, r_def
+  use function_space_collection_mod, only : function_space_collection_type, &
+                                            function_space_collection
+  use field_mod,                     only : field_type,      &
+                                            field_proxy_type
+  use fs_continuity_mod,             only : W2, W3
+  use function_space_mod,            only : function_space_type
+  use mesh_mod,                      only : mesh_type
   use pFUnit_Mod
-  use quadrature_mod,     only : quadrature_type, GAUSSIAN
+  use quadrature_mod,                only : quadrature_type, GAUSSIAN
 
   implicit none
 
@@ -24,9 +26,11 @@ module sample_flux_kernel_mod_test
   @TestCase
   type, extends(TestCase), public :: sample_flux_test_type
     private
-    type(mesh_type)          :: mesh
-    type(field_type)         :: rho, u
-    real(r_def), allocatable :: basis_rho(:,:,:)
+    type(mesh_type)                    :: mesh
+    type(function_space_type), pointer :: w2_fs => null()
+    type(function_space_type), pointer :: w3_fs => null()
+    type(field_type)                   :: rho, u
+    real(r_def), allocatable           :: basis_rho(:,:,:)
   contains
     procedure setUp
     procedure tearDown
@@ -48,28 +52,28 @@ contains
 
     class(sample_flux_test_type), intent(inout) :: this
 
-    type(function_space_type) :: fs
     type(field_proxy_type)    :: rho_p, u_p
-
-    type(function_space_type), pointer :: w2_fs => null()
-    type(function_space_type), pointer :: w3_fs => null()
 
     integer(i_def) :: ndf_rho, dim_rho, ndf_u
 
     reference_element = finite_element_shape_quadrilateral
     call reference_cube()
 
+    ! Create top level function space collection
+
+    function_space_collection = function_space_collection_type()
+
     ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
     this%mesh = mesh_type(PLANE_BI_PERIODIC)
 
-    w2_fs => fs%get_instance( this%mesh, element_order, W2 )
-    w3_fs => fs%get_instance( this%mesh, element_order, W3 )
+    this%w2_fs => function_space_collection%get_fs(this%mesh, element_order, W2)
+    this%w3_fs => function_space_collection%get_fs(this%mesh, element_order, W3)
 
-    this%u = field_type( vector_space = w2_fs )
+    this%u = field_type( vector_space = this%w2_fs )
     u_p    = this%u%get_proxy()
     ndf_u  = u_p%vspace%get_ndf( )
 
-    this%rho = field_type( vector_space = w3_fs )
+    this%rho = field_type( vector_space = this%w3_fs )
     rho_p    = this%rho%get_proxy()
     ndf_rho  = rho_p%vspace%get_ndf( )
     dim_rho  = rho_p%vspace%get_dim_space( )
@@ -81,7 +85,6 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use function_space_mod,    only : purge_function_spaces
     use reference_element_mod, only : deallocate_reference
 
     implicit none
@@ -90,7 +93,7 @@ contains
 
     deallocate( this%basis_rho )
 
-    call purge_function_spaces()
+    call function_space_collection%clear()
     call deallocate_reference()
 
   end subroutine tearDown
@@ -106,11 +109,6 @@ contains
     class(sample_flux_test_type), intent(inout) :: this
 
     real(r_def), parameter :: tol = 1.0e-6_r_def
-
-    type(quadrature_type)     :: qr
-    type(function_space_type) :: fs
-    type(function_space_type), pointer :: w2_fs => null()
-    type(function_space_type), pointer :: w3_fs => null()
 
     real(r_def) :: answer
 
@@ -129,14 +127,10 @@ contains
     real(kind=r_def), pointer :: nodes(:,:) => null()
     type(field_proxy_type) :: flux_p, rho_p, u_p, m_p
 
-    qr  = quadrature_type(3, GAUSSIAN)
-
-    w2_fs => fs%get_instance( this%mesh, element_order, W2 )
-    w3_fs => fs%get_instance( this%mesh, element_order, W3 )
 
     ! Test flux computation
-    flux = field_type( vector_space = w2_fs )
-    m    = field_type( vector_space = w2_fs )
+    flux = field_type( vector_space = this%w2_fs )
+    m    = field_type( vector_space = this%w2_fs )
 
     flux_p = flux%get_proxy()
     rho_p  = this%rho%get_proxy()

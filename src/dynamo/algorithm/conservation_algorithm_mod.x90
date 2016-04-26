@@ -15,17 +15,18 @@ module conservation_algorithm_mod
   use compute_total_mass_kernel_mod,   only: compute_total_mass_kernel_type
   use compute_total_pv_kernel_mod,     only: compute_total_pv_kernel_type
 
-  use constants_mod,             only: r_def
-  use field_mod,                 only: field_type
-  use finite_element_config_mod, only: element_order
-  use fs_continuity_mod,         only: W3
-  use function_space_mod,        only: function_space_type
-  use log_mod,                   only: log_event,         &
-                                       log_scratch_space, &
-                                       LOG_LEVEL_INFO
-  use mesh_mod,                  only: mesh_type
-  use psykal_lite_mod,           only: invoke_sum_field
-  use quadrature_mod,            only: quadrature_type, GAUSSIAN
+  use constants_mod,                   only: r_def
+  use function_space_collection_mod,   only: function_space_collection
+  use field_mod,                       only: field_type
+  use finite_element_config_mod,       only: element_order
+  use fs_continuity_mod,               only: W3
+  use function_space_mod,              only: function_space_type
+  use log_mod,                         only: log_event,         &
+                                             log_scratch_space, &
+                                             LOG_LEVEL_INFO
+  use mesh_mod,                        only: mesh_type
+  use psykal_lite_mod,                 only: invoke_sum_field
+  use quadrature_mod,                  only: quadrature_type, GAUSSIAN
 
 implicit none
 
@@ -56,7 +57,6 @@ contains
     type( field_type ), intent( inout ) :: u, rho, theta, xi, geopotential
 
     ! local variables
-    type(function_space_type) :: fs
     type(quadrature_type)     :: qr
 
     type(function_space_type), pointer :: w3_fs => null()
@@ -66,7 +66,7 @@ contains
 
     ! Get a quadrature rule
     qr = quadrature_type(element_order+3,GAUSSIAN)
-    w3_fs => fs%get_instance( mesh, element_order, W3)
+    w3_fs => function_space_collection%get_fs( mesh, element_order, W3)
 
     ! Compute Mass
     mass = field_type( vector_space = w3_fs )

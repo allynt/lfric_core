@@ -18,6 +18,7 @@ type, public :: master_dofmap_type
   integer(i_def), allocatable :: dofmap(:,:) 
 contains
   procedure :: get_master_dofmap
+  procedure :: clear
 end type master_dofmap_type
 
 interface master_dofmap_type
@@ -49,7 +50,6 @@ function master_dofmap_constructor( master_dofmap ) result(self)
 
   return
 end function master_dofmap_constructor
-
 !-----------------------------------------------------------------------------
 ! Get the master dofmap for a single cell
 !-----------------------------------------------------------------------------
@@ -66,6 +66,23 @@ function get_master_dofmap(self,cell) result(map)
   map => self%dofmap(:,cell)
   return
 end function get_master_dofmap
+
+!-----------------------------------------------------------------------------
+!> @details Explcitly deallocates any allocatable arrays in the object
+!>          to avoid memory leaks
+!> @return  Error status variable
+function clear(self) result(err)
+
+  implicit none
+
+  class (master_dofmap_type) :: self
+  integer(i_def) :: err
+  err = 0
+
+  if (allocated(self%dofmap))  deallocate( self%dofmap )
+
+  return
+end function clear
  
 end module master_dofmap_mod
 

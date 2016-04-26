@@ -31,8 +31,9 @@ program dynamo
   use field_mod,                      only : field_type
   use finite_element_config_mod,      only : element_order
   use formulation_config_mod,         only : nonlinear
+  use function_space_collection_mod,  only : function_space_collection_type, &
+                                             function_space_collection
   use fs_continuity_mod,              only : W0, W1, W2, W3, Wtheta, W2V, W2H
-  use function_space_mod,             only : function_space_type
   use init_prognostic_fields_alg_mod, only : init_prognostic_fields_alg
   use iter_timestep_alg_mod,          only : iter_timestep_alg
   use lin_rk_alg_timestep_mod,        only : lin_rk_alg_timestep
@@ -56,7 +57,6 @@ program dynamo
   use runge_kutta_init_mod,    only: runge_kutta_init
   implicit none
 
-  type( function_space_type ) :: fs
   type( mesh_type )           :: mesh
 
   ! coordinate fields
@@ -96,20 +96,29 @@ program dynamo
   ! Set up mesh and element order
   call set_up(mesh, local_rank, total_ranks)
 
+  ! Create top level function space collection
+
+  function_space_collection = function_space_collection_type()
+
   ! Calculate coordinates
   do coord = 1,3
     chi(coord) = field_type (vector_space =                                    &
-                                fs%get_instance(mesh,element_order,W0) )
+                       function_space_collection%get_fs(mesh,element_order,W0) )
   end do
   ! Assign coordinate field
   call log_event( "Dynamo: Computing W0 coordinate fields", LOG_LEVEL_INFO )
   call assign_coordinate_field(mesh, chi)
 
+
   ! Create prognostic fields
-  theta = field_type( vector_space = fs%get_instance(mesh, element_order, W0) )
-  xi    = field_type( vector_space = fs%get_instance(mesh, element_order, W1) )
-  u     = field_type( vector_space = fs%get_instance(mesh, element_order, W2) )
-  rho   = field_type( vector_space = fs%get_instance(mesh, element_order, W3) )
+  theta = field_type( vector_space = &
+                     function_space_collection%get_fs(mesh, element_order, W0) )
+  xi    = field_type( vector_space = &
+                     function_space_collection%get_fs(mesh, element_order, W1) )
+  u     = field_type( vector_space = &
+                     function_space_collection%get_fs(mesh, element_order, W2) )
+  rho   = field_type( vector_space = &
+                     function_space_collection%get_fs(mesh, element_order, W3) )
 
   ! Initialise prognostic fields: Theta, U, Xi, Rho are initialised in 
   ! separate algorithm/subroutine

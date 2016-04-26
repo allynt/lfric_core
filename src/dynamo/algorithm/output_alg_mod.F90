@@ -9,10 +9,10 @@ module output_alg_mod
 
   use constants_mod,                     only: r_def, str_max_filename
   use driver_layer,                      only: interpolated_output
+  use function_space_collection_mod,     only: function_space_collection
   use field_mod,                         only: field_type
   use finite_element_config_mod,         only: element_order
   use fs_continuity_mod,                 only: W0, W3
-  use function_space_mod,                only: function_space_type
   use galerkin_projection_algorithm_mod, only: galerkin_projection_algorithm
   use mesh_mod,                          only: mesh_type
   use nodal_output_alg_mod,              only: nodal_output_alg
@@ -59,7 +59,6 @@ contains
     type( field_type ) :: W0_projected_field(3)
     type( field_type ) :: W3_projected_field(1)
     type( quadrature_type )          :: qr
-    type( function_space_type )      :: fs
     character(len=str_max_filename)  :: fname
     ! local rank to write out a filename for each rank
     character(len=str_max_filename)  :: rank_name
@@ -79,11 +78,15 @@ contains
 
       ! Create fields needed for output (these can be in CG or DG space)
       do dir = 1,3
-        W0_projected_field(dir) = field_type(                                    &
-                        vector_space = fs%get_instance(mesh, element_order, W0) )
+        W0_projected_field(dir) = field_type(                                         &
+                       vector_space = function_space_collection%get_fs(mesh,          &
+                                                                       element_order, &
+                                                                       W0) )
       end do
-      W3_projected_field(1) = field_type(                                        &
-                        vector_space = fs%get_instance(mesh, element_order, W3) )
+      W3_projected_field(1) = field_type(                                             &
+                       vector_space = function_space_collection%get_fs(mesh,          &
+                                                                       element_order, &
+                                                                       W3) )
 
       call galerkin_projection_algorithm(W0_projected_field(1), theta, mesh, chi, &
                                          SCALAR_FIELD, qr, mm=mm_w0)

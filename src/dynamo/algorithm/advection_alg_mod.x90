@@ -11,6 +11,7 @@ module advection_alg_mod
 
   use constants_mod,                  only: r_def
   use enforce_bc_kernel_mod,          only: enforce_bc_kernel_type
+  use function_space_collection_mod,  only: function_space_collection
   use field_bundle_mod,               only: bundle_ax
   use field_mod,                      only: field_type
   use finite_element_config_mod,      only: element_order
@@ -83,7 +84,6 @@ contains
   type(field_type), pointer :: u ,theta, rho, theta_np1, theta_n => null()
   type(field_type)          :: r_xi, mass_flux, r_rho 
 
-  type(function_space_type) :: fs
   type(function_space_type), pointer :: xi_fs  => null()
   type(function_space_type), pointer :: u_fs   => null()
   type(function_space_type), pointer :: rho_fs => null()
@@ -104,9 +104,15 @@ contains
   theta_np1 => state_np1(2)
   theta_n => state_n(2)
  
-  u_fs   => fs%get_instance( mesh, element_order, u%which_function_space()   )
-  xi_fs  => fs%get_instance( mesh, element_order, xi%which_function_space()  )
-  rho_fs => fs%get_instance( mesh, element_order, rho%which_function_space() )
+  u_fs   => function_space_collection%get_fs( mesh, &
+                                              element_order, &
+                                              u%which_function_space()   )
+  xi_fs  => function_space_collection%get_fs( mesh, &
+                                              element_order, &
+                                              xi%which_function_space()  )
+  rho_fs => function_space_collection%get_fs( mesh, &
+                                              element_order, &
+                                              rho%which_function_space() )
 
 
   mass_flux = field_type( vector_space = u_fs   )
