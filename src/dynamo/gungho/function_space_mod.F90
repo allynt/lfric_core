@@ -204,8 +204,9 @@ contains
   !> @param[in] xi The (x,y,z) coodinates to evaluate the basis function
   procedure, public :: evaluate_diff_basis
 
-
-  !> @brief Evaluates the basis function for a given quadrature
+  !> @brief Evaluates the basis function for a given quadrature.
+  !> @deprecated Will be replaced by compute_diff_basis_function_3d_xyoz
+  !>             when available in PSYclone
   !> @param[in] ndf integer number of dofs
   !> @param[in] qp_h integer number of quadrature points in the horizontal
   !> @param[in] qp_v integer number of quadrature points in the vertical
@@ -214,6 +215,40 @@ contains
   !> @param[out] basis real 3 dimensional array holding the evaluated basis 
   !! functions
   procedure, public :: compute_basis_function
+
+  !> @brief Evaluates the basis function for a given set of 3d points separated
+  !> into x, y and z
+  !> @param[in] ndf integer number of dofs
+  !> @param[in] nqp_x integer number of quadrature points in x
+  !> @param[in] nqp_z integer number of quadrature points in y
+  !> @param[in] nqp_z integer number of quadrature points in z
+  !> @param[in] xqp_x real one dimensional array holding the x points
+  !> @param[in] xqp_y real one dimensional array holding the y points
+  !> @param[in] xqp_z real one dimensional array holding the z points
+  !> @param[out] basis real five dimensional array holding the evaluated basis 
+  !> functions
+  procedure, public :: compute_basis_function_3d_xoyoz
+
+  !> @brief Evaluates the basis function for a given set of 3d points separated
+  ! into xy and z
+  !> @param[in] ndf integer number of dofs
+  !> @param[in] nqp_xy integer number of quadrature points in xy
+  !> @param[in] nqp_z integer number of quadrature points in z
+  !> @param[in] xqp_xy real two dimensional array holding the xy points
+  !> @param[in] xqp_z real one dimensional array holding the z points
+  !> @param[out] basis real four dimensional array holding the evaluated basis
+  !> functions
+  procedure, public :: compute_basis_function_3d_xyoz
+
+  !> @brief Evaluates the basis function for a given set of 3d points in a
+  ! single xyz
+  !> @param[in] ndf integer number of dofs
+  !> @param[in] nqp_xyz integer number of quadrature points in xyz
+  !> @param[in] xqp_xyz real two dimensional array holding the xyz points
+  !> @param[out] basis real three dimensional array holding the evaluated basis
+  !> @param[out] basis real 3 dimensional array holding the evaluated basis 
+  !> functions
+  procedure, public :: compute_basis_function_3d_xyz
 
   !> Subroutine to evaluate the basis function at a set of nodes
   !> @param[out] basis real 3 dimensional array holding the evaluated basis 
@@ -225,14 +260,52 @@ contains
   procedure, public :: compute_nodal_basis_function
 
   !> @brief Evaluates the differential basis function for a given quadrature
+  !> @deprecated Will be replaced by compute_diff_basis_function_3d_xyoz 
+  !>             when available in PSYclone
   !> @param[in] ndf integer number of dofs
   !> @param[in] qp_h integer number of quadrature points in the horizontal
   !> @param[in] qp_v integer number of quadrature points in the vertical
   !> @param[in] x_qp real two dimensional array holding the x's horizontal
   !> @param[in] z_qp real two dimensional array holding the x's vertical
   !> @param[out] dbasis real 3 dimensional array holding the evaluated basis 
-  !! functions
+  !> functions
   procedure, public :: compute_diff_basis_function
+
+  !> @brief Evaluates the differential basis function for a given set of 3d 
+  ! points separated into x, y and z
+  !> @param[in] ndf integer number of dofs
+  !> @param[in] nqp_x integer number of quadrature points in x
+  !> @param[in] nqp_z integer number of quadrature points in y
+  !> @param[in] nqp_z integer number of quadrature points in z
+  !> @param[in] xqp_x real one dimensional array holding the x points
+  !> @param[in] xqp_y real one dimensional array holding the y points
+  !> @param[in] xqp_z real one dimensional array holding the z points
+  !> @param[out] dbasis real five dimensional array holding the evaluated diff
+  !basis 
+  !> functions
+  procedure, public :: compute_diff_basis_function_3d_xoyoz
+
+  !> @brief Evaluates the differential basis function for a given set of 3d 
+  ! points separated into xy and z
+  !> @param[in] ndf integer number of dofs
+  !> @param[in] nqp_xy integer number of quadrature points in xy
+  !> @param[in] nqp_z integer number of quadrature points in z
+  !> @param[in] xqp_xy real two dimensional array holding the xy points
+  !> @param[in] xqp_z real one dimensional array holding the z points
+  !> @param[out] dbasis real five dimensional array holding the evaluated diff
+  !basis
+  !> functions
+  procedure, public :: compute_diff_basis_function_3d_xyoz
+
+  !> @brief Evaluates the differential basis function for a given set of 3d 
+  !points in a single xyz
+  !> @param[in] ndf integer number of dofs
+  !> @param[in] nqp_xyz integer number of quadrature points in xyz
+  !> @param[in] xqp_xyz real two dimensional array holding the xyz points
+  !> @param[out] dbasis real three dimensional array holding the evaluated diff
+  !basis
+  !> functions
+  procedure, public :: compute_diff_basis_function_3d_xyz
 
   !> Subroutine to evaluate the differential basis function at a set of nodes
   !> @param[out] dbasis real 3 dimensional array holding the evaluated
@@ -770,6 +843,104 @@ subroutine compute_basis_function(self, basis, ndf, qp_h, qp_v, x_qp, z_qp)
 
 end subroutine compute_basis_function
 
+!---------------------------------------------------------------------------------
+! Evaluates the basis function for given set of 3d points formatted to xoyoz.
+! This
+! includes data from quadrature_3d_xoyoz_type
+!---------------------------------------------------------------------------------
+subroutine compute_basis_function_3d_xoyoz(self, basis, ndf, nqp_x, nqp_y, nqp_z, &
+                                           xqp_x, xqp_y, xqp_z)
+  implicit none
+  class(function_space_type), intent(in)  :: self
+  integer(kind=i_def),                                               intent(in) :: ndf
+  integer(kind=i_def),                                               intent(in) :: nqp_x
+  integer(kind=i_def),                                               intent(in) :: nqp_y
+  integer(kind=i_def),                                               intent(in) :: nqp_z
+  real(kind=r_def), dimension(nqp_x),                                intent(in) :: xqp_x
+  real(kind=r_def), dimension(nqp_y),                                intent(in) :: xqp_y
+  real(kind=r_def), dimension(nqp_z),                                intent(in) :: xqp_z
+  real(kind=r_def), dimension(self%dim_space,ndf,nqp_x,nqp_y,nqp_z), intent(out) :: basis
+
+  ! local variables - loop counters
+  integer(kind=i_def) :: df
+  real(kind=r_def)    :: xyz(3)
+  integer(kind=i_def) :: qp1
+  integer(kind=i_def) :: qp2
+  integer(kind=i_def) :: qp3
+
+  do qp3 = 1, nqp_z
+    xyz(3)=xqp_z(qp3)
+    do qp2 = 1, nqp_y
+      xyz(2)=xqp_y(qp2)
+      do qp1 = 1, nqp_x
+        xyz(1) = xqp_x(qp1)
+        do df = 1, ndf
+          basis(:,df,qp1,qp2,qp3) = self%evaluate_basis(df,xyz)
+        end do
+      end do
+    end do
+  end do
+
+end subroutine compute_basis_function_3d_xoyoz
+
+!---------------------------------------------------------------------------------
+! Evaluates the basis function for given set of 3d points formatted to xyoz.
+! This
+! includes data from quadrature_3d_xyoz_type
+!---------------------------------------------------------------------------------
+subroutine compute_basis_function_3d_xyoz(self, basis, ndf, nqp_xy, nqp_z, xqp_xy, xqp_z)
+  implicit none
+  class(function_space_type), intent(in)  :: self
+  integer(kind=i_def),                                          intent(in)  :: ndf
+  integer(kind=i_def),                                          intent(in)  :: nqp_xy
+  integer(kind=i_def),                                          intent(in)  :: nqp_z
+  real(kind=r_def), dimension(2,nqp_xy),                        intent(in)  :: xqp_xy
+  real(kind=r_def), dimension(nqp_z),                           intent(in)  :: xqp_z
+  real(kind=r_def), dimension(self%dim_space,ndf,nqp_xy,nqp_z), intent(out) :: basis
+
+  ! local variables - loop counters
+  integer(kind=i_def) :: df
+  real(kind=r_def) :: xyz(3)
+  integer(kind=i_def) :: qp1
+  integer(kind=i_def) :: qp2
+
+  do qp2 = 1, nqp_z
+    xyz(3)=xqp_z(qp2)
+    do qp1 = 1, nqp_xy
+      xyz(1) = xqp_xy(1,qp1)
+      xyz(2) = xqp_xy(2,qp1)
+      do df = 1, ndf
+        basis(:,df,qp1,qp2) = self%evaluate_basis(df,xyz)
+      end do
+    end do
+  end do
+
+end subroutine compute_basis_function_3d_xyoz
+
+!---------------------------------------------------------------------------------
+! Evaluates the basis function for given set of 3d points formatted to xyz. This
+! includes data from quadrature_3d_xyz_type
+!---------------------------------------------------------------------------------
+subroutine compute_basis_function_3d_xyz(self, basis, ndf, nqp_xyz, xqp_xyz)
+  implicit none
+  class(function_space_type), intent(in)  :: self
+  integer(kind=i_def),                                     intent(in)  :: ndf
+  integer(kind=i_def),                                     intent(in)  :: nqp_xyz
+  real(kind=r_def), dimension(3,nqp_xyz),                  intent(in)  :: xqp_xyz
+  real(kind=r_def), dimension(self%dim_space,ndf,nqp_xyz), intent(out) :: basis
+
+  ! local variables - loop counters
+  integer(kind=i_def) :: df
+  integer(kind=i_def) :: qp1
+
+  do qp1 = 1, nqp_xyz
+    do df = 1, ndf
+      basis(:,df,qp1) = self%evaluate_basis(df,xqp_xyz(:,qp1))
+    end do
+  end do
+
+end subroutine compute_basis_function_3d_xyz
+
 !-----------------------------------------------------------------------------
 ! Evaluates the basis function for a given set of nodal points
 !-----------------------------------------------------------------------------
@@ -839,6 +1010,104 @@ subroutine compute_diff_basis_function(self,                                &
   end do
 
 end subroutine compute_diff_basis_function
+
+!-----------------------------------------------------------------------------
+! Evaluates the differential basis function for given set of 3d points formatted 
+! to xoyoz. This includes data from quadrature_3d_xoyoz_type
+!-----------------------------------------------------------------------------
+subroutine compute_diff_basis_function_3d_xoyoz(self, &
+     dbasis, ndf, nqp_x, nqp_y, nqp_z, xqp_x, xqp_y, xqp_z )
+  implicit none
+  class(function_space_type), intent(in)  :: self
+  integer(kind=i_def), intent(in)  :: ndf
+  integer(kind=i_def), intent(in)  :: nqp_x
+  integer(kind=i_def), intent(in)  :: nqp_y
+  integer(kind=i_def), intent(in)  :: nqp_z
+  real(kind=r_def), dimension(nqp_x), intent(in)  :: xqp_x
+  real(kind=r_def), dimension(nqp_y), intent(in)  :: xqp_y
+  real(kind=r_def), dimension(nqp_z), intent(in)  :: xqp_z
+  real(kind=r_def), dimension(self%dim_space_diff,ndf,nqp_x,nqp_y,nqp_z), intent(out) :: dbasis
+
+! local variables - loop counters
+  integer(kind=i_def) :: df
+  real(kind=r_def)    :: xyz(3)
+  integer(kind=i_def) :: qp1
+  integer(kind=i_def) :: qp2
+  integer(kind=i_def) :: qp3
+
+  do qp3 = 1, nqp_z
+    xyz(3)=xqp_z(qp3)
+    do qp2 = 1, nqp_y
+      xyz(2)=xqp_y(qp2)
+      do qp1 = 1, nqp_x
+        xyz(1) = xqp_x(qp1)
+        do df = 1, ndf
+          dbasis(:,df,qp1,qp2,qp3) = self%evaluate_diff_basis(df,xyz)
+        end do
+      end do
+    end do
+  end do
+
+end subroutine compute_diff_basis_function_3d_xoyoz
+
+!-----------------------------------------------------------------------------
+! Evaluates the differential basis function for given set of 3d points formatted 
+! to xyoz. This includes data from quadrature_3d_xyoz_type
+!-----------------------------------------------------------------------------
+subroutine compute_diff_basis_function_3d_xyoz(self, &
+     dbasis, ndf, nqp_xy, nqp_z, xqp_xy, xqp_z )
+  implicit none
+  class(function_space_type), intent(in)  :: self
+  integer(kind=i_def),                                               intent(in) :: ndf
+  integer(kind=i_def),                                               intent(in) :: nqp_xy
+  integer(kind=i_def),                                               intent(in) :: nqp_z
+  real(kind=r_def), dimension(2,nqp_xy),                             intent(in) :: xqp_xy
+  real(kind=r_def), dimension(nqp_z),                                intent(in) :: xqp_z
+  real(kind=r_def), dimension(self%dim_space_diff,ndf,nqp_xy,nqp_z), intent(out) :: dbasis
+
+! local variables - loop counters
+  integer(kind=i_def) :: df
+  real(kind=r_def)    :: xyz(3)
+  integer(kind=i_def) :: qp1
+  integer(kind=i_def) :: qp2
+
+  do qp2 = 1, nqp_z
+    xyz(3)=xqp_z(qp2)
+    do qp1 = 1, nqp_xy
+      xyz(1) = xqp_xy(1,qp1)
+      xyz(2) = xqp_xy(2,qp1)
+      do df = 1, ndf
+        dbasis(:,df,qp1,qp2) = self%evaluate_diff_basis(df,xyz)
+      end do
+    end do
+  end do
+
+end subroutine compute_diff_basis_function_3d_xyoz
+
+!-----------------------------------------------------------------------------
+! Evaluates the differential basis function for given set of 3d points formatted 
+! to xyz. This includes data from quadrature_3d_xyz_type
+!-----------------------------------------------------------------------------
+subroutine compute_diff_basis_function_3d_xyz(self, &
+     dbasis, ndf, nqp_xyz, xqp_xyz )
+  implicit none
+  class(function_space_type), intent(in)  :: self
+  integer(kind=i_def),                                               intent(in) :: ndf
+  integer(kind=i_def),                                               intent(in) :: nqp_xyz
+  real(kind=r_def), dimension(3,nqp_xyz),                            intent(in) :: xqp_xyz
+  real(kind=r_def), dimension(self%dim_space_diff,ndf,nqp_xyz),      intent(out) :: dbasis
+
+! local variables - loop counters
+  integer(kind=i_def) :: df
+  integer(kind=i_def) :: qp1
+
+  do qp1 = 1, nqp_xyz
+    do df = 1, ndf
+      dbasis(:,df,qp1) = self%evaluate_diff_basis(df,xqp_xyz(:,qp1))
+    end do
+  end do
+
+end subroutine compute_diff_basis_function_3d_xyz
 
 !-----------------------------------------------------------------------------
 ! Evaluates the diff basis function for a given set of nodal points

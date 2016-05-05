@@ -1,0 +1,38 @@
+!-------------------------------------------------------------------------------
+! (c) The copyright relating to this work is owned jointly by the Crown, 
+! Met Office and NERC 2014. 
+! However, it has been created with the help of the GungHo Consortium, 
+! whose members are identified at
+! https://puma.nerc.ac.uk/trac/GungHo/wiki
+!-------------------------------------------------------------------------------
+!
+!-------------------------------------------------------------------------------
+
+!> @brief Interface for the quadrature rule functor
+
+!> @details This module contains the interface for the quadrature rule functor
+
+module quadrature_rule_mod
+use constants_mod, only: r_def, i_def
+
+implicit none
+private
+
+!Public types
+type, abstract, public :: quadrature_rule_type
+  private
+contains
+  procedure(quadrature_rule_interface), deferred :: quadrature_rule
+end type
+
+!Interfaces
+abstract interface
+  function quadrature_rule_interface(self, nqp_1d)
+    import                          :: r_def, i_def, quadrature_rule_type
+    class(quadrature_rule_type)     :: self
+    integer(kind=i_def), intent(in) :: nqp_1d
+    real(kind=r_def)                :: quadrature_rule_interface(nqp_1d,2)
+  end function quadrature_rule_interface
+end interface
+
+end module quadrature_rule_mod

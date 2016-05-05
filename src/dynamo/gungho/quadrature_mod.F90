@@ -16,8 +16,13 @@
 !> quadrature is returned.
 
 module quadrature_mod
-use constants_mod, only: r_def, PI, EPS
+use constants_mod, only: r_def, i_def, PI, EPS
 use log_mod,       only: LOG_LEVEL_ERROR, log_event, log_scratch_space
+
+use quadrature_rule_mod, only: quadrature_rule_type
+use quadrature_rule_gaussian_mod, only: quadrature_rule_gaussian_type
+use quadrature_rule_newton_cotes_mod, only: quadrature_rule_newton_cotes_type
+
 implicit none
 private
 
@@ -48,6 +53,11 @@ contains
   !> @return real The value of the function thus integrated
   procedure :: integrate
 
+  !> @brief quadrature rule functor to get 1D quadrature points and weights
+  !> @param quadrature_rule_type function to be used
+  !> @return list of 1D quadrature points and weights
+  procedure :: quadrature_rule
+
   !> @brief Returns the 2-d array of quadrature points in the horizontal
   !> @param[in] self The calling quadrature rule
   !> @return xgp_h The array to copy the quadrature points into
@@ -77,6 +87,7 @@ contains
   !> @param[in] self The calling quadrature rule
   !> @return nqp_h Number of quadrature points in the horizontal
   procedure :: get_nqp_h
+
   !> @brief Routine to destroy quadrature
   final     :: quadrature_destructor
 end type
@@ -100,20 +111,24 @@ contains
 ! Initialises the quadrature rule
 !-------------------------------------------------------------------------------
 !> @brief Initialises the quadrature rule 
-!> @param[in] order Integer, The order of integration, i.e. number of points per
+!> @param[in] npoints Integer, The npoints of integration, i.e. number of points per
 !!            dimension
 !> @param[in] rule Integer, quadrature rule
 !-------------------------------------------------------------------------------
-function init_quadrature(order, rule) result (self)
+function init_quadrature(npoints, rule) result (self)
 
   implicit none
 
   type(quadrature_type) :: self
-  integer, intent(in) :: order
+  integer, intent(in) :: npoints
   integer, intent(in) :: rule
 
-    self%nqp_h = order**2
-    self%nqp_v = order
+  real(kind=r_def), allocatable       :: points_weights(:,:)
+  type(quadrature_rule_gaussian_type) :: gaussian_quadrature
+  type(quadrature_rule_newton_cotes_type) :: newton_cotes_quadrature
+
+    self%nqp_h = npoints**2
+    self%nqp_v = npoints
 
     allocate( self%xqp(self%nqp_v) )
     allocate( self%wqp(self%nqp_v) ) 
@@ -125,151 +140,56 @@ function init_quadrature(order, rule) result (self)
     self%xqp_h(:,:) = 0.0_r_def
     self%wqp_h(:) = 0.0_r_def
 
+    allocate(points_weights(self%nqp_v,2))
     select case (rule)
       case (GAUSSIAN)
-        call create_gaussian_quadrature(self)
+        points_weights = self%quadrature_rule( gaussian_quadrature )
       case (NEWTON)
-        call create_newton_cotes_quadrature(self)
+        points_weights = self%quadrature_rule( newton_cotes_quadrature )
       case default
          write(log_scratch_space,'(A,I5)') "quadrature_type:Invalid Quadrature Rule: ",rule
         call log_event(log_scratch_space,LOG_LEVEL_ERROR)
     end select
 
+    call create_quadrature(self, points_weights)
+    deallocate(points_weights)
 
 end function init_quadrature 
 
 !-----------------------------------------------------------------------------
-! Computes Gaussian quadrature points and weights 
+! Distribute quadrature points and weights 
 !-----------------------------------------------------------------------------
-!> @brief Computes Gaussian quadrature points (xqp) and weights (wqp)
+!> @brief Distribute quadrature points (xqp) and weights (wqp)
 !> @param[in] self The calling quadrature rule
+!> @param[in] points_weights quadrature points(dim 1) and weights(dim 2)
+!> @todo this code is correct for quads but will need modification for
+!>       hexes/triangles)
 !-----------------------------------------------------------------------------
-subroutine create_gaussian_quadrature(self)
+subroutine create_quadrature(self, points_weights)
 
   implicit none
 
-  class(quadrature_type) :: self 
-  integer             :: i, j, m
-  real(kind=r_def)    :: p1, p2, p3, pp, z, z1
-  real(kind=r_def), parameter :: DOMAIN_CHANGE_FACTOR = 0.5_r_def
-  real(kind=r_def), parameter :: DOMAIN_SHIFT_FACTOR  = 1.0_r_def
-
-  z1 = 0.0_r_def
-  m = (self%nqp_v + 1) / 2
-
-  !Roots are symmetric in the interval - so only need to find half of them
-
-  do i = 1, m ! Loop over the desired roots
-
-    z = cos( PI * (i - 0.25_r_def) / (self%nqp_v + 0.5_r_def) )
-
-    !Starting with the above approximation to the ith root, we enter the main
-    !loop of refinement by NEWTON'S method
-    pp = 1.0_r_def
-    do while ( abs(z-z1) > eps )
-      p1 = 1.0_r_def
-      p2 = 0.0_r_def
-
-      !Loop up the recurrence relation to get the Legendre polynomial evaluated
-      !at z                 
-      do j = 1, self%nqp_v
-        p3 = p2
-        p2 = p1
-        p1 = ((2.0_r_def * j - 1.0_r_def) * z * p2 - (j - 1.0_r_def) * p3) / j
-      end do
-
-      !p1 is now the desired Legendre polynomial. We next compute pp, its
-      !derivative, by a standard relation involving also p2, the polynomial of
-      ! one lower order.
-      pp = self%nqp_v * (z * p1 - p2)/(z*z - 1.0_r_def)
-      z1 = z
-      z = z1 - p1/pp             ! Newton's Method  
-    end do
-
-    self%xqp(i) =  - z                                  ! Roots will be bewteen -1.0 & 1.0 
-    self%xqp(self%nqp_v+1-i) =  + z                     ! and symmetric about the origin  
-    self%wqp(i) = 2.0_r_def/((1.0_r_def - z*z) * pp*pp) ! Compute the wgpht and its       
-    self%wqp(self%nqp_v+1-i) = self%wqp(i)              ! symmetric counterpart         
-
-  end do ! i loop
-
-  !Shift quad points from [-1,1] to [0,1]
-  do i=1,self%nqp_v
-    self%xqp(i) = DOMAIN_CHANGE_FACTOR*(self%xqp(i) + DOMAIN_SHIFT_FACTOR)
-    self%wqp(i) = DOMAIN_CHANGE_FACTOR*self%wqp(i)
-  end do
+  class(quadrature_type) :: self
+  real(kind=r_def)       :: points_weights(:,:)
+  integer(kind=i_def)    :: i,j,ic
 
   ! This is correct for quads (will need modification for hexes/triangles)
-  m = 1
-  do i=1,self%nqp_v
-    do j=1,self%nqp_v 
-      self%xqp_h(m,1) = self%xqp(i)
-      self%xqp_h(m,2) = self%xqp(j)
-      self%wqp_h(m) = self%wqp(i)*self%wqp(j)
+  self%xqp = points_weights(:,1)
+  self%wqp = points_weights(:,2)
 
-      m = m + 1
+  ic = 1
+  do i=1,self%nqp_v
+    do j=1,self%nqp_v
+      self%xqp_h(ic,1) = self%xqp(i)
+      self%xqp_h(ic,2) = self%xqp(j)
+      self%wqp_h(ic) = self%wqp(i)*self%wqp(j)
+
+      ic = ic + 1
     end do
   end do
 
   return
-end subroutine create_gaussian_quadrature
-
-!-----------------------------------------------------------------------------
-! Computes Newton Cotes quadrature points and weights
-!-----------------------------------------------------------------------------
-!> @brief Computes Newton Cotes quadrature points (xqp) and weights (wqp)
-!> @param[in] self The calling quadrature rule
-!-----------------------------------------------------------------------------
-subroutine create_newton_cotes_quadrature(self)
-
-  use matrix_invert_mod, only: matrix_invert
- 
-  implicit none
-
-  class(quadrature_type) :: self 
-  integer :: i, j, ij
-  real(kind=r_def), allocatable :: A(:,:), Ainv(:,:), b(:)
-
-  allocate( A   (self%nqp_v,self%nqp_v),  &
-            Ainv(self%nqp_v,self%nqp_v),  &
-            b   (self%nqp_v) )
-
-  if ( self%nqp_v == 1 ) then
-    self%xqp(1) = 0.5_r_def
-  else
-    do i = 1,self%nqp_v
-     self%xqp(i) = real(i-1)/real(self%nqp_v-1)
-    end do
-  end if
-  ij = 1
-  do i = 1,self%nqp_v
-    do j = 1,self%nqp_v
-      self%xqp_h(ij,1) =  self%xqp(i)
-      self%xqp_h(ij,2) =  self%xqp(j)
-      ij = ij + 1
-    end do    
-  end do
-
-  ! Compute weights
-  do i = 1,self%nqp_v
-    b(i) = (real(self%nqp_v)**i-1.0_r_def)/real(i)
-  end do
-  ! Compute coefficient matrix A
-  do i = 1,self%nqp_v
-    do j = 1,self%nqp_v
-      A(i,j) = real(j)**(i-1)
-    end do
-  end do
-  call matrix_invert(A,Ainv,self%nqp_v)
-  self%wqp(:) = matmul(Ainv,b)
-  ij = 1
-  do i = 1,self%nqp_v
-    do j = 1,self%nqp_v
-      self%wqp(ij) = self%wqp(i)*self%wqp(j)
-    end do
-  end do
-  
-end subroutine create_newton_cotes_quadrature
+end subroutine create_quadrature
 
 !-----------------------------------------------------------------------------
 ! Writes out an answer for a test
@@ -414,5 +334,17 @@ subroutine quadrature_destructor(self)
   
   
 end subroutine quadrature_destructor
+
+function quadrature_rule(self, quadrature_rule_strategy)
+  implicit none
+
+  class(quadrature_type)      :: self
+  class(quadrature_rule_type) :: quadrature_rule_strategy
+  real(kind=r_def)            :: quadrature_rule(self%nqp_v,2)
+
+  quadrature_rule = quadrature_rule_strategy%quadrature_rule(self%nqp_v)
+
+  return
+end function quadrature_rule
 
 end module quadrature_mod

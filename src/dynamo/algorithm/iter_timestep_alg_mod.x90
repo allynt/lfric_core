@@ -29,7 +29,8 @@ module iter_timestep_alg_mod
                                                invoke_copy_field_data,  &
                                                invoke_minus_field_data, &
                                                invoke_plus_field_data,  &
-                                               invoke_set_field_scalar
+                                               invoke_set_field_scalar, &
+                                               invoke_initial_u_kernel
   use field_bundle_mod,                  only: clone_bundle, & 
                                                bundle_axpy, & 
                                                bundle_axpby, &
@@ -58,6 +59,8 @@ module iter_timestep_alg_mod
   use field_mod,                         only: field_type
   use function_space_mod,                only: function_space_type
   use quadrature_mod,                    only: quadrature_type, GAUSSIAN
+  use quadrature_3d_xyoz_mod,            only: quadrature_3d_xyoz_type
+  use quadrature_rule_gaussian_mod,      only: quadrature_rule_gaussian_type
   use operator_mod,                      only: operator_type
   use runtime_constants_mod,             only: runtime_constants_type
 
@@ -127,6 +130,9 @@ contains
     type( runtime_constants_type ) :: runtime_constants
 
     type(quadrature_type)     :: qr
+    type(quadrature_3d_xyoz_type)       :: qr_3d_xyoz
+    type(quadrature_rule_gaussian_type) :: gaussian_quadrature
+    type(function_space_type) :: fs
     type(function_space_type), pointer :: theta_fs => null()
     type(function_space_type), pointer :: rho_fs   => null()
     type(function_space_type), pointer :: u_fs     => null()
@@ -161,6 +167,7 @@ contains
     w3_fs => function_space_collection%get_fs( mesh, element_order, W3 )
 
     qr = quadrature_type(element_order+3, GAUSSIAN)
+    qr_3d_xyoz = quadrature_3d_xyoz_type(element_order+3,  gaussian_quadrature)
 
     ! Create field bundles
     state_np1(1) = field_type( vector_space = u_fs     )
@@ -240,7 +247,7 @@ contains
       call invoke_set_field_scalar(0.0_r_def, xi)
       call invoke_set_field_scalar(0.0_r_def, u)
       call invoke_set_field_scalar(0.0_r_def, r_u) 
-      call invoke( initial_u_kernel_type( r_u, chi, qr ) )
+      call invoke_initial_u_kernel(r_u, chi, qr_3d_xyoz)
       call solver_algorithm(u, r_u, mesh, chi, method, mm=mm_w2)            
     end if
     !--- Intial output and output frequency -----------------------------------!
