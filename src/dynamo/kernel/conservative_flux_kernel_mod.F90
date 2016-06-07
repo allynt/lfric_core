@@ -203,7 +203,7 @@ subroutine conservative_flux_code( nlayers,              &
 
     mass_total = mass_from_whole_cells + mass_frac
 
-    flux( map_w2(df1) + k ) = sign(mass_total/deltaT,u_piola( map_w2(df1) + k ))
+    flux( map_w2(df1) + k ) = sign(1.0_r_def,u_piola( map_w2(df1) + k ))*mass_total/deltaT
 
     if (allocated(index_array)) deallocate(index_array)
     if (allocated(local_density_index)) deallocate(local_density_index)

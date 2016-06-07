@@ -18,7 +18,7 @@ module conservative_flux_kernel_mod_test
 
   private
   public :: conservative_flux_test_type, &
-            test_one, test_two, test_three, test_four
+            test_one, test_two, test_three, test_four, test_five
 
   @TestCase
   type, extends(TestCase) :: conservative_flux_test_type
@@ -268,5 +268,51 @@ end subroutine test_one
     @assertEqual(-(1.0_r_def+fr+4.0_r_def+fr), this%flux(1), tol)
 
   end subroutine test_four
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test
+  subroutine test_five( this )
+
+    use conservative_flux_kernel_mod, only : conservative_flux_code
+
+    implicit none
+
+    class(conservative_flux_test_type), intent(inout) :: this
+
+    real(r_def), parameter :: tol    = 1.0e-6_r_def
+
+    integer, pointer :: map_w3(:) => null()
+
+    this%dep_pts(:) = 1.0_r_def
+    this%u_piola(:) = 1.0_r_def
+
+    this%a0_coeffs(:) = -1.0_r_def
+    this%a1_coeffs(:) = 0.0_r_def
+    this%a2_coeffs(:) = 0.0_r_def
+    this%rho(:) = -1.0_r_def
+
+
+    call conservative_flux_code( nlayers,          &
+                                 undf_w3,          &
+                                 ndf_w3,           &
+                                 map_w3,           &
+                                 this%rho,         &
+                                 this%a0_coeffs,   &
+                                 this%a1_coeffs,   &
+                                 this%a2_coeffs,   &
+                                 undf_w2,          &
+                                 ndf_w2,           &
+                                 this%map_w2,      &
+                                 this%flux,        &
+                                 this%dep_pts,     &
+                                 this%u_piola,     &
+                                 stencil_length,   &
+                                 this%stencil_map, &
+                                 x_direction, &
+                                 deltaT )
+    @assertEqual(-(1.0_r_def), this%flux(1), tol)
+
+  end subroutine test_five
+
 
 end module conservative_flux_kernel_mod_test
