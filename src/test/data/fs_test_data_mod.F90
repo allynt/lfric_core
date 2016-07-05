@@ -20,7 +20,7 @@ type(function_space_description_type) &
     function_space_description_type(0, 12, 99, 3, 3), &
     function_space_description_type(0,  6, 90, 3, 1), &
     function_space_description_type(0,  1, 27, 1, 1), &
-    function_space_description_type(0,  2, 26, 1, 3), &
+    function_space_description_type(0,  2, 36, 1, 3), &
     function_space_description_type(0,  2, 36, 3, 1), &
     function_space_description_type(0,  4, 54, 3, 1)/)
 
