@@ -11,8 +11,8 @@ module output_alg_mod
   use interpolated_output_mod,           only: interpolated_output
   use function_space_collection_mod,     only: function_space_collection
   use field_mod,                         only: field_type
-  use finite_element_config_mod,         only: element_order
-  use fs_continuity_mod,                 only: W0, W3
+  use finite_element_config_mod,         only: element_order, wtheta_on
+  use fs_continuity_mod,                 only: W0, W3, Wtheta
   use galerkin_projection_algorithm_mod, only: galerkin_projection_algorithm
   use nodal_output_alg_mod,              only: nodal_output_alg
   use operator_mod,                      only: operator_type
@@ -58,6 +58,7 @@ contains
     integer, parameter :: VECTOR_FIELD = 3, &
                           SCALAR_FIELD = 1
     type( field_type ) :: W0_projected_field(3)
+    type( field_type ) :: Wtheta_projected_field(1)
     type( field_type ) :: W3_projected_field(1)
     type( quadrature_type )          :: qr
     type( mesh_type ), pointer       :: mesh => null()
@@ -90,11 +91,25 @@ contains
                                                                        element_order, &
                                                                        W3) )
 
-      call galerkin_projection_algorithm(W0_projected_field(1), theta, mesh_id, chi, &
-                                         SCALAR_FIELD, qr, mm=mm_w0)
+      if ( wtheta_on ) then
+        Wtheta_projected_field(1) = field_type(                                       &
+                          vector_space = function_space_collection%get_fs(mesh_id,        &
+                                                                         element_order, &
+                                                                         Wtheta) )
+        call galerkin_projection_algorithm(Wtheta_projected_field(1), theta, mesh_id, chi, &
+                                           SCALAR_FIELD, qr)
+      else
+        call galerkin_projection_algorithm(W0_projected_field(1), theta, mesh_id, chi, &
+                                           SCALAR_FIELD, qr, mm=mm_w0)
+      end if
       fname=trim(ts_fname("interp_theta",n, rank_name))
-      call interpolated_output(SCALAR_FIELD, W0_projected_field(1), mesh_id, chi, &
+      if( wtheta_on ) then
+        call interpolated_output(SCALAR_FIELD, Wtheta_projected_field(1), mesh_id, chi, &
                                fname)
+      else
+        call interpolated_output(SCALAR_FIELD, W0_projected_field(1), mesh_id, chi, &
+                               fname)
+      end if
       call invoke_set_field_scalar(0.0_r_def, W3_projected_field(1)) 
       call galerkin_projection_algorithm(W3_projected_field(1), rho, mesh_id, chi, &
                                          SCALAR_FIELD, qr)

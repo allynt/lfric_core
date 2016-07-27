@@ -19,7 +19,7 @@ use argument_mod,            only : arg_type, func_type,                     &
                                     W0, W2, W3,                              &
                                     GH_BASIS, GH_DIFF_BASIS,                 &
                                     CELLS
-use constants_mod,           only : r_def
+use constants_mod,           only : r_def, i_def
 
 implicit none
 
@@ -66,22 +66,23 @@ end function rtheta_kernel_constructor
 
 !> @brief The subroutine which is called directly by the Psy layer
 !! @param[in] nlayers Integer the number of layers
+!! @param[inout] r_theta Real array the data
+!! @param[inout] theta Real array the potential temperature
+!! @param[in] f the mass flux field
+!! @param[in] rho the density field
 !! @param[in] ndf_w0 The number of degrees of freedom per cell for w0
 !! @param[in] undf_w0  The number of unique degrees of freedom  for w0
 !! @param[in] map_w0 Integer array holding the dofmap for the cell at the base of the column for w0
 !! @param[in] w0_basis Real 5-dim array holding basis functions evaluated at gaussian quadrature points 
-!! @param[inout] r_theta Real array the data 
-!! @param[inout] theta Real array the potential temperature
+!! @param[in] w0_diff_basis Real 5-dim array holding differential basis functions evaluated at gaussian quadrature points
 !! @param[in] ndf_w2 The number of degrees of freedom per cell for w2
 !! @param[in] undf_w2  The number of unique degrees of freedom  for w2
 !! @param[in] map_w2 Integer array holding the dofmap for the cell at the base of the column for w2 
 !! @param[in] w2_basis Real 5-dim array holding basis functions evaluated at gaussian quadrature points 
-!! @param[in] f the mass flux field
 !! @param[in] ndf_w3 The number of degrees of freedom per cell for w3
 !! @param[in] undf_w3  The number of unique degrees of freedom  for w3
 !! @param[in] map_w3 Integer array holding the dofmap for the cell at the base of the column for w3 
 !! @param[in] w3_basis Real 5-dim array holding basis functions evaluated at gaussian quadrature points 
-!! @param[in] rho the density field
 !! @param[in] nqp_h the number of horizontal quadrature points
 !! @param[in] nqp_v the number of vertical quadrature points
 !! @param[in] wqp_h the weights of the horizontal quadrature points
@@ -96,12 +97,12 @@ subroutine rtheta_code(nlayers,                                                &
 
   
   !Arguments
-  integer, intent(in) :: nlayers, nqp_h, nqp_v
-  integer, intent(in) :: ndf_w0, ndf_w2, ndf_w3, undf_w0, undf_w2, undf_w3
+  integer(kind=i_def), intent(in) :: nlayers, nqp_h, nqp_v
+  integer(kind=i_def), intent(in) :: ndf_w0, ndf_w2, ndf_w3, undf_w0, undf_w2, undf_w3
 
-  integer, dimension(ndf_w0), intent(in) :: map_w0
-  integer, dimension(ndf_w2), intent(in) :: map_w2
-  integer, dimension(ndf_w3), intent(in) :: map_w3
+  integer(kind=i_def), dimension(ndf_w0), intent(in) :: map_w0
+  integer(kind=i_def), dimension(ndf_w2), intent(in) :: map_w2
+  integer(kind=i_def), dimension(ndf_w3), intent(in) :: map_w3
 
   real(kind=r_def), dimension(1,ndf_w0,nqp_h,nqp_v), intent(in) :: w0_basis  
   real(kind=r_def), dimension(3,ndf_w0,nqp_h,nqp_v), intent(in) :: w0_diff_basis  
@@ -117,8 +118,8 @@ subroutine rtheta_code(nlayers,                                                &
   real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
 
   !Internal variables
-  integer               :: df, k 
-  integer               :: qp1, qp2
+  integer(kind=i_def)               :: df, k
+  integer(kind=i_def)               :: qp1, qp2
   
   real(kind=r_def), dimension(ndf_w0)          :: rtheta_e, theta_e
   real(kind=r_def), dimension(ndf_w2)          :: f_e

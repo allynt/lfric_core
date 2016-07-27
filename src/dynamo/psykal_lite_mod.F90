@@ -111,6 +111,510 @@ contains
       !
     END SUBROUTINE invoke_initial_u_kernel
 
+  !------------------------------------------------------------------------------
+  !> invoke_initial_theta_wtheta_kernel: invoke the potential temperature initialization in the wtheta case
+  subroutine invoke_initial_theta_wtheta_kernel( theta, chi )
+
+    use initial_theta_wtheta_kernel_mod, only : initial_theta_wtheta_code
+
+    implicit none
+
+    type( field_type ), intent( inout ) :: theta
+    type( field_type ), intent( in ) :: chi(3)
+
+    integer          :: cell
+    integer          :: ndf_wtheta, undf_wtheta, &
+        ndf_chi, undf_chi, dim_chi
+
+    integer, pointer        :: map_wtheta(:) => null()
+    integer, pointer        :: map_chi(:)    => null()
+
+    type( field_proxy_type )        :: theta_proxy
+    type( field_proxy_type )        :: chi_proxy(3)
+
+    real(kind=r_def), allocatable :: basis_chi(:,:,:)
+
+    real(kind=r_def), pointer :: nodes(:,:) => null()
+
+    theta_proxy  = theta%get_proxy()
+    chi_proxy(1) = chi(1)%get_proxy()
+    chi_proxy(2) = chi(2)%get_proxy()
+    chi_proxy(3) = chi(3)%get_proxy()
+
+    ndf_wtheta  = theta_proxy%vspace%get_ndf( )
+    undf_wtheta  = theta_proxy%vspace%get_undf( )
+
+    ndf_chi  = chi_proxy(1)%vspace%get_ndf( )
+    undf_chi  = chi_proxy(1)%vspace%get_undf( )
+    dim_chi  = chi_proxy(1)%vspace%get_dim_space( )
+
+    allocate( basis_chi(dim_chi, ndf_chi, ndf_wtheta) )
+
+    nodes => theta_proxy%vspace%get_nodes( )
+
+    call chi_proxy(1)%vspace%compute_nodal_basis_function( basis_chi, ndf_chi, ndf_wtheta, nodes)
+
+    do cell = 1, theta_proxy%vspace%get_ncell()
+
+      map_wtheta => theta_proxy%vspace%get_cell_dofmap( cell )
+      map_chi => chi_proxy(1)%vspace%get_cell_dofmap( cell )
+
+      call initial_theta_wtheta_code(cell,  &
+        theta_proxy%vspace%get_nlayers(),   &
+        ndf_wtheta,                         &
+        undf_wtheta,                        &
+        map_wtheta,                         &
+        theta_proxy%data,                   &
+        ndf_chi,                            &
+        undf_chi,                           &
+        map_chi,                            &
+        basis_chi,                          &
+        chi_proxy(1)%data,                  &
+        chi_proxy(2)%data,                  &
+        chi_proxy(3)%data                   &
+        )
+    end do
+  end subroutine invoke_initial_theta_wtheta_kernel
+
+  !-------------------------------------------------------------------------------
+  !> Invoke_rtheta_bd_kernel: Invoke the boundary part of the RHS of the theta equation
+  subroutine invoke_rtheta_bd_kernel( r_theta_bd, theta, f, rho, qr )
+
+    use rtheta_bd_kernel_mod,   only : rtheta_bd_code
+    use mesh_mod, only : mesh_type ! Work around for intel_v15 failues on the Cray
+
+    implicit none
+
+    type (mesh_type)                 :: mesh
+    type( field_type ), intent( in ) :: theta, f, rho
+    type( field_type ), intent( inout ) :: r_theta_bd
+    type( quadrature_type), intent( in ) :: qr
+
+    integer                 :: cell, nlayers, nqp_h, nqp_v, nqp_h_1d
+    integer                 :: ndf_w2, ndf_wtheta, ndf_w3
+    integer                 :: undf_w2, undf_wtheta, undf_w3
+    integer                 :: dim_w2, dim_wtheta, dim_w3
+    integer, pointer        :: map_w2(:), map_w3(:), map_wtheta(:) => null()
+    integer, pointer        :: map_wtheta_W(:), map_w3_W(:), map_W2_W(:) => null()
+    integer, pointer        :: map_wtheta_S(:), map_w3_S(:), map_W2_S(:) => null()
+    integer, pointer        :: map_wtheta_E(:), map_w3_E(:), map_W2_E(:) => null()
+    integer, pointer        :: map_wtheta_N(:), map_w3_N(:), map_W2_N(:) => null()
+!    integer, pointer        :: orientation_w2(:) => null()
+
+    type( field_proxy_type )        :: r_theta_bd_proxy, f_proxy, theta_proxy, rho_proxy
+
+    real(kind=r_def), allocatable  :: basis_wtheta_f_W(:,:,:,:),   &
+      basis_wtheta_f_S(:,:,:,:),     &
+      basis_wtheta_f_E(:,:,:,:),     &
+      basis_wtheta_f_N(:,:,:,:),     &
+      basis_wtheta_face(:,:,:,:,:),  &
+      basis_w2_f_W(:,:,:,:),         &
+      basis_w2_f_S(:,:,:,:),         &
+      basis_w2_f_E(:,:,:,:),         &
+      basis_w2_f_N(:,:,:,:),         &
+      basis_w2_face(:,:,:,:,:),      &
+      basis_w3_f_W(:,:,:,:),         &
+      basis_w3_f_S(:,:,:,:),         &
+      basis_w3_f_E(:,:,:,:),         &
+      basis_w3_f_N(:,:,:,:),         &
+      basis_w3_face(:,:,:,:,:),      &
+      xp_f_W(:,:), xp_f_S(:,:), xp_f_E(:,:), xp_f_N(:,:)
+
+
+
+    real(kind=r_def), pointer :: xp(:,:) => null()
+    real(kind=r_def), pointer :: zp(:) => null()
+    real(kind=r_def), pointer :: wh(:), wv(:) => null()
+
+    mesh = theta%get_mesh()
+
+    r_theta_bd_proxy = r_theta_bd%get_proxy()
+    theta_proxy  = theta%get_proxy()
+    f_proxy  = f%get_proxy()
+    rho_proxy = rho%get_proxy()
+
+    nlayers = theta_proxy%vspace%get_nlayers()
+    nqp_h=qr%get_nqp_h()
+    nqp_v=qr%get_nqp_v()
+    xp=>qr%get_xqp_h()
+    zp=>qr%get_xqp_v()
+    wh=>qr%get_wqp_h()
+    wv=>qr%get_wqp_v()
+
+    ! Assumes same number of horizontal quad points in x and y
+    nqp_h_1d = int(nqp_h**(1./2.))
+
+    ndf_w2      = f_proxy%vspace%get_ndf( )
+    dim_w2      = f_proxy%vspace%get_dim_space( )
+    undf_w2     = f_proxy%vspace%get_undf()
+    allocate(basis_w2_f_W(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_f_S(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_f_E(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_f_N(dim_w2,ndf_w2 ,nqp_h_1d,nqp_v))
+    allocate(basis_w2_face(4,dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+
+    ndf_w3      = rho_proxy%vspace%get_ndf( )
+    dim_w3      = rho_proxy%vspace%get_dim_space( )
+    undf_w3     = rho_proxy%vspace%get_undf()
+    allocate(basis_w3_f_W(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_f_S(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_f_E(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_f_N(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_face(4,dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+
+    ndf_wtheta      = theta_proxy%vspace%get_ndf( )
+    dim_wtheta      = theta_proxy%vspace%get_dim_space( )
+    undf_wtheta     = theta_proxy%vspace%get_undf()
+    allocate(basis_wtheta_f_W(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_f_S(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_f_E(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_f_N(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_face(4,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+
+    allocate(xp_f_W(nqp_h_1d, 2))
+    allocate(xp_f_S(nqp_h_1d, 2))
+    allocate(xp_f_E(nqp_h_1d, 2))
+    allocate(xp_f_N(nqp_h_1d, 2))
+
+    ! Quadrature points on horizontal faces
+
+    xp_f_W(:, :) = xp(1:nqp_h_1d, :)
+    xp_f_W(:, 1) = 0.0_r_def
+
+    xp_f_S(:, :) = xp( 1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+    xp_f_S(:, 2) = 0.0_r_def
+
+    xp_f_E(:, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+    xp_f_E(:, 1) = 1.0_r_def
+
+    xp_f_N(:, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+    xp_f_N(:, 2) = 1.0_r_def
+
+    ! Filling up the basis vector with value of the basis functions at the horizontal faces quadrature points
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_W, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_W, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_S, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_S, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_E, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_E, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_N, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_N, zp)
+
+    basis_wtheta_face(1,:,:,:,:) = basis_wtheta_f_W
+    basis_wtheta_face(2,:,:,:,:) = basis_wtheta_f_S
+    basis_wtheta_face(3,:,:,:,:) = basis_wtheta_f_E
+    basis_wtheta_face(4,:,:,:,:) = basis_wtheta_f_N
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_W, ndf_w3, nqp_h_1d, nqp_v, xp_f_W, zp)
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_S, ndf_w3, nqp_h_1d, nqp_v, xp_f_S, zp)
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_E, ndf_w3, nqp_h_1d, nqp_v, xp_f_E, zp)
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_N, ndf_w3, nqp_h_1d, nqp_v, xp_f_N, zp)
+
+    basis_w3_face(1,:,:,:,:) = basis_w3_f_W
+    basis_w3_face(2,:,:,:,:) = basis_w3_f_S
+    basis_w3_face(3,:,:,:,:) = basis_w3_f_E
+    basis_w3_face(4,:,:,:,:) = basis_w3_f_N
+
+    call f_proxy%vspace%compute_basis_function( &
+      basis_w2_f_W, ndf_w2, nqp_h_1d, nqp_v, xp_f_W, zp)
+
+    call f_proxy%vspace%compute_basis_function( &
+      basis_w2_f_S, ndf_w2, nqp_h_1d, nqp_v, xp_f_S, zp)
+
+    call f_proxy%vspace%compute_basis_function( &
+      basis_w2_f_E, ndf_w2, nqp_h_1d, nqp_v, xp_f_E, zp)
+
+    call f_proxy%vspace%compute_basis_function( &
+      basis_w2_f_N, ndf_w2, nqp_h_1d, nqp_v, xp_f_N, zp)
+
+    basis_w2_face(1,:,:,:,:) = basis_w2_f_W
+    basis_w2_face(2,:,:,:,:) = basis_w2_f_S
+    basis_w2_face(3,:,:,:,:) = basis_w2_f_E
+    basis_w2_face(4,:,:,:,:) = basis_w2_f_N
+
+    do cell = 1, theta_proxy%vspace%get_ncell()
+
+      map_w2 => f_proxy%vspace%get_cell_dofmap( cell )
+      map_w3 => rho_proxy%vspace%get_cell_dofmap( cell )
+      map_wtheta => theta_proxy%vspace%get_cell_dofmap( cell )
+
+      ! Getting dofmaps on neighbouring cells for w3 and wtheta
+
+      map_w2_W => f_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(1, cell) )
+      map_w2_S => f_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(2, cell) )
+      map_w2_E => f_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(3, cell) )
+      map_w2_N => f_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(4, cell) )
+
+      map_w3_W => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(1, cell) )
+      map_w3_S => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(2, cell) )
+      map_w3_E => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(3, cell) )
+      map_w3_N => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(4, cell) )
+
+      map_wtheta_W => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(1, cell) )
+      map_wtheta_S => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(2, cell) )
+      map_wtheta_E => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(3, cell) )
+      map_wtheta_N => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(4, cell) )
+
+      call rtheta_bd_code( nlayers,                      &
+        ndf_w2, undf_w2,                                 &
+        map_w2,                                          &
+        map_w2_W, map_w2_S,                              &
+        map_w2_E, map_w2_N,                              &
+        r_theta_bd_proxy%data,                           &
+        ndf_w3, undf_w3,                                 &
+        map_w3,                                          &
+        map_w3_W, map_w3_S,                              &
+        map_w3_E, map_w3_N,                              &
+        rho_proxy%data,                                  &
+        theta_proxy%data,                                &
+        f_proxy%data,                                    &
+        ndf_wtheta, undf_wtheta, map_wtheta,             &
+        map_wtheta_W, map_wtheta_S,                      &
+        map_wtheta_E, map_wtheta_N,                      &
+        nqp_v, nqp_h_1d, wv,                             &
+        basis_w2_face, basis_w3_face, basis_wtheta_face  &
+        )
+
+    end do
+
+    deallocate(basis_w2_f_W, basis_w2_f_S, basis_w2_f_E, basis_w2_f_N, basis_w2_face, &
+      basis_w3_f_W, basis_w3_f_S, basis_w3_f_E, basis_w3_f_N, basis_w3_face,          &
+      basis_wtheta_f_W, basis_wtheta_f_S, basis_wtheta_f_E, basis_wtheta_f_N, basis_wtheta_face, &
+      xp_f_W, xp_f_S, xp_f_E, xp_f_N )
+
+  end subroutine invoke_rtheta_bd_kernel
+
+  !-------------------------------------------------------------------------------
+  !> Invoke_ru_bd_kernel: Invoke the boundary part of the RHS of the momentum equation
+  subroutine invoke_ru_bd_kernel( r_u_bd, rho, theta, qr )
+
+    use ru_bd_kernel_mod,   only : ru_bd_code
+    use mesh_mod,           only : mesh_type ! Work around for intel_v15 failues on the Cray
+
+    implicit none
+
+    type( field_type ), intent( inout ) :: r_u_bd
+    type( field_type ), intent( in ) :: rho, theta
+    type( quadrature_type), intent( in ) :: qr
+    type( mesh_type )                    :: mesh
+
+    integer                 :: cell, nlayers, nqp_h, nqp_v, nqp_h_1d
+    integer                 :: ndf_w2, ndf_w3, ndf_wtheta
+    integer                 :: undf_w2, undf_w3, undf_wtheta
+    integer                 :: dim_w2, dim_w3, dim_wtheta
+    integer, pointer        :: map_w3(:), map_w2(:), map_wtheta(:) => null()
+    integer, pointer        :: map_w3_W(:), map_wtheta_W(:) => null()
+    integer, pointer        :: map_w3_S(:), map_wtheta_S(:) => null()
+    integer, pointer        :: map_w3_E(:), map_wtheta_E(:) => null()
+    integer, pointer        :: map_w3_N(:), map_wtheta_N(:) => null()
+
+    type( field_proxy_type )        :: r_u_bd_proxy, rho_proxy, theta_proxy
+
+    real(kind=r_def), allocatable  :: basis_w2_f_W(:,:,:,:), &
+      basis_w2_f_S(:,:,:,:), &
+      basis_w2_f_E(:,:,:,:), &
+      basis_w2_f_N(:,:,:,:), &
+      basis_w3_f_W(:,:,:,:), &
+      basis_wtheta_f_W(:,:,:,:), &
+      basis_w3_f_S(:,:,:,:), &
+      basis_wtheta_f_S(:,:,:,:), &
+      basis_w3_f_E(:,:,:,:), &
+      basis_wtheta_f_E(:,:,:,:), &
+      basis_w3_f_N(:,:,:,:), &
+      basis_wtheta_f_N(:,:,:,:), &
+      basis_w2_face(:,:,:,:,:), &
+      basis_w3_face(:,:,:,:,:), &
+      basis_wtheta_face(:,:,:,:,:)
+
+    real(kind=r_def), pointer :: xp(:,:), xp_f_W(:,:), xp_f_S(:,:), xp_f_E(:,:), xp_f_N(:,:) => null()
+    real(kind=r_def), pointer :: zp(:) => null()
+    real(kind=r_def), pointer :: wh(:), wv(:) => null()
+
+    mesh = rho%get_mesh()
+
+    r_u_bd_proxy = r_u_bd%get_proxy()
+    rho_proxy    = rho%get_proxy()
+    theta_proxy  = theta%get_proxy()
+
+    nlayers = rho_proxy%vspace%get_nlayers()
+    nqp_h=qr%get_nqp_h()
+    nqp_v=qr%get_nqp_v()
+    zp=>qr%get_xqp_v()
+    xp=>qr%get_xqp_h()
+    wh=>qr%get_wqp_h()
+    wv=>qr%get_wqp_v()
+
+    ! Assumes same number of horizontal qp in x and y
+    nqp_h_1d = int(nqp_h**(1./2.))  ! use sqrt
+
+    allocate(xp_f_W(nqp_h_1d, 2))
+    allocate(xp_f_S(nqp_h_1d, 2))
+    allocate(xp_f_E(nqp_h_1d, 2))
+    allocate(xp_f_N(nqp_h_1d, 2))
+
+
+    ndf_w3  = rho_proxy%vspace%get_ndf( )
+    dim_w3  = rho_proxy%vspace%get_dim_space( )
+    undf_w3 = rho_proxy%vspace%get_undf()
+    allocate(basis_w3_f_W(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_f_S(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_f_E(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_f_N(dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+    allocate(basis_w3_face(4,dim_w3,ndf_w3,nqp_h_1d,nqp_v))
+
+    ndf_w2      = r_u_bd_proxy%vspace%get_ndf( )
+    dim_w2      = r_u_bd_proxy%vspace%get_dim_space( )
+    undf_w2     = r_u_bd_proxy%vspace%get_undf()
+    allocate(basis_w2_f_W(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_f_S(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_f_E(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_f_N(dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+    allocate(basis_w2_face(4,dim_w2,ndf_w2,nqp_h_1d,nqp_v))
+
+    ndf_wtheta      = theta_proxy%vspace%get_ndf( )
+    dim_wtheta      = theta_proxy%vspace%get_dim_space( )
+    undf_wtheta     = theta_proxy%vspace%get_undf()
+    allocate(basis_wtheta_f_W(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_f_S(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_f_E(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_f_N(dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+    allocate(basis_wtheta_face(4,dim_wtheta,ndf_wtheta,nqp_h_1d,nqp_v))
+
+    allocate(xp_f_W(nqp_h_1d, 2))
+    allocate(xp_f_S(nqp_h_1d, 2))
+    allocate(xp_f_E(nqp_h_1d, 2))
+    allocate(xp_f_N(nqp_h_1d, 2))
+
+    ! Quadrature points on horizontal faces
+
+    xp_f_W(:, :) = xp(1:nqp_h_1d, :)
+    xp_f_W(:, 1) = 0.0_r_def
+
+    xp_f_S(:, :) = xp( 1:nqp_h - nqp_h_1d + 1:nqp_h_1d, :)
+    xp_f_S(:, 2) = 0.0_r_def
+
+    xp_f_E(:, :) = xp(nqp_h - nqp_h_1d + 1:nqp_h, :)
+    xp_f_E(:, 1) = 1.0_r_def
+
+    xp_f_N(:, :) = xp(nqp_h_1d:nqp_h:nqp_h_1d, :)
+    xp_f_N(:, 2) = 1.0_r_def
+
+    ! Filling up the basis vector with value of the basis functions at the horizontal faces quadrature points
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_W, ndf_w3, nqp_h_1d, nqp_v, xp_f_W, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_W, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_W, zp)
+
+    call r_u_bd_proxy%vspace%compute_basis_function( &
+      basis_w2_f_W, ndf_w2, nqp_h_1d, nqp_v, xp_f_W, zp)
+
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_S, ndf_w3, nqp_h_1d, nqp_v, xp_f_S, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_S, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_S, zp)
+
+    call r_u_bd_proxy%vspace%compute_basis_function( &
+      basis_w2_f_S, ndf_w2, nqp_h_1d, nqp_v, xp_f_S, zp)
+
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_E, ndf_w3, nqp_h_1d, nqp_v, xp_f_E, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_E, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_E, zp)
+
+    call r_u_bd_proxy%vspace%compute_basis_function( &
+      basis_w2_f_E, ndf_w2, nqp_h_1d, nqp_v, xp_f_E, zp)
+
+
+    call rho_proxy%vspace%compute_basis_function( &
+      basis_w3_f_N, ndf_w3, nqp_h_1d, nqp_v, xp_f_N, zp)
+
+    call theta_proxy%vspace%compute_basis_function( &
+      basis_wtheta_f_N, ndf_wtheta, nqp_h_1d, nqp_v, xp_f_N, zp)
+
+    call r_u_bd_proxy%vspace%compute_basis_function( &
+      basis_w2_f_N, ndf_w2, nqp_h_1d, nqp_v, xp_f_N, zp)
+
+    ! Grouping face basis vectors in a indexed higher-dimensional vector
+
+    basis_w3_face(1,:,:,:,:) = basis_w3_f_W
+    basis_w3_face(2,:,:,:,:) = basis_w3_f_S
+    basis_w3_face(3,:,:,:,:) = basis_w3_f_E
+    basis_w3_face(4,:,:,:,:) = basis_w3_f_N
+
+    basis_wtheta_face(1,:,:,:,:) = basis_wtheta_f_W
+    basis_wtheta_face(2,:,:,:,:) = basis_wtheta_f_S
+    basis_wtheta_face(3,:,:,:,:) = basis_wtheta_f_E
+    basis_wtheta_face(4,:,:,:,:) = basis_wtheta_f_N
+
+    basis_w2_face(1,:,:,:,:) = basis_w2_f_W
+    basis_w2_face(2,:,:,:,:) = basis_w2_f_S
+    basis_w2_face(3,:,:,:,:) = basis_w2_f_E
+    basis_w2_face(4,:,:,:,:) = basis_w2_f_N
+
+    do cell = 1, r_u_bd_proxy%vspace%get_ncell()
+
+      map_w3 => rho_proxy%vspace%get_cell_dofmap( cell )
+      map_w2 => r_u_bd_proxy%vspace%get_cell_dofmap( cell )
+      map_wtheta => theta_proxy%vspace%get_cell_dofmap( cell )
+
+      ! Getting dofmaps on neighbouring cells for w3 and wtheta
+
+      map_w3_W => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(1, cell) )
+      map_wtheta_W => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(1, cell) )
+
+      map_w3_S => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(2,cell) )
+      map_wtheta_S => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(2, cell) )
+
+      map_w3_E => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(3, cell) )
+      map_wtheta_E => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(3, cell) )
+
+      map_w3_N => rho_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(4, cell) )
+      map_wtheta_N => theta_proxy%vspace%get_cell_dofmap( mesh%get_cell_next(4, cell) )
+
+      call ru_bd_code( nlayers,           &
+        ndf_w2, undf_w2,                  &
+        map_w2,                           &
+        r_u_bd_proxy%data,                &
+        ndf_w3, undf_w3,                  &
+        map_w3,                           &
+        map_w3_W, map_w3_S,               &
+        map_w3_E, map_w3_N,               &
+        rho_proxy%data,                   &
+        theta_proxy%data,                 &
+        ndf_wtheta, undf_wtheta,          &
+        map_wtheta,                       &
+        map_wtheta_W, map_wtheta_S,       &
+        map_wtheta_E, map_wtheta_N,       &
+        nqp_v, nqp_h_1d, wv,              &
+        basis_w2_face,                    &
+        basis_w3_face, basis_wtheta_face  &
+        )
+
+    end do
+
+    deallocate(basis_w3_f_W, basis_w3_f_S, basis_w3_f_E, basis_w3_f_N, basis_w3_face, &
+      basis_w2_f_W, basis_w2_f_S, basis_w2_f_E, basis_w2_f_N, basis_w2_face, &
+      basis_wtheta_f_W, basis_wtheta_f_S, basis_wtheta_f_E, basis_wtheta_f_N, basis_wtheta_face)
+
+  end subroutine invoke_ru_bd_kernel
+
 !-------------------------------------------------------------------------------    
   subroutine invoke_inner_prod(x,y,inner_prod)
     use omp_lib
@@ -175,6 +679,8 @@ contains
 !> invoke_axpy:  (a * x + y) ; a-scalar, x,y-vector     
   subroutine invoke_axpy(scalar,field1,field2,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
+
     implicit none
     type( field_type ), intent(in )    :: field1,field2
     type( field_type ), intent(inout ) :: field_res
@@ -231,6 +737,7 @@ contains
 !> invoke_axmy:  (a * x - y) ; a-scalar, x,y-vector
   subroutine invoke_axmy(scalar,field1,field2,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in )    :: field1,field2
     type( field_type ), intent(inout ) :: field_res
@@ -285,6 +792,7 @@ contains
 !> invoke_copy_field_data: Copy the data from one field to another ( a = b )
   subroutine invoke_copy_field_data(field1,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in )    :: field1
     type( field_type ), intent(inout ) :: field_res
@@ -329,6 +837,7 @@ contains
 !> ( c = a - b )
   subroutine invoke_minus_field_data(field1,field2,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in )    :: field1,field2
     type( field_type ), intent(inout ) :: field_res
@@ -382,6 +891,7 @@ contains
 !> ( c = a + b )
   subroutine invoke_plus_field_data(field1,field2,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in )    :: field1,field2
     type( field_type ), intent(inout ) :: field_res
@@ -434,6 +944,7 @@ contains
 !> invoke_set_field_scalar: Set all values in a field to a single value
   subroutine invoke_set_field_scalar(scalar, field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(inout ) :: field_res
     real(kind=r_def),   intent(in )    :: scalar
@@ -467,6 +978,7 @@ contains
 !> c = a/b
   subroutine invoke_divide_field(field1,field2,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in )    :: field1,field2
     type( field_type ), intent(inout ) :: field_res
@@ -520,6 +1032,7 @@ contains
 !> invoke_copy_scaled_field_data: Copy the scaled data from one field to another ( a = scalar*b )
   subroutine invoke_copy_scaled_field_data(scalar,field1,field_res)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     real( kind=r_def ), intent(in)     :: scalar
     type( field_type ), intent(in )    :: field1
@@ -617,6 +1130,7 @@ contains
 !> invoke_axpby:  z = (a * x + b * y) ; a,b-scalar, x,y-vector     
   subroutine invoke_axpby(a,x,b,y,z)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in )    :: x, y
     type( field_type ), intent(inout ) :: z
@@ -670,6 +1184,7 @@ contains
 !> invoke_multiply_field: Compute y = a*x for scalar a and fields y and x
   subroutine invoke_multiply_field(a, x, y)
     use log_mod, only : log_event, LOG_LEVEL_ERROR
+    use mesh_mod,only : mesh_type ! Work around for intel_v15 failues on the Cray
     implicit none
     type( field_type ), intent(in)    :: x
     type( field_type ), intent(inout) :: y

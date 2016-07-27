@@ -18,20 +18,23 @@ module init_prognostic_fields_alg_mod
   use solver_config_mod,               only: method
 
   ! Configuration and restart/checkpoint options
-  use finite_element_config_mod,       only: element_order
+  use finite_element_config_mod,       only: element_order, wtheta_on
   use formulation_config_mod,          only: nonlinear, transport_only
   use restart_control_mod,             only: restart_type
   ! I/O tools
   use field_io_mod,                    only: read_state_netcdf
 
   ! PsyKAl-lite kernels
-  use psykal_lite_mod,                 only: invoke_set_field_scalar
+  use psykal_lite_mod,                 only: invoke_set_field_scalar, &
+                                             invoke_initial_theta_wtheta_kernel
 
   ! PsyKAl PSYClone kernels
   use initial_theta_kernel_mod,        only: initial_theta_kernel_type
   use initial_rho_kernel_mod,          only: initial_rho_kernel_type
   use initial_u_kernel_mod,            only: initial_u_kernel_type
   use compute_mass_matrix_kernel_w2_mod, only: compute_mass_matrix_kernel_w2_type
+
+  use compute_mass_matrix_kernel_wtheta_mod, only: compute_mass_matrix_kernel_wtheta_type
 
   ! Derived Types
   use function_space_collection_mod,   only: function_space_collection
@@ -41,7 +44,7 @@ module init_prognostic_fields_alg_mod
   use operator_mod,                    only: operator_type
 
   ! Handles
-  use fs_continuity_mod,               only: W0, W1, W2, W3
+  use fs_continuity_mod,               only: W0, W1, W2, W3, Wtheta
 
   implicit none
 
@@ -74,8 +77,8 @@ contains
     type( quadrature_type )            :: qr
     type( field_type ), allocatable    :: state(:)
     type( field_type )                 :: r_u
-    type( operator_type )              :: mm_w2
-    type(function_space_type), pointer :: w2_fs    => null()
+    type( operator_type )              :: mm_w2, mm_wtheta
+    type(function_space_type), pointer :: w2_fs, wtheta_fs    => null()
 
 
     integer :: n_fields
@@ -89,7 +92,11 @@ contains
       call log_event( "Dynamo: Initialising prognostic fields", LOG_LEVEL_INFO )
 
       ! Initialise Theta and Xi (all formulations)
-      call invoke( initial_theta_kernel_type( theta, chi ) )
+      if ( wtheta_on ) then
+        call invoke_initial_theta_wtheta_kernel( theta, chi )
+      else
+        call invoke( initial_theta_kernel_type( theta, chi ) )
+      end if
       call invoke_set_field_scalar(0.0_r_def, xi) 
 
       ! Initialise U and Rho according to formulation
@@ -143,8 +150,13 @@ contains
             trim(restart%startfname("theta"))
       call log_event(log_scratch_space,LOG_LEVEL_INFO)
 
-      state(3) = field_type(vector_space =                                      &
-                        function_space_collection%get_fs(mesh_id, element_order, W0))
+      if (wtheta_on) then
+        state(3) = field_type(vector_space =                                      &
+                          function_space_collection%get_fs(mesh_id, element_order, Wtheta))
+      else
+        state(3) = field_type(vector_space =                                      &
+                          function_space_collection%get_fs(mesh_id, element_order, W0))
+      end if
 
       call read_state_netcdf(n_fields, state(3), &
            trim(restart%startfname("theta")))

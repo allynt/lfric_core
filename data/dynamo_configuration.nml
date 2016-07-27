@@ -16,6 +16,7 @@
   shape         = 'quadrilateral'
   element_order = 0
   rehabilitate  = .true.
+  wtheta_on     = .false.
 /
 
 &formulation

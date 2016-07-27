@@ -19,16 +19,18 @@ module advection_alg_mod
                                             get_mass_matrix_diagonal
   use field_bundle_mod,               only: bundle_ax
   use field_mod,                      only: field_type
-  use finite_element_config_mod,      only: element_order
+  use finite_element_config_mod,      only: element_order, wtheta_on
   use formulation_config_mod,         only: supg
   use function_space_mod,             only: function_space_type
   use matrix_vector_kernel_mod,       only: matrix_vector_kernel_type
   use operator_mod,                   only: operator_type
   use psykal_lite_mod,                only: invoke_set_field_scalar, &
-                                            invoke_multiply_field
+                                            invoke_multiply_field, &
+                                            invoke_rtheta_bd_kernel
   use quadrature_mod,                 only: quadrature_type, GAUSSIAN
   use rrho_kernel_mod,                only: rrho_kernel_type
   use rtheta_kernel_mod,              only: rtheta_kernel_type
+  use rtheta_wtheta_kernel_mod,       only: rtheta_wtheta_kernel_type
   use rtheta_supg_kernel_mod,         only: rtheta_supg_kernel_type
   use flux_rhs_kernel_mod,            only: flux_rhs_kernel_type
   use solver_config_mod,              only: method,         &
@@ -143,7 +145,12 @@ contains
 
   ! 3) theta_advection ( F/rho . grad(theta) )
   call invoke_set_field_scalar( 0.0_r_def, advection(2) )
-  call invoke( rtheta_kernel_type( advection(2), theta, mass_flux, rho, qr) )
+  if ( wtheta_on ) then
+    call invoke (rtheta_wtheta_kernel_type ( advection(2), theta, u, qr))
+    call invoke_rtheta_bd_kernel ( advection(2), theta, mass_flux, rho, qr )
+  else
+    call invoke( rtheta_kernel_type( advection(2), theta, mass_flux, rho, qr) )
+  end if
   if ( supg ) &
     call invoke( rtheta_supg_kernel_type( advection(2),     &
                                 theta_np1, theta_n, mass_flux, rho, chi, qr) )
