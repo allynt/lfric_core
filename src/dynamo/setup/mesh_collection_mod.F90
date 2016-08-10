@@ -28,11 +28,14 @@ module mesh_collection_mod
     type(linked_list_type), private :: mesh_list
   contains
     private
-    procedure, public               :: get_id_for_new_mesh
-    procedure, public               :: get_id_for_new_unit_test_mesh
-    procedure, public               :: get_mesh
-    procedure, public               :: clear
-    final                           :: mesh_collection_destructor
+    procedure, public :: add_new_mesh
+    procedure, public :: add_unit_test_mesh
+    procedure, public :: get_mesh
+
+    procedure, public :: clear
+
+    final             :: mesh_collection_destructor
+
   end type mesh_collection_type
 
   interface mesh_collection_type
@@ -63,25 +66,25 @@ end function mesh_collection_constructor
 !> @param [in] domain_top    Top of atmosphere above surface
 !> @param [in] vgrid_option  Choice of vertical grid
 !> @return                   A unique identifier for the created mesh
-function get_id_for_new_mesh( self, &
-                              global_mesh, &
-                              partition, &
-                              nlayers_in, &
-                              domain_top, &
-                              vgrid_option ) &
-                            result( mesh_id )
+function add_new_mesh( self,          &
+                       global_mesh,   &
+                       partition,     &
+                       nlayers_in,    &
+                       domain_top,    &
+                       vgrid_option ) &
+                result( mesh_id )
 
   use global_mesh_mod,      only : global_mesh_type
   use partition_mod,        only : partition_type
 
   implicit none
 
-  class(mesh_collection_type), intent(inout) :: self
-  type (global_mesh_type),     intent(in)    :: global_mesh
-  type (partition_type),       intent(in)    :: partition
-  integer(i_def),              intent(in)    :: nlayers_in
-  integer(i_def),              intent(in)    :: vgrid_option
-  real(r_def),                 intent(in)    :: domain_top
+  class(mesh_collection_type), intent(inout)   :: self
+  type (global_mesh_type), pointer, intent(in) :: global_mesh
+  type (partition_type),            intent(in) :: partition
+  integer(i_def),                   intent(in) :: nlayers_in
+  integer(i_def),                   intent(in) :: vgrid_option
+  real(r_def),                      intent(in) :: domain_top
 
   integer(i_def) :: mesh_id
 
@@ -98,15 +101,13 @@ function get_id_for_new_mesh( self, &
   call self%mesh_list%insert_item( mesh )
 
   return
-end function get_id_for_new_mesh
+end function add_new_mesh
 
 !> @brief Creates a unit test version of the mesh object and adds it to the
 !>        mesh collection
 !> @param [in] mesh_cfg Sets the type of test mesh.
 !> @return              A unique identifier for the created mesh
-function get_id_for_new_unit_test_mesh( self, &
-                                        mesh_cfg ) &
-                                      result( mesh_id )
+function add_unit_test_mesh( self, mesh_cfg ) result( mesh_id )
   implicit none
 
   class(mesh_collection_type), intent(inout) :: self
@@ -124,7 +125,7 @@ function get_id_for_new_unit_test_mesh( self, &
   call self%mesh_list%insert_item( mesh )
 
   return
-end function get_id_for_new_unit_test_mesh
+end function add_unit_test_mesh
 
 function get_mesh( self, mesh_id ) result( mesh )
 

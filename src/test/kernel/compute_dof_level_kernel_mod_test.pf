@@ -92,7 +92,7 @@ contains
     integer(i_def), pointer :: map(:) => null()
     integer(i_def) :: mesh_id
 
-    mesh_id = mesh_collection%get_id_for_new_unit_test_mesh( PLANE_BI_PERIODIC )
+    mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
     ! Set element order
     element_order = 0

@@ -3,6 +3,7 @@
 !include look.iuml
 !include setup/mesh_mod.iuml
 !include setup/partition_mod.iuml
+!include setup/global_mesh_collection_mod.iuml
 !include setup/global_mesh_mod.iuml
 !include setup/mesh_collection_mod.iuml
 

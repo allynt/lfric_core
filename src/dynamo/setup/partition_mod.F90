@@ -204,7 +204,7 @@ interface
     import :: global_mesh_type
     import :: i_def
 
-    type(global_mesh_type),     intent(in)    :: global_mesh
+    type(global_mesh_type),     intent(in), pointer :: global_mesh
     integer(i_def),             intent(in)    :: xproc, yproc, &
                                                  local_rank, total_ranks
     integer(i_def), allocatable,intent(inout) :: global_cell_id( : )
@@ -246,7 +246,7 @@ function partition_constructor( global_mesh, &
 
 implicit none
 
-type(global_mesh_type),           intent(in) :: global_mesh
+type(global_mesh_type),           pointer, intent(in) :: global_mesh
 procedure(partitioner_interface), pointer    :: partitioner
 integer(i_def),                   intent(in) :: xproc
 integer(i_def),                   intent(in) :: yproc
@@ -457,7 +457,7 @@ end subroutine partition_type_assign
                                      num_ghost )
   implicit none
 
-  type(global_mesh_type), intent(in) :: global_mesh
+  type(global_mesh_type), pointer, intent(in) :: global_mesh
 
   integer(i_def),              intent(in)    :: xproc
   integer(i_def),              intent(in)    :: yproc
@@ -523,7 +523,7 @@ end subroutine partition_type_assign
                                       num_ghost )
   implicit none
 
-  type(global_mesh_type), intent(in) :: global_mesh
+  type(global_mesh_type), pointer, intent(in) :: global_mesh
 
   integer(i_def),              intent(in)    :: xproc
   integer(i_def),              intent(in)    :: yproc
@@ -601,7 +601,7 @@ end subroutine partition_type_assign
 ! So here. we just return one big partition that holds everything
   implicit none
 
-  type(global_mesh_type), intent(in) :: global_mesh
+  type(global_mesh_type), pointer, intent(in) :: global_mesh
 
   integer(i_def),              intent(in)    :: xproc
   integer(i_def),              intent(in)    :: yproc
@@ -664,7 +664,7 @@ end subroutine partition_type_assign
 
   implicit none
 
-  type(global_mesh_type),      intent(in)    :: global_mesh             ! A global mesh object 
+  type(global_mesh_type), pointer, intent(in):: global_mesh             ! A global mesh object 
   integer(i_def),              intent(in)    :: num_panels              ! Number of panels that make up the mesh
   integer(i_def),              intent(in)    :: xproc                   ! Number of processors along x-direction
   integer(i_def),              intent(in)    :: yproc                   ! Number of processors along y-direction
@@ -1024,7 +1024,7 @@ end subroutine partition_type_assign
                               LOG_LEVEL_INFO
   implicit none
 
-  type(global_mesh_type),                         intent(in)    :: global_mesh
+  type(global_mesh_type),               pointer,  intent(in)    :: global_mesh
   type(linked_list_type),                         intent(inout) :: known_cells
   type(linked_list_item_type),target,             intent(inout) :: input_cells
   integer(i_def),                                 intent(in)    :: number_of_cells

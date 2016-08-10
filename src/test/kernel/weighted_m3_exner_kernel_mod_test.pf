@@ -87,8 +87,7 @@ contains
 
     ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
     mesh_collection = mesh_collection_type()
-    this%mesh_id = mesh_collection%get_id_for_new_unit_test_mesh( &
-                                                             PLANE_BI_PERIODIC )
+    this%mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
     this%w0_fs => function_space_collection%get_fs( this%mesh_id, element_order, W0 )
     this%w3_fs => function_space_collection%get_fs( this%mesh_id, element_order, W3 )

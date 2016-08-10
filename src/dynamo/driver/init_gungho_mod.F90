@@ -18,6 +18,8 @@ module init_gungho_mod
   use log_mod,                        only : log_event,         &
                                              log_scratch_space, &
                                              LOG_LEVEL_INFO
+  use global_mesh_collection_mod,     only : global_mesh_collection_type, &
+                                             global_mesh_collection
   use mesh_collection_mod,            only : mesh_collection_type, &
                                              mesh_collection
   use mesh_mod,                       only : mesh_type
@@ -38,9 +40,10 @@ module init_gungho_mod
     integer(i_def), intent(in)                           :: total_ranks
     integer(i_def), intent(in)                           :: local_rank
 
-    ! Create top level mesh collection
+    ! Create top level collections
+    global_mesh_collection = global_mesh_collection_type()
+    mesh_collection        = mesh_collection_type()
 
-    mesh_collection = mesh_collection_type()
 
     ! Set up mesh
     call set_up(local_rank, total_ranks, mesh_id)

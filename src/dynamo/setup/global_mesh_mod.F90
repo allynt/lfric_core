@@ -12,13 +12,16 @@
 
 module global_mesh_mod
 
-use constants_mod, only: r_def, i_def
+use constants_mod,        only: r_def, i_def, str_max_filename
+use linked_list_data_mod, only: linked_list_data_type
+
 implicit none
 
 private
 
-type, public :: global_mesh_type
+type, extends(linked_list_data_type), public :: global_mesh_type
   private
+
 !> Horizontal coords of vertices in full domain
   real(kind=r_def), allocatable :: vert_coords(:,:)
 !> Full domain cell to cell connectivities
@@ -141,6 +144,14 @@ interface global_mesh_type
   module procedure global_mesh_constructor_unit_test_data
 end interface
 
+! -------------------------------------------------------------------------
+! Module parameters
+! -------------------------------------------------------------------------
+
+!> Counter variable to keep track of the next mesh id number to uniquely 
+!! identify each different mesh
+integer(i_def), save :: global_mesh_id_counter = 0
+
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines
 !-------------------------------------------------------------------------------
@@ -162,7 +173,7 @@ use ncdf_quad_mod,  only: ncdf_quad_type
 
 implicit none
 
-character(len = str_def), intent(in) :: filename
+character(len=*), intent(in) :: filename
 
 type(global_mesh_type) :: self
 
@@ -182,6 +193,7 @@ integer :: max_num_faces_per_node
 ! loop counter over entities (vertices or edges)
 integer(i_def) :: ientity
 
+
 allocate( ncdf_quad_type :: file_handler )
 call ugrid_2d%set_file_handler( file_handler )
 call ugrid_2d%read_from_file( trim(filename) )
@@ -193,6 +205,10 @@ call ugrid_2d%get_dimensions( num_nodes              = nvert_in, &
                               num_edges_per_face     = num_edges_per_face, &
                               num_nodes_per_edge     = num_nodes_per_edge, &
                               max_num_faces_per_node = max_num_faces_per_node )
+
+global_mesh_id_counter = global_mesh_id_counter + 1
+
+call self%set_id(global_mesh_id_counter)
 
 self%nverts = nvert_in
 self%nedges = nedge_in
@@ -582,6 +598,7 @@ function get_edge_cell_owner ( self, edge ) result ( cell )
 
 end function get_edge_cell_owner
 
+
 !==============================================================================
 ! The following routines are only available when setting data for unit testing.
 !==============================================================================
@@ -597,6 +614,10 @@ function global_mesh_constructor_unit_test_data() result (self)
 
   integer(i_def) :: nverts = 16
   integer(i_def) :: nedges = 24
+
+  global_mesh_id_counter = global_mesh_id_counter + 1
+
+  call self%set_id(global_mesh_id_counter)
 
   ! Returns global_mesh_object of size 3x3 quad reference cell.
   ! As per reference cell, direction of numbering is anti-clockwise

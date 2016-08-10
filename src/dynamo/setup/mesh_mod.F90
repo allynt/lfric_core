@@ -257,7 +257,7 @@ contains
 
     implicit none
 
-    type (global_mesh_type), intent(in) :: global_mesh
+    type (global_mesh_type),pointer, intent(in) :: global_mesh
     type (partition_type),   intent(in) :: partition
     integer(i_def),          intent(in) :: nlayers_in
     integer(i_def),          intent(in) :: vgrid_option

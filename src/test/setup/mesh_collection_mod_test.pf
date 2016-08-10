@@ -12,7 +12,10 @@ module mesh_collection_mod_test
     use constants_mod,        only : i_def, r_def, str_def
     use global_mesh_mod,      only : global_mesh_type
     use partition_mod,        only : partition_type
-    use mesh_collection_mod,  only : mesh_collection_type, &
+    use global_mesh_collection_mod,                                         &
+                              only : global_mesh_collection_type            &
+                                   , global_mesh_collection
+    use mesh_collection_mod,  only : mesh_collection_type,                  &
                                      mesh_collection
     use mesh_mod,             only : mesh_type, PLANE_BI_PERIODIC
     use pFUnit_Mod
@@ -25,7 +28,7 @@ module mesh_collection_mod_test
   @TestCase
   type, extends(TestCase), public ::mesh_collection_test_type
     private
-    type(global_mesh_type) :: global_mesh
+    type(global_mesh_type), pointer :: global_mesh => null()
     type(partition_type)   :: partition
   contains
     procedure setUp
@@ -47,9 +50,16 @@ contains
 
     class(mesh_collection_test_type), intent(inout) :: this
 
+    integer(i_def) :: global_test_mesh_id
+
     call reference_cube()
 
-    this%global_mesh = global_mesh_type()
+    ! Create top level collections
+    global_mesh_collection = global_mesh_collection_type()
+
+
+    global_test_mesh_id = global_mesh_collection%add_unit_test_global_mesh()
+    this%global_mesh => global_mesh_collection%get_global_mesh( global_test_mesh_id )
     this%partition   = partition_type()
 
   end subroutine setUp
@@ -64,8 +74,7 @@ contains
     class(mesh_collection_test_type), intent(inout) :: this
 
     call deallocate_reference()
-
-    call mesh_collection%clear()
+    call global_mesh_collection%clear()
 
   end subroutine tearDown
 
@@ -88,17 +97,16 @@ contains
     mesh_collection = mesh_collection_type()
 
     ! Add a couple of meshes to the collection
-    mesh_id = mesh_collection%get_id_for_new_mesh( this%global_mesh, &
-                                                   this%partition, &
-                                                   nlayers, &
-                                                   domain_top, &
-                                                   extrusion_method_uniform )
+    mesh_id = mesh_collection%add_new_mesh( this%global_mesh, &
+                                            this%partition,   &
+                                            nlayers,          &
+                                            domain_top,       &
+                                            extrusion_method_uniform )
 
-    mesh_test_id = mesh_collection%get_id_for_new_unit_test_mesh( &
-                                                             PLANE_BI_PERIODIC )
+    mesh_test_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
     ! Two consecutively created meshes should have consecutive ids
-    @assertEqual ( 1, mesh_test_id-mesh_id )
+    @assertTrue ( mesh_test_id /= mesh_id )
 
     ! Extract the second mesh using its mesh id
     mesh => mesh_collection%get_mesh( mesh_test_id )

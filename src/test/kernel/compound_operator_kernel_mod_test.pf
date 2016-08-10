@@ -67,8 +67,7 @@ contains
     function_space_collection = function_space_collection_type()
 
     ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
-    this%mesh_id = mesh_collection%get_id_for_new_unit_test_mesh( &
-                                                             PLANE_BI_PERIODIC )
+    this%mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
     this%w2_fs => function_space_collection%get_fs( this%mesh_id, &
                                                     element_order, &

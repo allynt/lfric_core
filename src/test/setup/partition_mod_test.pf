@@ -14,6 +14,8 @@ module partition_mod_test
   use partition_mod
   use constants_mod, only : r_def, i_def
   use suite_fixture_mod, only : get_esmf_handle
+  use global_mesh_collection_mod, only: global_mesh_collection_type &
+                                      , global_mesh_collection
 
   implicit none 
 
@@ -57,6 +59,9 @@ contains
     ! Set up stuff that the global_mesh object needs
     call reference_cube()
 
+    global_mesh_collection = global_mesh_collection_type()
+
+
   end subroutine setUp
 
   subroutine tearDown( this )
@@ -70,20 +75,22 @@ contains
     ! clean up the reference_cube we created at the start of the test
     call deallocate_reference()
 
+    call global_mesh_collection%clear()
+
   end subroutine teardown
 
   !> Test partition module functionality
   !>
   @test
   subroutine test_partition( this )
-  use constants_mod,         only : str_def
+  use constants_mod,         only : str_max_filename
   use global_mesh_mod,       only : global_mesh_type
 
   implicit none
 
   class( partition_test_type ), intent( inout ) :: this
 
-  type(global_mesh_type) :: global_mesh
+  type(global_mesh_type), pointer :: global_mesh => null()
   type(partition_type) :: partition
 
   procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
@@ -108,7 +115,9 @@ contains
   integer :: lid
   integer :: gid
 
-  character(len = str_def) :: filename
+  integer(i_def) :: global_mesh_id
+
+  character(len = str_max_filename) :: filename
 
   !------------------------------------------------
   ! Test partition_biperiodic (on a single process)
@@ -120,7 +129,10 @@ contains
   max_stencil_depth = 1
 
   filename = 'data/ugrid_quads_2d_biperiodic_8x8.nc' 
-  global_mesh = global_mesh_type( filename )
+
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename )
+  global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
+
   partitioner_ptr => partitioner_biperiodic
   !
   ! Generate the partition
@@ -213,7 +225,9 @@ contains
   max_stencil_depth = 1
 
   filename = 'data/ugrid_quads_2d_cubedsphere_6x4x4.nc' 
-  global_mesh = global_mesh_type( filename )
+  global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename )
+  global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
+
   partitioner_ptr => partitioner_cubedsphere_serial
 
   partition = partition_type( global_mesh, &

@@ -1,0 +1,16 @@
+class global_mesh_collection_mod::global_mesh_collection_type {
+  -global_mesh_list: linked_list_type
+
+  <<create>>  +global_mesh_collection_constructor() : global_mesh_collection_type
+  <<destroy>> +global_mesh_collection_destructor()
+  +clear()
+
+  +add_new_global_meshes     ( <<in>>filename: character )
+  +add_new_global_mesh       ( <<in>>filename: character ) : global_mesh_id<<integer>>
+  +add_unit_test_global_mesh () : mesh_id<<integer>>
+
+  +get_mesh( <<in>>global_mesh_id: integer ): global_mesh_type<<pointer>>
+}
+
+global_mesh_collection_mod::global_mesh_collection_type "1" o-> "n" global_mesh_mod::global_mesh_type
+linked_list_data_mod::linked_list_data_type <|-- global_mesh_mod::global_mesh_type

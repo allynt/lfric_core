@@ -70,8 +70,7 @@ contains
 
     ! create the mesh
     ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
-    this%mesh_id = mesh_collection%get_id_for_new_unit_test_mesh( &
-                                                             PLANE_BI_PERIODIC )
+    this%mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
   end subroutine setUp
 

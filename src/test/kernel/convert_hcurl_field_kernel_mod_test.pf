@@ -68,7 +68,7 @@ contains
     ! Create top level function space collection
     function_space_collection = function_space_collection_type()
 
-    mesh_id = mesh_collection%get_id_for_new_unit_test_mesh( PLANE_BI_PERIODIC )
+    mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
     this%w0_fs => function_space_collection%get_fs( mesh_id, element_order, W0 )
     this%w1_fs => function_space_collection%get_fs( mesh_id, element_order, W1 )

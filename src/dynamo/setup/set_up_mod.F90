@@ -26,25 +26,25 @@ module set_up_mod
                                         extrusion_method_quadratic, &
                                         extrusion_method_geometric, &
                                         extrusion_method_dcmip
-  use finite_element_config_mod, only : shape,                         &
-                                        finite_element_shape_triangle, &
-                                        finite_element_shape_quadrilateral
-  use partitioning_config_mod,   only : auto, panel_xproc, panel_yproc
-  use global_mesh_mod,           only : global_mesh_type
-  use mesh_collection_mod,       only : mesh_collection_type, &
-                                        mesh_collection
-  use reference_element_mod,     only : reference_cube, reference_element, &
-                                        nfaces, nedges, nverts
-  use mesh_mod,                  only : mesh_type
-  use log_mod,                   only : log_event,      &
-                                        log_scratch_space, &
-                                        LOG_LEVEL_INFO, &
-                                        LOG_LEVEL_ERROR
-  use partition_mod,             only : partition_type,                   &
-                                        partitioner_interface,            &
-                                        partitioner_cubedsphere_serial,   &
-                                        partitioner_cubedsphere,          &
-                                        partitioner_biperiodic
+  use finite_element_config_mod,  only : shape,                         &
+                                         finite_element_shape_triangle, &
+                                         finite_element_shape_quadrilateral
+  use partitioning_config_mod,    only : auto, panel_xproc, panel_yproc
+  use global_mesh_mod,            only : global_mesh_type
+  use global_mesh_collection_mod, only : global_mesh_collection
+  use mesh_collection_mod,        only : mesh_collection
+  use reference_element_mod,      only : reference_cube, reference_element, &
+                                         nfaces, nedges, nverts
+  use mesh_mod,                   only : mesh_type
+  use log_mod,                    only : log_event,      &
+                                         log_scratch_space, &
+                                         LOG_LEVEL_INFO, &
+                                         LOG_LEVEL_ERROR
+  use partition_mod,              only : partition_type,                   &
+                                         partitioner_interface,            &
+                                         partitioner_cubedsphere_serial,   &
+                                         partitioner_cubedsphere,          &
+                                         partitioner_biperiodic
 
   implicit none
 
@@ -54,20 +54,20 @@ contains
 !> @details This will be replaced with code that reads the information in
 !> @param[in] local_rank Number of the MPI rank of this process
 !> @param[in] total_ranks Total number of MPI ranks in this job
-!> @param[out] primal_mesh_id id of paritioned primal mesh
-  subroutine set_up(local_rank, total_ranks, primal_mesh_id)
+!> @param[out] prime_mesh_id id of paritioned prime mesh
+  subroutine set_up(local_rank, total_ranks, prime_mesh_id)
 
     implicit none
 
     integer(i_def), intent(in)  :: local_rank
     integer(i_def), intent(in)  :: total_ranks
-    integer(i_def), intent(out) :: primal_mesh_id
+    integer(i_def), intent(out) :: prime_mesh_id
 
     integer(i_def), parameter :: max_factor_iters = 10000
 
-    type (global_mesh_type)    :: global_mesh
-    type (partition_type)      :: partition
-    type (mesh_type), pointer  :: mesh => null()
+    type (global_mesh_type), pointer :: global_mesh => null()
+    type (partition_type)            :: partition
+    type (mesh_type),        pointer :: mesh        => null()
 
     procedure (partitioner_interface), pointer :: partitioner_ptr => null ()
 
@@ -91,6 +91,7 @@ contains
     logical(l_def) :: found_factors
     character(str_def) :: domain_desc, partition_desc
 
+    integer(i_def) :: global_mesh_id
 
     call log_event( "set_up: Generating/reading the mesh", LOG_LEVEL_INFO )
 
@@ -106,7 +107,9 @@ contains
 
     ! Generate the global mesh and choose a partitioning strategy by setting
     ! a function pointer to point at the appropriate partitioning routine
-    global_mesh = global_mesh_type( filename )
+    global_mesh_id =  global_mesh_collection%add_new_global_mesh( filename )
+    global_mesh    => global_mesh_collection%get_global_mesh( global_mesh_id )
+
     if ( geometry == base_mesh_geometry_spherical ) then
 
       if(total_ranks == 1 .or. mod(total_ranks,6) == 0)then
@@ -191,12 +194,12 @@ contains
                                total_ranks)
 
     ! Generate the mesh
-    primal_mesh_id = mesh_collection%get_id_for_new_mesh( global_mesh, &
-                                                          partition, &
-                                                          number_of_layers, &
-                                                          domain_top, &
-                                                          method )
-    mesh => mesh_collection%get_mesh( primal_mesh_id )
+    prime_mesh_id = mesh_collection%add_new_mesh( global_mesh,      &
+                                                  partition,        &
+                                                  number_of_layers, &
+                                                  domain_top,       &
+                                                  method )
+    mesh => mesh_collection%get_mesh( prime_mesh_id )
 
     call mesh%set_colours()
 

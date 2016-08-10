@@ -57,7 +57,7 @@ contains
   !>
   @test
   subroutine test_global_mesh( this )
-  use constants_mod,         only : str_def
+  use constants_mod,         only : str_max_filename
   use reference_element_mod, only : reference_cube, deallocate_reference
   use global_mesh_mod,       only : global_mesh_type
   implicit none
@@ -79,7 +79,7 @@ contains
   real(r_def) :: dx
   real(r_def) :: dy
 
-  character(len = str_def) :: filename
+  character(len = str_max_filename) :: filename
 
   !-------------------------------------
   ! Test construction of a biperiodic mesh

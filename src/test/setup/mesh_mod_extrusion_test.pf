@@ -7,7 +7,9 @@
 
 module mesh_mod_extrusion_test
 
-  use constants_mod,   only : i_def, i_native, r_def
+  use constants_mod,   only: i_def, i_native, r_def
+  use global_mesh_collection_mod, only: global_mesh_collection_type            &
+                                      , global_mesh_collection
   use global_mesh_mod, only: global_mesh_type
   use partition_mod,   only: partition_type
   use pFUnit_Mod
@@ -24,8 +26,8 @@ module mesh_mod_extrusion_test
     integer(i_native), public :: method
     real(r_def),       public :: expected
 
-    type(global_mesh_type) :: global_mesh
-    type(partition_type)   :: partition
+    type(global_mesh_type), pointer :: global_mesh => null()
+    type(partition_type)            :: partition
   contains
     private
     procedure setUp
@@ -109,6 +111,8 @@ contains
 
     class(mesh_extrusion_test_type), intent( inout ) :: this
 
+    integer(i_def) :: test_global_mesh_id
+
     call feign_base_mesh_config( 'foo',                             &
                                  base_mesh_geometry_spherical,      &
                                  base_mesh_partitioner_cubedsphere, &
@@ -116,9 +120,11 @@ contains
 
     reference_element = finite_element_shape_quadrilateral
     call reference_cube()
+    global_mesh_collection = global_mesh_collection_type()
 
-    this%global_mesh = global_mesh_type()
-    this%partition   = partition_type()
+    test_global_mesh_id =  global_mesh_collection%add_unit_test_global_mesh()
+    this%global_mesh    => global_mesh_collection%get_global_mesh(test_global_mesh_id)
+    this%partition      =  partition_type()
 
   end subroutine setUp
 
@@ -132,6 +138,7 @@ contains
     class(mesh_extrusion_test_type), intent( inout ) :: this
 
     call deallocate_reference()
+    call global_mesh_collection%clear()
 
   end subroutine tearDown
 
