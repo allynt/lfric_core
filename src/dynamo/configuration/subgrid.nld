@@ -9,7 +9,7 @@ namelist subgrid
                                   ppm_positive_only,
                                   ppm_positive_monotone]
 
-  transport_stencil_length : integer
-  rho_stencil_length       : integer
+  transport_stencil_extent : integer
+  rho_stencil_extent       : integer
 
 end namelist subgrid

@@ -1691,7 +1691,7 @@ end subroutine invoke_write_fields
 
 !-------------------------------------------------------------------------------  
 !> invoke_subgrid_coeffs: Invoke the calculation of subgrid rho coefficients
-subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_length)
+subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_extent)
 
     use flux_direction_mod,        only: x_direction, y_direction
     use stencil_dofmap_mod,        only: stencil_dofmap_type, &
@@ -1707,7 +1707,7 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_length)
     type( field_type ), intent( inout ) :: a2
     type( field_type ), intent( in )    :: rho
     integer, intent(in)                 :: direction
-    integer, intent(in)                 :: rho_stencil_length
+    integer, intent(in)                 :: rho_stencil_extent
 
     type( field_proxy_type )            :: rho_proxy
     type( field_proxy_type )            :: a0_proxy
@@ -1716,6 +1716,7 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_length)
 
     type(stencil_dofmap_type), pointer  :: map => null()
     integer, pointer                    :: stencil_map(:,:) => null()
+    integer                             :: rho_stencil_size
     integer                 :: cell
     integer                 :: nlayers
     integer                 :: ndf_w3
@@ -1737,10 +1738,11 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_length)
     !                                   |2|
     !                                   |4|
     if (direction .EQ. x_direction) then
-      map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,rho_stencil_length)
+      map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,rho_stencil_extent)
     elseif (direction .EQ. y_direction) then
-      map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DY,rho_stencil_length)
+      map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DY,rho_stencil_extent)
     end if
+    rho_stencil_size = map%get_size()
 
     do cell = 1, rho_proxy%vspace%get_ncell()
 
@@ -1751,7 +1753,7 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,direction,rho_stencil_length)
                                 undf_w3,                                  &
                                 rho_proxy%data,                           &
                                 ndf_w3,                                   &
-                                rho_stencil_length,                       &
+                                rho_stencil_size,                         &
                                 stencil_map,                              &
                                 a0_proxy%data,                            &
                                 a1_proxy%data,                            &
@@ -1772,7 +1774,7 @@ subroutine invoke_conservative_fluxes(    rho,          &
                                           a1_coeffs,    &
                                           a2_coeffs,    &
                                           direction,    &
-                                          stencil_size )
+                                          stencil_extent )
 
   use conservative_flux_kernel_mod, only: conservative_flux_code
   use flux_direction_mod,           only: x_direction, y_direction
@@ -1790,7 +1792,7 @@ subroutine invoke_conservative_fluxes(    rho,          &
   type(field_type), intent(in)      :: a1_coeffs
   type(field_type), intent(in)      :: a2_coeffs
   integer, intent(in)               :: direction
-  integer, intent(in)               :: stencil_size
+  integer, intent(in)               :: stencil_extent
 
   type( field_proxy_type )  :: mass_flux_proxy, dep_pts_proxy, rho_proxy,     &
                                u_piola_proxy
@@ -1801,6 +1803,7 @@ subroutine invoke_conservative_fluxes(    rho,          &
   integer, pointer :: map_rho(:) => null()
   integer, pointer :: map_w2(:) => null()
   integer, pointer :: stencil_map(:,:) => null()
+  integer          :: stencil_size
 
   integer :: undf_w3, ndf_w3
   integer :: undf_w2, ndf_w2
@@ -1831,10 +1834,11 @@ subroutine invoke_conservative_fluxes(    rho,          &
   !                                   |2|
   !                                   |4|
   if (direction .EQ. x_direction) then
-    map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,stencil_size)
+    map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,stencil_extent)
   elseif (direction .EQ. y_direction) then
-    map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DY,stencil_size)
+    map => rho_proxy%vspace%get_stencil_dofmap(STENCIL_1DY,stencil_extent)
   end if
+  stencil_size = map%get_size()
 
   do cell = 1, rho_proxy%vspace%get_ncell()
       map_rho => rho_proxy%vspace%get_cell_dofmap( cell )
@@ -1936,7 +1940,7 @@ subroutine invoke_calc_deppts(u_n,u_np1,dep_pts,direction,dep_pt_method)
                                                STENCIL_1DX, &
                                                STENCIL_1DY
   use flux_direction_mod,               only : x_direction, y_direction
-  use subgrid_config_mod,               only : transport_stencil_length
+  use subgrid_config_mod,               only : transport_stencil_extent
 
   implicit none
 
@@ -1952,6 +1956,7 @@ subroutine invoke_calc_deppts(u_n,u_np1,dep_pts,direction,dep_pt_method)
   type(stencil_dofmap_type), pointer  :: map=>null()
 
   integer, pointer        :: stencil_map_w2(:,:) => null()
+  integer                 :: transport_stencil_size
 
   integer                 :: cell
   integer                 :: nlayers
@@ -1966,10 +1971,11 @@ subroutine invoke_calc_deppts(u_n,u_np1,dep_pts,direction,dep_pt_method)
   undf_w2 = u_n_proxy%vspace%get_undf()
 
   if (direction .EQ. x_direction) then
-    map => u_n_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,transport_stencil_length)
+    map => u_n_proxy%vspace%get_stencil_dofmap(STENCIL_1DX,transport_stencil_extent)
   elseif (direction .EQ. y_direction) then
-    map => u_n_proxy%vspace%get_stencil_dofmap(STENCIL_1DY,transport_stencil_length)
+    map => u_n_proxy%vspace%get_stencil_dofmap(STENCIL_1DY,transport_stencil_extent)
   endif
+  transport_stencil_size = map%get_size()
 
   nlayers = u_n_proxy%vspace%get_nlayers()
 
@@ -1979,7 +1985,7 @@ subroutine invoke_calc_deppts(u_n,u_np1,dep_pts,direction,dep_pt_method)
 
     call calc_departure_point_code( nlayers,                      &
                                     dep_pts_proxy%data,           &
-                                    transport_stencil_length,     &
+                                    transport_stencil_size,       &
                                     undf_w2,                      &
                                     ndf_w2,                       &
                                     stencil_map_w2,               &

@@ -82,8 +82,8 @@
 
 &subgrid
   rho_approximation = 'ppm_no_limiter'
-  transport_stencil_length = 7
-  rho_stencil_length = 5
+  transport_stencil_extent = 3
+  rho_stencil_extent = 2
 /
 
 &timestepping
@@ -107,3 +107,4 @@
 &partitioning
   auto        = .true.
 /
+

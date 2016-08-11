@@ -40,8 +40,7 @@ use subgrid_config_mod, only : subgrid_rho_approximation_constant_subgrid,     &
                                subgrid_rho_approximation_linear_minmod,        &
                                subgrid_rho_approximation_ppm_no_limiter,       &
                                subgrid_rho_approximation_ppm_positive_only,    &
-                               subgrid_rho_approximation_ppm_positive_monotone,&
-                               rho_stencil_length
+                               subgrid_rho_approximation_ppm_positive_monotone
 use kernel_mod,         only : kernel_type
 
 implicit none
