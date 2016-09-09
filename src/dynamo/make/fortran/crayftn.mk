@@ -15,5 +15,7 @@ FFLAGS_RISKY_OPTIMISATION = -O3
 FFLAGS_DEBUG              = -Gfast
 FFLAGS_WARNINGS           = -m 0
 
+LDFLAGS_COMPILER = -h omp
+
 DEPRULE_FLAGS = -moduleobjects
 

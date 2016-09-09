@@ -15,3 +15,6 @@ FFLAGS_RISKY_OPTIMISATION = -O4
 FFLAGS_DEBUG              = -g -gline -colour
 FFLAGS_INIT               = -nan
 FFLAGS_RUNTIME            = -C=all -C=undefined -mtrace=all -nan
+
+LDFLAGS_COMPILER = -openmp
+
