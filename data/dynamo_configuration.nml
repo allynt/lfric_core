@@ -1,3 +1,8 @@
+
+&dynamo
+  verbose = .false.
+/
+
 &base_mesh
   filename    = 'cubedsphere.12x12.nc'
   geometry    = 'spherical'
