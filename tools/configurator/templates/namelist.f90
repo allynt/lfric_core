@@ -18,11 +18,9 @@ module {{listname}}_config_mod
   private
   public ::
 {%- if enumerations %}
-{{- ' ' }}
 {%-   for enumeration in enumerations.keys() | sort %}
-{{-enumeration}}_from_key, key_from_{{enumeration}}{{','}}
-{%-   endfor %} &
-{{'           '}}
+{{- ' ' }}{{-enumeration}}_from_key, key_from_{{enumeration}}{{', &\n           '}}
+{%-   endfor %}
 {%- endif -%}
 {{' '}}read_{{listname}}_namelist, {{listname}}_is_loadable, {{listname}}_is_loaded
 
@@ -161,7 +159,7 @@ contains
 {%- endfor %}
 {%- endif %}
 
-    namelist /{{listname}}/ {{ variables.keys() | sort | join( ', ' ) }}
+    namelist /{{listname}}/ {{ variables.keys() | sort | join( ', &\n' + ' '*(16+listname|length) ) }}
 
     integer(i_native) :: condition
 
