@@ -259,9 +259,9 @@ program dynamo
   !-----------------------------------------------------------------------------
 
   ! Log fields
-  call rho%log_field(   LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, 'rho' )
-  call theta%log_field( LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, 'theta' )
-  call u%log_field(     LOG_LEVEL_DEBUG, LOG_LEVEL_INFO, 'u' )
+  call rho%log_field(   LOG_LEVEL_DEBUG, 'rho' )
+  call theta%log_field( LOG_LEVEL_DEBUG, 'theta' )
+  call u%log_field(     LOG_LEVEL_DEBUG, 'u' )
 
   ! Write checksums to file
   call checksum_alg(rho, 'rho', theta, 'theta', u, 'u')

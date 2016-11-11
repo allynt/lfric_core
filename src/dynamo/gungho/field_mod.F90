@@ -461,7 +461,7 @@ contains
   !!                           the log.
   !! @param[in] label A title added to the log before the data is written out
   !>
-  subroutine log_field( self, dump_level, checksum_level, label )
+  subroutine log_field( self, dump_level, label )
 
     use constants_mod, only : r_double, i_def
     use log_mod, only : log_event,         &
@@ -473,27 +473,20 @@ contains
 
     class( field_type ), target, intent(in) :: self
     integer(i_def),              intent(in) :: dump_level
-    integer(i_def),              intent(in) :: checksum_level
     character( * ),              intent(in) :: label
 
     integer(i_def)          :: cell
     integer(i_def)          :: layer
     integer(i_def)          :: df
     integer(i_def), pointer :: map( : )
-    real( r_double )        :: fraction_checksum
-    integer( i_def )        :: exponent_checksum
 
     write( log_scratch_space, '( A, A)' ) trim( label ), " =["
     call log_event( log_scratch_space, dump_level )
 
-    fraction_checksum = 0.0_r_double
-    exponent_checksum = 0_i_def
     do cell=1,self%vspace%get_ncell()
       map => self%vspace%get_cell_dofmap( cell )
       do df=1,self%vspace%get_ndf()
         do layer=0,self%vspace%get_nlayers()-1
-          fraction_checksum = modulo( fraction_checksum + fraction( self%data( map( df ) + layer ) ), 1.0 )
-          exponent_checksum = exponent_checksum + exponent( self%data( map( df ) + layer ) )
           write( log_scratch_space, '( I6, I6, I6, E16.8 )' ) &
               cell, df, layer+1, self%data( map( df ) + layer )
           call log_event( log_scratch_space, dump_level )
@@ -502,13 +495,6 @@ contains
     end do
 
     call log_event( '];', dump_level )
-
-    write( log_scratch_space, '( A, A, A, F18.16 )' ) &
-           "Fraction checksum ", trim( label ), " = ", fraction_checksum
-    call log_event( log_scratch_space, checksum_level )
-    write( log_scratch_space, '( A, A, A, I0 )' ) &
-           "Exponent checksum ", trim( label ), " = ", exponent_checksum
-    call log_event( log_scratch_space, checksum_level )
 
   end subroutine log_field
 
