@@ -531,17 +531,23 @@ contains
   !!
   subroutine log_minmax( self, log_level, label )
 
-    use log_mod, only : log_event, log_scratch_space, LOG_LEVEL_DEBUG
-
+    use log_mod,    only : log_event, log_scratch_space, LOG_LEVEL_DEBUG
+    use scalar_mod, only : scalar_type
     implicit none
 
     class( field_type ), target, intent(in) :: self
     integer(i_def),              intent(in) :: log_level
     character( * ),              intent(in) :: label
+    integer(i_def)                          :: undf
+    type(scalar_type)                       :: fmin, fmax
 
+    undf = self%vspace%get_last_dof_owned()
+    fmin = scalar_type( minval( self%data(1:undf) ) )
+    fmax = scalar_type( maxval( self%data(1:undf) ) )
+ 
     write( log_scratch_space, '( A, A, A, 2E16.8 )' ) &
          "Min/max ", trim( label ),                   &
-         " = ", minval( self%data(:) ), maxval( self%data(:) )
+         " = ", fmin%get_min(), fmax%get_max()
     call log_event( log_scratch_space, log_level )
 
   end subroutine log_minmax
