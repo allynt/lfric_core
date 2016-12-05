@@ -74,7 +74,6 @@ contains
 
     type( field_type ) :: a0, a1, a2
 
-    type(function_space_type) :: fs
     type(function_space_type), pointer :: rho_fs   => null()
     type(function_space_type), pointer :: u_fs     => null()
 

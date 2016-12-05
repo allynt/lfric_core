@@ -63,7 +63,6 @@ module rk_alg_timestep_mod
   ! Algorithms
   use solver_mod,                        only: solver_algorithm
   use conservation_algorithm_mod,        only: conservation_algorithm
-  use rhs_alg_mod,                       only: rhs_alg
   use advection_alg_mod,                 only: advection_alg, advection_alg_init
   use si_solver_alg_mod,                 only: si_solver_alg, si_solver_init
 

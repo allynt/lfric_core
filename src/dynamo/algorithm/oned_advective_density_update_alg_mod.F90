@@ -67,11 +67,10 @@ contains
     integer(i_def),      intent(in)     :: mesh_id
 
     type( field_type ) :: a0, a1, a2
-    type( field_type ) :: rho_adv, r_rho, rho_n, rho_hat_adv
+    type( field_type ) :: rho_adv, rho_hat_adv
     type( field_type ) :: rho_constant_1, rho_adv_np1, rho_constant_np1
     type( field_type ) :: mass_flux
 
-    type(function_space_type) :: fs
     type(function_space_type), pointer :: rho_fs   => null()
     type(function_space_type), pointer :: u_fs     => null()
 

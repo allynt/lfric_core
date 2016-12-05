@@ -54,7 +54,6 @@ contains
 
     type( field_type )                  :: div
     type( quadrature_type )             :: qr
-    type(function_space_type)           :: fs
     type(function_space_type), pointer  :: rho_n_fs   => null()
 
     qr = quadrature_type(element_order+3, GAUSSIAN)

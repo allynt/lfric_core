@@ -104,7 +104,7 @@ subroutine lhs_exner_code(nlayers,                                         &
                           nqp_h, nqp_v, wqp_h, wqp_v )
 
   use coordinate_jacobian_mod,  only: coordinate_jacobian
-  use planet_config_mod,        only: kappa, Rd, p_zero
+  use planet_config_mod,        only: kappa
   use calc_exner_pointwise_mod, only: calc_exner_pointwise
 
   implicit none

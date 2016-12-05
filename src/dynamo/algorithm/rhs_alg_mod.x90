@@ -62,8 +62,7 @@ contains
 !> @param[inout] rhs The state vector to compute
 !> @param[in]    alpha_dt The offcentering parameter times the timestep
 !> @param[in]    state The current model prognostic state
-!> @param[in]    from_inner_loop flag set to true if computing the terms in the inner loop
-  subroutine rhs_alg(rhs, alpha_dt, state, from_inner_loop)
+  subroutine rhs_alg(rhs, alpha_dt, state)
   
   implicit none
 
@@ -71,7 +70,6 @@ contains
   ! Form of state and rhs is [u,theta,rho,exner] 
   type(field_type), target,     intent(in)    :: state(bundle_size)
   type(field_type),             intent(inout) :: rhs(bundle_size)
-  logical,                      intent(in)    :: from_inner_loop
 
   type(field_type), pointer :: chi(:), geopotential => null()
   type(operator_type), pointer :: mm_w2, mm_w0, mm_w3_inv, mm_wtheta => null()

@@ -1019,9 +1019,6 @@ end subroutine partition_type_assign
                                   before
   use reference_element_mod, only : nverts_h
 
-  use log_mod,         only : log_event,         &
-                              log_scratch_space, &
-                              LOG_LEVEL_INFO
   implicit none
 
   type(global_mesh_type),               pointer,  intent(in)    :: global_mesh

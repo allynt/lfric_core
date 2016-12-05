@@ -81,7 +81,7 @@ contains
     type( quadrature_type )             :: qr
     type( field_type ), allocatable     :: state(:)
     type( field_type )                  :: r_u
-    type( operator_type )               :: mm_w2, mm_wtheta
+    type( operator_type )               :: mm_w2
     type(function_space_type), pointer  :: w2_fs, wtheta_fs    => null()
 
     integer                             :: n_fields

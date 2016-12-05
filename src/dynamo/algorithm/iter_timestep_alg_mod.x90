@@ -187,7 +187,7 @@ contains
     !=== Do a single timestep ==============================================!
     call copy_bundle(state, state_n, bundle_size)
     if ( helmholtz_solve .or. use_operators ) call compute_si_operators(state_n)
-    call rhs_alg(rhs_n, beta*dt, state_n, .false.)
+    call rhs_alg(rhs_n, beta*dt, state_n)
     !=== Section 3.1:  Outer (advection loop) ==============================!
     do outer = 1,outer_iterations
       ! Some idealized (fast) physics terms
@@ -204,7 +204,7 @@ contains
       call bundle_ax(dt, rhs_adv, rhs_adv, bundle_size) 
       !=== Section 3.2: Inner (nonlinear, coriolis loop) ===================!
       do inner = 1,inner_iterations
-        call rhs_alg(rhs_np1, -alpha*dt, state, .true.)
+        call rhs_alg(rhs_np1, -alpha*dt, state)
 
         ! === Section 3.3: Solve for increments ============================!
         ! Add on advective terms: rhs = rhs_n - rhs_np1 + rhs_adv

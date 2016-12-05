@@ -168,7 +168,6 @@ contains
 !>         and a projection term arising from the continuity and thermodynamic 
 !>         equations respectively
   subroutine apply_variable_helmholtz(Hx, x)
-    use finite_element_config_mod,   only: wtheta_on
     use psykal_lite_mod,             only: invoke_set_field_scalar, &
                                            invoke_multiply_field_data, &
                                            invoke_divide_field_data, &

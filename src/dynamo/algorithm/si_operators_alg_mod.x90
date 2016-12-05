@@ -62,7 +62,6 @@ subroutine create_si_operators(mesh_id)
 
   integer(i_def), intent(in) :: mesh_id
 
-  type(function_space_type), pointer     :: w0_fs => null()
   type(function_space_type), pointer     :: w2_fs => null()
   type(function_space_type), pointer     :: w3_fs => null()
   type(function_space_type), pointer     :: wtheta_fs => null()
