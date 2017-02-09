@@ -19,9 +19,14 @@ module init_gravity_wave_mod
   use fs_continuity_mod,              only : W0, W2, W3, Wtheta, Wchi
   use gw_init_fields_alg_mod,         only : gw_init_fields_alg
   use log_mod,                        only : log_event,         &
-                                             LOG_LEVEL_INFO
+                                             LOG_LEVEL_INFO, &
+                                             LOG_LEVEL_ERROR
   use restart_control_mod,            only : restart_type
-
+  use gw_miniapp_constants_config_mod,only : b_space, &
+                                             gw_miniapp_constants_b_space_w0, &
+                                             gw_miniapp_constants_b_space_w3, &
+                                             gw_miniapp_constants_b_space_wtheta
+   
   implicit none
 
 
@@ -37,7 +42,7 @@ module init_gravity_wave_mod
     type(restart_type), intent(in)           :: restart
 
     integer(i_def)                           :: coord
-    integer(i_def)                           :: chi_space
+    integer(i_def)                           :: chi_space, bouyancy_space
 
     call log_event( 'gravity wave: initialisation...', LOG_LEVEL_INFO )
 
@@ -57,10 +62,24 @@ module init_gravity_wave_mod
 
 
     ! Create prognostic fields
+    select case(b_space)
+      case(gw_miniapp_constants_b_space_w0)
+        bouyancy_space = W0
+        call log_event( "gravity wave: Using W0 for bouyancy", LOG_LEVEL_INFO )
+      case(gw_miniapp_constants_b_space_w3)
+        bouyancy_space = W3
+        call log_event( "gravity wave: Using W3 for bouyancy", LOG_LEVEL_INFO )
+      case(gw_miniapp_constants_b_space_wtheta)
+        bouyancy_space = Wtheta
+        call log_event( "gravity wave: Using Wtheta for bouyancy", LOG_LEVEL_INFO )
+      case default
+        call log_event( "gravity wave: Invalid bouyancy space", LOG_LEVEL_ERROR )
+    end select
+
     wind = field_type( vector_space = &
                        function_space_collection%get_fs(mesh_id, element_order, W2) )
     buoyancy = field_type( vector_space = &
-                       function_space_collection%get_fs(mesh_id, element_order, Wtheta) )
+                       function_space_collection%get_fs(mesh_id, element_order, bouyancy_space) )
     pressure = field_type( vector_space = &
                        function_space_collection%get_fs(mesh_id, element_order, W3) )
 

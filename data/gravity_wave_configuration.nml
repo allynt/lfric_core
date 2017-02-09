@@ -1,5 +1,5 @@
 &base_mesh
-  filename    = 'cubedsphere.12x12.nc'
+  filename    = 'cubedsphere.24x24.nc'
   geometry    = 'spherical'
   partitioner = 'cubedsphere'
   fplane      = .false.
@@ -15,7 +15,7 @@
 &finite_element
   shape         = 'quadrilateral'
   element_order = 0
-  coordinate_order = 0
+  coordinate_order = 2
   rehabilitate  = .true.
   wtheta_on     = .false.
   supg = .false.
@@ -27,6 +27,7 @@
 
 &gw_miniapp_constants
   speed_of_sound = 340.0
+  b_space = wtheta
 /
 
 &initial_wind
@@ -38,9 +39,9 @@
 
 &output
   diag_stem_name            = 'gravity_wave'
-  write_interpolated_output = .true.
+  write_interpolated_output = .false.
   write_nodal_output        = .true.
-  diagnostic_frequency      = 360
+  diagnostic_frequency      = 36
 /
 
 &planet
@@ -59,13 +60,13 @@
 
 &solver
   method             = 'bicgstab'
-  maximum_iterations = 99
+  maximum_iterations = 199
   tolerance          = 1.0e-4
   preconditioner     = 'diagonal'
   si_tolerance       = 1.0e-4
-  si_preconditioner  = 'diagonal'
+  si_preconditioner  = 'pressure'
   si_postconditioner = 'none'
-  gcrk               = 32
+  gcrk               = 4
   helmholtz_solve    = .false.
   use_operators      = .true.
 /
@@ -73,7 +74,7 @@
 
 &timestepping
   method             = 'semi_implicit'
-  dt                 = 10.0
+  dt                 = 100.0
   alpha              = 0.5
   outer_iterations   = 2
   inner_iterations   = 2

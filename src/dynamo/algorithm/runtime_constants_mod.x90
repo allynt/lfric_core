@@ -62,6 +62,7 @@ module runtime_constants_mod
   type(field_type), target        :: mm1_diag
   type(field_type), target        :: mm2_diag
   type(field_type), target        :: mm3_diag
+  type(field_type), target        :: eye
   type(field_type), target        :: mmtheta_diag
   type(operator_type), target     :: mm_w0
   type(operator_type), target     :: mm_w1
@@ -161,6 +162,7 @@ contains
     mm2_diag       = field_type( vector_space = w2_fs )
     mm3_diag       = field_type( vector_space = w3_fs )
     mmtheta_diag   = field_type( vector_space = wtheta_fs )
+    eye            = field_type( vector_space = w3_fs )
 
     call invoke_set_field_scalar(0.0_r_def,mm0_diag)
     call invoke_set_field_scalar(0.0_r_def,mm1_diag)
@@ -170,11 +172,12 @@ contains
     call invoke( mm_diagonal_kernel_type(mm0_diag, mm_w0))
     call invoke( mm_diagonal_kernel_type(mm1_diag, mm_w1))
     call invoke( mm_diagonal_kernel_type(mm2_diag, mm_w2))
+    call invoke( mm_diagonal_kernel_type(mm3_diag, mm_w3))
     call invoke( mm_diagonal_kernel_type(mmtheta_diag, mm_wtheta))
 
     ! W3 equations are solved pointwise and so the mass matrix is inverted
     ! exactly, therefore the diagonal, where used should be 1
-    call invoke_set_field_scalar(1.0_r_def,mm3_diag)
+    call invoke_set_field_scalar(1.0_r_def,eye)
 
     call log_event( "Dynamo: created runtime_constants", LOG_LEVEL_INFO )
 
@@ -250,9 +253,11 @@ contains
       case (2)
         mmd => mm2_diag
       case (3)
-        mmd => mm3_diag
+        mmd => eye
       case (4)
         mmd => mmtheta_diag
+      case (5)
+        mmd => mm3_diag
       case default
         mmd => null()
         call log_event( "Mass matrix diagonal does not exist", LOG_LEVEL_ERROR)

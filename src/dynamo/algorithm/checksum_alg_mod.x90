@@ -15,22 +15,23 @@ module checksum_alg_mod
 
 contains
 
-  subroutine checksum_alg(field1, name1, field2, name2, field3, name3)
+  subroutine checksum_alg(model_name, field1, name1, field2, name2, field3, name3)
     use field_mod,       only: field_type
     use psykal_lite_mod, only: invoke_inner_prod
-    use constants_mod,   only: i_def, r_def
+    use constants_mod,   only: i_def, r_def, str_max_filename
     use ESMF
     use log_mod,         only: log_event,         &
                                LOG_LEVEL_ERROR
     implicit none
 
     type(field_type), intent(in) :: field1, field2, field3
-    character(len=*), intent(in) :: name1, name2, name3
+    character(len=*), intent(in) :: model_name, name1, name2, name3
 
-    type(ESMF_VM)      :: vm
-    integer(i_def)     :: rc, petCount, localPET
-    integer(i_def)     :: stat
-    real(r_def)        :: chksum1, chksum2, chksum3
+    type(ESMF_VM)                   :: vm
+    integer(i_def)                  :: rc, petCount, localPET
+    integer(i_def)                  :: stat
+    real(r_def)                     :: chksum1, chksum2, chksum3
+    character(len=str_max_filename) :: fname
 
     call invoke_inner_prod(field1, field1, chksum1) 
     call invoke_inner_prod(field2, field2, chksum2) 
@@ -41,7 +42,8 @@ contains
 
     ! Write checksums to file
     if ( localPet == 0 ) then
-      open( 9, file="dynamo-checksums.txt", status="replace", iostat=stat)
+      write(fname,'(A,A)') trim(model_name),'-checksums.txt'
+      open( 9, file=fname, status="replace", iostat=stat)
       if (stat /= 0) then
         call log_event( "Unable to open checksum file", LOG_LEVEL_ERROR )
       end if

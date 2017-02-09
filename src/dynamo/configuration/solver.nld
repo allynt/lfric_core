@@ -5,7 +5,7 @@ namelist solver
   tolerance          : real     ! Relative tolerance of solver
   preconditioner     : enumeration[ none, diagonal]
   si_tolerance       : real     ! Relative tolerance of semi-implicit solver
-  si_preconditioner  : enumeration[ none, diagonal, tridiagonal]
+  si_preconditioner  : enumeration[ none, diagonal, tridiagonal, pressure]
   si_postconditioner : enumeration[ none, diagonal]
   gcrk               : integer  ! Dimension of the approximate Krylov subspace.
                                 ! In other words, it is the number of potential

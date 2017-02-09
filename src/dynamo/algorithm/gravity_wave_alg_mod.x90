@@ -20,8 +20,7 @@ module gravity_wave_alg_mod
   use timestepping_config_mod,        only: dt, alpha
   use derived_config_mod,             only: bundle_size
   use runtime_constants_mod,          only: get_div, &
-                                            get_mass_matrix, &
-                                            get_coordinates
+                                            get_mass_matrix
   use initial_temperature_config_mod, only: bvf_square  
   use gw_miniapp_constants_config_mod,only: cs_square
 
@@ -82,7 +81,6 @@ contains
     type(function_space_type), pointer :: p_fs => null()
     type(function_space_type), pointer :: b_fs => null()
     type(quadrature_type)              :: qr
-    type(field_type),          pointer :: chi(:) => null()
     real(kind=r_def), allocatable      :: dz(:)
     type(mesh_type),           pointer :: mesh => null()
     integer(kind=i_def)                :: nlayers
@@ -117,13 +115,12 @@ contains
     ! Create Q operator
     Q = operator_type( u_fs, b_fs)
     qr = quadrature_type(element_order+2, GAUSSIAN)
-    chi => get_coordinates()
     mesh => mesh_collection%get_mesh( mesh_id )
     nlayers = mesh%get_nlayers()
     allocate ( dz(nlayers) )
     call mesh%get_dz(dz)
     call compute_q_operator_init(dz, nlayers)
-    call invoke( compute_q_operator_type(Q, chi, qr) )
+    call invoke( compute_q_operator_type(Q, qr) )
 
     call gw_si_solver_init(state)
 

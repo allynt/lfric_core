@@ -43,6 +43,7 @@ program gravity_wave
 
   use output_config_mod,              only : diagnostic_frequency
   use output_alg_mod,                 only : output_alg
+  use checksum_alg_mod,               only : checksum_alg
   implicit none
 
   character(:), allocatable :: namelist_filename
@@ -143,15 +144,7 @@ program gravity_wave
   !-----------------------------------------------------------------------------
 
   ! Write checksums to file
-  open( 9, file="gravity_wave-checksums.txt", status="replace", iostat=rc)
-  if (rc /= 0) then
-    write( log_scratch_space, '("Unable to open checksum file")' )
-    call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-  end if
-  call wind%write_checksum( 9, 'u' )
-  call buoyancy%write_checksum( 9, 'b' )
-  call pressure%write_checksum( 9, 'p' )
-  close( 9 )
+  call checksum_alg('gravity_wave', wind, 'wind', buoyancy, 'buoyancy', pressure, 'pressure')
 
   call log_event( 'Gravity wave simulation completed', LOG_LEVEL_INFO )
 

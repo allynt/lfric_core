@@ -32,17 +32,19 @@ module gw_si_solver_alg_mod
                                      lOG_LEVEL_INFO
   use operator_mod,            only: operator_type
   use solver_config_mod,       only: maximum_iterations, &
-                                     tolerance, &
+                                     si_tolerance, &
                                      si_preconditioner, &
                                      si_postconditioner, &
                                      solver_si_preconditioner_none, &
                                      solver_si_preconditioner_diagonal, &
+                                     solver_si_preconditioner_pressure, &
                                      solver_si_postconditioner_none, &
                                      solver_si_postconditioner_diagonal, &
                                      gcrk
 
   use timestepping_config_mod, only: dt
   use derived_config_mod,      only: bundle_size
+  use solver_config_mod,       only: helmholtz_solve
 
   implicit none
 
@@ -54,6 +56,9 @@ module gw_si_solver_alg_mod
 
   public  :: gw_si_solver_alg
   public  :: gw_si_solver_init
+  private :: gmres
+  private :: bundle_preconditioner
+  private :: jacobi
  
 contains
 !>@brief Setup for the semi-implicit solver, extracts mass matrix diagonals and 
@@ -62,11 +67,21 @@ contains
   subroutine gw_si_solver_init(x0)
     use function_space_mod,              only: function_space_type
     use gw_lhs_alg_mod,                  only: gw_lhs_init
-
+    use gw_miniapp_constants_config_mod, only: b_space, &
+                                               gw_miniapp_constants_b_space_w0, &
+                                               gw_miniapp_constants_b_space_w3, &
+                                               gw_miniapp_constants_b_space_wtheta
+    use mm_diagonal_kernel_mod,          only: mm_diagonal_kernel_type
+    use psykal_lite_mod,                 only: invoke_set_field_scalar
+    use runtime_constants_mod,           only: get_mass_matrix
+    use gw_pressure_solver_alg_mod,      only: gw_pressure_solver_init
     implicit none
 
     type(field_type),             intent(in) :: x0(bundle_size)
     integer                                  :: iter
+
+    if ( si_preconditioner == solver_si_preconditioner_pressure .or. &
+         helmholtz_solve ) call gw_pressure_solver_init(x0)
 
     allocate( dx         (bundle_size), &
               Ax         (bundle_size), &
@@ -79,8 +94,14 @@ contains
 
     mm_diagonal(1) = get_mass_matrix_diagonal(2)
     mm_diagonal(2) = get_mass_matrix_diagonal(3)
-    mm_diagonal(3) = get_mass_matrix_diagonal(4)
-   
+    select case(b_space)
+      case(gw_miniapp_constants_b_space_w0)  
+        mm_diagonal(3) = get_mass_matrix_diagonal(0)
+      case(gw_miniapp_constants_b_space_w3)  
+        mm_diagonal(3) = get_mass_matrix_diagonal(5)
+      case(gw_miniapp_constants_b_space_wtheta)  
+        mm_diagonal(3) = get_mass_matrix_diagonal(4)
+    end select   
     call clone_bundle(x0, dx,       bundle_size)
     call clone_bundle(x0, Ax,       bundle_size)
     call clone_bundle(x0, s,        bundle_size)
@@ -93,6 +114,64 @@ contains
     call gw_lhs_init(x0)
 
   end subroutine gw_si_solver_init
+!=============================================================================!
+!> Control routine for the type of gravity wave solver to use
+!>@param[inout] x0 State to increment 
+!>@param[in]    rhs0 Fixed rhs to solve for
+  subroutine gw_si_solver_alg(x0, rhs0)
+
+    implicit none
+
+    type(field_type),             intent(inout) :: x0(bundle_size)
+    type(field_type),             intent(in)    :: rhs0(bundle_size)
+
+    call rhs0(1)%log_minmax(LOG_LEVEL_INFO,'max/min r_u = ')
+    call rhs0(2)%log_minmax(LOG_LEVEL_INFO,'max/min r_p = ')
+    call rhs0(3)%log_minmax(LOG_LEVEL_INFO,'max/min r_b = ')
+
+    if ( helmholtz_solve ) then
+      ! Use jacobi method with a single iterations
+      call jacobi(x0,rhs0,1)
+    else
+      call gmres(x0, rhs0)
+    end if
+ 
+  end subroutine gw_si_solver_alg
+
+!=============================================================================!
+  subroutine jacobi(x0, rhs0, n)
+    
+    implicit none
+
+    type(field_type),             intent(inout) :: x0(bundle_size)
+    type(field_type),             intent(in)    :: rhs0(bundle_size)
+    integer(i_def),               intent(in)    :: n
+
+    real(r_def),    parameter :: omega = 2.0/3.0
+    real(r_def)               :: err, err0
+    integer(i_def)            :: k
+
+    err0 = bundle_inner_product(rhs0, rhs0, bundle_size)
+
+    call set_bundle_scalar(0.0_r_def, dx, bundle_size)
+    do k = 1,n
+      call gw_lhs_alg(Ax, dx) 
+      call minus_bundle( rhs0, Ax, residual, bundle_size )
+     
+      ! Compute error
+      err = bundle_inner_product(residual, residual, bundle_size)
+      write( log_scratch_space, '(A,I2,2E12.4)' ) &
+        'Jacobi residual = ',k,sqrt(err), sqrt(err)/sqrt(err0)
+      call log_event( log_scratch_space, LOG_LEVEL_INFO )
+      if ( sqrt(err)/sqrt(err0) < 1.0e-4_r_def ) exit
+
+      call bundle_preconditioner(s, residual, si_preconditioner, mm_diagonal, bundle_size )
+      call bundle_ax( omega, s, dx, bundle_size )     
+    end do
+    call bundle_axpy(1.0_r_def, dx, x0, x0, bundle_size)  
+
+  end subroutine jacobi
+
 
 !=============================================================================!
 !>@brief GMRES solver adapted for solving the semi-implicit equations
@@ -100,7 +179,7 @@ contains
 !! systems" by Y Saad, SIAM 2003
 !>@param[inout] x0 State to increment 
 !>@param[in]    rhs0 Fixed rhs to solve for
-  subroutine gw_si_solver_alg(x0, rhs0)
+  subroutine gmres(x0, rhs0)
     use psykal_lite_mod, only: invoke_inner_prod
 
     implicit none
@@ -114,17 +193,15 @@ contains
     ! others
     real(kind=r_def)               :: err, sc_err, init_err
     integer(kind=i_def)            :: iter, i, j, k, m
-    integer(kind=i_def), parameter :: MAX_GMRES_ITER = 20
+    integer(kind=i_def)            :: max_gmres_iter
 
-    call rhs0(1)%log_minmax(LOG_LEVEL_INFO,'max/min r_u = ')
-    call rhs0(2)%log_minmax(LOG_LEVEL_INFO,'max/min r_p = ')
-    call rhs0(3)%log_minmax(LOG_LEVEL_INFO,'max/min r_b = ')
+    max_gmres_iter = maximum_iterations
 
     err = bundle_inner_product(rhs0, rhs0, bundle_size)
     sc_err = max( sqrt(err), 1.0e-8_r_def )
     init_err = sc_err
 
-    if (err < tolerance) then
+    if (err < si_tolerance) then
       write( log_scratch_space, '(A, I2, A, E12.4, A, E15.8)' ) &
            "gmres solver_algorithm:converged in ", 0,           &
            " iters, init=", init_err,                           &
@@ -154,7 +231,7 @@ contains
     g(:)   = 0.0_r_def
     g(1)   = beta
 
-    do iter = 1, MAX_GMRES_ITER
+    do iter = 1, max_gmres_iter
 
       do j = 1, gcrk
 
@@ -215,7 +292,7 @@ contains
                                                     "]: residual = ", err
       call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
-      if( err <  tolerance ) then
+      if( err <  si_tolerance ) then
         write( log_scratch_space, '(A, I2, A, E12.4, A, E15.8)' ) &
              "GMRES solver_algorithm:converged in ", iter,        &
              " iters, init=", init_err,                           &
@@ -232,17 +309,17 @@ contains
 
     end do
 
-    if ((iter >= MAX_GMRES_ITER .and. err >  tolerance) &
+    if ((iter >= max_gmres_iter .and. err >  si_tolerance) &
         .or. ieee_is_nan(err)) then
       write( log_scratch_space, '(A, I3, A, E15.8)') &
-           "GMRES solver_algorithm: NOT converged in", MAX_GMRES_ITER, &
+           "GMRES solver_algorithm: NOT converged in", max_gmres_iter, &
            " iters, Res=", err
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
     ! Add increments to field
     call bundle_axpy(1.0_r_def, dx, x0, x0, bundle_size)  
 
-  end subroutine gw_si_solver_alg
+  end subroutine gmres
 !=============================================================================!
 !>@brief Applies a choosen preconditioner to a state x to produce state y
 !>@param[inout] y Preconditioned state
@@ -251,7 +328,9 @@ contains
 !>@param[in]    mm Arrays containing diagonal approximation to mass matrices
 !>@param[in]    bundle_size Number of fields the state arrays
   subroutine bundle_preconditioner(y, x, option, mm, bundle_size)
-    use psykal_lite_mod, only: invoke_copy_field_data
+    use psykal_lite_mod,            only: invoke_copy_field_data
+    use gw_pressure_solver_alg_mod, only: gw_pressure_solver_alg
+
     implicit none
     integer(kind=i_def), intent(in)    :: bundle_size
     type(field_type),    intent(inout) :: y(bundle_size)
@@ -260,13 +339,17 @@ contains
     integer(kind=i_def), intent(in)    :: option
     integer(kind=i_def)                :: i
 
-
-    do i = 1,bundle_size
-      call invoke_copy_field_data( x(i), y(i) )
-    end do
-    if ( option == solver_si_preconditioner_diagonal .or. &
-         option == solver_si_postconditioner_diagonal) then
-      call bundle_divide(y, mm, bundle_size)
+    if (  option == solver_si_preconditioner_pressure ) then
+      call set_bundle_scalar(0.0_r_def, y, bundle_size)
+      call gw_pressure_solver_alg(y, x)
+    else
+      do i = 1,bundle_size
+        call invoke_copy_field_data( x(i), y(i) )
+      end do
+      if ( option == solver_si_preconditioner_diagonal .or. &
+           option == solver_si_postconditioner_diagonal) then
+        call bundle_divide(y, mm, bundle_size)
+      end if
     end if
   end subroutine bundle_preconditioner
 !=============================================================================!

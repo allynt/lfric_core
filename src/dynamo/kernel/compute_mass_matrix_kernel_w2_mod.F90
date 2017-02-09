@@ -34,10 +34,10 @@ type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w2_type
   private
   type(arg_type) :: meta_args(2) = (/                                  &
        arg_type(GH_OPERATOR, GH_WRITE, W2, W2),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                             &
+       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
        /)
   type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                                   &
+       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                          &
        func_type(W2, GH_BASIS)                                         &
        /)
   integer :: iterates_over = CELLS

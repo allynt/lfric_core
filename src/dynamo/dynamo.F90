@@ -271,7 +271,7 @@ program dynamo
   call u%log_field(     LOG_LEVEL_DEBUG, 'u' )
 
   ! Write checksums to file
-  call checksum_alg(rho, 'rho', theta, 'theta', u, 'u')
+  call checksum_alg('dynamo', rho, 'rho', theta, 'theta', u, 'u')
 
   ! Write checkpoint/restart files if required
   if( restart%write_file() ) then 

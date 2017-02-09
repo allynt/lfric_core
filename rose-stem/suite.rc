@@ -7,6 +7,7 @@
                                  'sbr', 'sbr_spinupwinds', 'sbr_spinupalpha',
                                  'straka_x', 'straka_y',
                                  'baroclinic'%}
+{%- set miniapp_configurations = 'gravity_wave', 'boundary_test' %}
 {%- set groups = {'developer': ['science(semi-implicit)',
                                 'science(si-helmholtz)',
                                 'science(runge-kutta)',
@@ -37,7 +38,7 @@
                               'science(sbr)',
                               'science(straka_x, plotstr="straka_plot_x.py $NODAL_DATA_DIR theta T000180 $PLOT_DIR" )',
                               'science(straka_y, plotstr="straka_plot_y.py $NODAL_DATA_DIR theta T000180 $PLOT_DIR" )',
-                              'miniapp(gravity_wave)',
+                              'miniapp(gravity_wave,plotstr="slices.py $NODAL_DATA_DIR buoyancy T000036 6 $PLOT_DIR")',
                               'check_compilers(full-debug, True)',
                               'godlines(True)',
                               'publish_commit']} %}
@@ -119,7 +120,7 @@
 {%-   endif %}
 {%- endmacro %}
 {#- #########################################################################}
-{%- macro miniapp( appname ) %}
+{%- macro miniapp( appname, plotstr="None" ) %}
       [[[R1]]] 
 {%-   set label = TARGET_SCIENCE_COMPILER|lower + '_fast-debug' %}
             purge_local => purge_target
@@ -130,6 +131,11 @@
 {%-     if TARGET_SCIENCE_COMPILER in TARGET_PERFORM_KGO_TESTS %}
             run_{{label}}_{{appname}} => check_{{label}}_{{appname}}
 {%-     endif %}
+{%-   endif %}
+{%-   if plotstr != "None" %}
+{%-     do plot_config.update( {appname : plotstr} ) %}
+            run_{{label}}_{{appname}}:finish => plot_{{appname}}_{{label}}
+            plot_{{appname}}_{{label}}:finish  => publish_{{appname}}_{{label}}_plots
 {%-   endif %}
 {%- endmacro %}
 {#- #########################################################################}
@@ -639,14 +645,23 @@
 {%-       endif %}
 {%-     endfor %}{# science configurations #}
 
-{%-     if 'run_' + label + '_boundary_test' in allTasks %}
-    [[run_{{label}}_boundary_test]]
+########################################################################################
+
+{%-     for configuration in miniapp_configurations %}
+{%-       set configuration_label = configuration|lower + '_' + label %}
+{%-       if 'run_' + label + '_' + configuration in allTasks %}
+    [[run_{{label}}_{{configuration}}]]
         inherit = {{family}}, TARGET
         pre-script = """
                      {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_RUN_SETUP, TARGET_REVEAL_SETUP)}}
                      """
-        script = rose task-run --app-key=boundary_test --command-key={{TARGET_RUN_METHOD}}
-        post-script = cp boundary_test-checksums.txt $DYNAMO_DESTINATION_DIRECTORY/boundary_test.{{compiler}}.checksums.txt
+        script = rose task-run --app-key={{configuration}} --command-key={{TARGET_RUN_METHOD}}
+        post-script = """
+                      cp {{configuration}}-checksums.txt $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}.{{compiler}}.checksums
+                      mkdir -p $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}/results
+                      touch $CYLC_TASK_WORK_DIR/tmp.m
+                      cp $CYLC_TASK_WORK_DIR/*.m $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}/results/
+                      """
         [[[environment]]]
             OMP_NUM_THREADS=2
         [[[directives]]]
@@ -655,39 +670,44 @@
 {%-         endfor %}
 {%-       endif %}
 
-{%-     if 'check_' + label + '_boundary_test' in allTasks %}
-    [[check_{{label}}_boundary_test]]
+{%-     if 'check_' + label + '_' + configuration in allTasks %}
+    [[check_{{label}}_{{configuration}}]]
         inherit = {{family}}, TARGET
-        script = rose task-run --app-key=check_boundary
-{%-       endif %}
-
-{%-     if 'run_' + label + '_gravity_wave' in allTasks %}
-    [[run_{{label}}_gravity_wave]]
-        inherit = {{family}}, TARGET
-        pre-script = """
-                     {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_RUN_SETUP, TARGET_REVEAL_SETUP)}}
-                     """
-        script = rose task-run --app-key=gravity_wave --command-key={{TARGET_RUN_METHOD}}
-        post-script = cp gravity_wave-checksums.txt $DYNAMO_DESTINATION_DIRECTORY/gravity_wave.{{compiler}}.checksums
-        [[[environment]]]
-            OMP_NUM_THREADS=2
-        [[[directives]]]
-{%-         for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
-            {{DIRECTIVE}}
-{%-         endfor %}
-{%-       endif %}
-
-{%-     if 'check_' + label + '_gravity_wave' in allTasks %}
-    [[check_{{label}}_gravity_wave]]
-        inherit = {{family}}, TARGET
-        script = rose task-run --app-key=check_gravity_wave
+        script = rose task-run --app-key='check_'{{configuration}}
         [[[environment]]]
             TARGET_OPT = {{TARGET_OPT}}
-        [[[directives]]]
-{%-         for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
-            {{DIRECTIVE}}
-{%-         endfor %}
 {%-       endif %}
+
+{%-       if 'plot_' + configuration_label in allTasks %}
+{%-         set plot_label = configuration %}
+    [[plot_{{configuration_label}}]]
+        inherit = PUBLISH, {{family}}, TARGET
+        pre-script = """
+ {{ensureDestination()}}
+                     mkdir -p $PLOT_DIR
+                     # remove old plots before running new ones
+                     rm -rf $PLOT_DIR/*.png
+                     """
+        script = rose task-run --app-key=plot
+        [[[environment]]]
+             NODAL_DATA_DIR = $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}/results
+             PLOT_DIR = $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}/plots
+             PLOT_CONFIG = {{plot_config[plot_label]}}
+{%-       endif %}
+
+{%-       if 'publish_' + configuration_label + '_plots' in allTasks %}
+    [[publish_{{configuration_label}}_plots]]
+        inherit = PUBLISH, {{family}}, LOCAL
+        script = """
+                 mkdir -p $DESTINATION/model_output/{{configuration_label}}/plots
+                 RELATIVE_DESTINATION_DIRECTORY=`echo $DYNAMO_DESTINATION_DIRECTORY | sed "s|$HOME/||"`
+                 scp -r {{TARGET_HOST}}:$RELATIVE_DESTINATION_DIRECTORY/{{configuration}}/plots $DESTINATION/model_output/{{configuration_label}}
+                 """
+{%-       endif %}
+
+{%-     endfor %}{# miniapp configurations #}
+
+########################################################################################
 
 {%-     if 'unit_test_with_' + label in allTasks %}
     [[unit_test_with_{{label}}]]
