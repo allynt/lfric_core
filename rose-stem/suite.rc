@@ -24,13 +24,13 @@
                                 'science(robert, crun=3, env={"nrun":5})',	
                                 'godlines',
                                 'cleanlines'],
-		  'csar':    ['science(robert, crun=3, env={"nrun":50}, checkkgo=False)',
+                  'csar':    ['science(robert, crun=3, env={"nrun":50}, checkkgo=False)',
                               'science(robert-moist, checkkgo=False)',
                               'science(biperiodic_p0_gw, checkkgo=False)',
                               'science(dcmip301, checkkgo=False,plotstr="dcmip301.py $NODAL_DATA_DIR theta T000180:T000252:T000324:T000360 $PLOT_DIR")',
                               'science(sbr, checkkgo=False, plotstr="create_plots $NODAL_DATA_DIR theta:rho T000060 $PLOT_DIR")',
-			      'science(sbr_spinupwinds, checkkgo=False, plotstr="create_plots $NODAL_DATA_DIR theta:rho T000060 $PLOT_DIR")',
-			      'science(sbr_spinupalpha, checkkgo=False, plotstr="create_plots $NODAL_DATA_DIR theta:rho T000060 $PLOT_DIR")',
+                              'science(sbr_spinupwinds, checkkgo=False, plotstr="create_plots $NODAL_DATA_DIR theta:rho T000060 $PLOT_DIR")',
+                              'science(sbr_spinupalpha, checkkgo=False, plotstr="create_plots $NODAL_DATA_DIR theta:rho T000060 $PLOT_DIR")',
                               'science(straka_x, plotstr="straka_plot_x.py $NODAL_DATA_DIR theta T000180 $PLOT_DIR" )',
                               'science(straka_y, plotstr="straka_plot_y.py $NODAL_DATA_DIR theta T000180 $PLOT_DIR" )'],
                   'nightly': ['science(semi-implicit-360ts, plotstr="create_plots $NODAL_DATA_DIR theta:rho T000360 $PLOT_DIR" )',
@@ -262,6 +262,10 @@
 {%- set scheduledTasksEnv = {} %}
 {%- set dummy = setTaskEnv(scheduledTasksEnv) -%}
 
+{%- macro deleteDirectory( directory ) %}
+test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( echo ** Unable to delete "{{directory}}", not writable >&2; false )
+{%- endmacro %}
+
 [cylc]
     UTC mode = True
     [[events]]
@@ -327,13 +331,20 @@
 ##############################################################################
     [[purge_local]]
         inherit = None, LOCAL
-        script = rm -rf $OUTPUT_ROOT/* $SOURCE_ROOT/*
+        script = '''
+                 {{deleteDirectory( "$OUTPUT_ROOT" )}}
+                 {{deleteDirectory( "$SOURCE_ROOT" )}}
+                 '''
 
     # The build directives are used to ensure that any temporary space which
     # might be used for building is available to be cleaned.
     [[purge_target]]
         inherit = None, TARGET
-        script = rm -rf {{TARGET_BUILD_ROOT}}/* $OUTPUT_ROOT/* $SOURCE_ROOT/*
+        script = '''
+                 {{deleteDirectory( TARGET_BUILD_ROOT )}}
+                 {{deleteDirectory( "$OUTPUT_ROOT" )}}
+                 {{deleteDirectory( "$SOURCE_ROOT" )}}
+                 '''
         [[[directives]]]
 {%- for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
             {{DIRECTIVE}}
@@ -392,7 +403,7 @@
                      {{'\n'|commandList(LOCAL_BASE_SETUP, LOCAL_TECHNICAL_SETUP, LOCAL_REVEAL_SETUP, "mkdir -p $DYNAMO_BUILD_ROOT", "cp -rp $DYNAMO_SOURCE_DIRECTORY/build/* $DYNAMO_BUILD_ROOT")}}
                      """
         script = make -C $DYNAMO_SOURCE_DIRECTORY/src/dynamo unused-check
-        post-script = rm -rf $DYNAMO_BUILD_ROOT
+        post-script = {{deleteDirectory( "$DYNAMO_BUILD_ROOT" )}}
         [[[directives]]]
 {%-   for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
             {{DIRECTIVE}}
@@ -494,12 +505,16 @@
     [[compile_with_{{label}}]]
         inherit = {{family}}, TARGET
         pre-script = """
-                     {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_BUILD_SETUP, TARGET_REVEAL_SETUP, 'rm -rf $DYNAMO_BUILD_ROOT/*')}}
+                     {{'\n'|commandList(TARGET_BASE_SETUP,
+                                        compiler_setup[compiler],
+                                        TARGET_BUILD_SETUP,
+                                        TARGET_REVEAL_SETUP,
+                                        deleteDirectory("$DYNAMO_BUILD_ROOT"))}}
                      """
         script      = rose task-run --app-key=compile
         post-script = """
                       cp -rp $DYNAMO_BUILD_ROOT $DYNAMO_SOURCE_DIRECTORY/build
-                      rm -rf $DYNAMO_BUILD_ROOT
+                      {{deleteDirectory("$DYNAMO_BUILD_ROOT")}}
                       # Future publisher stages need this information
                       echo $CYLC_TASK_LOG_ROOT > $DYNAMO_DESTINATION_DIRECTORY/dynamo.{{compiler}}.log.path
                       """
@@ -612,7 +627,7 @@
  {{ensureDestination()}}
                      mkdir -p $PLOT_DIR
                      # remove old plots before running new ones
-                     rm -rf $PLOT_DIR/*.png
+                     test -w $PLOT_DIR && rm -rf $PLOT_DIR/*.png || echo Unable to delete "$PLOT_DIR/*.png", not writable; false
                      """
         script = rose task-run --app-key=plot
         [[[environment]]]
@@ -686,7 +701,7 @@
  {{ensureDestination()}}
                      mkdir -p $PLOT_DIR
                      # remove old plots before running new ones
-                     rm -rf $PLOT_DIR/*.png
+                     test -w $PLOT_DIR && rm -rf $PLOT_DIR/*.png || echo Unable to delete "$PLOT_DIR/*.png", not writable; false
                      """
         script = rose task-run --app-key=plot
         [[[environment]]]
@@ -717,7 +732,8 @@
                      """
         script = make -C $DYNAMO_SOURCE_DIRECTORY/src/test
         post-script = """
-                      {{'\n'|commandList("cp -rp $DYNAMO_BUILD_ROOT/* $DYNAMO_SOURCE_DIRECTORY/build", "rm -rf $DYNAMO_BUILD_ROOT")}}
+                      {{'\n'|commandList("cp -rp $DYNAMO_BUILD_ROOT/* $DYNAMO_SOURCE_DIRECTORY/build",
+                                         deleteDirectory('$DYNAMO_BUILD_ROOT'))}}
                       """
         [[[environment]]]
             DYNAMO_BUILD_ROOT = {{TARGET_BUILD_ROOT}}/{{label}}
@@ -731,11 +747,17 @@
     [[functional_test_with_{{label}}]]
         inherit = {{family}}, TARGET
         pre-script = """
-                     {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_BUILD_SETUP, TARGET_REVEAL_SETUP, "mkdir -p $DYNAMO_BUILD_ROOT", "cp -rp $DYNAMO_SOURCE_DIRECTORY/build/* $DYNAMO_BUILD_ROOT")}}
+                     {{'\n'|commandList(TARGET_BASE_SETUP,
+                                        compiler_setup[compiler],
+                                        TARGET_BUILD_SETUP,
+                                        TARGET_REVEAL_SETUP,
+                                        "mkdir -p $DYNAMO_BUILD_ROOT",
+                                        "cp -rp $DYNAMO_SOURCE_DIRECTORY/build/* $DYNAMO_BUILD_ROOT")}}
                      """
         script = make -C $DYNAMO_SOURCE_DIRECTORY/src/functional-test
         post-script = """
-                      {{'\n'|commandList("cp -rp $DYNAMO_BUILD_ROOT/* $DYNAMO_SOURCE_DIRECTORY/build", "rm -rf $DYNAMO_BUILD_ROOT")}}
+                      {{'\n'|commandList("cp -rp $DYNAMO_BUILD_ROOT/* $DYNAMO_SOURCE_DIRECTORY/build",
+                                         deleteDirectory('$DYNAMO_BUILD_ROOT'))}}
                       """
         [[[environment]]]
             DYNAMO_BUILD_ROOT = {{TARGET_BUILD_ROOT}}/{{label}}
