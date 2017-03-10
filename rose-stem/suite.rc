@@ -12,8 +12,8 @@
                                 'science(si-helmholtz)',
                                 'science(runge-kutta)',
                                 'science(transport-rk)',
-                                'science(transport-cosmic)',
-                                'science(transport-biperiodic)',
+                                'science(transport-cosmic, serial=True)',
+                                'science(transport-biperiodic, serial=True)',
                                 'science(biperiodic_p0_gw)',
                                 'science(biperiodic_p1_gw)',
                                 'science(baroclinic)',
@@ -42,7 +42,7 @@
                               'check_compilers(full-debug, True)',
                               'godlines(True)',
                               'publish_commit']} %}
-
+{%- set serialRuns = [] %}
 {%- set mesh_types = ['cubedsphere', 'biperiodic'] %}
 {%- set plot_config = {} %}
 {%- set compiler_setup = {} -%}
@@ -65,10 +65,13 @@
 {%- endif %}
 
 {#- #########################################################################}
-{%-   set SCIENCE_LABEL =  TARGET_SCIENCE_COMPILER + '_fast-debug' %}
-{%- macro science( configuration, checkkgo=True, plotstr="None", crun=0, env=None) %}
+{%- set SCIENCE_LABEL =  TARGET_SCIENCE_COMPILER + '_fast-debug' %}
+{%- macro science( configuration, checkkgo=True, plotstr="None", crun=0, env=None, serial=False) %}
 {%-   set label = SCIENCE_LABEL %}
-{%- if crun > 1  %}
+{%-   if serial %}
+{%-     do serialRuns.append( configuration ) %}
+{%-   endif %}
+{%-   if crun > 1  %}
          [[[R{{crun}}/P1/{{crun}}]]]
             graph = """
             run_{{configuration}}_{{label}}[-P1] => run_{{configuration}}_{{label}}
@@ -80,13 +83,13 @@
             run_{{configuration}}_{{label}} => check_{{configuration}}_{{label}}
 {%-        endif %}
 {%-     endif %}
-{%-   if plotstr != "None" %}
-{%-     do plot_config.update( {configuration : plotstr} ) %}
+{%-     if plotstr != "None" %}
+{%-       do plot_config.update( {configuration : plotstr} ) %}
             run_{{configuration}}_{{label}}:finish => plot_{{configuration}}_{{label}}
             plot_{{configuration}}_{{label}}:finish  => publish_{{configuration}}_{{label}}_plots
-{%-   endif %}
+{%-     endif %}
                  """
-{%- endif %}
+{%-   endif %}
         [[[R1]]]
             graph = """
             purge_local => purge_target
@@ -95,9 +98,9 @@
 {%-   if TARGET_SCIENCE_COMPILER in TARGET_PERFORM_RUN %}
             compile_with_{{label}} => run_{{configuration}}_{{label}}
 {%-     if checkkgo  %}
-{%-     if TARGET_SCIENCE_COMPILER in TARGET_PERFORM_KGO_TESTS and crun < 2  %}
+{%-       if TARGET_SCIENCE_COMPILER in TARGET_PERFORM_KGO_TESTS and crun < 2  %}
             run_{{configuration}}_{{label}} => check_{{configuration}}_{{label}}
-{%-     endif %}
+{%-       endif %}
 {%-     endif %}
 {%-   endif %}
 {%-   if plotstr != "None" and crun < 2 %}
@@ -172,15 +175,16 @@
       [[[R1]]] 
             PUBLISH:finish-all => publish_index
             publish_index      => mirror_results_local
-{%- if MIRROR_UPLOAD_URL %}
+{%-   if MIRROR_UPLOAD_URL %}
             publish_index      => mirror_results_remote
-{%- endif %}
+{%-   endif %}
 {%- endmacro %}
 {#- #########################################################################}
 {%- macro check_compilers( build, publish=False ) %}
       [[[R1]]] 
 {%-   for compiler in compiler_setup.keys() %}
 {%-     set label = compiler | lower + '_' + build | lower%}
+{%-     do serialRuns.append( 'semi-implicit' ) %}
 {%-     set perform_run = TARGET_PERFORM_RUN %}
 {%-     if build == 'full-debug' and TARGET_PERFORM_DEBUG_RUN is defined %}
 {%-       set perform_run = TARGET_PERFORM_DEBUG_RUN %}
@@ -488,7 +492,7 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
     # Export must be performed locally as it needs access to any working copy
     # involved. Such a working copy may well be on a local disc.
     #
-{%- if 'export_for_' + label in allTasks %}
+{%-     if 'export_for_' + label in allTasks %}
     [[export_for_{{label}}]]
         inherit = {{family}}, LOCAL
         script = """
@@ -499,9 +503,9 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
                  ssh $HOST mkdir -p $DYNAMO_RELATIVE_SOURCE_DIRECTORY
                  rsync -avz $DYNAMO_SOURCE_DIRECTORY/ $HOST:$DYNAMO_RELATIVE_SOURCE_DIRECTORY/
                  """
-{%- endif %}
+{%-     endif %}
 
-{%- if 'compile_with_' + label in allTasks %}
+{%-     if 'compile_with_' + label in allTasks %}
     [[compile_with_{{label}}]]
         inherit = {{family}}, TARGET
         pre-script = """
@@ -523,12 +527,12 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
             BUILD_TARGET                = {{build}}
             DYNAMO_OPTIMISATION_PROFILE = {{TARGET_OPT}}
         [[[directives]]]
-{%-   for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
+{%-       for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
             {{DIRECTIVE}}
-{%-   endfor %}
-{%- endif %}
+{%-       endfor %}
+{%-     endif %}
 
-{%- if 'publish_' + label + '_compile' in allTasks %}
+{%-     if 'publish_' + label + '_compile' in allTasks %}
     [[publish_{{label}}_compile]]
         inherit = PUBLISH, {{family}}, LOCAL
         pre-script = """
@@ -545,10 +549,12 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
             COMPILER = {{compiler}}
             LOG_OUT  = $DYNAMO_DESTINATION_DIRECTORY/dynamo.{{compiler}}.out
             LOG_ERR  = $DYNAMO_DESTINATION_DIRECTORY/dynamo.{{compiler}}.err
-{%- endif %}
+{%-     endif %}
 
 {%-     if 'run_canned_test_' + label in allTasks %}
     [[run_canned_test_{{label}}]]
+{%-       set directiveParameters = {'mpiProcesses': 1, 'ompThreads': 1,
+                                     'ramPerNode': 2048, 'wallclock': 120} %}
         inherit = {{family}}, TARGET
         pre-script = """
                      {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_RUN_SETUP, TARGET_REVEAL_SETUP)}}
@@ -556,11 +562,11 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
         script = rose task-run --app-key=canned_test --command-key={{TARGET_RUN_METHOD}}
         [[[environment]]]
             DYNAMO_SOURCE_DIRECTORY = $SOURCE_ROOT/{{label}}
-        [[[environment]]]
-            OMP_NUM_THREADS=1
+            MPI_PROCESSES   = {{directiveParameters['mpiProcesses']}}
+            OMP_NUM_THREADS = {{directiveParameters['ompThreads']}}
         [[[directives]]]
 {%-       for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
-            {{DIRECTIVE}}
+            {{DIRECTIVE|expressionist( directiveParameters )}}
 {%-       endfor %}
 {%-     endif %}
 
@@ -568,6 +574,13 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
 {%-       set configuration_label = configuration|lower + '_' + label %}
 {%-       if 'run_' + configuration_label in allTasks %}
     [[run_{{configuration_label}}]]
+{%-         if configuration in serialRuns %}
+{%-         set directiveParameters = {'mpiProcesses': 1, 'ompThreads': 1,
+                                       'ramPerNode': 2048, 'wallclock': 1800} %}
+{%          else %}
+{%-         set directiveParameters = {'mpiProcesses': 6, 'ompThreads': 1,
+                                       'ramPerNode': 2560, 'wallclock': 7200} %}
+{%-         endif %}
         inherit = {{family}}, TARGET
         pre-script = """
                      {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_RUN_SETUP, TARGET_REVEAL_SETUP)}}
@@ -582,10 +595,11 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
                       echo $CYLC_TASK_LOG_ROOT > $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}/dynamo.{{compiler}}.log.path
                       """
         [[[environment]]]
-            OMP_NUM_THREADS=1
-{% if configuration_label in scheduledTasksEnv.keys() %}
-{{          scheduledTasksEnv[configuration_label] }}
-{% endif %}
+            MPI_PROCESSES   = {{directiveParameters['mpiProcesses']}}
+            OMP_NUM_THREADS = {{directiveParameters['ompThreads']}}
+{%          if configuration_label in scheduledTasksEnv.keys() %}
+{{            scheduledTasksEnv[configuration_label] }}
+{%          endif %}
             RESTART_NTS   = $(echo ${nrun:-1})
             RESTART_NO    = $(echo $[$CYLC_TASK_CYCLE_POINT -1])
             RESTART       = $(if [ $CYLC_TASK_CYCLE_POINT == $CYLC_SUITE_INITIAL_CYCLE_POINT ] && [ $CYLC_TASK_TRY_NUMBER -eq 1 ]; then echo ""; else echo "true"; fi)
@@ -595,7 +609,7 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
 
         [[[directives]]]
 {%-         for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
-            {{DIRECTIVE}}
+            {{DIRECTIVE|expressionist( directiveParameters )}}
 {%-         endfor %}
 {%-       endif %}
 
@@ -660,12 +674,14 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
 {%-       endif %}
 {%-     endfor %}{# science configurations #}
 
-########################################################################################
+##############################################################################
 
 {%-     for configuration in miniapp_configurations %}
 {%-       set configuration_label = configuration|lower + '_' + label %}
 {%-       if 'run_' + label + '_' + configuration in allTasks %}
     [[run_{{label}}_{{configuration}}]]
+{%-       set directiveParameters = {'mpiProcesses': 1, 'ompThreads': 1,
+                                     'ramPerNode': 2048, 'wallclock': 300} %}
         inherit = {{family}}, TARGET
         pre-script = """
                      {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_RUN_SETUP, TARGET_REVEAL_SETUP)}}
@@ -678,14 +694,15 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
                       cp $CYLC_TASK_WORK_DIR/*.m $DYNAMO_DESTINATION_DIRECTORY/{{configuration}}/results/
                       """
         [[[environment]]]
-            OMP_NUM_THREADS=1
+            MPI_PROCESSES   = {{directiveParameters['mpiProcesses']}}
+            OMP_NUM_THREADS = {{directiveParameters['ompThreads']}}
         [[[directives]]]
 {%-         for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
-            {{DIRECTIVE}}
+            {{DIRECTIVE|expressionist( directiveParameters )}}
 {%-         endfor %}
 {%-       endif %}
 
-{%-     if 'check_' + label + '_' + configuration in allTasks %}
+{%-       if 'check_' + label + '_' + configuration in allTasks %}
     [[check_{{label}}_{{configuration}}]]
         inherit = {{family}}, TARGET
         script = rose task-run --app-key='check_'{{configuration}}
@@ -698,7 +715,7 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
     [[plot_{{configuration_label}}]]
         inherit = PUBLISH, {{family}}, TARGET
         pre-script = """
- {{ensureDestination()}}
+                     {{ensureDestination()}}
                      mkdir -p $PLOT_DIR
                      # remove old plots before running new ones
                      test -w $PLOT_DIR && rm -rf $PLOT_DIR/*.png || ( echo Unable to delete "$PLOT_DIR/*.png", not writable; false )
@@ -770,6 +787,8 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
 {%-     for mesh in mesh_types %}
 {%-       if 'generate_mesh_' + mesh + '_' + label in allTasks %}
     [[generate_mesh_{{mesh}}_{{label}}]]
+{%-       set directiveParameters = {'mpiProcesses': 1, 'ompThreads': 1,
+                                     'ramPerNode': 2048, 'wallclock': 60} %}
         inherit = {{family}}, TARGET
         pre-script = """
                      {{'\n'|commandList(TARGET_BASE_SETUP, compiler_setup[compiler], TARGET_BUILD_SETUP, TARGET_REVEAL_SETUP)}}
@@ -777,9 +796,11 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
         script = "rose task-run --app-key=mesh --opt-conf-key={{mesh}}"
         [[[environment]]]
             OUTPUT_FILE = $DYNAMO_DESTINATION_DIRECTORY/{{mesh}}.nc
+            MPI_PROCESSES   = {{directiveParameters['mpiProcesses']}}
+            OMP_NUM_THREADS = {{directiveParameters['ompThreads']}}
         [[[directives]]]
 {%-         for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
-            {{DIRECTIVE}}
+            {{DIRECTIVE|expressionist( directiveParameters )}}
 {%-         endfor %}
 {%-       endif %}
 
