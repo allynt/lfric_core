@@ -17,7 +17,7 @@
                                 'science(biperiodic_p1_gw)',
                                 'science(straka_y, plotstr="straka_plot_y.py $NODAL_DATA_DIR theta T000090 $PLOT_DIR")',
                                 'science(robert_short, crun=3, env={"nrun":5})',	
-                                'science(baroclinic)',
+                                'science(baroclinic, plotstr="baroclinic.py diagDynamo $NODAL_DATA_DIR theta:exner:1u T000010 $PLOT_DIR")',
                                 'check_compilers(fast-debug)',
                                 'canned_test',
                                 'godlines',

@@ -67,7 +67,8 @@ program gungho
                                            timestepping_method_rk
   use derived_config_mod,             only : set_derived_config
   use checksum_alg_mod,               only : checksum_alg
-  use diagnostic_alg_mod,             only : divergence_diagnostic_alg
+  use diagnostic_alg_mod,             only : divergence_diagnostic_alg, &
+                                             pressure_diagnostic_alg
   use mr_indices_mod,                 only : imr_v, imr_c, imr_r, imr_nc, &
                                              imr_nr, nummr
   use set_rho_alg_mod,                only : set_rho_alg
@@ -159,6 +160,7 @@ program gungho
   call output_alg('xi',    ts_init, xi,    mesh_id)
   call output_alg('u',     ts_init, u,     mesh_id)
   call output_alg('rho',   ts_init, rho,   mesh_id)
+  call pressure_diagnostic_alg(rho, theta, ts_init, mesh_id)
   call divergence_diagnostic_alg(u, ts_init, mesh_id)
 
   if (use_moisture)then
@@ -260,6 +262,7 @@ program gungho
       call output_alg('xi',    timestep, xi,    mesh_id)
       call output_alg('u',     timestep, u,     mesh_id)
       call output_alg('rho',   timestep, rho,   mesh_id)
+      call pressure_diagnostic_alg(rho, theta, timestep, mesh_id)
       call divergence_diagnostic_alg(u, timestep, mesh_id)
       if (use_moisture)then
         call output_alg('m_v',    timestep, mr(imr_v),   mesh_id)

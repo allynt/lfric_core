@@ -13,6 +13,7 @@ module diagnostic_alg_mod
 
    private
    public :: divergence_diagnostic_alg
+   public :: pressure_diagnostic_alg
 
 contains
 
@@ -35,7 +36,7 @@ contains
     integer(i_def),   intent(in) :: t, mesh_id
 
     type(field_type)             :: divergence, div_u
-    type(operator_type), pointer :: div, m3_inv => null()
+    type(operator_type), pointer :: div => null(), m3_inv => null()
     real(r_def)                  :: l2
 
     divergence =  field_type( vector_space = function_space_collection%get_fs(mesh_id,element_order, W3) )
@@ -56,5 +57,36 @@ contains
     call output_alg('divergence',   t, divergence,   mesh_id)
 
   end subroutine divergence_diagnostic_alg
+
+!=============================================================================!
+  subroutine pressure_diagnostic_alg(rho, theta, t, mesh_id)
+    use output_alg_mod,              only: output_alg
+    use runtime_constants_mod,       only: get_mass_matrix, &
+                                           get_qr, &
+                                           get_coordinates, &
+                                           w3inv_id
+    use operator_mod,                only: operator_type
+    use field_mod,                   only: field_type
+    use project_pressure_kernel_mod, only: project_pressure_kernel_type
+    use quadrature_mod,              only: quadrature_type
+    implicit none 
+
+    type(field_type), intent(in) :: rho, theta
+    integer(i_def),   intent(in) :: t, mesh_id
+
+    type(field_type)             :: exner
+    type(operator_type), pointer :: m3_inv => null()
+    type(quadrature_type)        :: qr
+    type(field_type), pointer    :: chi(:) => null()
+
+    m3_inv => get_mass_matrix(w3inv_id)
+    qr = get_qr()
+    chi => get_coordinates()
+    exner = field_type( vector_space = rho%get_function_space() )
+    call invoke( project_pressure_kernel_type( exner, rho, theta, &
+                                               chi, m3_inv, qr ) )
+    call output_alg('exner', t, exner, mesh_id)
+
+  end subroutine pressure_diagnostic_alg
 
 end module diagnostic_alg_mod
