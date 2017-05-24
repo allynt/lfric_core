@@ -36,6 +36,8 @@ type, public, extends(kernel_type) :: gp_rhs_kernel_type
        FUNC_TYPE(ANY_SPACE_9, GH_DIFF_BASIS)                           &
        /)
   integer :: iterates_over = CELLS
+  integer :: gungho_shape = QUADRATURE_XYoZ
+  ! gungho_shape replaces evaluator_shape and will be removed by #1066
   integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, public, nopass :: gp_rhs_code

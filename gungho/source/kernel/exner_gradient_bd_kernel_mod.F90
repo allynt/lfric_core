@@ -46,6 +46,8 @@ module exner_gradient_bd_kernel_mod
       func_type(Wtheta, GH_BASIS)                                     &
       /)
     integer :: iterates_over = CELLS
+    integer :: gungho_shape = QUADRATURE_XYoZ
+    ! gungho_shape replaces evaluator_shape and will be removed by #1066
     integer :: evaluator_shape = QUADRATURE_XYoZ
   contains
     procedure, nopass ::exner_gradient_bd_code

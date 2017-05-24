@@ -40,6 +40,8 @@ type, public, extends(kernel_type) :: sample_flux_kernel_type
        /)
   integer :: iterates_over = CELLS
   integer :: evaluator_shape = EVALUATOR
+  ! gungho_shape replaces evaluator_shape and will be removed by #1066
+  integer :: gungho_shape = EVALUATOR
 contains
   procedure, nopass ::sample_flux_code
 end type

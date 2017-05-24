@@ -47,6 +47,8 @@ type, public, extends(kernel_type) :: held_suarez_kernel_type
        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
        /)
   integer :: iterates_over = CELLS
+  integer :: gungho_shape = QUADRATURE_XYoZ
+  ! gungho_shape replaces evaluator_shape and will be removed by #1066
   integer :: evaluator_shape = QUADRATURE_XYoZ
 contains
   procedure, nopass :: held_suarez_code

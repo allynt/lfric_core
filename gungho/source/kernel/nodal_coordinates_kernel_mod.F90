@@ -38,6 +38,8 @@ type, public, extends(kernel_type) :: nodal_coordinates_kernel_type
        func_type(ANY_SPACE_9, GH_BASIS)                                &
        /)
   integer :: iterates_over = CELLS
+  integer :: gungho_shape = EVALUATOR
+  ! gungho_shape replaces evaluator_shape and will be removed by #1066
   integer :: evaluator_shape = EVALUATOR
 contains
   procedure, nopass ::nodal_coordinates_code
