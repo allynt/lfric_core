@@ -31,7 +31,7 @@
 #
 ##############################################################################
 
-export IGNORE_DEPENDENCIES = netcdf MPI ESMF pfunit_mod qsat
+export IGNORE_DEPENDENCIES = netcdf MPI ESMF pfunit_mod planet_constants_mod
 export EXTERNAL_DYNAMIC_LIBRARIES = esmf netcdff netcdf hdf5
 export IGNORE_PROGRAMS = umphysics_testbuild
 
@@ -40,13 +40,14 @@ export ROOT := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 ifdef UM_PHYSICS
   export UMPHYSICS_TARGETS = extract-um-physics
   export UMPHYSICS_CLEAN   = clean-um-physics
-  export UM_PHYS_DIR=$(ROOT)/um_physics
+  export UM_PHYS_ROOT=um_physics
+  export UM_PHYS_DIR=$(ROOT)/$(UM_PHYS_ROOT)
 # Note that this defaults to the xcr0 build, but will be 
 # set to the appropriate target if using the test-umphysics suites
   export UM_ENV=$(UM_PHYS_DIR)/set_environment-xc40.sh
   export UM_FCM=$(UM_PHYS_DIR)/
   export IGNORE_PROGRAMS := $(filter-out umphysics_testbuild, $(IGNORE_PROGRAMS))
-  export IGNORE_DEPENDENCIES := $(filter-out qsat, $(IGNORE_DEPENDENCIES))
+  export IGNORE_DEPENDENCIES := $(filter-out planet_constants_mod, $(IGNORE_DEPENDENCIES))
 endif
 ifdef OPTIMISATION_PROFILE
   export OPTIMISATION_PATH = gungho/optimisation/$(OPTIMISATION_PROFILE)

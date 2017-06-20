@@ -14,22 +14,31 @@ program umphysics_testbuild
 
   ! The build system requires some dependence so we
   ! Add an arbitrary dependence on constants_mod
-  use constants_mod
+  use constants_mod, only: r_def, r_single, r_double
 
+  ! This is a UM module, we arbitrarily chose g see what precision it is
+  use planet_constants_mod, only: g
   implicit none
 
-  ! The DEPENDS ON statment below results in a dependency on the 
-  ! UM code and so the build system should build in the
-  ! relevant dependencies
-  !DEPENDS ON: qsat
+  character(len=100)  :: fname = 'umphysics_testbuild-checksums.txt'
+  integer             :: stat
+  integer, parameter  :: funit = 9
+  real(kind=r_def)    :: x1
+  real(kind=r_single) :: x2
+  real(kind=r_double) :: x3
+  real                :: x4
 
-  character(len=100) :: fname = 'umphysics_testbuild-checksums.txt'
-  integer            :: stat
-
-  open( 9, file=fname, status="replace", iostat=stat)
+  open( funit, file=fname, status="replace", iostat=stat)
   if (stat /= 0) then
     print*, "Unable to open checksum file"
   end if
-  write(9, '(A)' ) 'UM physics build test program successful'
+  write(funit, '(A)' ) 'UM physics build test program successful'
+  write(funit, '(A,I)' ) 'LFRic defined precision reals have kind: ', kind(x1)
+  write(funit, '(A,I)' ) 'LFRic single precision reals have kind:  ', kind(x2)
+  write(funit, '(A,I)' ) 'LFRic double precision reals have kind:  ', kind(x3)
+  write(funit, '(A,I)' ) 'LFRic default precision reals have kind: ', kind(x4)
+  write(funit, '(A,I)' ) 'UM default precision reals have kind:    ', kind(g)
+
+  close(funit)
 
 end program umphysics_testbuild

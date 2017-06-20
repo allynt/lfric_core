@@ -192,7 +192,6 @@
 {%-     if publish %}
             api_documentation    => publish_api_documentation
             api_documentation    => publish_api_log
-            uml_documentation    => publish_uml_documentation
             design_documentation => publish_design_documentation
 {%-     endif %}
 {%-   endif %}

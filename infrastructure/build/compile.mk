@@ -69,6 +69,19 @@ $(BIN_DIR)/%: %.x | $(BIN_DIR)
 	             $^ \
 	             $(patsubst %,-l%,$(EXTERNAL_STATIC_LIBRARIES))
 
+.PRECIOUS: $(UM_PHYS_ROOT)/%.o $(UM_PHYS_ROOT)/%.mod
+$(UM_PHYS_ROOT)/%.o $(UM_PHYS_ROOT)/%.mod: $(UM_PHYS_ROOT)/%.f90
+	$(call MESSAGE,Compile um physics,$<)
+	$(Q)$(FC) $(FFLAGS) $(FFLAGS_UM_PHYSICS) \
+	          $(MODULE_DESTINATION_ARGUMENT) \
+	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
+
+$(UM_PHYS_ROOT)/%.o $(UM_PHYS_ROOT)/%.mod: $(UM_PHYS_ROOT)/%.F90
+	$(call MESSAGE,Pre-process and compile um physics,$<)
+	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) $(FFLAGS_UM_PHYSICS) \
+	          $(MODULE_DESTINATION_ARGUMENT) \
+	          $(INCLUDE_ARGS) $(MACRO_ARGS) -c -o $(basename $@).o $<
+
 .PRECIOUS: %.o %.mod
 %.o %.mod: %.f90
 	$(call MESSAGE,Compile,$<)
@@ -81,7 +94,6 @@ $(BIN_DIR)/%: %.x | $(BIN_DIR)
 	$(Q)$(FC) $(FPPFLAGS) $(FFLAGS) \
 	          $(MODULE_DESTINATION_ARGUMENT) \
 	          $(INCLUDE_ARGS) $(MACRO_ARGS) -c -o $(basename $@).o $<
-
 #############################################################################
 # Directories
 #
