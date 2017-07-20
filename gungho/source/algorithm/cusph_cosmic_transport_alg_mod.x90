@@ -3,7 +3,7 @@
 ! For further details please refer to the file LICENCE which you should have
 ! received as part of this distribution.
 !-----------------------------------------------------------------------------
-!> @brief An algorithm for COSMIC transport scheme on the cubed-sphere
+!> @brief An algorithm for COSMIC transport scheme on the cubed-sphere.
 !> @details The algorithm iterates forwards in time and transports the density
 !>          field using the COSMIC advection scheme. This implementation
 !>          has been tested on the cubed-sphere domain and in
@@ -23,25 +23,27 @@ module cusph_cosmic_transport_alg_mod
   use runtime_constants_mod,             only: get_coordinates
 
   use cusph_split_transport_alg_mod,     only: cusph_split_transport_alg
+  use cusph_fv_density_update_alg_mod,   only: cusph_fv_density_update_alg
+  use flux_direction_mod,                only: x_direction, y_direction
 
   implicit none
 
   private
 
   ! 'State' items that need to be created once but used every step
-  type( field_type ) :: u_n, u_np1, rho_n, rho_np1, mass_flux
+  type( field_type ) :: u_n, u_np1, rho_n, rho_np1, mass_flux_x, mass_flux_y
+  type( field_type ) :: rho_temp
 
   public :: cusph_cosmic_transport_init
   public :: cusph_cosmic_transport_step
 
 contains
 
-  !> @brief Init routine for cosmic transport timestepping algorithm
+  !> @brief Init routine for cosmic transport timestepping algorithm.
   !> @details Rho and u fields are initialised before
-  !>          this algorithm is called. State items are created,
-  !> @param[in]    mesh_id Mesh id of mesh on which the model runs
-  !> @param[in]    u  3D wind field
-
+  !>          this algorithm is called. State items are created.
+  !> @param[in]      mesh_id Mesh id of mesh on which the model runs
+  !> @param[inout]   u       3D wind field
   subroutine cusph_cosmic_transport_init(mesh_id, u)
 
     implicit none
@@ -57,29 +59,33 @@ contains
     w2_fs   => function_space_collection%get_fs( mesh_id, element_order, W2 )
     w3_fs   => function_space_collection%get_fs( mesh_id, element_order, W3 )
 
-    rho_n   = field_type( vector_space = w3_fs )
-    rho_np1 = field_type( vector_space = w3_fs )
-    u_n       = field_type( vector_space = w2_fs )
-    u_np1     = field_type( vector_space = w2_fs )
-    mass_flux = field_type( vector_space = w2_fs )
+    rho_n       = field_type( vector_space = w3_fs )
+    rho_np1     = field_type( vector_space = w3_fs )
+    rho_temp    = field_type( vector_space = w3_fs )
+    u_n         = field_type( vector_space = w2_fs )
+    u_np1       = field_type( vector_space = w2_fs )
+    mass_flux_x = field_type( vector_space = w2_fs )
+    mass_flux_y = field_type( vector_space = w2_fs )
 
     call invoke( copy_field(u,u_n), &
                  copy_field(u,u_np1) )
 
   end subroutine cusph_cosmic_transport_init
 
-!> @brief An algorithm for testing the COSMIC transport scheme
-!> @details The algorithm iterates forwards in time and transports the density
-!>          field using the COSMIC advection scheme. This implementation
-!>          has currently been tested in the biperiodic planar domain and in
-!>          the horizontal direction only. The wind profile is defined
-!>          analytically.
-!> @param[in] mesh_id  Mesh id of the mesh all fields are on
-!> @param[inout] chi Coordinate field array
-!> @param[inout] rho Density field
-!> @param[in] cell_orientation Orientation of cells, held in a W3 field
-!> @param[in] detj_at_w2 detj values at W2 dof locations held in a W2 field
-  subroutine cusph_cosmic_transport_step(mesh_id, rho, cell_orientation, detj_at_w2)
+  !> @brief An algorithm for testing the COSMIC transport scheme.
+  !> @details The algorithm iterates forwards in time and transports the density
+  !>          field using the COSMIC advection scheme. This implementation
+  !>          has currently been tested in the biperiodic planar domain and in
+  !>          the horizontal direction only. The wind profile is defined
+  !>          analytically.
+  !> @param[in]    mesh_id          Mesh id of the mesh all fields are on
+  !> @param[inout] rho              Density field
+  !> @param[in]    cell_orientation Orientation of cells, held in a W3 field
+  !> @param[in]    detj_at_w2       Detj values at W2 dof locations held in a W2 field
+  subroutine cusph_cosmic_transport_step( mesh_id,            &
+                                          rho,                &
+                                          cell_orientation,   &
+                                          detj_at_w2 )
 
     implicit none
 
@@ -94,11 +100,14 @@ contains
 
     ! Call algorithm to calculate mass fluxes using COSMIC scheme
     call cusph_split_transport_alg( u_n, u_np1, rho, chi, cell_orientation,  &
-                                                            mesh_id, mass_flux, detj_at_w2 )
+                                 mesh_id, mass_flux_x, mass_flux_y, detj_at_w2 )
 
-    ! These lines are commented out on purpose as this code is not yet ready
-    ! Update density field using rho_n+1 = rho_n + dt * div(mass_flux)
-    ! call density_update_alg(rho_n, mass_flux, rho_np1, mesh_id)
+    call invoke(set_field_scalar(-99.0_r_def,rho_np1))
+    call cusph_fv_density_update_alg(rho, mass_flux_x, mass_flux_y, rho_temp,       &
+                                      cell_orientation, x_direction, detj_at_w2)
+
+    call cusph_fv_density_update_alg(rho_temp, mass_flux_x, mass_flux_y, rho_np1,   &
+                                      cell_orientation, y_direction, detj_at_w2)
 
   end subroutine cusph_cosmic_transport_step
 

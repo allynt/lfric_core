@@ -4547,28 +4547,31 @@ end subroutine invoke_sample_poly_adv
   !> being passed into the kernel.
   !> The cell_orientation field should not be halo exchanged across panels as the
   !> orientation of cells is local to its own panel on the cubed-sphere.
-  subroutine invoke_fv_divergence( mass_divergence,     &
-                                   mass_flux,           &
-                                   cell_orientation,    &
+  subroutine invoke_fv_divergence( mass_divergence,          &
+                                   mass_flux_x,              &
+                                   mass_flux_y,              &
+                                   cell_orientation,         &
                                    direction )
 
-    use mesh_mod,                   only : mesh_type
-    use fv_divergence_kernel_mod,   only : fv_divergence_code
+    use mesh_mod,                         only : mesh_type
+    use fv_divergence_kernel_mod,         only : fv_divergence_code
+    use flux_direction_mod,               only : x_direction, y_direction
 
     implicit none
 
     type(field_type), intent(out)   :: mass_divergence
-    type(field_type), intent(in)    :: mass_flux
+    type(field_type), intent(in)    :: mass_flux_x
+    type(field_type), intent(in)    :: mass_flux_y
     type(field_type), intent(in)    :: cell_orientation
     integer, intent(in)             :: direction
 
-    type(mesh_type)                 :: mesh
+    type(mesh_type), pointer        :: mesh => null()
 
     integer, pointer                :: map_w3(:,:) => null()
     integer, pointer                :: map_w2(:,:) => null()
 
     type(field_proxy_type)          :: cell_orientation_proxy
-    type(field_proxy_type)          :: mass_flux_proxy
+    type(field_proxy_type)          :: mass_flux_x_proxy, mass_flux_y_proxy
     type(field_proxy_type)          :: mass_divergence_proxy
 
     integer                         :: cell, nlayers
@@ -4577,34 +4580,63 @@ end subroutine invoke_sample_poly_adv
 
     cell_orientation_proxy           = cell_orientation%get_proxy()
     mass_divergence_proxy            = mass_divergence%get_proxy()
-    mass_flux_proxy                  = mass_flux%get_proxy()
+    mass_flux_x_proxy                = mass_flux_x%get_proxy()
+    mass_flux_y_proxy                = mass_flux_y%get_proxy()
 
     nlayers = cell_orientation_proxy%vspace%get_nlayers()
     ndf_w3  = cell_orientation_proxy%vspace%get_ndf( )
     undf_w3 = cell_orientation_proxy%vspace%get_undf()
-    ndf_w2  = mass_flux_proxy%vspace%get_ndf( )
-    undf_w2 = mass_flux_proxy%vspace%get_undf()
+    ndf_w2  = mass_flux_x_proxy%vspace%get_ndf( )
+    undf_w2 = mass_flux_x_proxy%vspace%get_undf()
 
-    mesh    = mass_flux%get_mesh()
-
+    mesh   => mass_flux_x%get_mesh()
     map_w3 => cell_orientation_proxy%vspace%get_whole_dofmap()
-    map_w2 => mass_flux_proxy%vspace%get_whole_dofmap()
+    map_w2 => mass_flux_x_proxy%vspace%get_whole_dofmap()
 
-    do cell=1,mesh%get_last_edge_cell() ! Loop over core cells only
+    ! There is no automatic halo exchange on purpose at the moment. Since if there
+    ! was then the x and y directional components would not be respected due to
+    ! different panel orientations on the cubed-sphere.
+    ! A ticket, #1147, has been created which addresses this issue of dealing
+    ! with panel orientation when halo exchanging W2 fields.
+    ! A similar implementation was made for invoke_subgrid_coeffs_conservative
+    ! which dealt with W3 fields and ticket #1087 implemented this.
+    if (direction == x_direction) then
 
-      call  fv_divergence_code(  nlayers,                             &
-                                 mass_divergence_proxy%data,          &
-                                 undf_w3,                             &
-                                 ndf_w3,                              &
-                                 map_w3(:,cell),                      &
-                                 cell_orientation_proxy%data,         &
-                                 undf_w2,                             &
-                                 ndf_w2,                              &
-                                 map_w2(:,cell),                      &
-                                 mass_flux_proxy%data,                &
-                                 direction )
+      do cell=1,mesh%get_last_edge_cell() ! Loop over core cells only
 
-    end do
+        call  fv_divergence_code(  nlayers,                             &
+                                   mass_divergence_proxy%data,          &
+                                   undf_w3,                             &
+                                   ndf_w3,                              &
+                                   map_w3(:,cell),                      &
+                                   cell_orientation_proxy%data,         &
+                                   undf_w2,                             &
+                                   ndf_w2,                              &
+                                   map_w2(:,cell),                      &
+                                   mass_flux_x_proxy%data,              &
+                                   direction )
+
+      end do
+
+    elseif (direction == y_direction) then
+
+      do cell=1,mesh%get_last_edge_cell() ! Loop over core cells only
+
+        call  fv_divergence_code(  nlayers,                             &
+                                   mass_divergence_proxy%data,          &
+                                   undf_w3,                             &
+                                   ndf_w3,                              &
+                                   map_w3(:,cell),                      &
+                                   cell_orientation_proxy%data,         &
+                                   undf_w2,                             &
+                                   ndf_w2,                              &
+                                   map_w2(:,cell),                      &
+                                   mass_flux_y_proxy%data,              &
+                                   direction )
+
+      end do
+
+    end if
 
   end subroutine invoke_fv_divergence
 

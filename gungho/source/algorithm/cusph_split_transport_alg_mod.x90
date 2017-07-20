@@ -3,8 +3,8 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-------------------------------------------------------------------------------
-!> @brief Algorithm which calculates the mass fluxes using the symmetric COSMIC
-!>        method.
+!> @brief Calculates the mass fluxes in the x and y direction using the
+!>        symmetric COSMIC method.
 !> @details The algorithm below outputs the mass fluxes at timestep n+1 (np1)
 !>          given the wind fields at timestep n and n+1 and the density field at
 !>          timestep n.
@@ -32,26 +32,38 @@ module cusph_split_transport_alg_mod
 
 contains
 
-!> @brief Algorithm which calculates the mass fluxes using the symmetric COSMIC
-!>        method.
-!> @details The algorithm below outputs the mass fluxes at timestep n+1 (np1)
-!>          given the wind fields at timestep n and n+1 and the density field at
-!>          timestep n.
-!> @param[in]  u_n               Winds at time level n
-!> @param[in]  u_np1             Winds at time level n+1
-!> @param[in]  rho               Density at time level n
-!> @param[in]  chi               Coordinate field array
-!> @param[in]  cell_orientation  Orientation of cells held in W3 field
-!> @param[in]  mesh_id           mesh id
-!> @param[out] mass_flux         Mass fluxes in 2D used to update density
-!> @param[in]  detj_at_w2        Detj values at W2 dof locations
+  !> @brief   The algorithm returns mass flux in the x and y directions separately
+  !>          with input the density field and winds at timestep n and n+1.
+  !> @details The algorithm is composed of four main stages. The first stage is to 
+  !>          derive the winds used to calculate the departure points for the 
+  !>          Cosmic scheme. The second stage is to then calculate the departure
+  !>          points.
+  !>          The third and fourth stages are to perform the advective and conservative
+  !>          updates respectively.
+  !>          The wind fields for the Cosmic scheme need to be in finite-volume
+  !>          form and in this algorithm we modify the given Piola winds to ensure
+  !>          that the winds have the appropriate magnitude by dividing by detJ
+  !>          at the W2 dofs and also ensuring that physically the winds have the
+  !>          correct sign.
+  !>          Once the appropriate winds are calculated the departure points are
+  !>          then calculated.
+  !> @param[in]  u_n               Winds at time level n
+  !> @param[in]  u_np1             Winds at time level n+1
+  !> @param[in]  rho               Density at time level n
+  !> @param[in]  chi               Coordinate field array
+  !> @param[in]  cell_orientation  Orientation of cells held in W3 field
+  !> @param[in]  mesh_id           mesh id
+  !> @param[out] mass_flux_x       Mass fluxes in x direction used to update density
+  !> @param[out] mass_flux_y       Mass fluxes in y direction used to update density
+  !> @param[in]  detj_at_w2        Detj values at W2 dof locations
   subroutine cusph_split_transport_alg( u_n,                &
                                         u_np1,              &
                                         rho,                &
                                         chi,                &
                                         cell_orientation,   &
                                         mesh_id,            &
-                                        mass_flux,          &
+                                        mass_flux_x,        &
+                                        mass_flux_y,        &
                                         detj_at_w2 )
 
     implicit none
@@ -62,11 +74,11 @@ contains
     type(field_type),    intent(in)     :: rho
     type(field_type),    intent(in)     :: cell_orientation
     integer(i_def),      intent(in)     :: mesh_id
-    type(field_type),    intent(out)    :: mass_flux
+    type(field_type),    intent(out)    :: mass_flux_x
+    type(field_type),    intent(out)    :: mass_flux_y
     type(field_type),    intent(in)     :: detj_at_w2
 
     type( field_type ) :: departure_wind_n, departure_wind_np1, dep_pts_x, dep_pts_y
-    type( field_type ) :: mass_flux_x, mass_flux_y
     type( field_type ) :: rho_n, rho_adv_x, rho_adv_y, rho_hat_adv_x, rho_hat_adv_y
     type( field_type ) :: rho_x, rho_y
     type( field_type ) :: u_x_fem, u_y_fem
@@ -81,8 +93,6 @@ contains
     departure_wind_np1 = field_type( vector_space = w2_fs )
     dep_pts_x          = field_type( vector_space = w2_fs )
     dep_pts_y          = field_type( vector_space = w2_fs )
-    mass_flux_x        = field_type( vector_space = w2_fs )
-    mass_flux_y        = field_type( vector_space = w2_fs )
     u_x_fem            = field_type( vector_space = w2_fs )
     u_y_fem            = field_type( vector_space = w2_fs )
 
@@ -122,16 +132,12 @@ contains
 
     ! Calculate separately the conservative fluxes in the x and y directions (horizontal)
     call invoke( set_field_scalar(0.0_r_def, mass_flux_x), &
-                 set_field_scalar(0.0_r_def, mass_flux_y), &
-                 set_field_scalar(0.0_r_def, mass_flux) )
+                 set_field_scalar(0.0_r_def, mass_flux_y) )
 
     call oned_conservative_flux_alg(x_direction, u_n, dep_pts_x, cell_orientation,  &
                                                                   rho_hat_adv_x, rho_hat_adv_y, mass_flux_x)
     call oned_conservative_flux_alg(y_direction, u_n, dep_pts_y, cell_orientation,  &
                                                                   rho_hat_adv_x, rho_hat_adv_y, mass_flux_y)
-
-    ! Combine the mass fluxes in the x and y directions
-    call invoke_plus_field_data(mass_flux_x, mass_flux_y, mass_flux)
 
   end subroutine cusph_split_transport_alg
 

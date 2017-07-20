@@ -60,8 +60,8 @@ contains
                                          u,                   &
                                          dep_pts,             &
                                          cell_orientation,    &
-                                         rho_x,              &
-                                         rho_y,              &
+                                         rho_x,               &
+                                         rho_y,               &
                                          mass_flux)
 
     implicit none
