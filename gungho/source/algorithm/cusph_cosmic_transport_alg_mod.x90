@@ -98,12 +98,14 @@ contains
 
     chi => get_coordinates()
 
+    call invoke( copy_field(rho,rho_n) )
+
     ! Call algorithm to calculate mass fluxes using COSMIC scheme
-    call cusph_split_transport_alg( u_n, u_np1, rho, chi, cell_orientation,  &
+    call cusph_split_transport_alg( u_n, u_np1, rho_n, chi, cell_orientation,  &
                                  mesh_id, mass_flux_x, mass_flux_y, detj_at_w2 )
 
     call invoke(set_field_scalar(-99.0_r_def,rho_np1))
-    call cusph_fv_density_update_alg(rho, mass_flux_x, mass_flux_y, rho_temp,       &
+    call cusph_fv_density_update_alg(rho_n, mass_flux_x, mass_flux_y, rho_temp,     &
                                       cell_orientation, x_direction, detj_at_w2)
 
     call cusph_fv_density_update_alg(rho_temp, mass_flux_x, mass_flux_y, rho_np1,   &

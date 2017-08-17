@@ -2596,7 +2596,7 @@ subroutine invoke_subgrid_coeffs(a0,a1,a2,rho,cell_orientation,direction,rho_app
 
     !NOTE: The default looping limits for this type of field would be 
     ! mesh%get_last_halo_cell(1) but this kernel requires a modified loop limit
-    ! inorder to function correctly. See ticket #1058.
+    ! in order to function correctly. See ticket #1058.
     ! The kernel loops over all core and some halo cells.
     do cell = 1, ncells_to_iterate
 
@@ -2786,7 +2786,7 @@ subroutine invoke_subgrid_coeffs_conservative( a0,                              
 
     !NOTE: The default looping limits for this type of field would be 
     ! mesh%get_last_halo_cell(1) but this kernel requires a modified loop limit
-    ! inorder to function correctly. See ticket #1058.
+    ! in order to function correctly. See ticket #1058.
     ! The kernel loops over all core and some halo cells.
 
     if (direction == x_direction) then
@@ -2928,7 +2928,7 @@ subroutine invoke_conservative_fluxes(    rho,          &
   mesh => rho%get_mesh()
   !NOTE: The default looping limits for this type of field would be 
   ! mesh%get_last_halo_cell(1) but this kernel requires a modified loop limit
-  ! inorder to function correctly. See ticket #1058.
+  ! in order to function correctly. See ticket #1058.
   ! The kernel loops over all core cells only.
   do cell = 1, mesh%get_last_edge_cell() 
       map_rho => rho_proxy%vspace%get_cell_dofmap( cell )
@@ -3158,7 +3158,7 @@ subroutine invoke_calc_departure_wind(u_departure_wind, u_piola, chi )
   mesh => u_piola%get_mesh()
   !NOTE: The default looping limits for this type of field would be 
   ! mesh%get_last_halo_cell(1) but this kernel requires a modified loop limit
-  ! inorder to function correctly. See ticket #1058.
+  ! in order to function correctly. See ticket #1058.
   ! The kernel loops over all core and all halo cells.
   do cell = 1,mesh%get_ncells_2d()
      map     => u_piola_p%vspace%get_cell_dofmap( cell )
@@ -3249,21 +3249,10 @@ subroutine invoke_calc_deppts(  u_n,                  &
 
   nlayers = u_n_proxy%vspace%get_nlayers()
 
-  swap = .false.
-  do d = 1,dep_pt_stencil_extent
-    if (u_n_proxy%is_dirty(depth=d)) swap = .true.
-  end do
-  if ( swap ) call u_n_proxy%halo_exchange(depth=dep_pt_stencil_extent)
-  swap = .false.
-  do d = 1,dep_pt_stencil_extent
-    if (u_np1_proxy%is_dirty(depth=d)) swap = .true.
-  end do
-  if ( swap ) call u_np1_proxy%halo_exchange(depth=dep_pt_stencil_extent)
-
   mesh => u_n%get_mesh()
   !NOTE: The default looping limits for this type of field would be 
   ! mesh%get_last_halo_cell(1) but this kernel requires a modified loop limit
-  ! inorder to function correctly. See ticket #1058.
+  ! in order to function correctly. See ticket #1058.
   ! The kernel loops over all core cells only.
   do cell=1,mesh%get_last_edge_cell()
 
@@ -4540,7 +4529,7 @@ end subroutine invoke_sample_poly_adv
 
     implicit none
 
-    type(field_type), intent(out)   :: mass_divergence
+    type(field_type), intent(inout) :: mass_divergence
     type(field_type), intent(in)    :: mass_flux_x
     type(field_type), intent(in)    :: mass_flux_y
     type(field_type), intent(in)    :: cell_orientation
@@ -4650,6 +4639,7 @@ end subroutine invoke_sample_poly_adv
     integer                            :: ndf_w2, undf_w2
     integer, pointer                   :: map_w3(:,:) => null()
     integer, pointer                   :: map_w2(:,:) => null()
+    integer                            :: halo_depth
 
     type(mesh_type), pointer           :: mesh => null()
 
@@ -4668,7 +4658,8 @@ end subroutine invoke_sample_poly_adv
     map_w2 => x_field_out_proxy%vspace%get_whole_dofmap()
     map_w3 => cell_orientation_proxy%vspace%get_whole_dofmap()
 
-    ! Do not perform a halo exchange on purpose
+    halo_depth = mesh%get_halo_depth()
+    call w2_field_in_proxy%halo_exchange(depth=halo_depth)
 
     ! Extract the x-component of the W2 field
     do cell = 1, mesh%get_ncells_2d() ! Loop over core and halo cells
@@ -4701,5 +4692,227 @@ end subroutine invoke_sample_poly_adv
     end do
 
   end subroutine invoke_extract_xy
+
+
+  !-------------------------------------------------------------------------------
+  ! Ticket #1156. Stephen Pring
+  ! This code is implemented in psykal-lite because the cells to
+  ! iterate over include all core cells and all halo cells. At present, the default
+  ! iteration is over core cells and a halo depth of 1. The cosmic transport scheme
+  ! uses a larger halo depth and this routine requires iteration over all values
+  ! in the halo as well.
+  subroutine invoke_cosmic_departure_wind(dep_wind_x,dep_wind_y,u_piola_x,u_piola_y,chi,direction)
+    use cosmic_departure_wind_kernel_mod, only: cosmic_departure_wind_code
+    use mesh_mod,                         only: mesh_type
+    use flux_direction_mod,               only: x_direction, y_direction
+    use log_mod,                          only: log_event, LOG_LEVEL_ERROR
+
+    implicit none
+
+    type(field_type), intent(inout)      :: dep_wind_x, dep_wind_y
+    type(field_type), intent(in)         :: chi(3), u_piola_x, u_piola_y
+    integer, intent(in)                  :: direction
+
+    type(field_proxy_type) :: dep_wind_x_p, dep_wind_y_p, chi_p(3)
+    type(field_proxy_type) :: u_piola_x_p, u_piola_y_p
+
+    integer                 :: cell, nlayers
+    integer                 :: ndf_chi, ndf_w2, ndf_udep
+    integer                 :: undf_chi, undf_w2
+    integer                 :: dim_w2, diff_dim_chi
+    integer                 :: df_u, df_chi, df_udep
+
+    integer, pointer        :: map_chi(:) => null()
+    integer, pointer        :: map(:) => null()
+    real(kind=r_def), pointer :: nodes_udep(:,:) => null()
+
+    real(kind=r_def), allocatable  :: nodal_basis_u(:,:,:)
+    real(kind=r_def), allocatable  :: diff_basis_chi(:,:,:)
+    integer :: ii
+    type(mesh_type), pointer :: mesh => null()
+    integer :: halo_depth
+
+    do ii = 1,3
+      chi_p(ii)  = chi(ii)%get_proxy()
+    end do
+    u_piola_x_p = u_piola_x%get_proxy()
+    u_piola_y_p = u_piola_y%get_proxy()
+    dep_wind_x_p = dep_wind_x%get_proxy()
+    dep_wind_y_p = dep_wind_y%get_proxy()
+
+    nlayers = u_piola_x_p%vspace%get_nlayers()
+
+    ndf_udep   = dep_wind_x_p%vspace%get_ndf()
+    nodes_udep => dep_wind_x_p%vspace%get_nodes()
+
+    ndf_w2  = u_piola_x_p%vspace%get_ndf()
+    undf_w2 = u_piola_x_p%vspace%get_undf()
+    dim_w2 = u_piola_x_p%vspace%get_dim_space()
+
+    ndf_chi  = chi_p(1)%vspace%get_ndf()
+    undf_chi = chi_p(1)%vspace%get_undf()
+    diff_dim_chi = chi_p(1)%vspace%get_dim_space_diff()
+
+    ! Evaluate the basis function
+    allocate(diff_basis_chi(diff_dim_chi, ndf_chi, ndf_w2))
+    do df_udep = 1, ndf_udep
+      do df_chi = 1, ndf_chi
+        diff_basis_chi(:,df_chi,df_udep) = chi_p(1)%vspace%call_function(DIFF_BASIS,df_chi,nodes_udep(:,df_udep))
+      end do
+    end do
+
+    ! Evaluate the basis function
+    allocate(nodal_basis_u(dim_w2, ndf_w2, ndf_w2))
+    do df_udep = 1, ndf_udep
+      do df_u = 1, ndf_w2
+        nodal_basis_u(:,df_u,df_udep) = u_piola_x_p%vspace%call_function(BASIS,df_u,nodes_udep(:,df_udep))
+      end do
+    end do
+
+    mesh => u_piola_x%get_mesh()
+    halo_depth = mesh%get_halo_depth()
+    ! Do not halo exchange the input u_piola winds on purpose
+    if (chi_p(1)%is_dirty(depth=1))  call chi_p(1)%halo_exchange(depth=halo_depth)
+    if (chi_p(2)%is_dirty(depth=1))  call chi_p(2)%halo_exchange(depth=halo_depth)
+    if (chi_p(3)%is_dirty(depth=1))  call chi_p(3)%halo_exchange(depth=halo_depth)
+
+
+    ! NOTE: The default looping limits for this type of field would be 
+    ! mesh%get_last_halo_cell(1) but this kernel requires a modified loop limit
+    ! in order to function correctly. See ticket #1058.
+    ! The kernel loops over all core and all halo cells.
+    if (direction == x_direction) then
+      do cell = 1,mesh%get_ncells_2d()
+         map     => u_piola_x_p%vspace%get_cell_dofmap( cell )
+         map_chi => chi_p(1)%vspace%get_cell_dofmap( cell )
+         call cosmic_departure_wind_code( nlayers,                                  &
+                                          dep_wind_x_p%data,                        &
+                                          u_piola_x_p%data,                         &
+                                          chi_p(1)%data,                            &
+                                          chi_p(2)%data,                            &
+                                          chi_p(3)%data,                            &
+                                          ndf_w2, undf_w2, map, nodal_basis_u,      &
+                                          ndf_chi, undf_chi, map_chi,               &
+                                          diff_basis_chi,                           &
+                                          direction                                 &
+                                           )
+      end do
+    elseif (direction == y_direction) then
+      do cell = 1,mesh%get_ncells_2d()
+         map     => u_piola_y_p%vspace%get_cell_dofmap( cell )
+         map_chi => chi_p(1)%vspace%get_cell_dofmap( cell )
+         call cosmic_departure_wind_code( nlayers,                                  &
+                                          dep_wind_y_p%data,                        &
+                                          u_piola_y_p%data,                         &
+                                          chi_p(1)%data,                            &
+                                          chi_p(2)%data,                            &
+                                          chi_p(3)%data,                            &
+                                          ndf_w2, undf_w2, map, nodal_basis_u,      &
+                                          ndf_chi, undf_chi, map_chi,               &
+                                          diff_basis_chi,                           &
+                                          direction                                 &
+                                           )
+      end do
+    else
+      call log_event("Direction incorrectly specified in invoke_cosmic_departure_wind",LOG_LEVEL_ERROR)
+    end if
+
+    deallocate(nodal_basis_u)
+    deallocate(diff_basis_chi)
+    call dep_wind_x_p%set_dirty()
+    call dep_wind_y_p%set_dirty()
+
+  end subroutine invoke_cosmic_departure_wind
+
+
+  !-------------------------------------------------------------------------------
+  ! Ticket #1156. Stephen Pring
+  ! This code is implemented in psykal-lite because the cells to
+  ! iterate over include all core cells and all halo cells. At present, the default
+  ! iteration is over core cells and a halo depth of 1. The cosmic transport scheme
+  ! uses a larger halo depth and this routine requires iteration over all values
+  ! in the halo as well.
+  subroutine invoke_correct_cosmic_wind(wind_x_out,wind_y_out,departure_wind_x_in,departure_wind_y_in,orientation_of_cells,direction)
+
+    use correct_cosmic_wind_kernel_mod, only: correct_cosmic_wind_code
+    use flux_direction_mod,             only: x_direction, y_direction
+    use mesh_mod,                       only: mesh_type
+    use log_mod,                        only: log_event, LOG_LEVEL_ERROR
+
+    implicit none
+
+    type(field_type), intent(inout) :: wind_x_out, wind_y_out
+    type(field_type), intent(in)    :: departure_wind_x_in,departure_wind_y_in,orientation_of_cells
+    integer,          intent(in)    :: direction
+
+    type(field_proxy_type) :: wind_x_in_proxy, wind_y_in_proxy
+    type(field_proxy_type) :: wind_x_out_proxy, wind_y_out_proxy
+    type(field_proxy_type) :: chi_p(3), orientation_proxy
+
+    integer                 :: cell, nlayers
+    integer                 :: ndf_w2, ndf_w3
+    integer                 :: undf_w2, undf_w3
+    integer, pointer        :: map_w3(:) => null()
+    integer, pointer        :: map_w2(:) => null()
+
+    type(mesh_type), pointer :: mesh => null()
+
+    wind_x_in_proxy = departure_wind_x_in%get_proxy()
+    wind_y_in_proxy = departure_wind_y_in%get_proxy()
+    wind_x_out_proxy = wind_x_out%get_proxy()
+    wind_y_out_proxy = wind_y_out%get_proxy()
+    orientation_proxy = orientation_of_cells%get_proxy()
+
+    nlayers = orientation_proxy%vspace%get_nlayers()
+    ndf_w3  = orientation_proxy%vspace%get_ndf()
+    undf_w3 = orientation_proxy%vspace%get_undf()
+
+    ndf_w2  = wind_x_in_proxy%vspace%get_ndf( )
+    undf_w2 = wind_x_in_proxy%vspace%get_undf()
+
+    mesh => orientation_of_cells%get_mesh()
+
+
+    if (direction == x_direction) then
+      do cell = 1, mesh%get_ncells_2d()
+        map_w3 => orientation_proxy%vspace%get_cell_dofmap(cell)
+        map_w2 => wind_x_in_proxy%vspace%get_cell_dofmap(cell)
+
+        call correct_cosmic_wind_code(  nlayers,                        &
+                                        wind_x_out_proxy%data,          &
+                                        wind_x_in_proxy%data,           &
+                                        orientation_proxy%data,         &
+                                        undf_w2,                        &
+                                        ndf_w2,                         &
+                                        map_w2,                         &
+                                        undf_w3,                        &
+                                        ndf_w3,                         &
+                                        map_w3,                         &
+                                        direction )
+
+      end do
+    elseif (direction == y_direction) then
+      do cell = 1, mesh%get_ncells_2d()
+        map_w3 => orientation_proxy%vspace%get_cell_dofmap(cell)
+        map_w2 => wind_x_in_proxy%vspace%get_cell_dofmap(cell)
+
+        call correct_cosmic_wind_code(  nlayers,                        &
+                                        wind_y_out_proxy%data,          &
+                                        wind_y_in_proxy%data,           &
+                                        orientation_proxy%data,         &
+                                        undf_w2,                        &
+                                        ndf_w2,                         &
+                                        map_w2,                         &
+                                        undf_w3,                        &
+                                        ndf_w3,                         &
+                                        map_w3,                         &
+                                        direction )
+
+      end do
+    else
+      call log_event("Direction incorrectly specified in invoke_correct_cosmic_wind",LOG_LEVEL_ERROR)
+    end if
+
+  end subroutine invoke_correct_cosmic_wind
 
 end module psykal_lite_mod

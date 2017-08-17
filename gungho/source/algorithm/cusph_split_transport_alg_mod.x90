@@ -16,11 +16,13 @@ module cusph_split_transport_alg_mod
   use flux_direction_mod,                only: x_direction, y_direction
   use biperiodic_deppt_config_mod,       only: method
   use subgrid_config_mod,                only: dep_pt_stencil_extent
-  use psykal_lite_mod,                   only: invoke_calc_departure_wind,     &
-                                               invoke_calc_deppts,             &
+  use psykal_lite_mod,                   only: invoke_calc_deppts,             &
                                                invoke_axpby,                   &
                                                invoke_plus_field_data,         &
-                                               invoke_extract_xy
+                                               invoke_extract_xy,              &
+                                               invoke_cosmic_departure_wind,   &
+                                               invoke_correct_cosmic_wind,     &
+                                               invoke_set_field_scalar
 
   use oned_advective_density_update_alg_mod,  only: oned_advective_density_update_alg
   use oned_conservative_flux_alg_mod,         only: oned_conservative_flux_alg
@@ -70,18 +72,23 @@ contains
 
     type(field_type),    intent(in)     :: u_n
     type(field_type),    intent(in)     :: u_np1
-    type(field_type),    intent(in)     :: chi(3)
     type(field_type),    intent(in)     :: rho
+    type(field_type),    intent(in)     :: chi(3)
     type(field_type),    intent(in)     :: cell_orientation
     integer(i_def),      intent(in)     :: mesh_id
-    type(field_type),    intent(out)    :: mass_flux_x
-    type(field_type),    intent(out)    :: mass_flux_y
+    type(field_type),    intent(inout)  :: mass_flux_x
+    type(field_type),    intent(inout)  :: mass_flux_y
     type(field_type),    intent(in)     :: detj_at_w2
 
-    type( field_type ) :: departure_wind_n, departure_wind_np1, dep_pts_x, dep_pts_y
+    type( field_type ) :: dep_pts_x, dep_pts_y
     type( field_type ) :: rho_n, rho_adv_x, rho_adv_y, rho_hat_adv_x, rho_hat_adv_y
     type( field_type ) :: rho_x, rho_y
-    type( field_type ) :: u_x_fem, u_y_fem
+    type( field_type ) :: u_x_fem_n, u_y_fem_n, u_x_fem_np1, u_y_fem_np1
+    type( field_type ) :: dep_wind_x_n, dep_wind_y_n
+    type( field_type ) :: dep_wind_x_np1, dep_wind_y_np1
+
+    type( field_type ) :: corrected_dep_wind_x_n, corrected_dep_wind_y_n
+    type( field_type ) :: corrected_dep_wind_x_np1, corrected_dep_wind_y_np1
 
     type(function_space_type), pointer :: w2_fs     => null()
     type(function_space_type), pointer :: w3_fs     => null()
@@ -89,12 +96,18 @@ contains
     w3_fs => rho%get_function_space()
     w2_fs => u_n%get_function_space()
 
-    departure_wind_n   = field_type( vector_space = w2_fs )
-    departure_wind_np1 = field_type( vector_space = w2_fs )
     dep_pts_x          = field_type( vector_space = w2_fs )
     dep_pts_y          = field_type( vector_space = w2_fs )
-    u_x_fem            = field_type( vector_space = w2_fs )
-    u_y_fem            = field_type( vector_space = w2_fs )
+
+    dep_wind_x_n   = field_type( vector_space = w2_fs )
+    dep_wind_y_n   = field_type( vector_space = w2_fs )
+    dep_wind_x_np1   = field_type( vector_space = w2_fs )
+    dep_wind_y_np1   = field_type( vector_space = w2_fs )
+
+    corrected_dep_wind_x_n   = field_type( vector_space = w2_fs )
+    corrected_dep_wind_y_n   = field_type( vector_space = w2_fs )
+    corrected_dep_wind_x_np1   = field_type( vector_space = w2_fs )
+    corrected_dep_wind_y_np1   = field_type( vector_space = w2_fs )
 
     rho_adv_x          = field_type( vector_space = w3_fs )
     rho_adv_y          = field_type( vector_space = w3_fs )
@@ -102,22 +115,41 @@ contains
     rho_hat_adv_y      = field_type( vector_space = w3_fs )
     rho_x              = field_type( vector_space = w3_fs )
     rho_y              = field_type( vector_space = w3_fs )
-
-    ! Calculate the departure wind used for calculating departure points
-    call invoke_calc_departure_wind(departure_wind_n, u_n, chi)
-    call invoke_calc_departure_wind(departure_wind_np1, u_np1, chi)
+    u_x_fem_n          = field_type( vector_space = w2_fs )
+    u_y_fem_n          = field_type( vector_space = w2_fs )
+    u_x_fem_np1        = field_type( vector_space = w2_fs )
+    u_y_fem_np1        = field_type( vector_space = w2_fs )
 
     ! Separate finite-element wind field into x and y components
-    call invoke( set_field_scalar(0.0_r_def,u_x_fem), &
-                 set_field_scalar(0.0_r_def,u_y_fem) )
-    call invoke_extract_xy(u_x_fem,u_y_fem,u_n,cell_orientation)
+    call invoke( set_field_scalar(-99.0_r_def,u_x_fem_n),   &
+                 set_field_scalar(-99.0_r_def,u_y_fem_n),   &
+                 set_field_scalar(-99.0_r_def,u_x_fem_np1), &
+                 set_field_scalar(-99.0_r_def,u_y_fem_np1) )
+
+    call invoke_extract_xy(u_x_fem_n,u_y_fem_n,u_n,cell_orientation)
+    call invoke_extract_xy(u_x_fem_np1,u_y_fem_np1,u_np1,cell_orientation)
+
+    ! Calculate the departure wind used for calculating departure points
+    call invoke_cosmic_departure_wind(dep_wind_x_n, dep_wind_y_n, u_x_fem_n, u_y_fem_n, chi, x_direction)
+    call invoke_cosmic_departure_wind(dep_wind_x_n, dep_wind_y_n, u_x_fem_n, u_y_fem_n, chi, y_direction)
+    call invoke_cosmic_departure_wind(dep_wind_x_np1, dep_wind_y_np1, u_x_fem_np1, u_y_fem_np1, chi, x_direction)
+    call invoke_cosmic_departure_wind(dep_wind_x_np1, dep_wind_y_np1, u_x_fem_np1, u_y_fem_np1, chi, y_direction)
+
+    call invoke_correct_cosmic_wind(corrected_dep_wind_x_n,corrected_dep_wind_y_n,    &
+                                dep_wind_x_n,dep_wind_y_n,cell_orientation,x_direction)
+    call invoke_correct_cosmic_wind(corrected_dep_wind_x_n,corrected_dep_wind_y_n,    &
+                                dep_wind_x_n,dep_wind_y_n,cell_orientation,y_direction)
+    call invoke_correct_cosmic_wind(corrected_dep_wind_x_np1,corrected_dep_wind_y_np1, &
+                                dep_wind_x_np1,dep_wind_y_np1,cell_orientation,x_direction)
+    call invoke_correct_cosmic_wind(corrected_dep_wind_x_np1,corrected_dep_wind_y_np1, &
+                                dep_wind_x_np1,dep_wind_y_np1,cell_orientation,y_direction)
 
     ! Calculate the departure points for W2 nodal points at lowest order
-    call invoke( set_field_scalar(0.0_r_def, dep_pts_x), &
-                 set_field_scalar(0.0_r_def, dep_pts_y) )
-    call invoke_calc_deppts(departure_wind_n, departure_wind_np1, dep_pts_x,   &
+    call invoke_set_field_scalar(-99.0_r_def,dep_pts_x)
+    call invoke_set_field_scalar(-99.0_r_def,dep_pts_y)
+    call invoke_calc_deppts(corrected_dep_wind_x_n, corrected_dep_wind_x_np1, dep_pts_x,   &
                    cell_orientation, x_direction, method, dep_pt_stencil_extent)
-    call invoke_calc_deppts(departure_wind_n, departure_wind_np1, dep_pts_y,   &
+    call invoke_calc_deppts(corrected_dep_wind_y_n, corrected_dep_wind_y_np1, dep_pts_y,   &
                    cell_orientation, y_direction, method, dep_pt_stencil_extent)
 
     ! Perform two 1D advective updates in the x and y directions (horizontal)
