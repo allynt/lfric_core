@@ -1,15 +1,9 @@
 !-----------------------------------------------------------------------------
 ! (C) Crown copyright 2017 Met Office. All rights reserved.
-! For further details please refer to the file LICENCE which you should have
-! received as part of this distribution.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
 !-----------------------------------------------------------------------------
-!> @brief Algorithm which acts in one direction only and updates density using
-!>        the advective form of transport equation
-!> @details Updates the density in either the x or y direction depending on the
-!>          direction variable. An advective update is performed but using the
-!>          conservative flux operator, a multiplicative correction is made to
-!>          ensure the advective update is performed.
-module oned_advective_density_update_alg_mod
+module oned_density_update_alg_mod
 
   use constants_mod,                     only: r_def, i_def
   use field_mod,                         only: field_type
@@ -21,6 +15,7 @@ module oned_advective_density_update_alg_mod
   use density_update_alg_mod,            only: density_update_alg
   use subgrid_config_mod,                only: dep_pt_stencil_extent,          &
                                                rho_approximation_stencil_extent
+  use runtime_constants_mod,             only: get_mass_matrix, w3_id
 
   use psykal_lite_mod,                   only: invoke_subgrid_coeffs,          &
                                                invoke_conservative_fluxes,     &
@@ -29,11 +24,14 @@ module oned_advective_density_update_alg_mod
   use transport_config_mod,              only: scheme, &
                                                transport_scheme_bip_cosmic, &
                                                transport_scheme_cusph_cosmic
+  use cusph_density_update_alg_mod,      only: cusph_density_update_alg
+  use operator_mod,                      only: operator_type
+  use dg_matrix_vector_kernel_mod,       only: dg_matrix_vector_kernel_type
 
   implicit none
 
   private
-  public :: oned_advective_density_update_alg
+  public :: oned_density_update_alg
 
 contains
 
@@ -49,13 +47,13 @@ contains
 !> @param[in]    cell_orientation Orientation of cells, in particular halo cells
 !> @param[in]    rho_in           Density at time n
 !> @param[inout] rho_out          Density after advective update
-  subroutine oned_advective_density_update_alg(   direction,            &
-                                                  u,                    &
-                                                  dep_pts,              &
-                                                  cell_orientation,     &
-                                                  detj_at_w2,           &
-                                                  rho_in,               &
-                                                  rho_out)
+  subroutine oned_density_update_alg(   direction,            &
+                                        u,                    &
+                                        dep_pts,              &
+                                        cell_orientation,     &
+                                        detj_at_w2,           &
+                                        rho_in,               &
+                                        rho_out)
 
     implicit none
 
@@ -71,9 +69,12 @@ contains
     type( field_type ) :: rho_adv, rho_hat_adv
     type( field_type ) :: rho_constant_1, rho_adv_np1, rho_constant_np1
     type( field_type ) :: mass_flux
+    type( field_type ) :: mass
 
     type(function_space_type), pointer :: rho_fs   => null()
     type(function_space_type), pointer :: u_fs     => null()
+
+    type(operator_type), pointer :: mm_w3 => null()
 
     rho_fs => rho_in%get_function_space()
     u_fs   => u%get_function_space() 
@@ -88,6 +89,7 @@ contains
     rho_constant_np1  = field_type( vector_space = rho_fs )
     rho_constant_1    = field_type( vector_space = rho_fs )
     mass_flux         = field_type( vector_space = u_fs )
+    mass              = field_type( vector_space = rho_fs )
 
     ! Calculate the conservative fluxes and update rho
     call invoke( set_field_scalar(0.0_r_def,mass_flux), &
@@ -95,18 +97,26 @@ contains
                  set_field_scalar(0.0_r_def,a1),        &
                  set_field_scalar(0.0_r_def, a2) )
 
-    call invoke_subgrid_coeffs(a0,a1,a2,rho_in,cell_orientation,direction,      &
-                        rho_approximation_stencil_extent,dep_pt_stencil_extent)
-
     if (scheme == transport_scheme_cusph_cosmic) then
-      call invoke_fv_mass_fluxes(  rho_in, dep_pts, u, mass_flux,  &
+      mm_w3 => get_mass_matrix(w3_id)
+      call invoke( dg_matrix_vector_kernel_type(mass,   rho_in,   mm_w3) )
+      call invoke_subgrid_coeffs(a0,a1,a2,mass,cell_orientation,direction,      &
+                          rho_approximation_stencil_extent,dep_pt_stencil_extent)
+      call invoke_fv_mass_fluxes(  mass, dep_pts, u, mass_flux,  &
                                    a0, a1, a2, direction, dep_pt_stencil_extent )
     else
+      call invoke_subgrid_coeffs(a0,a1,a2,rho_in,cell_orientation,direction,      &
+                          rho_approximation_stencil_extent,dep_pt_stencil_extent)
       call invoke_conservative_fluxes(  rho_in, dep_pts, u, mass_flux,  &
                                    a0, a1, a2, direction, dep_pt_stencil_extent )
     end if
 
-    call density_update_alg(rho_in, mass_flux, rho_adv_np1, detj_at_w2)
+    if (scheme == transport_scheme_cusph_cosmic) then
+      call cusph_density_update_alg(rho_in, mass_flux, rho_adv_np1, cell_orientation, direction )
+    else
+      call density_update_alg(rho_in, mass_flux, rho_adv_np1, detj_at_w2)
+    end if
+
 
     ! Calculate the fluxes for rho=1
     call invoke( set_field_scalar(0.0_r_def,mass_flux), &
@@ -114,22 +124,33 @@ contains
                  set_field_scalar(0.0_r_def,a0), &
                  set_field_scalar(0.0_r_def,a1), &
                  set_field_scalar(0.0_r_def,a2) )
-    call invoke_subgrid_coeffs(a0,a1,a2,rho_constant_1,cell_orientation,direction,        &
-                        rho_approximation_stencil_extent,dep_pt_stencil_extent)
+
 
     if (scheme == transport_scheme_cusph_cosmic) then
-      call invoke_fv_mass_fluxes(  rho_constant_1, dep_pts, u, mass_flux,  &
+      mm_w3 => get_mass_matrix(w3_id)
+      call invoke( dg_matrix_vector_kernel_type(mass,   rho_constant_1,   mm_w3) )
+      call invoke_subgrid_coeffs(a0,a1,a2,mass,cell_orientation,direction,        &
+                          rho_approximation_stencil_extent,dep_pt_stencil_extent)
+
+      call invoke_fv_mass_fluxes(  mass, dep_pts, u, mass_flux,  &
                                    a0, a1, a2, direction, dep_pt_stencil_extent )
     else
+      call invoke_subgrid_coeffs(a0,a1,a2,rho_constant_1,cell_orientation,direction,        &
+                          rho_approximation_stencil_extent,dep_pt_stencil_extent)
       call invoke_conservative_fluxes(  rho_constant_1, dep_pts, u, mass_flux,  &
                                    a0, a1, a2, direction, dep_pt_stencil_extent )
     end if
 
-    call density_update_alg(rho_constant_1, mass_flux, rho_constant_np1, detj_at_w2)
+    if (scheme == transport_scheme_cusph_cosmic) then
+      call cusph_density_update_alg(rho_constant_1, mass_flux, rho_constant_np1, cell_orientation, direction )
+    else
+      call density_update_alg(rho_constant_1, mass_flux, rho_constant_np1, detj_at_w2)
+    end if
+
 
     ! Perform multiplicative correction to obtain the advective update of density
     call invoke_divide_field(rho_adv_np1,rho_constant_np1,rho_out)
 
-  end subroutine oned_advective_density_update_alg
+  end subroutine oned_density_update_alg
 
-end module oned_advective_density_update_alg_mod
+end module oned_density_update_alg_mod

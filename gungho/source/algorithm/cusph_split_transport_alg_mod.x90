@@ -24,8 +24,8 @@ module cusph_split_transport_alg_mod
                                                invoke_correct_cosmic_wind,     &
                                                invoke_set_field_scalar
 
-  use oned_advective_density_update_alg_mod,  only: oned_advective_density_update_alg
-  use conservative_flux_alg_mod,              only: conservative_flux_alg
+  use oned_density_update_alg_mod,       only: oned_density_update_alg
+  use conservative_flux_alg_mod,         only: conservative_flux_alg
 
   implicit none
 
@@ -153,9 +153,9 @@ contains
                    cell_orientation, y_direction, method, dep_pt_stencil_extent)
 
     ! Perform two 1D advective updates in the x and y directions (horizontal)
-    call oned_advective_density_update_alg(x_direction, u_n, dep_pts_x,       &
+    call oned_density_update_alg(x_direction, u_n, dep_pts_x,       &
                                   cell_orientation, detj_at_w2, rho, rho_adv_x)
-    call oned_advective_density_update_alg(y_direction, u_n, dep_pts_y,       &
+    call oned_density_update_alg(y_direction, u_n, dep_pts_y,       &
                                   cell_orientation, detj_at_w2, rho, rho_adv_y)
 
     ! Average the two advective density updates with the density at timestep level n
