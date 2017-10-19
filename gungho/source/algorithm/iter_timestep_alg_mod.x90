@@ -276,7 +276,7 @@ contains
       end if
 
       ! Set advecting velocity & terms
-      call invoke_axpby(varalpha, state_n(igh_u), varbeta, state(igh_u), u_adv)
+      call invoke_axpby(varbeta, state_n(igh_u), varalpha, state(igh_u), u_adv)
       call advection_alg(rhs_adv, state_n, xi, u_adv)
       if ( use_moisture ) call advection_mr_alg(mr, u_adv)
       call bundle_ax(dt, rhs_adv, rhs_adv, bundle_size) 
