@@ -20,7 +20,7 @@ use argument_mod,            only : arg_type, func_type,           &
                                     QUADRATURE_XYoZ, GH_REAL
 use constants_mod,           only : r_def, PI
 use kernel_mod,              only : kernel_type
-use initial_wind_config_mod, only : profile, rotation_angle, u0, v0
+use initial_wind_config_mod, only : profile, sbr_angle_lat, sbr_angle_lon, u0, v0
 
 implicit none
 
@@ -127,7 +127,6 @@ subroutine initial_u_code(nlayers, &
   real(kind=r_def), dimension(ndf_chi)         :: chi_1_cell, chi_2_cell, chi_3_cell
   real(kind=r_def), dimension(3)               :: u_physical, u_spherical, xyz, llr
   real(kind=r_def)                             :: integrand
-  real(kind=r_def), dimension(2)               :: option
 
   do k = 0, nlayers-1
     do df = 1, ndf_chi
@@ -155,12 +154,11 @@ subroutine initial_u_code(nlayers, &
         end do
         if ( geometry == base_mesh_geometry_spherical ) then
           call xyz2llr(xyz(1), xyz(2), xyz(3), llr(1), llr(2), llr(3))
-          option = (/U0, rotation_angle/)
-          u_spherical = analytic_wind(llr, time, profile, 2, option)
+          u_spherical = analytic_wind(llr, time, profile, 3,                  &
+                                     (/ U0, sbr_angle_lat, sbr_angle_lon /))
           u_physical = sphere2cart_vector(u_spherical,llr) 
         else
-          option = (/U0, V0/)
-          u_physical = analytic_wind(xyz, time, profile, 2, option)
+          u_physical = analytic_wind(xyz, time, profile, 2, (/ U0, V0 /))
         end if
         do df = 1, ndf 
           integrand = dot_product(matmul(jacobian(:,:,qp1,qp2),&

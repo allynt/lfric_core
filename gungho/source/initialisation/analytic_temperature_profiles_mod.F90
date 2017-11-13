@@ -32,7 +32,7 @@ use planet_config_mod,             only : p_zero, Rd, kappa, scaled_radius, &
                                           scaled_omega, gravity, cp
 use reference_profile_mod,         only : reference_profile_wtheta
 use generate_global_gw_fields_mod, only : generate_global_gw_pert
-use initial_wind_config_mod,       only : u0, rotation_angle
+use initial_wind_config_mod,       only : u0, sbr_angle_lat
 use deep_baroclinic_wave_mod,      only : deep_baroclinic_wave
 
 implicit none
@@ -174,8 +174,8 @@ function analytic_temperature(chi, choice, chi_surf) result(temperature)
   case ( idealised_test_solid_body_rotation ) 
     t0 = 280_r_def
     s = (radius/scaled_radius) &
-        *cos(lat)*cos(rotation_angle*pi) &
-        + sin(long)*sin(lat)*sin(rotation_angle*pi)
+        *cos(lat)*cos(sbr_angle_lat*pi) &
+        + sin(long)*sin(lat)*sin(sbr_angle_lat*pi)
     u00 = u0*(u0 + 2.0_r_def*scaled_omega*scaled_radius)/(t0*Rd)
     f_sb = 0.5*u00*s**2
     temperature = t0 * exp( gravity*(radius-scaled_radius)/( cp * t0 ) ) &

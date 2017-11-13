@@ -13,7 +13,8 @@ namelist initial_wind
                                vortex]
   u0                : real
   v0                : real
-  rotation_angle    : real
+  sbr_angle_lat     : real
+  sbr_angle_lon     : real
   wind_time_period  : real
   NL_constant       : real
 end namelist initial_wind

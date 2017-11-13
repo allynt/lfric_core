@@ -182,6 +182,7 @@ function analytic_wind(chi, time, choice, num_options, option) result(u)
   real(kind=r_def)             :: u(3)
   real(kind=r_def)             :: s
   real(kind=r_def)             :: pressure, temperature, density
+  real(kind=r_def)             :: lat_pole, lon_pole
 
   if ( .not. present(option) ) option(:) = 0.0_r_def
 
@@ -194,9 +195,12 @@ function analytic_wind(chi, time, choice, num_options, option) result(u)
       s = 0.5_r_def*(chi(3)/scaled_radius + 1.0_r_def)
       ! Turn off the height variation for the dcmip test
       if ( choice == initial_wind_profile_dcmip301) s = 1.0_r_def 
-      u(1) = s * option(1) * ( cos(chi(2))*cos(option(2)*pi) &
-                           + sin(chi(1))*sin(chi(2))*sin(option(2)*pi) )
-      u(2) = s * option(1) * cos(chi(1))*sin(option(2)*pi)
+      lat_pole = pi/2.0_r_def - option(2)*pi
+      lon_pole = pi/2.0_r_def + option(3)*pi
+
+      u(1) = s * option(1) * ( sin(lat_pole)*cos(chi(2))  &
+                           - cos(lat_pole)*cos(chi(1)-lon_pole)*sin(chi(2)) )
+      u(2) = s * option(1) * cos(lat_pole)*sin(chi(1)-lon_pole)
       u(3) = 0.0_r_def
     case ( initial_wind_profile_constant_uv )
       u(1) = option(1)

@@ -49,8 +49,12 @@ contains
                               scaling_factor=scaling )
 
     call feign_initial_wind_config( initial_wind_profile_none,                &
-                          u0=0.0_r_def, v0=0.0_r_def, rotation_angle=0.0_r_def,     &
-                              nl_constant=2.0_r_def, wind_time_period=10.0_r_def)
+                                    u0=0.0_r_def,                             &
+                                    v0=0.0_r_def,                             &
+                                    sbr_angle_lat=0.0_r_def,                  &
+                                    sbr_angle_lon=0.0_r_def,                  &
+                                    nl_constant=2.0_r_def,                    &
+                                    wind_time_period=10.0_r_def )
 
 
   end subroutine setUp
@@ -79,7 +83,7 @@ contains
     real(kind=r_def) :: u0, v0, a, h, s
     real(kind=r_def) :: tol
     real(kind=r_def) :: initial_time
-
+    real(kind=r_def) :: lat_pole, lon_pole
 
     llr = (/ PI, PI/4.0_r_def, radius + 10000.0_r_def /)
     xyz = (/ 1000.0_r_def, 75000.0_r_def, 5000.0_r_def /)
@@ -89,9 +93,13 @@ contains
 
     u = analytic_wind(llr, initial_time, initial_wind_profile_solid_body_rotation, 2, (/ u0, a /))
     s = 0.5_r_def*(llr(3)/radius + 1.0_r_def)
-    v(1) = u0 * s * ( cos(llr(2))*cos(a*PI) &
-                    + sin(llr(1))*sin(llr(2))*sin(a*PI) )
-    v(2) = u0 * s * cos(llr(1))*sin(a*PI)
+
+    lat_pole = pi/2.0_r_def - a*pi
+    lon_pole = pi/2.0_r_def + 0.0_r_def*pi
+
+    v(1) = s * u0 * ( sin(lat_pole)*cos(llr(2))  &
+                         - cos(lat_pole)*cos(llr(1)-lon_pole)*sin(llr(2)) )
+    v(2) = s * u0 * cos(lat_pole)*sin(llr(1)-lon_pole)
     v(3) = 0.0_r_def
 
     @assertEqual(v, u)

@@ -35,7 +35,7 @@
   profile        = 'none'
   u0             = 0.0
   v0             = 0.0
-  rotation_angle = 0.0
+  sbr_angle_lat  = 0.0
 /
 
 &output
