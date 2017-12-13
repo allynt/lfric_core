@@ -445,6 +445,10 @@
 test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( echo ** Unable to delete "{{directory}}", not writable >&2; false )
 {%- endmacro %}
 
+{%- macro verboseMake() %}
+{%- if VERBOSE_TASKS is defined %}VERBOSE=1{% endif %}
+{%- endmacro %}
+
 [cylc]
     UTC mode = True
     [[events]]
@@ -696,7 +700,7 @@ test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( ech
                                     LOCAL_TECHNICAL_SETUP,
                                     LOCAL_REVEAL_SETUP )}}
                      """
-        script = make -dr -C $SOURCE_DIRECTORY document-latex
+        script = make -C $SOURCE_DIRECTORY document-latex {{verboseMake()}}
 {%- endif %}
 
 {%- if 'publish_design_documentation' in scheduledTasks %}
