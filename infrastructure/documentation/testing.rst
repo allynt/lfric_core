@@ -330,10 +330,16 @@ source files. Other tests may be forthcoming.
 The result of runs with known inputs are compared against known good outputs to
 check for changes.
 
-The test suite is invoked with ``make test-suite``. This will launch the suite
-multiple times, once for each sub-project and once for each platform listed in
-the ``TEST_SUITE_TARGETS`` environment variable. This variable is set up for
-you by the LFRic module system.
+The test suite is invoked with ``make test-suite``. This will launch the test
+suite of each sub-project listed in the ``OPERATE_ON`` environment variable.
+Each test suite will be launched for each platform listed in the
+``TEST_SUITE_TARGETS`` environment variable. Thus the test suite for each
+sub-project appearing in ``OPERATE_ON`` must have optional configurations for
+each platform appearing in ``TEST_SUITE_TARGETS``.
+
+If ``OPERATE_ON`` is not set a default list will be used. There is not default
+for ``TEST_SUITE_TARGETS`` but it will be set up by the Met Office module
+system.
 
 During development it is often useful to target a single platform.
 
