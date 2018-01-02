@@ -21,8 +21,9 @@ module fv_divergence_kernel_mod
 use argument_mod,  only : arg_type, func_type,                  &
                           GH_FIELD, GH_WRITE, GH_READ,          &
                           W0, W2, W3, GH_BASIS, CELLS
-use constants_mod, only : r_def
+use constants_mod, only : r_def, i_def
 use kernel_mod,    only : kernel_type
+use flux_direction_mod, only : z_direction
 
 implicit none
 
@@ -108,7 +109,12 @@ subroutine fv_divergence_code( nlayers,              &
   integer :: k
   integer :: local_dofs(1:2)
 
-  local_dofs = dof_to_update(int(cell_orientation(map_w3(1))),direction)
+  if (direction == z_direction) then
+    local_dofs(1) = 5_i_def
+    local_dofs(2) = 6_i_def
+  else
+    local_dofs = dof_to_update(int(cell_orientation(map_w3(1))),direction)
+  end if
 
   ! This kernel has been designed to work with lowest order W2 and W3 spaces.
   ! As is the case for all of the code associated with the Cosmic transport
