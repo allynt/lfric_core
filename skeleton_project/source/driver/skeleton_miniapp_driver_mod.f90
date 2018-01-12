@@ -48,7 +48,7 @@ module skeleton_miniapp_driver_mod
   ! Coordinate field
   type(field_type), target, dimension(3) :: chi
 
-  integer(i_def) :: mesh_id
+  integer(i_def) :: mesh_id, twod_mesh_id
 
 contains
 
@@ -115,7 +115,7 @@ contains
               source = global_mesh_collection_type() )
 
     ! Create the mesh
-    call init_mesh(local_rank, total_ranks, mesh_id)
+    call init_mesh(local_rank, total_ranks, mesh_id, twod_mesh_id)
 
     ! Full global meshes no longer required, so reclaim
     ! the memory from global_mesh_collection
