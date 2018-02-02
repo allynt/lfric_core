@@ -7,8 +7,8 @@
 !-------------------------------------------------------------------------------
 module function_space_mod_test
 
-  use constants_mod,         only : i_def, r_def, str_long
-  use fs_continuity_mod,     only : W0, W1, W2, W3, Wtheta, W2V, W2H
+  use constants_mod,         only : i_def, r_def, l_def, str_long
+  use fs_continuity_mod,     only : W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi
   use fs_test_data_mod  ! Will use everything in here as it's the static data
   use function_space_mod,    only : function_space_type
   use mesh_collection_mod,   only : mesh_collection_type, &
@@ -26,7 +26,8 @@ module function_space_mod_test
   public :: test_function_space_constructor, getParameters,   &
             test_space, test_stencil_point, test_stencil_1dx, &
             test_stencil_1dy, test_stencil_cross, test_mesh, &
-            test_get_whole_dofmap, test_get_last_dof
+            test_get_whole_dofmap, test_get_last_dof, &
+            test_is_comms_fs
 
   @testParameter
   type, public, extends(AbstractTestParameter) :: function_space_parameter_type
@@ -53,6 +54,7 @@ module function_space_mod_test
     procedure test_stencil_cross
     procedure test_mesh
     procedure test_get_last_dof
+    procedure test_is_comms_fs
   end type test_function_space_type
 
   integer(i_def), parameter :: element_order = 0
@@ -95,14 +97,15 @@ contains
 
     implicit none
 
-    type( function_space_parameter_type ) :: parameters(7)
+    type( function_space_parameter_type ) :: parameters(8)
     parameters = [ function_space_parameter_type( W0 ), &
                    function_space_parameter_type( W1 ), &
                    function_space_parameter_type( W2 ), &
                    function_space_parameter_type( W3 ), &
                    function_space_parameter_type( Wtheta ), &
                    function_space_parameter_type( W2V ), &
-                   function_space_parameter_type( W2H ) ]
+                   function_space_parameter_type( W2H ), &
+                   function_space_parameter_type( Wchi ) ]
 
   end function getParameters
 
@@ -236,6 +239,11 @@ contains
         dofmap         => fs2hk0_dofmap
         basis_function => fs2hk0_basis_function
         basis_diff_function => fs2hk0_basis_diff_function
+      case (Wchi)
+        nodal_coords   => fsck0_nodal_coords
+        dofmap         => fsck0_dofmap
+        basis_function => fsck0_basis_function
+        basis_diff_function => fsck0_basis_diff_function
     end select
 
     test_fs => function_space_type( this%mesh_id,     &
@@ -533,4 +541,30 @@ contains
 
   end subroutine test_get_last_dof
 
+  @test
+  subroutine test_is_comms_fs( this )
+
+    implicit none
+
+    class(test_function_space_type), intent(inout) :: this
+
+    type(function_space_type), pointer :: test_fs => null()
+
+    logical(l_def) :: is_comms_fs_expected
+    logical(l_def) :: is_comms_fs_returned
+
+    is_comms_fs_expected=.true.
+    if( this%function_space == Wchi) is_comms_fs_expected=.false.
+
+    test_fs => function_space_type( this%mesh_id,  &
+                                    element_order, &
+                                    this%function_space )
+
+    is_comms_fs_returned=test_fs%is_comms_fs()
+
+    @assertEqual ( is_comms_fs_expected, is_comms_fs_returned )
+
+  end subroutine test_is_comms_fs
+
 end module function_space_mod_test
+

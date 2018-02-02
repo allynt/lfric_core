@@ -3,7 +3,7 @@
 ' should have received as part of this distribution.
 
 class field_mod::field_type {
-  -data : real[] <<pointer>>
+  -data : real[] <<allocatable>>
   -esmf_array : ESMF_Array
   -halo_dirty : integer[]<<allocatable>>
   -vspace : function_space_type <<pointer>>
@@ -39,7 +39,7 @@ class field_mod::field_type {
 }
 
 class field_mod::field_proxy_type {
-  +data: real[] <<pointer>>
+  +data: real[] <<allocatable>>
   -esmf_array: ESMF_Array <<pointer>>
   -halo_dirty: integer[] <<pointer>>
   +vspace: function_space_type <<pointer>>

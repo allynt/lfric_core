@@ -41,8 +41,8 @@ module field_mod
     !> Each field also holds an integer enaumerated value for the
     !> function space it will be output on
     integer(kind=i_def)                          :: ospace
-    !> Pointer array of type real which holds the values of the field
-    real(kind=r_def), pointer             :: data( : ) => null()
+    !> Allocatable array of type real which holds the values of the field
+    real(kind=r_def), allocatable :: data( : )
     !> The data for each field is held within an ESMF array component
     type(ESMF_Array) :: esmf_array
     !> Flag that holds whether each depth of halo is clean or dirty (dirty=1)
@@ -292,13 +292,13 @@ contains
     integer(i_def) :: rc
 
     nullify(self%vspace)
-    if(associated(self%data)) then
+    if(allocated(self%data)) then
       call ESMF_ArrayDestroy(self%esmf_array, noGarbage=.TRUE., rc=rc)
       if (rc /= ESMF_SUCCESS ) &
         call log_event( "ESMF failed to destroy a field.", &
                         LOG_LEVEL_ERROR )
+      deallocate(self%data)
     end if
-
     if(allocated(self%halo_dirty)) then
       deallocate(self%halo_dirty)
     end if
@@ -317,11 +317,12 @@ contains
 
     do i=lbound(self,1), ubound(self,1)
       nullify(self(i)%vspace)
-      if(associated(self(i)%data)) then
+      if(allocated(self(i)%data)) then
         call ESMF_ArrayDestroy(self(i)%esmf_array, noGarbage=.TRUE., rc=rc)
         if (rc /= ESMF_SUCCESS ) &
           call log_event( "ESMF failed to destroy a 1d array of fields.", &
                           LOG_LEVEL_ERROR )
+        deallocate(self(i)%data)
       end if
       if(allocated(self(i)%halo_dirty)) then
         deallocate(self(i)%halo_dirty)
@@ -343,11 +344,12 @@ contains
     do i=lbound(self,1), ubound(self,1)
       do j=lbound(self,2), ubound(self,2)
         nullify(self(i,j)%vspace)
-        if(associated(self(i,j)%data)) then
+        if(allocated(self(i,j)%data)) then
           call ESMF_ArrayDestroy(self(i,j)%esmf_array, noGarbage=.TRUE., rc=rc)
           if (rc /= ESMF_SUCCESS ) &
             call log_event( "ESMF failed to destroy a 2d array of fields.", &
                             LOG_LEVEL_ERROR )
+          deallocate(self(i,j)%data)
         end if
         if(allocated(self(i,j)%halo_dirty)) then
           deallocate(self(i,j)%halo_dirty)
@@ -373,6 +375,7 @@ contains
     integer(i_def) :: halo_start, halo_finish
 
     type (mesh_type), pointer   :: mesh => null()
+    real(kind=r_def), pointer   :: data_ptr( : ) => null()
 
     dest%vspace => self%vspace
     dest%ospace = self%ospace
@@ -390,23 +393,25 @@ contains
       halo_start  = self%vspace%get_last_dof_halo()
       halo_finish = self%vspace%get_last_dof_halo() - 1
     end if
-    ! Create an ESMF array - this allows us to perform halo exchanges
-    ! This call allocates the memory for the field data - we can extract a
-    ! pointer to that allocated memory next
-    dest%esmf_array = &
-      ESMF_ArrayCreate( distgrid=self%vspace%get_distgrid(), &
-                        typekind=ESMF_TYPEKIND_R8, &
-                        haloSeqIndexList= &
+
+    allocate( dest%data(self%vspace%get_last_dof_halo()) )
+    data_ptr => dest%data
+
+    if( self%vspace%is_comms_fs() ) then
+      ! Create an ESMF array - this allows us to perform halo exchanges
+      ! This call allocates the memory for the field data - we can extract a
+      ! pointer to that allocated memory next
+      dest%esmf_array = &
+        ESMF_ArrayCreate( distgrid=self%vspace%get_distgrid(), &
+                          farrayPtr=data_ptr, &
+                          haloSeqIndexList= &
                                       global_dof_id( halo_start:halo_finish ), &
-                        rc=rc )
+                          rc=rc )
 
-    ! Extract and store the pointer to the fortran array
-    if (rc == ESMF_SUCCESS) &
-      call ESMF_ArrayGet(array=dest%esmf_array, farrayPtr=dest%data, rc=rc)
-
-    if (rc /= ESMF_SUCCESS) &
-      call log_event( 'ESMF failed to allocate space for field data.', &
-                      LOG_LEVEL_ERROR )
+      if (rc /= ESMF_SUCCESS) &
+        call log_event( 'ESMF failed to allocate space for field data.', &
+                        LOG_LEVEL_ERROR )
+    end if
 
     ! Set the data_extant to be .true. now that the data array has been allocated.
     dest%data_extant = .true.
@@ -743,25 +748,27 @@ contains
     integer(i_def) :: rc
     type (mesh_type), pointer   :: mesh => null()
 
-    mesh=>self%vspace%get_mesh()
-    if( depth > mesh%get_halo_depth() ) &
-      call log_event( 'Error in field: '// &
-                      'attempt to exchange halos with depth out of range.', &
-                      LOG_LEVEL_ERROR )
+    if( self%vspace%is_comms_fs() ) then
+      mesh=>self%vspace%get_mesh()
+      if( depth > mesh%get_halo_depth() ) &
+        call log_event( 'Error in field: '// &
+                        'attempt to exchange halos with depth out of range.', &
+                        LOG_LEVEL_ERROR )
 
-    haloHandle=self%vspace%get_haloHandle(depth)
-    call ESMF_ArrayHalo( self%esmf_array, &
-                         routehandle=haloHandle, &
-                         routesyncflag=ESMF_ROUTESYNC_BLOCKING, &
-                         rc=rc )
+      haloHandle=self%vspace%get_haloHandle(depth)
+      call ESMF_ArrayHalo( self%esmf_array, &
+                           routehandle=haloHandle, &
+                           routesyncflag=ESMF_ROUTESYNC_BLOCKING, &
+                           rc=rc )
 
-    if (rc /= ESMF_SUCCESS) call log_event( &
-       'ESMF failed to perform the halo exchange.', &
-       LOG_LEVEL_ERROR )
+      if (rc /= ESMF_SUCCESS) call log_event( &
+         'ESMF failed to perform the halo exchange.', &
+         LOG_LEVEL_ERROR )
 
-    ! Halo exchange is complete so set the halo dirty flag to say it
-    ! is clean (or more accurately - not dirty)
-    self%halo_dirty(1:depth) = 0
+      ! Halo exchange is complete so set the halo dirty flag to say it
+      ! is clean (or more accurately - not dirty)
+      self%halo_dirty(1:depth) = 0
+    end if
 
   end subroutine halo_exchange
 
@@ -779,21 +786,24 @@ contains
     integer(i_def) :: rc
     type (mesh_type), pointer   :: mesh => null()
 
-    mesh=>self%vspace%get_mesh()
-    if( depth > mesh%get_halo_depth() ) &
-      call log_event( 'Error in field: '// &
-                      'attempt to exchange halos with depth out of range.', &
-                      LOG_LEVEL_ERROR )
+    if( self%vspace%is_comms_fs() ) then
 
-    haloHandle=self%vspace%get_haloHandle(depth)
-    call ESMF_ArrayHalo( self%esmf_array, &
-                         routehandle=haloHandle, &
-                         routesyncflag=ESMF_ROUTESYNC_NBSTART, &
-                         rc=rc )
+      mesh=>self%vspace%get_mesh()
+      if( depth > mesh%get_halo_depth() ) &
+        call log_event( 'Error in field: '// &
+                        'attempt to exchange halos with depth out of range.', &
+                        LOG_LEVEL_ERROR )
 
-    if (rc /= ESMF_SUCCESS) call log_event( &
-       'ESMF failed to start the halo exchange.', &
-       LOG_LEVEL_ERROR )
+      haloHandle=self%vspace%get_haloHandle(depth)
+      call ESMF_ArrayHalo( self%esmf_array, &
+                           routehandle=haloHandle, &
+                           routesyncflag=ESMF_ROUTESYNC_NBSTART, &
+                           rc=rc )
+
+      if (rc /= ESMF_SUCCESS) call log_event( &
+         'ESMF failed to start the halo exchange.', &
+         LOG_LEVEL_ERROR )
+    end if
 
   end subroutine halo_exchange_start
 
@@ -811,25 +821,28 @@ contains
     integer(i_def) :: rc
     type (mesh_type), pointer   :: mesh => null()
 
-    mesh=>self%vspace%get_mesh()
-    if( depth > mesh%get_halo_depth() ) &
-      call log_event( 'Error in field: '// &
-                      'attempt to exchange halos with depth out of range.', &
-                      LOG_LEVEL_ERROR )
+    if( self%vspace%is_comms_fs() ) then
 
-    haloHandle=self%vspace%get_haloHandle(depth)
-    call ESMF_ArrayHalo( self%esmf_array, &
-                         routehandle=haloHandle, &
-                         routesyncflag=ESMF_ROUTESYNC_NBWAITFINISH, &
-                         rc=rc )
+      mesh=>self%vspace%get_mesh()
+      if( depth > mesh%get_halo_depth() ) &
+        call log_event( 'Error in field: '// &
+                        'attempt to exchange halos with depth out of range.', &
+                        LOG_LEVEL_ERROR )
 
-    if (rc /= ESMF_SUCCESS) call log_event( &
-       'ESMF failed to finish the halo exchange.', &
-       LOG_LEVEL_ERROR )
+      haloHandle=self%vspace%get_haloHandle(depth)
+      call ESMF_ArrayHalo( self%esmf_array, &
+                           routehandle=haloHandle, &
+                           routesyncflag=ESMF_ROUTESYNC_NBWAITFINISH, &
+                           rc=rc )
 
-    ! Halo exchange is complete so set the halo dirty flag to say it
-    ! is clean (or more accurately - not dirty)
-    self%halo_dirty(1:depth) = 0
+      if (rc /= ESMF_SUCCESS) call log_event( &
+         'ESMF failed to finish the halo exchange.', &
+         LOG_LEVEL_ERROR )
+
+      ! Halo exchange is complete so set the halo dirty flag to say it
+      ! is clean (or more accurately - not dirty)
+      self%halo_dirty(1:depth) = 0
+    end if
 
   end subroutine halo_exchange_finish
 
@@ -837,6 +850,8 @@ contains
   !!
   function get_sum(self) result (answer)
 
+    implicit none
+
     class(field_proxy_type), intent(in) :: self
 
     real(r_def) :: answer
@@ -844,22 +859,27 @@ contains
     type(ESMF_VM) :: vm
     integer(i_def) :: rc
 
-    call ESMF_VMGetCurrent(vm=vm, rc=rc)
+    if( self%vspace%is_comms_fs() ) then
+
+      call ESMF_VMGetCurrent(vm=vm, rc=rc)
 ! Currently ESMF has only implemented blocking reductions. Using anything
 ! other than ESMF_SYNC_BLOCKING for syncflag results in an error
-    call ESMF_VMAllFullReduce(vm, &
-                              self%data, &
-                              answer, &
-                              self%vspace%get_last_dof_owned(), &
-                              ESMF_REDUCE_SUM, &
-                              syncflag = ESMF_SYNC_BLOCKING, &
-                              rc=rc)
+      call ESMF_VMAllFullReduce(vm, &
+                                self%data, &
+                                answer, &
+                                self%vspace%get_last_dof_owned(), &
+                                ESMF_REDUCE_SUM, &
+                                syncflag = ESMF_SYNC_BLOCKING, &
+                                rc=rc)
+    end if
   end function get_sum
 
   !! Start the calculation of the global minimum of the field
   !!
   function get_min(self) result (answer)
 
+    implicit none
+
     class(field_proxy_type), intent(in) :: self
 
     real(r_def) :: answer
@@ -867,22 +887,28 @@ contains
     type(ESMF_VM) :: vm
     integer(i_def) :: rc
 
-    call ESMF_VMGetCurrent(vm=vm, rc=rc)
+    if( self%vspace%is_comms_fs() ) then
+
+      call ESMF_VMGetCurrent(vm=vm, rc=rc)
 ! Currently ESMF has only implemented blocking reductions. Using anything
 ! other than ESMF_SYNC_BLOCKING for syncflag results in an error
-    call ESMF_VMAllFullReduce(vm, &
-                              self%data, &
-                              answer, &
-                              self%vspace%get_last_dof_owned(), &
-                              ESMF_REDUCE_MIN, &
-                              syncflag = ESMF_SYNC_BLOCKING, &
-                              rc=rc)
+      call ESMF_VMAllFullReduce(vm, &
+                                self%data, &
+                                answer, &
+                                self%vspace%get_last_dof_owned(), &
+                                ESMF_REDUCE_MIN, &
+                                syncflag = ESMF_SYNC_BLOCKING, &
+                                rc=rc)
+    end if
+
   end function get_min
 
   !! Start the calculation of the global maximum of the field
   !!
   function get_max(self) result (answer)
 
+    implicit none
+
     class(field_proxy_type), intent(in) :: self
 
     real(r_def) :: answer
@@ -890,16 +916,20 @@ contains
     type(ESMF_VM) :: vm
     integer(i_def) :: rc
 
-    call ESMF_VMGetCurrent(vm=vm, rc=rc)
+    if( self%vspace%is_comms_fs() ) then
+
+      call ESMF_VMGetCurrent(vm=vm, rc=rc)
 ! Currently ESMF has only implemented blocking reductions. Using anything
 ! other than ESMF_SYNC_BLOCKING for syncflag results in an error
-    call ESMF_VMAllFullReduce(vm, &
-                              self%data, &
-                              answer, &
-                              self%vspace%get_last_dof_owned(), &
-                              ESMF_REDUCE_MAX, &
-                              syncflag = ESMF_SYNC_BLOCKING, &
-                              rc=rc)
+      call ESMF_VMAllFullReduce(vm, &
+                                self%data, &
+                                answer, &
+                                self%vspace%get_last_dof_owned(), &
+                                ESMF_REDUCE_MAX, &
+                                syncflag = ESMF_SYNC_BLOCKING, &
+                                rc=rc)
+    end if
+
   end function get_max
 
   !! Wait for any current (non-blocking) reductions (sum, max, min) to complete
@@ -909,20 +939,26 @@ contains
   !! API so when non-blocking reductions are implemented, we can support them
   subroutine reduction_finish(self)
 
+    implicit none
+
     class(field_proxy_type), intent(in) :: self
 
     type(ESMF_VM) :: vm
     integer(i_def) :: rc
     logical(l_def) :: is_dirty_tmp
 
-    is_dirty_tmp=self%is_dirty(1)    ! reduction_finish currently does nothing.
+    if( self%vspace%is_comms_fs() ) then
+
+      is_dirty_tmp=self%is_dirty(1)    ! reduction_finish currently does nothing.
                                     ! The "self" that is passed in automatically
                                     ! to a type-bound subroutine is not used -
                                     ! so the compilers complain -  have to use
                                     ! it for something harmless.
 
-    call ESMF_VMGetCurrent(vm=vm, rc=rc)
-    call ESMF_VMCommWaitAll(vm=vm, rc=rc)
+      call ESMF_VMGetCurrent(vm=vm, rc=rc)
+      call ESMF_VMCommWaitAll(vm=vm, rc=rc)
+
+    end if
 
   end subroutine reduction_finish
 

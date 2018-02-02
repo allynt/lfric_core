@@ -15,7 +15,7 @@
 module function_space_mod
 
 
-use constants_mod,         only: r_def, i_def, i_halo_index, dp_xios
+use constants_mod,         only: r_def, i_def, l_def, i_halo_index, dp_xios
 use mesh_mod,              only: mesh_type
 use master_dofmap_mod,     only: master_dofmap_type
 use stencil_dofmap_mod,    only: stencil_dofmap_type, STENCIL_POINT
@@ -149,6 +149,10 @@ type, extends(linked_list_data_type), public :: function_space_type
 
   !> A linked list of stencil dofmaps
   type(linked_list_type)      :: dofmap_list
+
+  !> Flag holds whether MPI communications have been set up for this
+  !> function space
+  logical(l_def) :: comms_fs
 
   !> A list of the routing tables needed to perform halo swaps to various depths
   !! of halo
@@ -305,6 +309,9 @@ contains
 
   generic             :: get_last_dof_halo => get_last_dof_halo_any, &
                                               get_last_dof_halo_deepest
+
+  !> Returns whether MPI comms have been set up for this function space
+  procedure, public :: is_comms_fs
 
   !> Get the instance of a stencil dofmap with for a given id
   procedure, public   :: get_stencil_dofmap
@@ -484,52 +491,59 @@ subroutine init_function_space( self )
                                                          self%mesh,          &
                                                          self%master_dofmap) )
 
-
   !Set up routing tables for halo exchanges
-  rc = ESMF_SUCCESS
-  ! Create an ESMF DistGrid, which describes which partition owns which cells
-  self%distgrid = ESMF_DistGridCreate( arbSeqIndexList= &
-                                  self%global_dof_id(1:self%last_dof_owned), &
-                                       rc=rc )
-
   allocate(self%haloHandle(size(self%last_dof_halo)))
 
-  do idepth = 1, size(self%last_dof_halo)
+  ! Don't set up routing tables for WCHI. Fields on this function space are
+  ! constant so will never need to be halo exchanged
+  if( self%fs == WCHI ) then
+    self%comms_fs=.false.
+  else
+    self%comms_fs=.true.
+    rc = ESMF_SUCCESS
+    ! Create an ESMF DistGrid, which describes which partition owns which cells
+    self%distgrid = ESMF_DistGridCreate( arbSeqIndexList= &
+                                    self%global_dof_id(1:self%last_dof_owned), &
+                                         rc=rc )
 
-    halo_start  = self%last_dof_owned+1
-    halo_finish = self%last_dof_halo(idepth)
+    do idepth = 1, size(self%last_dof_halo)
+
+      halo_start  = self%last_dof_owned+1
+      halo_finish = self%last_dof_halo(idepth)
     !If this is a serial run (no halos), halo_start is out of bounds - so fix it
-    if(halo_start > self%last_dof_halo(idepth))then
-      halo_start  = self%last_dof_halo(idepth)
-      halo_finish = self%last_dof_halo(idepth) - 1
-    end if
-    ! Can only halo-swap an ESMF array so set up a temporary one that's big
-    ! enough to hold all the owned cells and all the halos
-    if (rc == ESMF_SUCCESS) &
-      temporary_esmf_array = &
-        ESMF_ArrayCreate( distgrid=self%distgrid, &
-                          typekind=ESMF_TYPEKIND_R8, &
-                          haloSeqIndexList= &
+      if(halo_start > self%last_dof_halo(idepth))then
+        halo_start  = self%last_dof_halo(idepth)
+        halo_finish = self%last_dof_halo(idepth) - 1
+      end if
+      ! Can only halo-swap an ESMF array so set up a temporary one that's big
+      ! enough to hold all the owned cells and all the halos
+      if (rc == ESMF_SUCCESS) &
+        temporary_esmf_array = &
+          ESMF_ArrayCreate( distgrid=self%distgrid, &
+                            typekind=ESMF_TYPEKIND_R8, &
+                            haloSeqIndexList= &
                                  self%global_dof_id( halo_start:halo_finish ), &
-                          rc=rc )
+                            rc=rc )
 
-    ! Calculate the routing table required to perform the halo-swap, so the
-    ! code knows where to find the values it needs to fill in the halos
-    if (rc == ESMF_SUCCESS) &
-      call ESMF_ArrayHaloStore( array=temporary_esmf_array, &
-                                routehandle=self%haloHandle(idepth), &
-                                rc=rc )
-    ! Clean up the temporary array used to generate the routing table 
-    if (rc == ESMF_SUCCESS) &
-      call ESMF_ArrayDestroy(array=temporary_esmf_array, &
-                             noGarbage=.TRUE. , &
-                             rc=rc)
+      ! Calculate the routing table required to perform the halo-swap, so the
+      ! code knows where to find the values it needs to fill in the halos
+      if (rc == ESMF_SUCCESS) &
+        call ESMF_ArrayHaloStore( array=temporary_esmf_array, &
+                                  routehandle=self%haloHandle(idepth), &
+                                  rc=rc )
+      ! Clean up the temporary array used to generate the routing table 
+      if (rc == ESMF_SUCCESS) &
+        call ESMF_ArrayDestroy(array=temporary_esmf_array, &
+                               noGarbage=.TRUE. , &
+                               rc=rc)
 
-  end do
+    end do
 
-  if (rc /= ESMF_SUCCESS) call log_event( &
-    'ESMF failed to generate the halo routing table', &
-    LOG_LEVEL_ERROR )
+    if (rc /= ESMF_SUCCESS) call log_event( &
+      'ESMF failed to generate the halo routing table', &
+      LOG_LEVEL_ERROR )
+
+  end if
 
   ! Set up the fractional levels (for diagnostic output) for this fs
 
@@ -1096,6 +1110,18 @@ function get_last_dof_halo_deepest(self) result (last_dof_halo)
   return
 end function get_last_dof_halo_deepest
 
+!-----------------------------------------------------------------------------
+! Returns whether this function space supports MPI comms functionality
+!-----------------------------------------------------------------------------
+function is_comms_fs(self) result(return_comms_fs)
+  implicit none
+
+  class(function_space_type), intent(in) :: self
+  logical(l_def) :: return_comms_fs
+
+  return_comms_fs = self%comms_fs
+
+end function is_comms_fs
 
 !> Get the instance of a stencil dofmap with for a given shape and size
 !> @param[in] stencil_shape The shape identifier for the stencil dofmap to

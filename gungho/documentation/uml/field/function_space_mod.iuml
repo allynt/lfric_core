@@ -32,6 +32,7 @@ class function_space_mod::function_space_type {
     -ndof_vol: integer
     -nodal_coords: real[::] <<allocatable>>
     -fractional_levels: double precision[:] <<allocatable>>
+    -comms_fs: logical
 
     <<create>>+fs_constructor( <<in>>mesh_id: integer, <<in>>element_order: integer, <<in>>dynamo_fs: integer ) : function_space_type <<pointer>>
     <<destroy>>+function_space_destructor()
@@ -64,6 +65,7 @@ class function_space_mod::function_space_type {
     +get_nodes() : real[::] <<pointer>>
     +get_nlayers() : integer
     +get_levels() : double precision[:] <<pointer>>
+    +is_comms_fs() : logical
     +get_stencil_dofmap( <<in>>stencil_shape: integer, <<in>>stencil_size: integer ) : stencil_dofmap <<pointer>>
     +get_undf() : integer
     +set_colours()
