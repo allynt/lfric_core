@@ -1,13 +1,12 @@
 #!jinja2
-{%- set groups = {'developer': ['check_compilers(fast-debug)',
-                                'documentation',
-                                'build_system'],
-                  'nightly': ['check_compilers(full-debug, publish=True)',
-                              'documentation(publish=True)',
-                              'build_system',
-                              'publish_commit']} %}
 
+{# Include suite control #}
+%include suite_control.rc
 
+{# Include suite macros #}
+%include inc/suite_macros.rc
+
+{# SETUP SOME JINJA2 VARIABLES #}
 {%- set compiler_setup = {} -%}
 {%- for compiler, setup in TARGET_COMPILER_SETUP|batch(2) -%}
 {%-     do compiler_setup.update({compiler : [setup]}) -%}
@@ -27,71 +26,6 @@
 {%-   set MIRROR_UPLOAD_URL = MIRROR_UPLOAD_URL + '/' %}
 {%- endif %}
 
-{#- #########################################################################}
-{%- macro check_compilers( build, publish=False ) %}
-{%-   for compiler in compiler_setup.keys() %}
-{%-     set label = compiler | lower + '_' + build | lower%}
-    purge_local => purge_target
-    purge_target => export_for_{{label}}
-{%-     if compiler in TARGET_PERFORM_UNIT_TESTS %}
-    export_for_{{label}} => unit_test_with_{{label}}
-{%-     endif %}
-{%-     if compiler in TARGET_PERFORM_INTEGRATION_TESTS %}
-    export_for_{{label}} => integration_test_with_{{label}}
-{%-     endif %}
-{%-   endfor %}
-{%- endmacro %}
-{#- #########################################################################}
-{%- macro documentation( publish=False ) %}
-{%-   set label =  TARGET_TECHNICAL_COMPILER | lower + '_fast-debug' %}
-{%-   if 'documentation' in TECHNICAL_DEVELOPER_TESTS %}
-            purge_local => purge_target
-            purge_target => export_for_{{label}}
-            export_for_{{label}} => api_documentation
-            export_for_{{label}} => uml_documentation
-{%-     if publish == True %}
-            uml_documentation => publish_uml_documentation
-            api_documentation => publish_api_documentation
-            api_documentation => publish_api_log
-
-{%-     endif %}
-{%-   endif %}
-{%- endmacro %}
-{#- #########################################################################}
-{%- macro build_system() %}
-{%-   set label =  TARGET_TECHNICAL_COMPILER | lower + '_fast-debug' %}
-            purge_local          => purge_target
-            purge_target         => export_for_{{label}}
-            export_for_{{label}} => unit_test_build_tools
-{%- endmacro %}
-{#- #########################################################################}
-{%- macro publish_commit() %}
-            purge_target => publish_nothing
-            PUBLISH:finish-all => publish_index
-            publish_index      => mirror_results_local
-{%-   if MIRROR_UPLOAD_URL %}
-            publish_index      => mirror_results_remote
-{%-   endif %}
-{%- endmacro %}
-{#- #########################################################################}
-{%- macro schedule() %}
-{%-   for group in groupsToRun %}
-{%-     if group in groups.keys() %}
-{%-       for mission in groups[group] %}
-{{          mission | executeMacro() }}
-{%-       endfor %}
-{%-     endif %}
-{%-   endfor %}
-{%- endmacro %}
-{#- #########################################################################}
-
-{% macro ensureDestination() -%}
-  mkdir -p $DESTINATION
-{%- endmacro %}
-
-{% macro deleteDirectory( directory ) -%}
-  test -w "{{directory}}" -o ! -e "{{directory}}" && rm -rf {{directory}} || ( echo ** Unable to delete "{{directory}}", not writable >&2; false )
-{%- endmacro %}
 
 [cylc]
   UTC mode = True

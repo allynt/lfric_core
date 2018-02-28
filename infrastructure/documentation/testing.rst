@@ -451,8 +451,9 @@ hope.
   ``rose-stem/app/<application_name>/rose-app.conf``.
 
 * Now add the name of this new test configuration to the appropriate application in the
-  ``application_configurations`` list at the top of "suite.rc". **Note:** if you are adding
-  a new application, it should have at least a ``'default'`` configuration listed.
+  ``application_configurations`` list at the top of "suite_control.rc". **Note:** if you
+  are adding a new application, it should have at least a ``'default'`` configuration
+  listed.
 
 * Finally decide which group or groups you would like your test to appear in and
   add it to them in the ``groups`` structure just below. The form to use is
@@ -462,7 +463,9 @@ Configuration tests by default do a known good output (kgo) comparison so you ma
 also need to provide a kgo file
 ``rose-stem/app/check_application_kgo/file/<application_name><platform>/checksum.<application_name>_<configuration_name>_<resolution>.<compiler>.kgo.txt``
 
-**Note:** That the kgo filename should include the ``'<resolution>'`` label if a spatial/temporal resolution has been given for the test configuration (see keyword arguments for the ``'run_applications'`` macro).
+**Note:** That the kgo filename should include the ``'<resolution>'`` label if a
+spatial/temporal resolution has been given for the test configuration (see keyword
+arguments for the ``'run_applications'`` macro).
 
 From that point everything should be taken care of for you.
 
@@ -483,9 +486,9 @@ as follows:
   ``rose-app-default.conf``, these can be an empty file.
 * If your task runs a script, then put the script in
   ``rose-stem/app/<new_task>/bin``
-* Add ``new_task`` to the appropriate ``groups`` structure near the top of
-  the suite.rc
-* Add a Jinja2 macro with the same name as the task, add in any task
+* In ``rose-stem/suite_control.rc`` file,  add ``new_task`` to the appropriate ``groups`` structure near the top of
+  the file.
+* In ``rose-stem/inc/suite_macros.rc``, add a Jinja2 macro with the same name as the task, add in any task
   dependencies::
 
     {%- macro new_task() %}
@@ -493,7 +496,7 @@ as follows:
     {%- endmacro %}
 
   in this example ``new_task`` will run after ``some_other_task`` completes.
-* Add Jinja2 code to define the actual task::
+* In ``rose-stem/suite.rc``, add Jinja2 code to define the actual task::
 
     {%- if 'new_task' in scheduledTasks %}
       [[new_task]]
@@ -506,13 +509,15 @@ as follows:
   where ``<new_task>`` is the app name and ``<command>`` is the name of a
   command in ``rose-stem/app/<new_task>/rose-app.conf``.
 
+
 suite.rc
 --------
 
-The heart of the suite is the "suite.rc" file. This describes the tasks and the
-graph which orders them. Each task sets up an execution environment for the
-application it invokes. This means multiple tasks may invoke the same
-application to gain different effects.
+The heart of the suite is the "suite.rc" file. Once processed by Jinja2,
+this describes the tasks and the graph which orders them.
+Each task sets up an execution environment for the application it invokes.
+This means multiple tasks may invoke the same application to gain different
+effects.
 
 The file itself uses a modified version of the Windows INI file syntax.
 Modified to support hierarchical data which is indicated by multiple square
@@ -533,10 +538,10 @@ parent's script run, then the child.
 The task graph is compiled using Jinja scripting. Sadly this rather obfuscates
 what is happening but an outline is given below.
 
-The macro ``schedule`` is called to generate the graph. This loops over each
-group of tests to be run. For each group it loops over the list of tests and
-calls a similarly named macro. These macros generate the set of graph nodes
-required to perform that test.
+The macro ``schedule`` (found in ``rose-stem/inc/suite_macros.rc``) is called
+to generate the graph. This loops over each group of tests to be run. For each
+group it loops over the list of tests and calls a similarly named macro.
+These macros generate the set of graph nodes required to perform that test.
 
 The generating macros do not check to ensure that they are not duplicating
 tasks already in the schedule. Thus it is important to deduplicate it and this
@@ -549,10 +554,12 @@ processed file.
 
 Configuring application tests
 -----------------------------
-As described earlier, application tests are grouped together under a group
-name for a suite to run, **e.g.** *developer*. How each application test is
-configured within a group is specified using the ``run_application`` macro. The 
-``run_application`` macro requires at least two arguments, followed by optional
+Configuration on application tests for the test suite is provided by the 
+file ``rose-stem/inc/suite_control.rc``. As described earlier, application
+tests are grouped together under a group name for a suite to run,
+**e.g.** *developer*. How each application test is configured within a group
+is specified using the ``run_application`` macro. The ``run_application``
+macro requires at least two arguments, followed by optional
 arguments, e.g.::
 
   {%- set groups = {'<group_1>': [ 'run_application( <application_name>, <configuration_name>, *keywordArguments )',
