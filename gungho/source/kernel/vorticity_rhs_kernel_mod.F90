@@ -3,58 +3,62 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the absolute vorticity
-
-!> @details Compute the projection of the absolute vorticity into the w1 space. 
-!>         The is: curl(u) + 2*Omega -> curl(c).u + 2*c.Omega
+!> @brief Computes the absolute vorticity.
+!>
+!> Compute the projection of the absolute vorticity into the w1 space.
+!> That is: curl(u) + 2*Omega -> curl(c).u + 2*c.Omega
+!>
 module vorticity_rhs_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    ANY_SPACE_9, W1, W2,                     &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: vorticity_rhs_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W1),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                      &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W1, GH_DIFF_BASIS),                                   &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::vorticity_rhs_code
-end type
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_9,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W1, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  implicit none
 
-! overload the default structure constructor for function space
-interface vorticity_rhs_kernel_type
-   module procedure vorticity_rhs_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: vorticity_rhs_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W1),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/     &
+        func_type(W1, GH_DIFF_BASIS),         &
+        func_type(W2, GH_BASIS),              &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::vorticity_rhs_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public vorticity_rhs_code
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface vorticity_rhs_kernel_type
+    module procedure vorticity_rhs_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public vorticity_rhs_code
+
 contains
 
 type(vorticity_rhs_kernel_type) function vorticity_rhs_kernel_constructor() result(self)

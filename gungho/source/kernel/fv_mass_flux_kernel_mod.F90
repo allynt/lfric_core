@@ -3,58 +3,59 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the fluxes for the split transport scheme
-!> @details This kernel computes the mass fluxes used within the Cosmic
-!>          scheme. It calculates the mass fluxes in using finite volume values
-!>          rather than using finite-element coefficients and evaluating the
-!>          mass fluxes by multiplying by the basis functions.
-!>          The mass fluxes are calculated using the PPM + Cosmic method of
-!>          integrating the density over the departure distance for each cell
-!>          face. This kernel is designed to calculate the fluxes in one
-!>          direction only and so calculates the fluxes for two of the cell
-!>          faces only.
+!> @brief Computes the fluxes for the split transport scheme.
+!>
+!> This kernel computes the mass fluxes used within the Cosmic scheme. It
+!> calculates the mass fluxes in using finite volume values rather than using
+!> finite-element coefficients and evaluating the mass fluxes by multiplying
+!> by the basis functions. The mass fluxes are calculated using the PPM +
+!> Cosmic method of integrating the density over the departure distance for
+!> each cell face. This kernel is designed to calculate the fluxes in one
+!> direction only and so calculates the fluxes for two of the cell faces only.
+!>
 module fv_mass_flux_kernel_mod
 
-use argument_mod,  only : arg_type, func_type,                  &
-                          GH_FIELD, GH_WRITE, GH_READ,          &
-                          W0, W2, W3, GH_BASIS, CELLS
-use constants_mod, only : r_def
-use kernel_mod,    only : kernel_type
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_WRITE, GH_READ, &
+                                GH_BASIS, CELLS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W0, W2, W3
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: fv_mass_flux_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3)                              &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::fv_mass_flux_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: fv_mass_flux_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/     &
+        arg_type(GH_FIELD,   GH_WRITE, W2), &
+        arg_type(GH_FIELD,   GH_READ,  W2), &
+        arg_type(GH_FIELD,   GH_READ,  W3)  &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::fv_mass_flux_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! Overload the default structure constructor for function space
-interface fv_mass_flux_kernel_type
-   module procedure fv_mass_flux_kernel_constructor
-end interface
+  ! Overload the default structure constructor for function space
+  interface fv_mass_flux_kernel_type
+    module procedure fv_mass_flux_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public fv_mass_flux_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public fv_mass_flux_code
+
 contains
 
 type(fv_mass_flux_kernel_type) function fv_mass_flux_kernel_constructor() result(self)

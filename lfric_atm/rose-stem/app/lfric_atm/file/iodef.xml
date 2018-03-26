@@ -18,11 +18,11 @@
       <domain id="node" name="Mesh2d_node" nvertex="1"/>
       <domain id="face_half_levels" name="Mesh2d_half_levels" nvertex="4"/>
       <domain id="face_full_levels" name="Mesh2d_full_levels" nvertex="4"/>
-      <domain id="restart_100" name="restart_100" nvertex="1"/>
-      <domain id="restart_101" name="restart_101" nvertex="1"/>
-      <domain id="restart_102" name="restart_102" nvertex="1"/>
-      <domain id="restart_103" name="restart_103" nvertex="1"/>
-      <domain id="restart_104" name="restart_104" nvertex="1"/>
+      <domain id="restart_W0" name="restart_W0" nvertex="1"/>
+      <domain id="restart_W1" name="restart_W1" nvertex="1"/>
+      <domain id="restart_W2" name="restart_W2" nvertex="1"/>
+      <domain id="restart_W3" name="restart_W3" nvertex="1"/>
+      <domain id="restart_Wtheta" name="restart_Wtheta" nvertex="1"/>
    </domain_definition>
    
    <grid_definition>
@@ -44,16 +44,16 @@
    
      <!-- Checkpoint group -->
      <field_group id="checkpoint_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
-       <field id="checkpoint_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" domain_ref="restart_104" />  
-       <field id="checkpoint_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" domain_ref="restart_103" />
-       <field id="checkpoint_exner" name="exner" long_name="exner_pressure" unit="1" domain_ref="restart_103" />
-       <field id="checkpoint_u" name="u" long_name="U" unit="m s-1" domain_ref="restart_102" />
-       <field id="checkpoint_xi" name="xi" long_name="Xi" unit="s-1" domain_ref="restart_101" />
-       <field id="checkpoint_m_v" name="m_v" long_name="m_v" unit="1" domain_ref="restart_104" />
-       <field id="checkpoint_m_c" name="m_c" long_name="m_c" unit="1" domain_ref="restart_104" />
-       <field id="checkpoint_m_r" name="m_r" long_name="m_r" unit="1" domain_ref="restart_104" />
-       <field id="checkpoint_m_nc" name="m_nc" long_name="m_nc" unit="1" domain_ref="restart_104" />
-       <field id="checkpoint_m_nr" name="m_nr" long_name="m_nr"  unit="1" domain_ref="restart_104" />   
+       <field id="checkpoint_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" domain_ref="restart_Wtheta" />  
+       <field id="checkpoint_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" domain_ref="restart_W3" />
+       <field id="checkpoint_exner" name="exner" long_name="exner_pressure" unit="1" domain_ref="restart_W3" />
+       <field id="checkpoint_u" name="u" long_name="U" unit="m s-1" domain_ref="restart_W2" />
+       <field id="checkpoint_xi" name="xi" long_name="Xi" unit="s-1" domain_ref="restart_W1" />
+       <field id="checkpoint_m_v" name="m_v" long_name="m_v" unit="1" domain_ref="restart_Wtheta" />
+       <field id="checkpoint_m_c" name="m_c" long_name="m_c" unit="1" domain_ref="restart_Wtheta" />
+       <field id="checkpoint_m_r" name="m_r" long_name="m_r" unit="1" domain_ref="restart_Wtheta" />
+       <field id="checkpoint_m_nc" name="m_nc" long_name="m_nc" unit="1" domain_ref="restart_Wtheta" />
+       <field id="checkpoint_m_nr" name="m_nr" long_name="m_nr"  unit="1" domain_ref="restart_Wtheta" />   
      </field_group>
      
      <!-- Main diagnostic group -->
@@ -120,16 +120,16 @@
       
        <!-- file definition for restart read -->
       <file id="lfric_restart" name="lfric_checkpoint" mode="read" output_freq="1ts" cyclic="true" enabled=".FALSE.">
-       <field id="restart_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" operation="instant" domain_ref="restart_104" />  
-       <field id="restart_exner" name="exner" long_name="exner_pressure" unit="1" operation="instant" domain_ref="restart_103" />
-       <field id="restart_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" operation="instant" domain_ref="restart_103" />
-       <field id="restart_u" name="u" long_name="U" unit="m s-1" operation="instant" domain_ref="restart_102" />
-       <field id="restart_xi" name="xi" long_name="Xi" unit="s-1" operation="instant" domain_ref="restart_101" />
-       <field id="restart_m_v" name="m_v" long_name="m_v" unit="1" operation="instant" domain_ref="restart_104" />
-       <field id="restart_m_c" name="m_c" long_name="m_c" unit="1" operation="instant" domain_ref="restart_104" />
-       <field id="restart_m_r" name="m_r" long_name="m_r" unit="1" operation="instant" domain_ref="restart_104" />
-       <field id="restart_m_nc" name="m_nc" long_name="m_nc" unit="1" operation="instant" domain_ref="restart_104" />
-       <field id="restart_m_nr" name="m_nr" long_name="m_nr"  unit="1" operation="instant" domain_ref="restart_104" />   
+       <field id="restart_theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" operation="instant" domain_ref="restart_Wtheta" />  
+       <field id="restart_exner" name="exner" long_name="exner_pressure" unit="1" operation="instant" domain_ref="restart_W3" />
+       <field id="restart_rho" name="rho" long_name="air_density" standard_name="air_density" unit="kg m-3" operation="instant" domain_ref="restart_W3" />
+       <field id="restart_u" name="u" long_name="U" unit="m s-1" operation="instant" domain_ref="restart_W2" />
+       <field id="restart_xi" name="xi" long_name="Xi" unit="s-1" operation="instant" domain_ref="restart_w1" />
+       <field id="restart_m_v" name="m_v" long_name="m_v" unit="1" operation="instant" domain_ref="restart_Wtheta" />
+       <field id="restart_m_c" name="m_c" long_name="m_c" unit="1" operation="instant" domain_ref="restart_Wtheta" />
+       <field id="restart_m_r" name="m_r" long_name="m_r" unit="1" operation="instant" domain_ref="restart_Wtheta" />
+       <field id="restart_m_nc" name="m_nc" long_name="m_nc" unit="1" operation="instant" domain_ref="restart_Wtheta" />
+       <field id="restart_m_nr" name="m_nr" long_name="m_nr"  unit="1" operation="instant" domain_ref="restart_Wtheta" />   
       </file>
       
       

@@ -3,62 +3,62 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Returns a height field (r or z) from the chi array
-
+!> @brief Returns a height field (r or z) from the chi array.
+!>
 !> @details Returns a height field (r or z) from the chi array
+!>
 module get_height_kernel_mod
-  
-use kernel_mod,               only: kernel_type
-use argument_mod,             only: arg_type, func_type,                 &
-                                    GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
-                                    W0, W2, W3, ANY_SPACE_9,             &
-                                    GH_BASIS,                            &
-                                    CELLS, GH_EVALUATOR
 
-use constants_mod,            only: r_def
-use base_mesh_config_mod,     only: geometry,                            &
-                                    base_mesh_geometry_spherical
-use planet_config_mod,        only: scaled_radius
+  use argument_mod,         only: arg_type, func_type,                 &
+                                  GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
+                                  ANY_SPACE_9,                         &
+                                  GH_BASIS,                            &
+                                  CELLS, GH_EVALUATOR
+  use base_mesh_config_mod, only: geometry, &
+                                  base_mesh_geometry_spherical
+  use constants_mod,        only: r_def
+  use fs_continuity_mod,    only: W0, W2, W3
+  use kernel_mod,           only: kernel_type
+  use planet_config_mod,    only: scaled_radius
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy 
-!> layer
-type, public, extends(kernel_type) :: get_height_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                   &
-       arg_type(GH_FIELD,   GH_WRITE,  W3),             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)      &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                 &
-       func_type(ANY_SPACE_9, GH_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass :: get_height_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: get_height_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/             &
+        arg_type(GH_FIELD,   GH_WRITE,  W3),        &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(1) = (/ &
+        func_type(ANY_SPACE_9, GH_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass :: get_height_code
+  end type
 
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface get_height_kernel_type
-   module procedure get_height_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface get_height_kernel_type
+    module procedure get_height_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public get_height_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public get_height_code
+
 contains
 
 type(get_height_kernel_type) function get_height_kernel_constructor() result(self)

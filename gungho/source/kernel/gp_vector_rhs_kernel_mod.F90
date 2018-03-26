@@ -3,62 +3,65 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-
-!> @brief Kernel which projects the components of a vector field into a scalar space 
-
+!> @brief Projects the components of a vector field into a scalar space.
+!>
 module gp_vector_rhs_kernel_mod
 
-use argument_mod,            only : arg_type, func_type,           &
-                                    GH_FIELD, GH_INC, GH_READ,     &
-                                    W0, W2, ANY_SPACE_1,           &
-                                    ANY_SPACE_2, ANY_SPACE_9,      &
-                                    GH_BASIS, GH_DIFF_BASIS,       &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use base_mesh_config_mod,    only : geometry, &
-                                    base_mesh_geometry_spherical
-use constants_mod,           only : r_def
-use coordinate_jacobian_mod, only : coordinate_jacobian, &
-                                    coordinate_jacobian_inverse
-use coord_transform_mod,     only : cart2sphere_vector
-use kernel_mod,              only : kernel_type
+  use argument_mod,            only : arg_type, func_type,       &
+                                      GH_FIELD, GH_INC, GH_READ, &
+                                      ANY_SPACE_1,               &
+                                      ANY_SPACE_2, ANY_SPACE_9,  &
+                                      GH_BASIS, GH_DIFF_BASIS,   &
+                                      CELLS, GH_QUADRATURE_XYoZ
+  use base_mesh_config_mod,    only : geometry, &
+                                      base_mesh_geometry_spherical
+  use constants_mod,           only : r_def
+  use coordinate_jacobian_mod, only : coordinate_jacobian, &
+                                      coordinate_jacobian_inverse
+  use coord_transform_mod,     only : cart2sphere_vector
+  use fs_continuity_mod,       only : W0, W2
+  use kernel_mod,              only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: gp_vector_rhs_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD*3, GH_INC,  ANY_SPACE_1),                     &
-       ARG_TYPE(GH_FIELD,   GH_READ, ANY_SPACE_2),                     &
-       ARG_TYPE(GH_FIELD*3, GH_READ, ANY_SPACE_9),                     &
-       ARG_TYPE(GH_FIELD,   GH_READ, W2)                               &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(ANY_SPACE_1, GH_BASIS),                               &
-       func_type(ANY_SPACE_2, GH_BASIS),                               &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, public, nopass :: gp_vector_rhs_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: gp_vector_rhs_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/             &
+        arg_type(GH_FIELD*3, GH_INC,  ANY_SPACE_1), &
+        ARG_TYPE(GH_FIELD,   GH_READ, ANY_SPACE_2), &
+        ARG_TYPE(GH_FIELD*3, GH_READ, ANY_SPACE_9), &
+        ARG_TYPE(GH_FIELD,   GH_READ, W2)           &
+        /)
+    type(func_type) :: meta_funcs(3) = (/               &
+        func_type(ANY_SPACE_1, GH_BASIS),               &
+        func_type(ANY_SPACE_2, GH_BASIS),               &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, public, nopass :: gp_vector_rhs_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface gp_vector_rhs_kernel_type
-   module procedure gp_vector_rhs_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface gp_vector_rhs_kernel_type
+    module procedure gp_vector_rhs_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+
 contains
 
 type(gp_vector_rhs_kernel_type) function gp_vector_rhs_kernel_constructor() result(self)

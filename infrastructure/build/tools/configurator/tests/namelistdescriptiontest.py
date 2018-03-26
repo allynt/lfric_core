@@ -8,6 +8,7 @@
 
 import unittest
 import StringIO
+import random
 
 import configurator.namelistdescription as description
 
@@ -61,9 +62,9 @@ module test_config_mod
             read_test_namelist, postprocess_test_namelist, &
             test_is_loadable, test_is_loaded
 
-  integer(i_native), public, parameter :: test_enum_one = 100
-  integer(i_native), public, parameter :: test_enum_two = 101
-  integer(i_native), public, parameter :: test_enum_three = 102
+  integer(i_native), public, parameter :: test_enum_one = 135
+  integer(i_native), public, parameter :: test_enum_three = 763
+  integer(i_native), public, parameter :: test_enum_two = 847
 
   integer(i_def), public, protected :: dint
   logical(l_def), public, protected :: dlog
@@ -83,8 +84,13 @@ module test_config_mod
 
   character(str_def), parameter :: enum_key(3) &
           = [character(len=str_def) :: 'one', &
-                                       'two', &
-                                       'three']
+                                       'three', &
+                                       'two']
+
+  integer(i_native), parameter :: enum_value(3) &
+          = [135_i_native, &
+             763_i_native, &
+             847_i_native]
 
 contains
 
@@ -105,7 +111,7 @@ contains
     key_index = 1
     do
       if (trim(enum_key(key_index)) == trim(key)) then
-        enum_from_key = key_index + test_enum_one - 1
+        enum_from_key = enum_value(key_index)
         return
       else
         key_index = key_index + 1
@@ -131,17 +137,22 @@ contains
 
     integer(i_native), intent(in) :: value
 
-    integer(i_native) :: key_index
+    integer(i_native) :: value_index
 
-    key_index = value - test_enum_one + 1
-    if (key_index < lbound(enum_key, 1) &
-        .or. key_index > ubound(enum_key, 1)) then
-      write( log_scratch_space, &
-             '("Value ", I0, " is not in test enum")' ) value
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    key_from_enum = enum_key( key_index )
+    value_index = 1
+    do
+      if (enum_value(value_index) == value) then
+        key_from_enum = enum_key(value_index)
+        return
+      else
+        value_index = value_index + 1
+        if (value_index > ubound(enum_key, 1)) then
+          write( log_scratch_space, &
+                 '("Value ", I0, " is not in test enum")' ) value
+          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end if
+      end if
+    end do
 
   end function key_from_enum
 
@@ -365,8 +376,7 @@ contains
 end module test_config_mod
         '''.strip()
 
-        outputFile = StringIO.StringIO()
-
+        random.seed( 1 )
         uut = description.NamelistDescription( 'test' )
         uut.addParameter( 'vint', 'integer'             )
         uut.addParameter( 'dint', 'integer', 'default'  )
@@ -382,9 +392,10 @@ end module test_config_mod
         uut.addParameter( 'fstr', 'string',  'filename' )
         uut.addParameter( 'enum', 'enumeration', None,
                           enumerators=['one', 'two', 'three'] )
+        outputFile = StringIO.StringIO()
         uut.writeModule( outputFile )
 
-        self.assertMultiLineEqual( expectedSource + '\n', \
+        self.assertMultiLineEqual( expectedSource + '\n',
                                    outputFile.getvalue() )
 
     ###########################################################################
@@ -704,9 +715,9 @@ module enum_config_mod
             read_enum_namelist, postprocess_enum_namelist, &
             enum_is_loadable, enum_is_loaded
 
-  integer(i_native), public, parameter :: enum_value_one = 100
-  integer(i_native), public, parameter :: enum_value_two = 101
-  integer(i_native), public, parameter :: enum_value_three = 102
+  integer(i_native), public, parameter :: enum_value_one = 135
+  integer(i_native), public, parameter :: enum_value_three = 763
+  integer(i_native), public, parameter :: enum_value_two = 847
 
   integer(i_native), public, protected :: value
 
@@ -714,8 +725,13 @@ module enum_config_mod
 
   character(str_def), parameter :: value_key(3) &
           = [character(len=str_def) :: 'one', &
-                                       'two', &
-                                       'three']
+                                       'three', &
+                                       'two']
+
+  integer(i_native), parameter :: value_value(3) &
+          = [135_i_native, &
+             763_i_native, &
+             847_i_native]
 
 contains
 
@@ -736,7 +752,7 @@ contains
     key_index = 1
     do
       if (trim(value_key(key_index)) == trim(key)) then
-        value_from_key = key_index + enum_value_one - 1
+        value_from_key = value_value(key_index)
         return
       else
         key_index = key_index + 1
@@ -762,17 +778,22 @@ contains
 
     integer(i_native), intent(in) :: value
 
-    integer(i_native) :: key_index
+    integer(i_native) :: value_index
 
-    key_index = value - enum_value_one + 1
-    if (key_index < lbound(value_key, 1) &
-        .or. key_index > ubound(value_key, 1)) then
-      write( log_scratch_space, &
-             '("Value ", I0, " is not in enum value")' ) value
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    key_from_value = value_key( key_index )
+    value_index = 1
+    do
+      if (value_value(value_index) == value) then
+        key_from_value = value_key(value_index)
+        return
+      else
+        value_index = value_index + 1
+        if (value_index > ubound(value_key, 1)) then
+          write( log_scratch_space, &
+                 '("Value ", I0, " is not in enum value")' ) value
+          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end if
+      end if
+    end do
 
   end function key_from_value
 
@@ -885,13 +906,13 @@ contains
 end module enum_config_mod
         '''.strip()
 
-        outputFile = StringIO.StringIO()
-
+        random.seed( 1 )
         uut = description.NamelistDescription( 'enum' )
         uut.addParameter( 'value',
                           'enumeration',
                           None,
                           enumerators=['one', 'two', 'three'] )
+        outputFile = StringIO.StringIO()
         uut.writeModule( outputFile )
 
         self.assertMultiLineEqual( expectedSource + '\n',
@@ -922,12 +943,12 @@ module twoenum_config_mod
             read_twoenum_namelist, postprocess_twoenum_namelist, &
             twoenum_is_loadable, twoenum_is_loaded
 
-  integer(i_native), public, parameter :: twoenum_first_one = 100
-  integer(i_native), public, parameter :: twoenum_first_two = 101
-  integer(i_native), public, parameter :: twoenum_first_three = 102
-  integer(i_native), public, parameter :: twoenum_second_ay = 103
-  integer(i_native), public, parameter :: twoenum_second_bee = 104
-  integer(i_native), public, parameter :: twoenum_second_see = 105
+  integer(i_native), public, parameter :: twoenum_first_one = 135
+  integer(i_native), public, parameter :: twoenum_first_three = 763
+  integer(i_native), public, parameter :: twoenum_first_two = 847
+  integer(i_native), public, parameter :: twoenum_second_ay = 256
+  integer(i_native), public, parameter :: twoenum_second_bee = 495
+  integer(i_native), public, parameter :: twoenum_second_see = 449
 
   integer(i_native), public, protected :: first
   integer(i_native), public, protected :: second
@@ -936,12 +957,21 @@ module twoenum_config_mod
 
   character(str_def), parameter :: first_key(3) &
           = [character(len=str_def) :: 'one', &
-                                       'two', &
-                                       'three']
+                                       'three', &
+                                       'two']
   character(str_def), parameter :: second_key(3) &
           = [character(len=str_def) :: 'ay', &
                                        'bee', &
                                        'see']
+
+  integer(i_native), parameter :: first_value(3) &
+          = [135_i_native, &
+             763_i_native, &
+             847_i_native]
+  integer(i_native), parameter :: second_value(3) &
+          = [256_i_native, &
+             495_i_native, &
+             449_i_native]
 
 contains
 
@@ -962,7 +992,7 @@ contains
     key_index = 1
     do
       if (trim(first_key(key_index)) == trim(key)) then
-        first_from_key = key_index + twoenum_first_one - 1
+        first_from_key = first_value(key_index)
         return
       else
         key_index = key_index + 1
@@ -988,17 +1018,22 @@ contains
 
     integer(i_native), intent(in) :: value
 
-    integer(i_native) :: key_index
+    integer(i_native) :: value_index
 
-    key_index = value - twoenum_first_one + 1
-    if (key_index < lbound(first_key, 1) &
-        .or. key_index > ubound(first_key, 1)) then
-      write( log_scratch_space, &
-             '("Value ", I0, " is not in twoenum first")' ) value
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    key_from_first = first_key( key_index )
+    value_index = 1
+    do
+      if (first_value(value_index) == value) then
+        key_from_first = first_key(value_index)
+        return
+      else
+        value_index = value_index + 1
+        if (value_index > ubound(first_key, 1)) then
+          write( log_scratch_space, &
+                 '("Value ", I0, " is not in twoenum first")' ) value
+          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end if
+      end if
+    end do
 
   end function key_from_first
 
@@ -1019,7 +1054,7 @@ contains
     key_index = 1
     do
       if (trim(second_key(key_index)) == trim(key)) then
-        second_from_key = key_index + twoenum_second_ay - 1
+        second_from_key = second_value(key_index)
         return
       else
         key_index = key_index + 1
@@ -1045,17 +1080,22 @@ contains
 
     integer(i_native), intent(in) :: value
 
-    integer(i_native) :: key_index
+    integer(i_native) :: value_index
 
-    key_index = value - twoenum_second_ay + 1
-    if (key_index < lbound(second_key, 1) &
-        .or. key_index > ubound(second_key, 1)) then
-      write( log_scratch_space, &
-             '("Value ", I0, " is not in twoenum second")' ) value
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    key_from_second = second_key( key_index )
+    value_index = 1
+    do
+      if (second_value(value_index) == value) then
+        key_from_second = second_key(value_index)
+        return
+      else
+        value_index = value_index + 1
+        if (value_index > ubound(second_key, 1)) then
+          write( log_scratch_space, &
+                 '("Value ", I0, " is not in twoenum second")' ) value
+          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end if
+      end if
+    end do
 
   end function key_from_second
 
@@ -1175,17 +1215,17 @@ contains
 end module twoenum_config_mod
                        '''.strip()
 
-      outputFile = StringIO.StringIO()
-
+      random.seed( 1 )
       uut = description.NamelistDescription( 'twoenum' )
       uut.addParameter( 'first', 'enumeration', None,
                         enumerators=['one', 'two', 'three'] )
       uut.addParameter( 'second', 'enumeration', None,
                         enumerators=['ay', 'bee', 'see'] )
+      outputFile = StringIO.StringIO()
       uut.writeModule( outputFile )
 
-      self.assertMultiLineEqual( expectedSource + '\n',
-                                 outputFile.getvalue() )
+      self.assertMultiLineEqual( outputFile.getvalue(),
+                                 expectedSource + '\n' )
 
     ###########################################################################
     def testModuleWriteComputed( self ):

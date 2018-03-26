@@ -3,59 +3,60 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 module compute_curl_operator_kernel_mod
-use constants_mod,           only: r_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,            &
-                                   GH_OPERATOR, GH_FIELD,          &
-                                   GH_READ, GH_WRITE,              &
-                                   W1, W2, ANY_SPACE_1,            &
-                                   GH_BASIS,GH_DIFF_BASIS,         &
-                                   CELLS, GH_QUADRATURE_XYoZ
-use coordinate_jacobian_mod, only: coordinate_jacobian
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  use argument_mod,            only: arg_type, func_type,    &
+                                     GH_OPERATOR, GH_FIELD,  &
+                                     GH_READ, GH_WRITE,      &
+                                     ANY_SPACE_1,            &
+                                     GH_BASIS,GH_DIFF_BASIS, &
+                                     CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,           only: r_def
+  use coordinate_jacobian_mod, only: coordinate_jacobian
+  use fs_continuity_mod,       only: W1, W2
+  use kernel_mod,              only: kernel_type
 
-type, public, extends(kernel_type) :: compute_curl_operator_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W2, W1),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)                    &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W1, GH_DIFF_BASIS),                                   &
-       func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass :: compute_curl_operator_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !--------------------------------------------------------------------------
+  ! Public types
+  !--------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface compute_curl_operator_kernel_type
-   module procedure compute_curl_operator_constructor
-end interface
+  type, public, extends(kernel_type) :: compute_curl_operator_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/              &
+        arg_type(GH_OPERATOR, GH_WRITE, W2, W1),     &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/     &
+        func_type(W2, GH_BASIS),              &
+        func_type(W1, GH_DIFF_BASIS),         &
+        func_type(ANY_SPACE_1, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: compute_curl_operator_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_curl_operator_code
+  !--------------------------------------------------------------------------
+  ! Constructors
+  !--------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface compute_curl_operator_kernel_type
+    module procedure compute_curl_operator_constructor
+  end interface
+
+  !--------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !--------------------------------------------------------------------------
+  public compute_curl_operator_code
+
 contains
 
 type(compute_curl_operator_kernel_type) &
-                      function compute_curl_operator_constructor() result(self)
+function compute_curl_operator_constructor() result(self)
   return
 end function compute_curl_operator_constructor
 

@@ -3,60 +3,63 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief The kernel computes the cell integrated potential vorticity
+!> @brief Computes the cell integrated potential vorticity.
+!>
 !> \f$ \int( \xi . \nabla(\theta) dV ) \f$
+!>
 module compute_total_pv_kernel_mod
 
-use argument_mod,      only : arg_type, func_type,                     &
-                              GH_FIELD, GH_WRITE, GH_READ,             &
-                              W0, W1, W3, ANY_SPACE_9,                 &
-                              GH_BASIS, GH_DIFF_BASIS,                 &
-                              CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,     only : r_def
-use kernel_mod,        only : kernel_type
-use planet_config_mod, only : scaled_radius
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_WRITE, GH_READ, &
+                                ANY_SPACE_9,                 &
+                                GH_BASIS, GH_DIFF_BASIS,     &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W0, W1, W3
+  use kernel_mod,        only : kernel_type
+  use planet_config_mod, only : scaled_radius
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: compute_total_pv_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W1),                             &
-       arg_type(GH_FIELD,   GH_READ,  W0),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                          &
-       func_type(W0, GH_DIFF_BASIS),                                   &
-       func_type(W1, GH_BASIS)                                         &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::compute_total_pv_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: compute_total_pv_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/             &
+        arg_type(GH_FIELD,   GH_WRITE, W3),         &
+        arg_type(GH_FIELD,   GH_READ,  W1),         &
+        arg_type(GH_FIELD,   GH_READ,  W0),         &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/      &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS), &
+        func_type(W0, GH_DIFF_BASIS),          &
+        func_type(W1, GH_BASIS)                &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::compute_total_pv_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface compute_total_pv_kernel_type
-   module procedure compute_total_pv_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface compute_total_pv_kernel_type
+    module procedure compute_total_pv_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_total_pv_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_total_pv_code
+
 contains
 
 type(compute_total_pv_kernel_type) function compute_total_pv_kernel_constructor() result(self)

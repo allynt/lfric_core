@@ -3,61 +3,59 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief Provides access to the members of the w2_kernel class.
 !>
-!> @details Accessor functions for the w2_kernel class are defined in this
-!>         module.
-!
+!> Accessor functions for the w2_kernel class are defined in this module.
+!>
 module compute_mass_matrix_kernel_w2_mod
 
-use constants_mod,           only: i_def, r_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,             &
-                                   GH_OPERATOR, GH_FIELD,           &
-                                   GH_READ, GH_WRITE,               &
-                                   ANY_SPACE_9, W2,                 &
-                                   GH_BASIS, GH_DIFF_BASIS,         &
-                                   CELLS, GH_QUADRATURE_XYoZ
+  use argument_mod,            only: arg_type, func_type,    &
+                                     GH_OPERATOR, GH_FIELD,   &
+                                     GH_READ, GH_WRITE,       &
+                                     ANY_SPACE_9,             &
+                                     GH_BASIS, GH_DIFF_BASIS, &
+                                     CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,           only: i_def, r_def
+  use coordinate_jacobian_mod, only: coordinate_jacobian
+  use fs_continuity_mod,       only: W2
+  use kernel_mod,              only: kernel_type
 
-use coordinate_jacobian_mod, only: coordinate_jacobian
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
 
-type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w2_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W2, W2),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                          &
-       func_type(W2, GH_BASIS)                                         &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass :: compute_mass_matrix_w2_code
-end type
+  type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w2_type
+    private
+    type(arg_type) :: meta_args(2) = (/              &
+        arg_type(GH_OPERATOR, GH_WRITE, W2, W2),     &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/      &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS), &
+        func_type(W2, GH_BASIS)                &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: compute_mass_matrix_w2_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface compute_mass_matrix_kernel_w2_type
-   module procedure compute_mass_matrix_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface compute_mass_matrix_kernel_w2_type
+    module procedure compute_mass_matrix_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_mass_matrix_w2_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_mass_matrix_w2_code
+
 contains
 
 type(compute_mass_matrix_kernel_w2_type) &

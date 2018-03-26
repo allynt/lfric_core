@@ -3,58 +3,63 @@
 ! For further details please refer to the file LICENCE which you should have
 ! received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
 !> @brief Compute the projection operator from the velocity space to
-!!        the potential temperature space weighted by the potential temperature gradient
+!!        the potential temperature space weighted by the potential temperature
+!>        gradient.
+!>
 !> @details Compute the projection operator \f[<\gamma,\nabla(\theta*)v>\f]
-!!          where v is in W2 and gamma is in the potential temperature space
+!!          where v is in W2 and gamma is in the potential temperature space.
+!>
 module weighted_proj_theta2_wt_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                      &
-                                    GH_OPERATOR, GH_FIELD, GH_REAL,           &
-                                    GH_READ, GH_WRITE,                        &
-                                    Wtheta, W2,                               &
-                                    GH_BASIS, GH_DIFF_BASIS,                  &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def, i_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,            &
+                                GH_OPERATOR, GH_FIELD, GH_REAL, &
+                                GH_READ, GH_WRITE,              &
+                                GH_BASIS, GH_DIFF_BASIS,        &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, Wtheta
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: weighted_proj_theta2_wt_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, Wtheta, W2),                    &
-       arg_type(GH_FIELD,    GH_READ,  Wtheta),                        &
-       arg_type(GH_REAL,     GH_READ)                                  &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS),                     &
-       func_type(W2,     GH_BASIS, GH_DIFF_BASIS)                      &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::weighted_proj_theta2_wt_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: weighted_proj_theta2_wt_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/              &
+        arg_type(GH_OPERATOR, GH_WRITE, Wtheta, W2), &
+        arg_type(GH_FIELD,    GH_READ,  Wtheta),     &
+        arg_type(GH_REAL,     GH_READ)               &
+        /)
+    type(func_type) :: meta_funcs(2) = (/           &
+        func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W2,     GH_BASIS, GH_DIFF_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::weighted_proj_theta2_wt_code
+  end type
 
-! Overload the default structure constructor for function space
-interface weighted_proj_theta2_wt_kernel_type
-   module procedure weighted_proj_theta2_wt_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public weighted_proj_theta2_wt_code
+  ! Overload the default structure constructor for function space
+  interface weighted_proj_theta2_wt_kernel_type
+    module procedure weighted_proj_theta2_wt_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public weighted_proj_theta2_wt_code
+
 contains
 
 type(weighted_proj_theta2_wt_kernel_type) function weighted_proj_theta2_wt_kernel_constructor() result(self)

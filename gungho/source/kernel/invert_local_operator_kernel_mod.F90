@@ -3,54 +3,55 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief Provides access to the members of the w0_kernel class.
-
-!> @details Accessor functions for the w0_kernel class are defined in this module.
-
+!>
+!> Accessor functions for the w0_kernel class are defined in this module.
+!>
 module invert_local_operator_kernel_mod
-use constants_mod,           only: r_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,                      &
-                                   GH_OPERATOR, GH_FIELD, GH_READ, GH_WRITE, &
-                                   W3, &
-                                   CELLS
-use matrix_invert_mod,       only: matrix_invert
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-type, public, extends(kernel_type) :: invert_local_operator_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, W3),                        &
-       arg_type(GH_OPERATOR, GH_READ,  W3, W3)                         &
-       /)
-  integer :: iterates_over = CELLS
+  use argument_mod,      only: arg_type, func_type,                      &
+                               GH_OPERATOR, GH_FIELD, GH_READ, GH_WRITE, &
+                               CELLS
+  use constants_mod,     only: r_def
+  use fs_continuity_mod, only: W3
+  use kernel_mod,        only: kernel_type
+  use matrix_invert_mod, only: matrix_invert
+
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  type, public, extends(kernel_type) :: invert_local_operator_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/          &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, W3), &
+        arg_type(GH_OPERATOR, GH_READ,  W3, W3)  &
+        /)
+    integer :: iterates_over = CELLS
+
+  contains
+    procedure, nopass :: invert_local_operator_code
+  end type invert_local_operator_kernel_type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface invert_local_operator
+    module procedure invert_local_operator_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public invert_local_operator_code
 
 contains
-  procedure, nopass :: invert_local_operator_code
-end type invert_local_operator_kernel_type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface invert_local_operator
-   module procedure invert_local_operator_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public invert_local_operator_code
-contains
-
-type(invert_local_operator_kernel_type) function invert_local_operator_constructor() result(self)
+type(invert_local_operator_kernel_type) &
+function invert_local_operator_constructor() result(self)
   return
 end function invert_local_operator_constructor
   

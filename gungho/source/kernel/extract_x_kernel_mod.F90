@@ -3,52 +3,54 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief  Extracts the x direction component from a W2 field.
+!>
 !> @detail Extracts the x direction component from a W2 field and uses the
 !>         cell orientation field, currently held in W3, to do this.
 !>         The extraction of the x component of the W2 field is done for the
 !>         COSMIC transport scheme which acts in the two horizontal directions
 !>         separately.
+!>
 module extract_x_kernel_mod
 
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    W2, W3, GH_BASIS, CELLS, GH_INTEGER
-use constants_mod,           only : r_def, i_def
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                GH_BASIS, CELLS, GH_INTEGER
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: extract_x_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_WRITE, W2),                             &
-       arg_type(GH_INTEGER, GH_READ     )                              &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass :: extract_x_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: extract_x_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/     &
+        arg_type(GH_FIELD,   GH_READ,  W3), &
+        arg_type(GH_FIELD,   GH_READ,  W2), &
+        arg_type(GH_FIELD,   GH_WRITE, W2), &
+        arg_type(GH_INTEGER, GH_READ     )  &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: extract_x_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface extract_x_kernel_type
-   module procedure extract_x_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface extract_x_kernel_type
+    module procedure extract_x_kernel_constructor
+  end interface
 
-public extract_x_code
+  public extract_x_code
 
 contains
 

@@ -3,63 +3,66 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes rotation component of the rhs of the momentum equation for the nonlinear equations
-
-
-!> @details The kernel computes the rotation component rhs of the momentum equation as given by
-!>         \f[ 2\Omega \times u \f]
-!>         Omega is the rotation vector of the domain and u is the fluid velocity
+!> @brief Computes rotation component of the rhs of the momentum equation for
+!>        the nonlinear equations.
+!>
+!> The kernel computes the rotation component rhs of the momentum equation as
+!> given by \f[ 2\Omega \times u \f].
+!>
+!> Omega is the rotation vector of the domain and u is the fluid velocity.
+!>
 module rotation_kernel_mod
 
-use argument_mod,      only : arg_type, func_type,                     &
-                              GH_FIELD, GH_READ, GH_INC,               &
-                              ANY_SPACE_9, W2,                         &
-                              GH_BASIS, GH_DIFF_BASIS,                 &
-                              CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,     only : r_def
-use cross_product_mod, only : cross_product
-use kernel_mod,        only : kernel_type
-use planet_config_mod, only : scaled_omega
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_9,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use cross_product_mod, only : cross_product
+  use fs_continuity_mod, only : W2
+  use kernel_mod,        only : kernel_type
+  use planet_config_mod, only : scaled_omega
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: rotation_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                      &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::rotation_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: rotation_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/               &
+        func_type(W2, GH_BASIS),                        &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::rotation_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constrotationctors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constrotationctors
+  !---------------------------------------------------------------------------
 
-! overload the default strotationcture constrotationctor for function space
-interface rotation_kernel_type
-   module procedure rotation_kernel_constructor
-end interface
+  ! overload the default strotationcture constrotationctor for function space
+  interface rotation_kernel_type
+    module procedure rotation_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public rotation_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public rotation_code
+
 contains
 
 type(rotation_kernel_type) function rotation_kernel_constructor() result(self)

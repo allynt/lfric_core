@@ -3,10 +3,7 @@
 ! For further details please refer to the file COPYRIGHT.txt
 ! which you should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-----------------------------------------------------------------------------
-
-!> @brief Computes the mass matrices of the DeRahm complex
+!> @brief Computes the mass matrices of the DeRahm complex.
 !>
 !> @details Compute the mass matrices of the DeRahm cochain,
 !> these are the mass matrices for the W0, W1, W2 & W3 function spaces
@@ -14,63 +11,67 @@
 !> Wtheta mass matrix.
 !> Since they all depend upon the mesh Jacobian they are computed as one
 !> to reduce the cost
+!>
 module compute_derahm_matrices_kernel_mod
-use constants_mod,           only: r_def, i_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,            &
-                                   GH_OPERATOR, GH_FIELD,          &
-                                   GH_READ, GH_WRITE,              &
-                                   ANY_SPACE_9, W0, W1, W2, W3,    &
-                                   Wtheta,                         &
-                                   GH_BASIS, GH_DIFF_BASIS,        &
-                                   CELLS, GH_QUADRATURE_XYoZ
-use coordinate_jacobian_mod, only: pointwise_coordinate_jacobian, &
-                                   pointwise_coordinate_jacobian_inverse
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  use argument_mod,            only: arg_type, func_type,     &
+                                     GH_OPERATOR, GH_FIELD,   &
+                                     GH_READ, GH_WRITE,       &
+                                     ANY_SPACE_9,             &
+                                     GH_BASIS, GH_DIFF_BASIS, &
+                                     CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,           only: r_def, i_def
+  use coordinate_jacobian_mod, only: pointwise_coordinate_jacobian, &
+                                     pointwise_coordinate_jacobian_inverse
+  use fs_continuity_mod,       only: W0, W1, W2, W3, Wtheta
+  use kernel_mod,              only: kernel_type
 
-type, public, extends(kernel_type) :: compute_derahm_matrices_kernel_type
-  private
-  type(arg_type) :: meta_args(9) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W0, W0),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W1, W1),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W2, W2),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, W3),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, Wtheta, Wtheta),                &
-       arg_type(GH_OPERATOR, GH_WRITE, W1, W0),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W2, W1),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, W2),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
-       /)
-  type(func_type) :: meta_funcs(6) = (/                                &
-       func_type(W0,         GH_BASIS, GH_DIFF_BASIS),                 &
-       func_type(W1,         GH_BASIS, GH_DIFF_BASIS),                 &
-       func_type(W2,         GH_BASIS, GH_DIFF_BASIS),                 &
-       func_type(W3,         GH_BASIS),                                &
-       func_type(Wtheta,     GH_BASIS),                                &
-       func_type(ANY_SPACE_9,          GH_DIFF_BASIS)                  &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass :: compute_derahm_matrices_code
-end type
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  implicit none
 
-! Overload the default structure constructor for function space
-interface compute_derahm_matrices_kernel_type
-   module procedure compute_derahm_matrices_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_derahm_matrices_code
+  type, public, extends(kernel_type) :: compute_derahm_matrices_kernel_type
+    private
+    type(arg_type) :: meta_args(9) = (/                  &
+        arg_type(GH_OPERATOR, GH_WRITE, W0, W0),         &
+        arg_type(GH_OPERATOR, GH_WRITE, W1, W1),         &
+        arg_type(GH_OPERATOR, GH_WRITE, W2, W2),         &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, W3),         &
+        arg_type(GH_OPERATOR, GH_WRITE, Wtheta, Wtheta), &
+        arg_type(GH_OPERATOR, GH_WRITE, W1, W0),         &
+        arg_type(GH_OPERATOR, GH_WRITE, W2, W1),         &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, W2),         &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)     &
+        /)
+    type(func_type) :: meta_funcs(6) = (/               &
+        func_type(W0,         GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W1,         GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W2,         GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W3,         GH_BASIS),                &
+        func_type(Wtheta,     GH_BASIS),                &
+        func_type(ANY_SPACE_9,          GH_DIFF_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: compute_derahm_matrices_code
+  end type
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface compute_derahm_matrices_kernel_type
+    module procedure compute_derahm_matrices_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_derahm_matrices_code
+
 contains
 
 type(compute_derahm_matrices_kernel_type) &

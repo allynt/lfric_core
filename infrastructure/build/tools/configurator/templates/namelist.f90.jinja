@@ -25,7 +25,7 @@ module {{listname}}_config_mod
 
 {%- for name in enumerations | sort %}
 {%-   if loop.first %}{{'\n'}}{%- endif %}
-{%-   for value, key in parameters[name].inverseMapping | dictsort %}
+{%-   for key, value in parameters[name].mapping | dictsort %}
   integer(i_native), public, parameter :: {{listname}}_{{name}}_{{key}} = {{value}}
 {%-   endfor %}
 {%- endfor %}
@@ -55,12 +55,25 @@ module {{listname}}_config_mod
 {%-   if loop.first %}{{'\n'}}{%- endif %}
   character(str_def), parameter :: {{name}}_key({{parameters[name].mapping | length()}}) &
 {%    set indent = '          = [character(len=str_def) :: ' %}
-{%-   for value, key in parameters[name].inverseMapping | dictsort %}
+{%-   for key, value in parameters[name].mapping | dictsort %}
 {%-       if not loop.first %}
 {%-         set indent = ' ' * indent | length() -%}
 , &{{'\n'}}
 {%-        endif %}
 {{- indent }}'{{ key }}'
+{%-     endfor %}]
+{%-   endfor %}
+
+{%- for name in enumerations | sort %}
+{%-   if loop.first %}{{'\n'}}{%- endif %}
+  integer(i_native), parameter :: {{name}}_value({{parameters[name].mapping | length()}}) &
+{%    set indent = '          = [' %}
+{%-   for key, value in parameters[name].mapping | dictsort %}
+{%-       if not loop.first %}
+{%-         set indent = ' ' * indent | length() -%}
+, &{{'\n'}}
+{%-        endif %}
+{{- indent }}{{ value }}_i_native
 {%-     endfor %}]
 {%-   endfor %}
 
@@ -85,7 +98,7 @@ contains
     key_index = 1
     do
       if (trim({{name}}_key(key_index)) == trim(key)) then
-        {{name}}_from_key = key_index + {{listname}}_{{name}}_{{parameters[name].firstKey}} - 1
+        {{name}}_from_key = {{name}}_value(key_index)
         return
       else
         key_index = key_index + 1
@@ -111,17 +124,22 @@ contains
 
     integer(i_native), intent(in) :: value
 
-    integer(i_native) :: key_index
+    integer(i_native) :: value_index
 
-    key_index = value - {{listname}}_{{name}}_{{parameters[name].firstKey}} + 1
-    if (key_index < lbound({{name}}_key, 1) &
-        .or. key_index > ubound({{name}}_key, 1)) then
-      write( log_scratch_space, &
-             '("Value ", I0, " is not in {{listname}} {{name}}")' ) value
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
-    end if
-
-    key_from_{{name}} = {{name}}_key( key_index )
+    value_index = 1
+    do
+      if ({{name}}_value(value_index) == value) then
+        key_from_{{name}} = {{name}}_key(value_index)
+        return
+      else
+        value_index = value_index + 1
+        if (value_index > ubound({{name}}_key, 1)) then
+          write( log_scratch_space, &
+                 '("Value ", I0, " is not in {{listname}} {{name}}")' ) value
+          call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        end if
+      end if
+    end do
 
   end function key_from_{{name}}
 {%-   if not loop.last %}{{'\n'}}{% endif %}

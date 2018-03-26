@@ -4,61 +4,65 @@
 ! However, it has been created with the help of the GungHo Consortium, 
 ! whose members are identified at https://puma.nerc.ac.uk/trac/GungHo/wiki
 !-------------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Computes rhs of the equation of state for the nonlinear equations 
-
-!> @details The kernel computes the lhs of the equation of state for the nonlinear equations, 
-!>          That is: \f[ rhs_{\Pi} = 1 - p0/Rd * exner ^ (1-kappa)/kappa /(rho*theta) \f]
+!> @brief Computes rhs of the equation of state for the nonlinear equations.
+!>
+!> The kernel computes the lhs of the equation of state for the nonlinear
+!> equations,
+!> That is: \f[ rhs_{\Pi} = 1 - p0/Rd * exner ^ (1-kappa)/kappa /(rho*theta) \f]
+!>
 module rhs_eos_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    ANY_SPACE_1, W3, ANY_SPACE_9,            &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def, i_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                ANY_SPACE_1, ANY_SPACE_9,    &
+                                GH_BASIS, GH_DIFF_BASIS,     &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: rhs_eos_kernel_type
-  private
-  type(arg_type) :: meta_args(5) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1),                    &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W3,          GH_BASIS),                               &
-       func_type(ANY_SPACE_1, GH_BASIS),                               &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::rhs_eos_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !-------------------------------------------------------------------------------
+  ! Public types
+  !-------------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: rhs_eos_kernel_type
+    private
+    type(arg_type) :: meta_args(5) = (/              &
+        arg_type(GH_FIELD,   GH_WRITE, W3),          &
+        arg_type(GH_FIELD,   GH_READ,  W3),          &
+        arg_type(GH_FIELD,   GH_READ,  W3),          &
+        arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1), &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)  &
+        /)
+    type(func_type) :: meta_funcs(3) = (/     &
+        func_type(W3,          GH_BASIS),     &
+        func_type(ANY_SPACE_1, GH_BASIS),     &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::rhs_eos_code
+  end type
 
-! Overload the default structure constructor for function space
-interface rhs_eos_kernel_type
-   module procedure rhs_eos_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public rhs_eos_code
+  ! Overload the default structure constructor for function space
+  interface rhs_eos_kernel_type
+    module procedure rhs_eos_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public rhs_eos_code
+
 contains
 
 type(rhs_eos_kernel_type) function rhs_eos_kernel_constructor() result(self)

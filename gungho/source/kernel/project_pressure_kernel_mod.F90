@@ -1,63 +1,65 @@
-!-------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 ! (C) Crown copyright 2017 Met Office. All rights reserved.
 ! For further details please refer to the file LICENCE which you should have
 ! received as part of this distribution.
-!-------------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Compute the projection in of the pressure field into the same space as
-!>        density
+!-----------------------------------------------------------------------------
+!> @brief Compute the projection in of the pressure field into the same space
+!>        as density.
+!>
 module project_pressure_kernel_mod
 
-use argument_mod,      only : arg_type, func_type,                 &
-                              GH_FIELD, GH_OPERATOR,               &
-                              GH_READ, GH_WRITE,                   &
-                              ANY_SPACE_1, ANY_SPACE_2, W3,        &
-                              GH_BASIS, GH_DIFF_BASIS, CELLS,      &                    
-                              GH_QUADRATURE_XYoZ
-use constants_mod,     only : r_def
-use kernel_mod,        only : kernel_type
+  use argument_mod,      only : arg_type, func_type,            &
+                                GH_FIELD, GH_OPERATOR,          &
+                                GH_READ, GH_WRITE,              &
+                                ANY_SPACE_1, ANY_SPACE_2,       &
+                                GH_BASIS, GH_DIFF_BASIS, CELLS, &
+                                GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: project_pressure_kernel_type
-  private
-  type(arg_type) :: meta_args(5) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE,  W3),                            &
-       arg_type(GH_FIELD,   GH_READ,   W3),                            &
-       arg_type(GH_FIELD,   GH_READ,   ANY_SPACE_1),                   &
-       arg_type(GH_FIELD*3, GH_READ,   ANY_SPACE_2),                   &
-       arg_type(GH_OPERATOR, GH_READ,  W3, W3)                         &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W3,          GH_BASIS),                               &
-       func_type(ANY_SPACE_1, GH_BASIS),                               &
-       func_type(ANY_SPACE_2, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::project_pressure_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: project_pressure_kernel_type
+    private
+    type(arg_type) :: meta_args(5) = (/               &
+        arg_type(GH_FIELD,   GH_WRITE,  W3),          &
+        arg_type(GH_FIELD,   GH_READ,   W3),          &
+        arg_type(GH_FIELD,   GH_READ,   ANY_SPACE_1), &
+        arg_type(GH_FIELD*3, GH_READ,   ANY_SPACE_2), &
+        arg_type(GH_OPERATOR, GH_READ,  W3, W3)       &
+        /)
+    type(func_type) :: meta_funcs(3) = (/     &
+        func_type(W3,          GH_BASIS),     &
+        func_type(ANY_SPACE_1, GH_BASIS),     &
+        func_type(ANY_SPACE_2, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::project_pressure_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface project_pressure_kernel_type
-   module procedure project_pressure_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface project_pressure_kernel_type
+    module procedure project_pressure_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public project_pressure_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public project_pressure_code
+
 contains
 
 type(project_pressure_kernel_type) function project_pressure_kernel_constructor() result(self)

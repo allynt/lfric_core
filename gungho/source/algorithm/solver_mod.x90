@@ -15,7 +15,8 @@ module solver_mod
 
   use constants_mod,             only : r_def, str_def, i_def
   use field_mod,                 only : field_type
-  use fs_continuity_mod,         only : W0, W1, W2, W3, Wtheta, W2v, W2h, fs_name
+  use fs_continuity_mod,         only : W0, W1, W2, W3, Wtheta, W2v, W2h, &
+                                        name_from_functionspace
   use function_space_mod,        only : function_space_type
   use log_mod,                   only : log_event,         &
                                         log_scratch_space, &
@@ -205,7 +206,7 @@ contains
     init_err=err
     if (err < tolerance) then
       write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)') &
-          trim(fs_name(rhs_fs%which()))//                 &
+          trim(name_from_functionspace(rhs_fs%which()))// &
           "-space solver_algorithm:converged in ", 0,     &
           " iters, init=", init_err,                      &
           " final=", err
@@ -257,7 +258,7 @@ contains
 
       if (err < tolerance) then
         write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)' ) &
-            trim(fs_name(rhs_fs%which()))//                  &
+            trim(name_from_functionspace(rhs_fs%which()))//  &
             "-space solver_algorithm:converged in ", iter,   &
             " iters, init=", init_err,                       &
             " final=", err
@@ -363,7 +364,7 @@ contains
       call log_event( log_scratch_space, LOG_LEVEL_TRACE )
       if (err < tolerance) then
         write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)' )  &
-            trim(fs_name(rhs_fs%which()))//                   &
+            trim(name_from_functionspace(rhs_fs%which()))//   &
             "-space cg solver_algorithm:converged in ", iter, &
             " iters, init=", init_err,                        &
             " final=", err
@@ -710,7 +711,7 @@ contains
       err = sqrt( err )/sc_err
       if ( err <  tolerance ) then
         write( log_scratch_space, '(A,I2,A,E12.4,A,E15.8)' )   &
-            trim(fs_name(rhs_fs%which()))//                    &
+            trim(name_from_functionspace(rhs_fs%which()))//    &
             "-space GCR solver_algorithm:converged in ", iter, &
             " iters, init=", init_err,                         &
             " final=", err

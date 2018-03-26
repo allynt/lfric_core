@@ -42,8 +42,9 @@ module init_gravity_wave_mod
   use function_space_chain_mod,       only : function_space_chain_type
 
   use init_multigrid_mesh_mod,        only : mesh_ids
-  use multigrid_config_mod,           only : l_multigrid, ugrid, order, &
-                                             continuity, multigrid_chain_nitems
+  use multigrid_config_mod,           only : l_multigrid, &
+                                             ugrid,       &
+                                             multigrid_chain_nitems
   implicit none
 
 
@@ -81,8 +82,8 @@ module init_gravity_wave_mod
 
         ! Make sure this function_space is in the collection
         function_space => function_space_collection%get_fs( mesh_ids(i), &
-                                                            order(i),    &
-                                                            continuity(i) )
+                                                            0,           &
+                                                            W3 )
 
         write( log_scratch_space,"(A,I0,A)")                       &
              'Adding function_space id ', function_space%get_id(), &

@@ -5,72 +5,78 @@
 !-----------------------------------------------------------------------------
 
 module scaled_matrix_vector_kernel_mod
-use argument_mod,            only : arg_type,                               &
-                                    GH_FIELD, GH_OPERATOR, GH_READ, GH_INC, &
-                                    W2, W3,                                 &
-                                    CELLS 
-use constants_mod,           only : r_def, i_def
-use kernel_mod,              only : kernel_type
 
-implicit none
+  use argument_mod,      only : arg_type,                               &
+                                GH_FIELD, GH_OPERATOR, GH_READ, GH_INC, &
+                                CELLS
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  implicit none
 
-type, public, extends(kernel_type) :: scaled_matrix_vector_kernel_type
-  private
-  type(arg_type) :: meta_args(5) = (/                                  &
-       arg_type(GH_FIELD,    GH_INC,  W2),                             &  
-       arg_type(GH_FIELD,    GH_READ, W3),                             &
-       arg_type(GH_OPERATOR, GH_READ, W2, W3),                         &
-       arg_type(GH_FIELD,    GH_READ, W2),                             &  
-       arg_type(GH_FIELD,    GH_READ, W2)                              &  
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass :: scaled_matrix_vector_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
 
-type, public, extends(kernel_type) :: opt_scaled_matrix_vector_kernel_type
-  private
-  type(arg_type) :: meta_args(5) = (/                                  &
-       arg_type(GH_FIELD,    GH_INC,  W2),                             &  
-       arg_type(GH_FIELD,    GH_READ, W3),                             &
-       arg_type(GH_OPERATOR, GH_READ, W2, W3),                         &
-       arg_type(GH_FIELD,    GH_READ, W2),                             &  
-       arg_type(GH_FIELD,    GH_READ, W2)                              & 
+  type, public, extends(kernel_type) :: scaled_matrix_vector_kernel_type
+    private
+    type(arg_type) :: meta_args(5) = (/         &
+        arg_type(GH_FIELD,    GH_INC,  W2),     &
+        arg_type(GH_FIELD,    GH_READ, W3),     &
+        arg_type(GH_OPERATOR, GH_READ, W2, W3), &
+        arg_type(GH_FIELD,    GH_READ, W2),     &
+        arg_type(GH_FIELD,    GH_READ, W2)      &
         /)
-  integer :: iterates_over = CELLS
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: scaled_matrix_vector_code
+  end type
+
+  type, public, extends(kernel_type) :: opt_scaled_matrix_vector_kernel_type
+    private
+    type(arg_type) :: meta_args(5) = (/         &
+        arg_type(GH_FIELD,    GH_INC,  W2),     &
+        arg_type(GH_FIELD,    GH_READ, W3),     &
+        arg_type(GH_OPERATOR, GH_READ, W2, W3), &
+        arg_type(GH_FIELD,    GH_READ, W2),     &
+        arg_type(GH_FIELD,    GH_READ, W2)      &
+          /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: opt_scaled_matrix_vector_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface scaled_matrix_vector_kernel_type
+    module procedure scaled_matrix_vector_kernel_constructor
+  end interface
+
+  interface opt_scaled_matrix_vector_kernel_type
+    module procedure opt_scaled_matrix_vector_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public scaled_matrix_vector_code
+  public opt_scaled_matrix_vector_code
+
 contains
-  procedure, nopass :: opt_scaled_matrix_vector_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  type(scaled_matrix_vector_kernel_type) &
+  function scaled_matrix_vector_kernel_constructor() result(self)
+    return
+  end function scaled_matrix_vector_kernel_constructor
 
-! Overload the default structure constructor for function space
-interface scaled_matrix_vector_kernel_type
-   module procedure scaled_matrix_vector_kernel_constructor
-end interface
-interface opt_scaled_matrix_vector_kernel_type
-   module procedure opt_scaled_matrix_vector_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public scaled_matrix_vector_code
-public opt_scaled_matrix_vector_code
-contains
-
-  type(scaled_matrix_vector_kernel_type) function scaled_matrix_vector_kernel_constructor() result(self)
-  return
-end function scaled_matrix_vector_kernel_constructor
-  type(opt_scaled_matrix_vector_kernel_type) function opt_scaled_matrix_vector_kernel_constructor() result(self)
-  return
-end function opt_scaled_matrix_vector_kernel_constructor
+  type(opt_scaled_matrix_vector_kernel_type) &
+  function opt_scaled_matrix_vector_kernel_constructor() result(self)
+    return
+  end function opt_scaled_matrix_vector_kernel_constructor
 
 !> @brief Computes lhs = y*matrix*x where matrix maps from x space to lhs space
 !>        and y is a field in the same space as lhs

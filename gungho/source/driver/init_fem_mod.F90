@@ -10,10 +10,10 @@
 
 module init_fem_mod
 
-  use constants_mod,                  only : i_def
+  use constants_mod,                  only : i_def, i_native
   use finite_element_config_mod,      only : element_order, coordinate_order
   use field_mod,                      only : field_type
-  use fs_continuity_mod,              only : W0, Wtheta, Wchi
+  use fs_continuity_mod,              only : W0, W1, W2, W3, Wtheta, Wchi
   use function_space_mod,             only : function_space_type
   use function_space_collection_mod,  only : function_space_collection_type, &
                                              function_space_collection
@@ -34,10 +34,12 @@ module init_fem_mod
     ! Coordinate field
     type( field_type ), target, intent(inout) :: chi(:)
 
-    type(function_space_type), pointer        :: fs => null()
-    integer(i_def)                            :: fs_id
-    integer(i_def)                            :: chi_space
-    integer(i_def)                            :: coord
+    integer(i_native), parameter :: fs_list(5) = [W0, W1, W2, W3, Wtheta]
+
+    type(function_space_type), pointer :: fs => null()
+    integer(i_native)                  :: fs_index
+    integer(i_def)                     :: chi_space
+    integer(i_def)                     :: coord
 
 
     call log_event( 'FEM specifics: creating function spaces...', LOG_LEVEL_INFO )
@@ -46,11 +48,10 @@ module init_fem_mod
               source = function_space_collection_type() )
 
     ! Create function spaces from W0 to Wtheta
-
-    do fs_id = W0, Wtheta,1
-
-      fs => function_space_collection%get_fs(mesh_id, element_order, fs_id)
-
+    do fs_index = 1, size(fs_list)
+      fs => function_space_collection%get_fs( mesh_id,       &
+                                              element_order, &
+                                              fs_list(fs_index) )
     end do
 
 

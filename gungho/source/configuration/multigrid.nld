@@ -4,7 +4,5 @@ namelist multigrid
   l_multigrid            : logical
 
   ugrid      (multigrid_chain_nitems) : string(filename)
-  order      (multigrid_chain_nitems) : integer
-  continuity (multigrid_chain_nitems) : integer
 
 end namelist multigrid

@@ -3,60 +3,62 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief The kernel computes the rhs of the thermodynamic equation for the nonlinear equations
-!>         for horizontally discontinuous temperature basis functions,
-!>         this consists of the term theta*gamma*div(u) + theta u*grad(gamma)
-!> @details Kernel to  compute the rhs of thermodynamic equation for the nonlinear equations, in
-!>         the absense of source terms this is
+!> @brief Computes the rhs of the thermodynamic equation for the nonlinear
+!>        equations for horizontally discontinuous temperature basis functions.
+!>
+!> Kernel to  compute the rhs of thermodynamic equation for the nonlinear
+!> equations, in the absense of source terms this is
 !>         rtheta = -(theta*gamma*div(u) + theta u*grad(gamma))
+!>
 module rtheta_wtheta_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    W2, Wtheta,                              &
-                                    GH_BASIS, GH_DIFF_BASIS, GH_ORIENTATION, &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def, i_def
 
-implicit none
+  use kernel_mod,        only : kernel_type
+  use argument_mod,      only : arg_type, func_type,                     &
+                                GH_FIELD, GH_READ, GH_INC,               &
+                                GH_BASIS, GH_DIFF_BASIS, GH_ORIENTATION, &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, Wtheta
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: rtheta_wtheta_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC, Wtheta),                           &
-       arg_type(GH_FIELD,   GH_READ, Wtheta),                          &
-       arg_type(GH_FIELD,   GH_READ, W2)                               &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS),                     &
-       func_type(W2, GH_BASIS, GH_DIFF_BASIS)                          &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::rtheta_wtheta_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: rtheta_wtheta_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/        &
+        arg_type(GH_FIELD,   GH_INC, Wtheta),  &
+        arg_type(GH_FIELD,   GH_READ, Wtheta), &
+        arg_type(GH_FIELD,   GH_READ, W2)      &
+        /)
+    type(func_type) :: meta_funcs(2) = (/           &
+        func_type(Wtheta, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W2, GH_BASIS, GH_DIFF_BASIS)      &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::rtheta_wtheta_code
+  end type
 
-! overload the default structure constructor for function space
-interface rtheta_wtheta_kernel_type
-   module procedure rtheta_wtheta_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public rtheta_wtheta_code
+  ! overload the default structure constructor for function space
+  interface rtheta_wtheta_kernel_type
+    module procedure rtheta_wtheta_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public rtheta_wtheta_code
+
 contains
 
 type(rtheta_wtheta_kernel_type) function rtheta_wtheta_kernel_constructor() result(self)

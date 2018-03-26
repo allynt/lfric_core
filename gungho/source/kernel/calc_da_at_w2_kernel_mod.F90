@@ -3,51 +3,56 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-
-!> @brief Kernel to compute the values of dA at W2 locations.
+!> @brief Compute the values of dA at W2 locations.
+!>
 module calc_dA_at_w2_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    ANY_SPACE_1, W2, GH_DIFF_BASIS,          &
+
+  use argument_mod,          only : arg_type, func_type,         &
+                                    GH_FIELD, GH_READ, GH_WRITE, &
+                                    ANY_SPACE_1, GH_DIFF_BASIS,  &
                                     CELLS, GH_EVALUATOR
-use reference_element_mod,   only : N,S,E,W,T,B
-use constants_mod,           only : r_def, i_def
+  use constants_mod,         only : r_def, i_def
+  use fs_continuity_mod,     only : W2
+  use kernel_mod,            only : kernel_type
+  use reference_element_mod, only : N,S,E,W,T,B
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: calc_dA_at_w2_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,    GH_WRITE, W2),                            &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)                    &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
-       /)
-  integer(i_def) :: iterates_over = CELLS
-  integer(i_def) :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass ::calc_dA_at_w2_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: calc_dA_at_w2_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/              &
+        arg_type(GH_FIELD,    GH_WRITE, W2),         &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1) &
+        /)
+    type(func_type) :: meta_funcs(1) = (/     &
+        func_type(ANY_SPACE_1, GH_DIFF_BASIS) &
+        /)
+    integer(i_def) :: iterates_over = CELLS
+    integer(i_def) :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass ::calc_dA_at_w2_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface calc_dA_at_w2_kernel_type
-   module procedure calc_dA_at_w2_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface calc_dA_at_w2_kernel_type
+    module procedure calc_dA_at_w2_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public calc_dA_at_w2_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public calc_dA_at_w2_code
+
 contains
 
 type(calc_dA_at_w2_kernel_type) function calc_dA_at_w2_kernel_constructor() result(self)

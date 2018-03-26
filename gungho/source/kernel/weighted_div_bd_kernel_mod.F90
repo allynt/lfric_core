@@ -3,41 +3,42 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes boundary part of the weighted divergence operator
-
-!> @details The kernel computes the boundary part of the weighted divergence operator
-!>         This consists of \f[<\sigma,\theta*\mathbf{v}\cdot\mathbf{n}> \f]
-!>         where sigma is the W3 test function, v is the W2 trial function,
-!>         theta is the potential temperature, and \mathbf{n} is the outward pointing normal.
-!>         Each face provides two contributions to a pressure point, one from
-!>         the right side, using the potential temperature on the right side of
-!>         the face and one from the left side, using the potential temperature on the left 
-!>         side of the face
+!> @brief Computes boundary part of the weighted divergence operator.
+!>
+!> The kernel computes the boundary part of the weighted divergence operator
+!> This consists of \f[<\sigma,\theta*\mathbf{v}\cdot\mathbf{n}> \f] where
+!> sigma is the W3 test function, v is the W2 trial function, theta is the
+!> potential temperature, and \mathbf{n} is the outward pointing normal.
+!>
+!> Each face provides two contributions to a pressure point, one from the
+!> right side, using the potential temperature on the right side of the face
+!> and one from the left side, using the potential temperature on the left
+!> side of the face.
 
 module weighted_div_bd_kernel_mod
-  use kernel_mod,              only : kernel_type
-  use argument_mod,            only : arg_type, func_type, mesh_data_type, &
-                                      GH_OPERATOR, GH_FIELD, GH_REAL,      &
-                                      GH_READ, GH_INC,                     &
-                                      W2, W3, Wtheta, GH_BASIS,            &
-                                      CELLS, GH_QUADRATURE_XYoZ,           &
-                                      adjacent_face,                       &
-                               reference_element_number_horizontal_faces,  &
-                                      reference_element_out_face_normal
-  use constants_mod,           only : r_def, i_def
 
+  use argument_mod,      only : arg_type, func_type, mesh_data_type,        &
+                                GH_OPERATOR, GH_FIELD, GH_REAL,             &
+                                GH_READ, GH_INC,                            &
+                                GH_BASIS,                                   &
+                                CELLS, GH_QUADRATURE_XYoZ,                  &
+                                adjacent_face,                              &
+                                reference_element_number_horizontal_faces,  &
+                                reference_element_out_face_normal
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, W3, Wtheta
+  use kernel_mod,        only : kernel_type
 
   implicit none
 
   private
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Public types
-  !-------------------------------------------------------------------------------
-  !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
   type, public, extends(kernel_type) :: weighted_div_bd_kernel_type
     private
     type(arg_type) :: meta_args(3) = (/                               &
@@ -61,18 +62,18 @@ module weighted_div_bd_kernel_mod
     procedure, nopass :: weighted_div_bd_code
   end type
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Constructors
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
   ! Overload the default structure constructor for function space
   interface weighted_div_bd_kernel_type
     module procedure weighted_div_bd_kernel_constructor
   end interface
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Contained functions/subroutines
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   public weighted_div_bd_code
 
 contains

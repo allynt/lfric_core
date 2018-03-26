@@ -3,67 +3,66 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief The kernel applies supg to the thermodynamic equation for the
-!>        nonlinear equations.
-!
+!> @brief Applies supg to the thermodynamic equation for the nonlinear
+!>        equations.
+!>
 module rtheta_supg_kernel_mod
 
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    W0, W2, W3, ANY_SPACE_9,                 &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def, EPS
-use coordinate_jacobian_mod, only : coordinate_jacobian
-use kernel_mod,              only : kernel_type
-use timestepping_config_mod, only : dt
+  use argument_mod,            only : arg_type, func_type,       &
+                                      GH_FIELD, GH_READ, GH_INC, &
+                                      ANY_SPACE_9,               &
+                                      GH_BASIS, GH_DIFF_BASIS,   &
+                                      CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,           only : r_def, EPS
+  use coordinate_jacobian_mod, only : coordinate_jacobian
+  use fs_continuity_mod,       only : W0, W2, W3
+  use kernel_mod,              only : kernel_type
+  use timestepping_config_mod, only : dt
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy
-!> layer.
-!
-type, public, extends(kernel_type) :: rtheta_supg_kernel_type
-  private
-  type(arg_type) :: meta_args(6) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W0),                              &
-       arg_type(GH_FIELD,   GH_READ, W0),                              &
-       arg_type(GH_FIELD,   GH_READ, W0),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W3),                              &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                               &
-       /)
-  type(func_type) :: meta_funcs(4) = (/                                &
-       func_type(W0, GH_BASIS, GH_DIFF_BASIS),                         &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                          &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::rtheta_supg_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: rtheta_supg_kernel_type
+    private
+    type(arg_type) :: meta_args(6) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W0),         &
+        arg_type(GH_FIELD,   GH_READ, W0),         &
+        arg_type(GH_FIELD,   GH_READ, W0),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD,   GH_READ, W3),         &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(4) = (/       &
+        func_type(W0, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W2, GH_BASIS),                &
+        func_type(W3, GH_BASIS),                &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS)   &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::rtheta_supg_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface rtheta_supg_kernel_type
-   module procedure rtheta_supg_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface rtheta_supg_kernel_type
+    module procedure rtheta_supg_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public rtheta_supg_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public rtheta_supg_code
+
 contains
 
 type(rtheta_supg_kernel_type) function rtheta_supg_kernel_constructor() &

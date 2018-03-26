@@ -23,7 +23,8 @@ module vertical_trapezoidal_kernel_mod
 
 use argument_mod,  only : arg_type, func_type,                  &
                           GH_FIELD, GH_INC, GH_READ,            &
-                          W0, W2, W3, GH_BASIS, CELLS
+                          GH_BASIS, CELLS
+use fs_continuity_mod, only : W0, W2, W3
 use constants_mod, only : r_def, i_def
 use kernel_mod,    only : kernel_type
 

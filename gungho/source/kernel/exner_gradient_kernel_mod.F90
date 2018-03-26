@@ -3,67 +3,69 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief Computes the exner gradient for rhs of the momentum equation
-!!        with the exner field passed in as an argument
-
-
-!> @details Computes the exner gradient part of the 
+!!        with the exner field passed in as an argument.
+!>
+!> @details Computes the exner gradient part of the
 !>         rhs of the momentum equation for the nonlinear equations,
 !>         Pressure gradient: cp*theta*grad(pi)
+!>
 module exner_gradient_kernel_mod
 
-use argument_mod,      only : arg_type, func_type,                 &
-                              GH_FIELD, GH_READ, GH_INC,           &
-                              ANY_SPACE_9, W2, W3,                 &
-                              GH_BASIS, GH_DIFF_BASIS, CELLS,      &
-                              GH_QUADRATURE_XYoZ
-use constants_mod,     only : r_def, i_def
-use kernel_mod,        only : kernel_type
-use planet_config_mod, only : cp
+  use argument_mod,      only : arg_type, func_type,            &
+                                GH_FIELD, GH_READ, GH_INC,      &
+                                ANY_SPACE_9,                    &
+                                GH_BASIS, GH_DIFF_BASIS, CELLS, &
+                                GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
+  use planet_config_mod, only : cp
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: exner_gradient_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W3),                              &
-       arg_type(GH_FIELD,   GH_READ, ANY_SPACE_9)                      &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS, GH_DIFF_BASIS),                         &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: exner_gradient_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        arg_type(GH_FIELD,   GH_READ, W3),         &
+        arg_type(GH_FIELD,   GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/               &
+        func_type(W2, GH_BASIS, GH_DIFF_BASIS),         &
+        func_type(W3, GH_BASIS),                        &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::exner_gradient_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface exner_gradient_kernel_type
+    module procedure exner_gradient_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public exner_gradient_code
+
 contains
-  procedure, nopass ::exner_gradient_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface exner_gradient_kernel_type
-   module procedure exner_gradient_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public exner_gradient_code
-contains
-
-type(exner_gradient_kernel_type) function exner_gradient_kernel_constructor() result(self)
+type(exner_gradient_kernel_type) &
+function exner_gradient_kernel_constructor() result(self)
   return
 end function exner_gradient_kernel_constructor
 

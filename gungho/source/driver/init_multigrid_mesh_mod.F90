@@ -6,21 +6,21 @@
 
 module init_multigrid_mesh_mod
 
+use base_mesh_config_mod,       only: prime_mesh_name
 use constants_mod,              only: i_def, str_def
 use extrusion_mod,              only: extrusion_type
 use global_mesh_mod,            only: global_mesh_type
 use global_mesh_collection_mod, only: global_mesh_collection
 use gungho_extrusion_mod,       only: create_extrusion
-use mesh_collection_mod,        only: mesh_collection
-use mesh_mod,                   only: mesh_type
-use partition_mod,              only: partition_type, partitioner_interface
-use base_mesh_config_mod,       only: prime_mesh_name
 use log_mod,                    only: log_event, log_scratch_space,    &
                                       LOG_LEVEL_INFO, LOG_LEVEL_TRACE, &
                                       LOG_LEVEL_ERROR
-
-use multigrid_config_mod, only: l_multigrid, ugrid, order, &
-                                continuity, multigrid_chain_nitems
+use mesh_collection_mod,        only: mesh_collection
+use mesh_mod,                   only: mesh_type
+use multigrid_config_mod,       only: l_multigrid, &
+                                      ugrid,       &
+                                      multigrid_chain_nitems
+use partition_mod,              only: partition_type, partitioner_interface
 
 implicit none
 

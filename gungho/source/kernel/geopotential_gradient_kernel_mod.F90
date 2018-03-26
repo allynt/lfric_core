@@ -3,73 +3,76 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes rhs of the momentum equation for the nonlinear equations,
-!>         written in the vector invariant form
-
-
-!> @details The kernel computes the rhs of the momentum equation for the nonlinear equations,
-!>         written in the vector invariant form
-!>         This consists of four terms:
+!> @brief Computes rhs of the momentum equation for the nonlinear equations.
 !>
-!>         Pressure gradient: \f$ cp\theta\nabla(\Pi) \f$
+!> The kernel computes the rhs of the momentum equation for the nonlinear
+!> equations, written in the vector invariant form.
 !>
-!>         geopotential gradient: \f$ \nabla(\Phi) \f$ ( \f$\equiv g\f$ for some domains)
+!> This consists of four terms:
 !>
-!>         gradient of kinetic energy: \f$ \nabla(1/2u.u) \f$ 
+!> Pressure gradient: \f$ cp\theta\nabla(\Pi) \f$
 !>
-!>         vorticity advection: \f$ \xi/\rho \times F\f$ (with vorticity \f$\xi\f$ and mass flux F)
+!> geopotential gradient: \f$ \nabla(\Phi) \f$ ( \f$\equiv g\f$ for some domains)
 !>
-!>         This results in:
-!>         \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2u.u) - cp*\theta*\nabla(\Pi) \f]
+!> gradient of kinetic energy: \f$ \nabla(1/2u.u) \f$
+!>
+!> vorticity advection: \f$ \xi/\rho \times F\f$ (with vorticity \f$\xi\f$ and mass flux F)
+!>
+!> This results in:
+!> \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2u.u) - cp*\theta*\nabla(\Pi) \f]
+!>
 module geopotential_gradient_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                 &
-                                    GH_FIELD, GH_READ, GH_INC,           &
-                                    W0, W2,GH_BASIS, GH_DIFF_BASIS,      &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W0, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: geopotential_gradient_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W0)                               &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W0, GH_DIFF_BASIS)                                    &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: geopotential_gradient_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/    &
+        arg_type(GH_FIELD,   GH_INC,  W2), &
+        arg_type(GH_FIELD,   GH_READ, W0)  &
+        /)
+    type(func_type) :: meta_funcs(2) = (/ &
+        func_type(W2, GH_BASIS),          &
+        func_type(W0, GH_DIFF_BASIS)      &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::geopotential_gradient_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface geopotential_gradient_kernel_type
+    module procedure geopotential_gradient_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public geopotential_gradient_code
+
 contains
-  procedure, nopass ::geopotential_gradient_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface geopotential_gradient_kernel_type
-   module procedure geopotential_gradient_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public geopotential_gradient_code
-contains
-
-type(geopotential_gradient_kernel_type) function geopotential_gradient_kernel_constructor() result(self)
+type(geopotential_gradient_kernel_type) &
+function geopotential_gradient_kernel_constructor() result(self)
   return
 end function geopotential_gradient_kernel_constructor
 

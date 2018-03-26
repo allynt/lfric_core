@@ -128,8 +128,8 @@ module field_mod
 
   !> Psy layer representation of a field.
   !>
-  !> This is an accessor class that allows access to the actual field information
-  !> with each element accessed via a public pointer.
+  !> This is an accessor class that allows access to the actual field
+  !> information with each element accessed via a public pointer.
   !>
   type, public :: field_proxy_type
 

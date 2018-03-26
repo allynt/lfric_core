@@ -3,53 +3,57 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-
-!> @brief Limit on velocity
-
+!> @brief Limits wind velocity.
+!>
 module limit_wind_kernel_mod
 
-use constants_mod,              only: i_def, r_def
-use argument_mod,               only : arg_type, func_type,          &
-                                       GH_FIELD, GH_READ, GH_INC,    &
-                                       W2, GH_BASIS,                 &
-                                       CELLS
-use checks_config_mod,          only : max_cfl
-use kernel_mod,                 only : kernel_type
-use timestepping_config_mod,    only : dt
+  use argument_mod,            only : arg_type, func_type,      &
+                                     GH_FIELD, GH_READ, GH_INC, &
+                                     GH_BASIS,                  &
+                                     CELLS
+  use checks_config_mod,       only : max_cfl
+  use constants_mod,           only : i_def, r_def
+  use fs_continuity_mod,       only : W2
+  use kernel_mod,              only : kernel_type
+  use timestepping_config_mod, only : dt
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: limit_wind_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_INC,  W2)                               &
-       /)
-  integer :: iterates_over = CELLS
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: limit_wind_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/    &
+        arg_type(GH_FIELD,   GH_INC,  W2), &
+        arg_type(GH_FIELD,   GH_INC,  W2)  &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::limit_wind_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor
+  interface limit_wind_kernel_type
+    module procedure limit_wind_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public limit_wind_code
+
 contains
-  procedure, nopass ::limit_wind_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor
-interface limit_wind_kernel_type
-   module procedure limit_wind_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public limit_wind_code
-contains
-
-type(limit_wind_kernel_type) function limit_wind_kernel_constructor() result(self)
+type(limit_wind_kernel_type) &
+function limit_wind_kernel_constructor() result(self)
   return
 end function limit_wind_kernel_constructor
 

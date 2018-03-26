@@ -3,31 +3,32 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes boundary integral part of rhs of the momentum equation for the nonlinear equations,
-!>         written in the vector invariant form
-
-!> @details The kernel computes the boundary integral on rhs of the momentum equation for the nonlinear equations,
-!>         written in the vector invariant form
-!>         This consists of
-!>         ru_bd = -cp*theta*v*normal_vector*average(pi)
+!> @brief Computes boundary integral part of rhs of the momentum equation for
+!>        the nonlinear equations.
 !>
-!>         where average(pi) needs to be considered as both exner and theta are discontinuous in the horizontal direction.
+!> The kernel computes the boundary integral on rhs of the momentum equation
+!> for the nonlinear equations, written in the vector invariant form.
+!>
+!> This consists of ru_bd = -cp*theta*v*normal_vector*average(pi)
+!>
+!> where average(pi) needs to be considered as both exner and theta are
+!> discontinuous in the horizontal direction.
+!>
 module ru_bd_kernel_mod
-  use calc_exner_pointwise_mod, only: calc_exner_pointwise
-  use kernel_mod,               only : kernel_type
+
   use argument_mod,             only : arg_type, func_type,       &
                                        mesh_data_type,            &
                                        GH_FIELD, GH_READ, GH_INC, &
-                                       W2, W3, Wtheta, GH_BASIS,  &
+                                       GH_BASIS,                  &
                                        GH_DIFF_BASIS, CELLS,      &
                                        GH_QUADRATURE_XYoZ,        &
                                        adjacent_face,             &
                                        reference_element_out_face_normal
+  use calc_exner_pointwise_mod, only: calc_exner_pointwise
   use constants_mod,            only : r_def, i_def
   use cross_product_mod,        only : cross_product
+  use fs_continuity_mod,        only : W2, W3, Wtheta
+  use kernel_mod,               only : kernel_type
   use planet_config_mod,        only : cp
 
   implicit none

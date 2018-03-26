@@ -3,70 +3,74 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the vorticity component of the rhs of the momentum 
-!>        equation for the nonlinear equations, written in the vector invariant form
-
-
-!> @details The kernel computes the  vorticity component of the rhs of the momentum equation 
-!>         for the nonlinear equations, written in the vector invariant form
-!>         This consists of four terms:
-!>         Pressure gradient: \f[ cp*\theta*\nabla(\Pi) \f]
-!>         geopotential gradient: \f[ \nabla(\Phi) ( \equiv g for some domains) \f]
-!>         gradient of kinetic energy: \f[ \nabla(1/2*u.u) \f] 
-!>         vorticity advection: \f[ \xi/\rho \times F (with vorticity \xi and mass flux F) \f]
-!>         This results in:
-!>         \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2*u.u) - cp*\theta*\nabla(\Pi) \f]
+!> @brief Computes the vorticity component of the rhs of the momentum equation
+!>        for the nonlinear equations.
+!>
+!> The kernel computes the vorticity component of the rhs of the momentum
+!> equation for the nonlinear equations, written in the vector invariant form.
+!>
+!> This consists of four terms:
+!> Pressure gradient: \f[ cp*\theta*\nabla(\Pi) \f]
+!> geopotential gradient: \f[ \nabla(\Phi) ( \equiv g for some domains) \f]
+!> gradient of kinetic energy: \f[ \nabla(1/2*u.u) \f]
+!> vorticity advection: \f[ \xi/\rho \times F (with vorticity \xi and mass flux F) \f]
+!>
+!> This results in:
+!> \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2*u.u) - cp*\theta*\nabla(\Pi) \f]
+!>
 module vorticity_advection_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                 &
-                                    GH_FIELD, GH_READ, GH_INC,           &
-                                    ANY_SPACE_9, W1, W2, W3,             &
-                                    GH_BASIS, GH_DIFF_BASIS,             &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def
-use cross_product_mod,       only : cross_product
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_9,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use cross_product_mod, only : cross_product
+  use fs_continuity_mod, only : W1, W2, W3
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: vorticity_advection_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W1),                              &
-       arg_type(GH_FIELD*3, GH_READ, any_space_9)                      &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W1, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::vorticity_advection_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: vorticity_advection_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD,   GH_READ, W1),         &
+        arg_type(GH_FIELD*3, GH_READ, any_space_9) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/     &
+        func_type(W2, GH_BASIS),              &
+        func_type(W1, GH_BASIS),              &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::vorticity_advection_code
+  end type
 
-! Overload the default structure constructor for function space
-interface vorticity_advection_kernel_type
-   module procedure vorticity_advection_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public vorticity_advection_code
+  ! Overload the default structure constructor for function space
+  interface vorticity_advection_kernel_type
+    module procedure vorticity_advection_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public vorticity_advection_code
+
 contains
 
 type(vorticity_advection_kernel_type) function vorticity_advection_kernel_constructor() result(self)

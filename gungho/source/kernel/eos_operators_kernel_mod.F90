@@ -3,70 +3,75 @@
 ! For further details please refer to the file COPYRIGHT.txt
 ! which you should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Compute the operators for the left hand side of the equation of state
+!> @brief Compute the operators for the left hand side of the equation of
+!>        state.
+!>
 !> @details Compute the operators for the semi-implicit left hand side of the
 !>          equation of state. These are:
 !>          m3exner = (1-kappa)/kappa*<sigma,sigma/exner*det(J)>
 !>          m3rho   = <sigma,sigma/rho*det(J)>
 !>          p3theta = <sigma,gamma/theta*det(J)>
 !>          for functions sigma in W3 and gamma in the theta space
+!>
 module eos_operators_kernel_mod
-use constants_mod,           only: r_def, i_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,                      &
-                                   GH_OPERATOR, GH_FIELD, GH_REAL,           &
-                                   GH_READ, GH_WRITE,                        &
-                                   ANY_SPACE_1, ANY_SPACE_9, W3,             &
-                                   GH_BASIS, GH_DIFF_BASIS,                  &
-                                   CELLS, GH_QUADRATURE_XYoZ
-use coordinate_jacobian_mod, only: pointwise_coordinate_jacobian
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-type, public, extends(kernel_type) :: eos_operators_kernel_type
-  private
-  type(arg_type) :: meta_args(8) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, W3),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, W3),                        &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, ANY_SPACE_9),               &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),                   &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1),                   &
-       arg_type(GH_REAL,     GH_READ)                                  &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W3,          GH_BASIS),                               &
-       func_type(ANY_SPACE_9, GH_BASIS),                               &
-       func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  use argument_mod,            only: arg_type, func_type,           &
+                                    GH_OPERATOR, GH_FIELD, GH_REAL, &
+                                    GH_READ, GH_WRITE,              &
+                                    ANY_SPACE_1, ANY_SPACE_9,       &
+                                    GH_BASIS, GH_DIFF_BASIS,        &
+                                    CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,           only: r_def, i_def
+  use coordinate_jacobian_mod, only: pointwise_coordinate_jacobian
+  use fs_continuity_mod,       only: W3
+  use kernel_mod,              only: kernel_type
+
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  type, public, extends(kernel_type) :: eos_operators_kernel_type
+    private
+    type(arg_type) :: meta_args(8) = (/                   &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, W3),          &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, W3),          &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, ANY_SPACE_9), &
+        arg_type(GH_FIELD,    GH_READ,  W3),              &
+        arg_type(GH_FIELD,    GH_READ,  W3),              &
+        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),     &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1),     &
+        arg_type(GH_REAL,     GH_READ)                    &
+        /)
+    type(func_type) :: meta_funcs(3) = (/     &
+        func_type(W3,          GH_BASIS),     &
+        func_type(ANY_SPACE_9, GH_BASIS),     &
+        func_type(ANY_SPACE_1, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: eos_operators_code
+  end type eos_operators_kernel_type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface eos_operators_kernel
+    module procedure eos_operators_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public eos_operators_code
+
 contains
-  procedure, nopass :: eos_operators_code
-end type eos_operators_kernel_type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! Overload the default structure constructor for function space
-interface eos_operators_kernel
-   module procedure eos_operators_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public eos_operators_code
-contains
-
-type(eos_operators_kernel_type) function eos_operators_constructor() result(self)
+type(eos_operators_kernel_type) &
+function eos_operators_constructor() result(self)
   return
 end function eos_operators_constructor
   

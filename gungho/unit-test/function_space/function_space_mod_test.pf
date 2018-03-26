@@ -7,7 +7,7 @@
 !-------------------------------------------------------------------------------
 module function_space_mod_test
 
-  use constants_mod,         only : i_def, r_def, l_def, str_long
+  use constants_mod,         only : i_def, i_native, l_def, r_def, str_long
   use fs_continuity_mod,     only : W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi
   use fs_test_data_mod  ! Will use everything in here as it's the static data
   use function_space_mod,    only : function_space_type
@@ -20,7 +20,7 @@ module function_space_mod_test
   use quadrature_rule_gaussian_mod, only: quadrature_rule_gaussian_type
   use reference_element_mod, only : N, E, S, W
 
-  implicit none 
+  implicit none
 
   private
   public :: test_function_space_constructor, getParameters,   &
@@ -31,7 +31,12 @@ module function_space_mod_test
 
   @testParameter
   type, public, extends(AbstractTestParameter) :: function_space_parameter_type
-    integer(i_def), public :: function_space
+    integer(i_native) :: function_space
+    integer(i_def)    :: element_order
+    integer(i_def)    :: ndof_cell
+    integer(i_def)    :: ndof_glob
+    integer(i_def)    :: dim_space
+    integer(i_def)    :: dim_space_diff
   contains
     procedure :: toString
   end type function_space_parameter_type
@@ -39,7 +44,13 @@ module function_space_mod_test
   @TestCase(testParameters={getParameters()}, constructor=test_function_space_constructor)
   type, extends(ParameterizedTestCase), public :: test_function_space_type
     private
-    integer(i_def)           :: function_space
+    integer(i_native) :: function_space
+    integer(i_def)    :: element_order
+    integer(i_def)    :: ndof_cell
+    integer(i_def)    :: ndof_glob
+    integer(i_def)    :: dim_space
+    integer(i_def)    :: dim_space_diff
+
     integer(i_def)           :: mesh_id
     real(r_def), allocatable :: test_diff_basis(:,:,:,:)
     real(r_def), allocatable :: test_basis(:,:,:,:)
@@ -73,13 +84,18 @@ contains
     type(test_function_space_type) :: new_test
 
     new_test%function_space = testParameter%function_space
+    new_test%element_order  = testParameter%element_order
+    new_test%ndof_cell      = testParameter%ndof_cell
+    new_test%ndof_glob      = testParameter%ndof_glob
+    new_test%dim_space      = testParameter%dim_space
+    new_test%dim_space_diff = testParameter%dim_space_diff
 
   end function test_function_space_constructor
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   function toString( this ) result( string )
 
-    use fs_continuity_mod, only : fs_name
+    use fs_continuity_mod, only : name_from_functionspace
 
     implicit none
 
@@ -87,7 +103,8 @@ contains
     character(:), allocatable :: string
 
     character(str_long) :: buffer
-    write( buffer, '(A)') fs_name(this%function_space)
+
+    write( buffer, '(A)') name_from_functionspace( this%function_space )
     string = trim( buffer )
 
   end function toString
@@ -97,15 +114,16 @@ contains
 
     implicit none
 
-    type( function_space_parameter_type ) :: parameters(8)
-    parameters = [ function_space_parameter_type( W0 ), &
-                   function_space_parameter_type( W1 ), &
-                   function_space_parameter_type( W2 ), &
-                   function_space_parameter_type( W3 ), &
-                   function_space_parameter_type( Wtheta ), &
-                   function_space_parameter_type( W2V ), &
-                   function_space_parameter_type( W2H ), &
-                   function_space_parameter_type( Wchi ) ]
+    type(function_space_parameter_type) :: parameters(8)
+
+    parameters = (/function_space_parameter_type(W0,     0,  8, 36, 1, 3), &
+                   function_space_parameter_type(W1,     0, 12, 99, 3, 3), &
+                   function_space_parameter_type(W2,     0,  6, 90, 3, 1), &
+                   function_space_parameter_type(W3,     0,  1, 27, 1, 3), &
+                   function_space_parameter_type(Wtheta, 0,  2, 36, 1, 3), &
+                   function_space_parameter_type(W2V,    0,  2, 36, 3, 1), &
+                   function_space_parameter_type(W2H,    0,  4, 54, 3, 1), &
+                   function_space_parameter_type(Wchi,   0,  1, 27, 1, 3)/)
 
   end function getParameters
 
@@ -119,20 +137,16 @@ contains
 
     class(test_function_space_type), intent(inout) :: this
 
-    type(function_space_description_type) :: description
-
     ! Create top level mesh collection
     mesh_collection = mesh_collection_type()
     ! Dummy mesh mod has 9 cells, 3 layers and is uniform in vertical
     this%mesh_id = mesh_collection%add_unit_test_mesh( PLANE_BI_PERIODIC )
 
-    description = function_space_description(this%function_space)
-
-    allocate( this%test_basis ( description%dim_space,      &
-                                description%ndof_cell, &
+    allocate( this%test_basis ( this%dim_space,      &
+                                this%ndof_cell, &
                                 nqp_h, nqp_v) )
-    allocate( this%test_diff_basis( description%dim_space_diff, &
-                                    description%ndof_cell, &
+    allocate( this%test_diff_basis( this%dim_space_diff, &
+                                    this%ndof_cell, &
                                     nqp_h, nqp_v) )
 
   end subroutine setUp
@@ -168,8 +182,6 @@ contains
     type(quadrature_xyoz_proxy_type)      :: qr_proxy
     type( quadrature_rule_gaussian_type ) :: quadrature_rule
 
-    type(function_space_description_type) :: description
-
     type(function_space_type), pointer :: test_fs => null()
 
     real(r_def),    pointer :: xp(:,:)                      => null()
@@ -190,8 +202,6 @@ contains
     qr_proxy = qr%get_quadrature_proxy()
     xp=>qr_proxy%points_xy
     zp=>qr_proxy%points_z
-
-    description = function_space_description(this%function_space)
 
     ! TODO: Work out if there is a way of including this information in the
     !       description array from fs_test_data.
@@ -239,27 +249,27 @@ contains
         basis_diff_function => fsck0_basis_diff_function
     end select
 
-    test_fs => function_space_type( this%mesh_id,     &
+    test_fs => function_space_type( this%mesh_id,  &
                                     element_order, &
                                     this%function_space )
 
     @assertEqual( this%function_space, test_fs%which() )
-    @assertEqual( description%element_order, test_fs%get_element_order() )
+    @assertEqual( this%element_order, test_fs%get_element_order() )
 
     test_ncells    = test_fs%get_ncell()
     test_ndof_cell = test_fs%get_ndf()
 
-    @assertEqual( description%ndof_cell, test_ndof_cell        )
-    @assertEqual( 9,                     test_ncells           )
-    @assertEqual( 3,                     test_fs%get_nlayers() )
-    @assertEqual( description%ndof_glob, test_fs%get_undf()    )
-    @assertEqual( description%ndof_cell, test_fs%get_ndf()     )
-    @assertEqual( nodal_coords,          test_fs%get_nodes()   )
+    @assertEqual( this%ndof_cell, test_ndof_cell        )
+    @assertEqual( 9,              test_ncells           )
+    @assertEqual( 3,              test_fs%get_nlayers() )
+    @assertEqual( this%ndof_glob, test_fs%get_undf()    )
+    @assertEqual( this%ndof_cell, test_fs%get_ndf()     )
+    @assertEqual( nodal_coords,   test_fs%get_nodes()   )
 
     test_dim_space      = test_fs%get_dim_space()
     test_dim_space_diff = test_fs%get_dim_space_diff()
-    @assertEqual( description%dim_space,      test_dim_space      )
-    @assertEqual( description%dim_space_diff, test_dim_space_diff )
+    @assertEqual( this%dim_space,      test_dim_space      )
+    @assertEqual( this%dim_space_diff, test_dim_space_diff )
 
     do cell=1, test_ncells
       @assertEqual( dofmap(:,cell), test_fs%get_cell_dofmap(cell) )
@@ -298,8 +308,8 @@ contains
     integer(i_def)                     :: cell_counter,dof_counter
     logical                            :: identical
 
-    test_fs => function_space_type( this%mesh_id,         &
-                                    element_order,        &
+    test_fs => function_space_type( this%mesh_id,  &
+                                    element_order, &
                                     this%function_space )
 
     test_ncells    = test_fs%get_ncell()
@@ -318,7 +328,7 @@ contains
       end do
     end do
     @assertEqual( identical, .true.)
-    
+
   end subroutine test_get_whole_dofmap
 
  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -520,7 +530,7 @@ contains
     ! In a serial test such as this the last owned dof should be the same
     ! as the total number of dofs
     @assertEqual ( undf, last_dof )
-    
+
     !Get the last dof of the deepest halo
     last_dof = test_fs%get_last_dof_halo()
     ! In a serial test such as this the last halo dof of the deepest halo
@@ -534,6 +544,7 @@ contains
 
   end subroutine test_get_last_dof
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   @test
   subroutine test_is_comms_fs( this )
 
@@ -560,4 +571,3 @@ contains
   end subroutine test_is_comms_fs
 
 end module function_space_mod_test
-

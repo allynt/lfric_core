@@ -3,63 +3,67 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel to compute the wind used for calculating the departure points
-!! in the dimensionally split advection scheme. Input is the Piola wind and
-!! output is the departure wind. The u_departure_wind variable is being used to
-!! store the departure winds and we wish to have a positive u_departure_wind
-!! representing a postive physical wind. Since u_departure_wind should not be
-!! multiplied by the basis functions themselves in order to evaluate them, we
-!! remove any dependency on the direction of the basis functions by multiplying
-!! the u_piola wind values by the nodal basis functions.
-
+!> @brief Compute the wind used for calculating the departure points in the
+!>        dimensionally split advection scheme.
+!>
+!> Input is the Piola wind and output is the departure wind. The
+!> u_departure_wind variable is being used to store the departure winds and we
+!> wish to have a positive u_departure_wind representing a postive physical
+!> wind. Since u_departure_wind should not be multiplied by the basis
+!> functions themselves in order to evaluate them, we remove any dependency on
+!> the direction of the basis functions by multiplying the u_piola wind values
+!> by the nodal basis functions.
+!>
 module calc_departure_wind_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    ANY_SPACE_9, W2,                         &
-                                    GH_DIFF_BASIS, GH_BASIS,                 &
-                                    CELLS, GH_EVALUATOR
-use constants_mod,           only : r_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                ANY_SPACE_9,                 &
+                                GH_DIFF_BASIS, GH_BASIS,     &
+                                CELLS, GH_EVALUATOR
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: calc_departure_wind_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,    GH_WRITE, W2),                            &
-       arg_type(GH_FIELD,    GH_READ,  W2),                            &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass ::calc_departure_wind_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: calc_departure_wind_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/              &
+        arg_type(GH_FIELD,    GH_WRITE, W2),         &
+        arg_type(GH_FIELD,    GH_READ,  W2),         &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/     &
+        func_type(W2, GH_BASIS),              &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass ::calc_departure_wind_code
+  end type
 
-! Overload the default structure constructor for function space
-interface calc_departure_wind_kernel_type
-   module procedure calc_departure_wind_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public calc_departure_wind_code
+  ! Overload the default structure constructor for function space
+  interface calc_departure_wind_kernel_type
+    module procedure calc_departure_wind_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public calc_departure_wind_code
+
 contains
 
 type(calc_departure_wind_kernel_type) function calc_departure_wind_kernel_constructor() result(self)

@@ -3,50 +3,54 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Apply 3D tracer_viscosity mu * (d2dx2 + d2dy2 + d2dz2) to a tracer
-!> variable in the Wtheta space for lowest order elements
+!> @brief Applies 3D tracer_viscosity mu * (d2dx2 + d2dy2 + d2dz2) to a tracer
+!>        variable in the Wtheta space for lowest order elements.
+!>
 module tracer_viscosity_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    Wtheta, ANY_SPACE_9,                     &
-                                    CELLS, STENCIL, CROSS                                   
-use constants_mod,           only : r_def
-use mixing_config_mod,       only : viscosity_mu
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer.
-type, public, extends(kernel_type) :: tracer_viscosity_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                &
-       arg_type(GH_FIELD,   GH_WRITE,  Wtheta),                      &
-       arg_type(GH_FIELD,   GH_READ, Wtheta, STENCIL(CROSS)),        &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                    &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::tracer_viscosity_code
-end type
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                ANY_SPACE_9,                 &
+                                CELLS, STENCIL, CROSS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : Wtheta
+  use kernel_mod,        only : kernel_type
+  use mixing_config_mod, only : viscosity_mu
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  implicit none
 
-! Overload the default structure constructor for function space
-interface tracer_viscosity_kernel_type
-   module procedure tracer_viscosity_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: tracer_viscosity_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/                        &
+        arg_type(GH_FIELD,   GH_WRITE,  Wtheta),               &
+        arg_type(GH_FIELD,   GH_READ, Wtheta, STENCIL(CROSS)), &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)             &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::tracer_viscosity_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public tracer_viscosity_code
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface tracer_viscosity_kernel_type
+    module procedure tracer_viscosity_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public tracer_viscosity_code
+
 contains
 
 type(tracer_viscosity_kernel_type) function tracer_viscosity_kernel_constructor() result(self)

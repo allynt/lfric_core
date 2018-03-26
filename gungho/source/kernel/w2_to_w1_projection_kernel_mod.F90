@@ -3,52 +3,54 @@
 ! For further details please refer to the file COPYRIGHT.txt
 ! which you should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-
-!> @brief Kernel which projects a field into a given space 
-
+!> @brief Projects a field into a given space.
+!>
 module w2_to_w1_projection_kernel_mod
-use kernel_mod,              only : kernel_type
-use constants_mod,           only : r_def
-use argument_mod,            only : arg_type, func_type,           &
-                                    GH_FIELD, GH_INC, GH_READ,     &
-                                    W1, W2,                        &
-                                    GH_BASIS, GH_DIFF_BASIS,       &
-                                    CELLS, GH_QUADRATURE_XYoZ
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_INC, GH_READ, &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W1, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: w2_to_w1_projection_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W1),                              &
-       arg_type(GH_FIELD,   GH_READ, W2)                               &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W1,          GH_BASIS),                               &
-       func_type(W2,          GH_BASIS)                                &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, public, nopass :: w2_to_w1_projection_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: w2_to_w1_projection_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/    &
+        arg_type(GH_FIELD,   GH_INC,  W1), &
+        arg_type(GH_FIELD,   GH_READ, W2)  &
+        /)
+    type(func_type) :: meta_funcs(2) = (/ &
+        func_type(W1,          GH_BASIS), &
+        func_type(W2,          GH_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, public, nopass :: w2_to_w1_projection_code
+  end type
 
-! overload the default structure constructor for function space
-interface w2_to_w1_projection_kernel_type
-   module procedure w2_to_w1_projection_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
+  ! overload the default structure constructor for function space
+  interface w2_to_w1_projection_kernel_type
+    module procedure w2_to_w1_projection_kernel_constructor
+  end interface
+
+!-----------------------------------------------------------------------------
 ! Contained functions/subroutines
-!-------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 contains
 
 type(w2_to_w1_projection_kernel_type) function w2_to_w1_projection_kernel_constructor() result(self)

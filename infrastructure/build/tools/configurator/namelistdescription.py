@@ -15,6 +15,7 @@ from abc import ABCMeta, abstractmethod
 import collections
 import jinja2    as jinja
 import pyparsing as parsing
+import random
 
 import jinjamacros
 
@@ -206,7 +207,7 @@ class NamelistDescription():
     self._parameters   = collections.OrderedDict()
     self._module_usage = collections.defaultdict( set )
     self._module_usage['constants_mod'] = set( ['imdi', 'rmdi'] )
-    self._enumCounter = 100
+    self._enum_pool = range(1, 1000)
 
   ##########################################################################
   def getNamelistName( self ):
@@ -232,8 +233,8 @@ class NamelistDescription():
     if configureType == 'enumeration':
       keyDict = collections.OrderedDict()
       for key in enumerators:
-        keyDict[key] = self._enumCounter
-        self._enumCounter += 1
+        keyDict[key] = random.choice( self._enum_pool )
+        self._enum_pool.remove( keyDict[key] )
       self._parameters[name] = _Enumeration( name, keyDict )
       return
 

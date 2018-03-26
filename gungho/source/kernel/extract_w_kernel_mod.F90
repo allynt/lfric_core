@@ -3,52 +3,51 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-
-!> @brief Extracts the vertical component of the wind in w2 and places it in 
-!>        wtheta
-
-!> @detail Extracts the vertical component of the wind in w2 and places it in 
-!>         wtheta
-
+!> @brief Extracts the vertical component of the wind in w2 and places it in
+!>        wtheta.
+!>
 module extract_w_kernel_mod
-  
-use kernel_mod,               only: kernel_type
-use argument_mod,             only: arg_type, func_type,                 &
-                                    GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
-                                    WTHETA, W2,                          &
-                                    GH_BASIS, CELLS
-use constants_mod,            only: r_def
 
-implicit none
+  use argument_mod,      only: arg_type, func_type,                 &
+                               GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
+                               GH_BASIS, CELLS
+  use constants_mod,     only: r_def
+  use fs_continuity_mod, only: W2, Wtheta
+  use kernel_mod,        only: kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: extract_w_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                 &
-       arg_type(GH_FIELD,   GH_WRITE,   WTHETA),                      &
-       arg_type(GH_FIELD,   GH_READ,    W2)                           &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass :: extract_w_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: extract_w_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/           &
+        arg_type(GH_FIELD,   GH_WRITE,   WTHETA), &
+        arg_type(GH_FIELD,   GH_READ,    W2)      &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: extract_w_code
+  end type
 
-! overload the default structure constructor
-interface extract_w_kernel_type
-   module procedure extract_w_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public extract_w_code
+  ! overload the default structure constructor
+  interface extract_w_kernel_type
+    module procedure extract_w_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public extract_w_code
+
 contains
 
 type(extract_w_kernel_type) function extract_w_kernel_constructor() result(self)
@@ -73,7 +72,7 @@ subroutine extract_w_code(nlayers,                   &
                          ndf_wth, undf_wth, map_wth, &
                          ndf_w2, undf_w2, map_w2     &
                          )
-  
+
   implicit none
 
   !Arguments

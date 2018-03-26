@@ -3,60 +3,65 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-
-!> @brief Kernel Computes v.Jv on nodal points for normalising w2 fields
-!> @details Compute the normalsation factor fro W2 fields as vJv on W2 nodes
+!> @brief Computes v.Jv on nodal points for normalising w2 fields.
+!>
+!> Compute the normalsation factor fro W2 fields as vJv on W2 nodes.
 !> For a regular orthogonal grid J = diag(dx,dy,dz) so:
 !> vJv = (dx,0,0) for u components
 !> vJv = (0,dy,0) for v components
 !> vJv = (0,0,dz) for w components
+!>
 module w2_normalisation_kernel_mod
 
-use argument_mod,            only : arg_type, func_type,           &
-                                    GH_FIELD, GH_INC, GH_READ,     &
-                                    ANY_SPACE_9, W2,               &
-                                    GH_BASIS, GH_DIFF_BASIS,       &
-                                    CELLS, GH_EVALUATOR
-use constants_mod,           only : r_def, i_def
-use kernel_mod,              only : kernel_type
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_INC, GH_READ, &
+                                ANY_SPACE_9,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_EVALUATOR
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: w2_normalisation_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       ARG_TYPE(GH_FIELD*3, GH_READ, ANY_SPACE_9)                      &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2,          GH_BASIS),                               &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: w2_normalisation_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        ARG_TYPE(GH_FIELD*3, GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/     &
+        func_type(W2,          GH_BASIS),     &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, public, nopass :: w2_normalisation_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface w2_normalisation_kernel_type
+    module procedure w2_normalisation_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
 contains
-  procedure, public, nopass :: w2_normalisation_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! Overload the default structure constructor for function space
-interface w2_normalisation_kernel_type
-   module procedure w2_normalisation_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-contains
-
-type(w2_normalisation_kernel_type) function w2_normalisation_kernel_constructor() result(self)
+type(w2_normalisation_kernel_type) &
+function w2_normalisation_kernel_constructor() result(self)
   return
 end function w2_normalisation_kernel_constructor
 

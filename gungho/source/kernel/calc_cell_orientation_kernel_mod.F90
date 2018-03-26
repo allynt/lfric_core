@@ -3,60 +3,61 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel computes the orientations of halo cells in a partition.
-
-!> @detail The kernel computes the orientation of core and halo cells in a 
-!>         partition. The kernel assumes that the number of mpi partitions is a
-!>         multiple of 6 which implies that no core cells of a partition overlap
-!>         a cubed-sphere panel edge. Thus it is assumed that all core cells
-!>         have the same orientation which we assign orientation 1. The kernel
-!>         computes the orientation of cells using the W2 dof values and the 
-!>         orientation can take the value 1, 2, 3 or 4.
-
+!> @brief Computes the orientations of halo cells in a partition.
+!>
+!> The kernel computes the orientation of core and halo cells in a partition.
+!> The kernel assumes that the number of mpi partitions is a multiple of 6
+!> which implies that no core cells of a partition overlap a cubed-sphere
+!> panel edge. Thus it is assumed that all core cells have the same
+!> orientation which we assign orientation 1. The kernel computes the
+!> orientation of cells using the W2 dof values and the orientation can take
+!> the value 1, 2, 3 or 4.
+!>
 module calc_cell_orientation_kernel_mod
 
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_WRITE,                      &
-                                    W3, GH_BASIS, CELLS
-use constants_mod,           only : r_def, i_def
+  use argument_mod,      only : arg_type, func_type, &
+                                GH_FIELD, GH_WRITE,  &
+                                GH_BASIS, CELLS
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: calc_cell_orientation_kernel_type
-  private
-  type(arg_type) :: meta_args(1) = (/                                  &
-       arg_type(GH_FIELD, GH_WRITE, W3)                                &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(W3, GH_BASIS)                                         &
-       /)
-  integer :: iterates_over = CELLS
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: calc_cell_orientation_kernel_type
+    private
+    type(arg_type) :: meta_args(1) = (/  &
+        arg_type(GH_FIELD, GH_WRITE, W3) &
+        /)
+    type(func_type) :: meta_funcs(1) = (/ &
+        func_type(W3, GH_BASIS)           &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::calc_cell_orientation_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface calc_cell_orientation_kernel_type
+    module procedure calc_cell_orientation_kernel_constructor
+  end interface
+
+  public calc_cell_orientation_code
+
 contains
-  procedure, nopass ::calc_cell_orientation_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface calc_cell_orientation_kernel_type
-   module procedure calc_cell_orientation_kernel_constructor
-end interface
-
-public calc_cell_orientation_code
-
-contains
-
-type(calc_cell_orientation_kernel_type) function calc_cell_orientation_kernel_constructor() result(self)
+type(calc_cell_orientation_kernel_type) &
+function calc_cell_orientation_kernel_constructor() result(self)
   return
 end function calc_cell_orientation_kernel_constructor
 

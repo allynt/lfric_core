@@ -3,58 +3,64 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-!> @brief Compute the divergence operatore weigthed by the potential temperature
-!> @details Compute the locally assembled operator \f[<\sigma,\nabla.(\theta*\mathbf{v})> \f]
+!> @brief Compute the divergence operatore weigthed by the potential
+!>        temperature.
+!>
+!> @details Compute the locally assembled operator
+!>          \f[<\sigma,\nabla.(\theta*\mathbf{v})> \f]
 !>          where sigma is the W3 test function, v is the W2 trial function
-!>          and theta is the potential temperature
+!>          and theta is the potential temperature.
+!>
 module weighted_div_kernel_mod
-use constants_mod,           only: r_def, i_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,            &
-                                   GH_OPERATOR, GH_FIELD, GH_REAL, &
-                                   GH_READ, GH_WRITE,              &
-                                   ANY_SPACE_9, W2, W3,            &
-                                   GH_BASIS,GH_DIFF_BASIS,         &
-                                   CELLS, GH_QUADRATURE_XYoZ
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  use argument_mod,      only: arg_type, func_type,           &
+                              GH_OPERATOR, GH_FIELD, GH_REAL, &
+                              GH_READ, GH_WRITE,              &
+                              ANY_SPACE_9,                    &
+                              GH_BASIS,GH_DIFF_BASIS,         &
+                              CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only: r_def, i_def
+  use fs_continuity_mod, only: W2, W3
+  use kernel_mod,        only: kernel_type
 
-type, public, extends(kernel_type) :: weighted_div_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W2, W3),                        &
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),                   &
-       arg_type(GH_REAL,     GH_READ)                                  &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS, GH_DIFF_BASIS),                         &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass :: weighted_div_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
 
-! Overload the default structure constructor for function space
-interface weighted_div_kernel_type
-   module procedure weighted_div_kernel_constructor
-end interface
+  type, public, extends(kernel_type) :: weighted_div_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/               &
+        arg_type(GH_OPERATOR, GH_WRITE, W2, W3),      &
+        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9), &
+        arg_type(GH_REAL,     GH_READ)                &
+        /)
+    type(func_type) :: meta_funcs(3) = (/               &
+        func_type(W2, GH_BASIS, GH_DIFF_BASIS),         &
+        func_type(W3, GH_BASIS),                        &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: weighted_div_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public weighted_div_code
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface weighted_div_kernel_type
+    module procedure weighted_div_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public weighted_div_code
+
 contains
 
 type(weighted_div_kernel_type) function weighted_div_kernel_constructor() result(self)

@@ -3,31 +3,30 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief A 'vertical W2' mass matrix used in the damping layer term
-
+!> @brief A 'vertical W2' mass matrix used in the damping layer term.
+!>
 !> @details The kernel modifies the two rows of the velocity mass matrix
 !> corresponding to the degrees of freedom of the vertical component of velocity
 !> to account for Rayleigh damping in the absorbing layer region for use in runs
-!> with non-flat bottom boundary. 
+!> with non-flat bottom boundary.
+!>
 module compute_dl_matrix_kernel_mod
 
-  use constants_mod,             only: i_def, r_def, PI
-  use coord_transform_mod,       only: xyz2llr
-  use kernel_mod,                only: kernel_type
-  use argument_mod,              only: arg_type, func_type,             &
-                                       GH_OPERATOR, GH_FIELD,           &
-                                       GH_READ, GH_WRITE,               &
-                                       ANY_SPACE_9, W2,                 &
-                                       GH_BASIS, GH_DIFF_BASIS,         &
+  use argument_mod,              only: arg_type, func_type,     &
+                                       GH_OPERATOR, GH_FIELD,   &
+                                       GH_READ, GH_WRITE,       &
+                                       ANY_SPACE_9,             &
+                                       GH_BASIS, GH_DIFF_BASIS, &
                                        CELLS, GH_QUADRATURE_XYoZ
   use base_mesh_config_mod,      only: geometry, base_mesh_geometry_spherical
+  use constants_mod,             only: i_def, r_def, PI
+  use coord_transform_mod,       only: xyz2llr
   use damping_layer_config_mod,  only: dl_base, dl_str
   use extrusion_config_mod,      only: domain_top
   use finite_element_config_mod, only: element_order
+  use fs_continuity_mod,         only: W2
   use planet_config_mod,         only: radius
+  use kernel_mod,                only: kernel_type
   use timestepping_config_mod,   only: dt
   use coordinate_jacobian_mod,   only: coordinate_jacobian
 

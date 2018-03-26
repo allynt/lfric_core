@@ -8,44 +8,49 @@
 !>        Cosmic.
 
 module correct_cosmic_wind_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    W3, W2, CELLS
-use constants_mod,           only : r_def, i_def
-use cosmic_flux_mod,         only : dof_to_update
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                CELLS
+  use constants_mod,     only : i_def, r_def
+  use cosmic_flux_mod,   only : dof_to_update
+  use fs_continuity_mod, only : W3, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: correct_cosmic_wind_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                &
-       arg_type(GH_FIELD,  GH_WRITE, W2),                            &
-       arg_type(GH_FIELD,  GH_READ,  W2),                            &
-       arg_type(GH_FIELD,  GH_READ,  W3)                             &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::correct_cosmic_wind_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: correct_cosmic_wind_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/                                &
+        arg_type(GH_FIELD,  GH_WRITE, W2),                            &
+        arg_type(GH_FIELD,  GH_READ,  W2),                            &
+        arg_type(GH_FIELD,  GH_READ,  W3)                             &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::correct_cosmic_wind_code
+  end type
 
-! Overload the default structure constructor for function space
-interface correct_cosmic_wind_kernel_type
-   module procedure correct_cosmic_wind_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public correct_cosmic_wind_code
+  ! Overload the default structure constructor for function space
+  interface correct_cosmic_wind_kernel_type
+    module procedure correct_cosmic_wind_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public correct_cosmic_wind_code
+
 contains
 
 type(correct_cosmic_wind_kernel_type) function correct_cosmic_wind_kernel_constructor() result(self)

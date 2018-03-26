@@ -3,61 +3,64 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the cell integrated axial angular momentum
-
+!> @brief Computes the cell integrated axial angular momentum.
+!>
 !> @details The kernel computes the  cell integrated axial angular momentum:
 !> \f[ \int ( \rho * \hat{z} . [r \times { u + \Omega \times r } ] ) dV \f]
+!>
 module compute_total_aam_kernel_mod
-use argument_mod,      only : arg_type, func_type,         &
-                              GH_FIELD, GH_READ, GH_WRITE, &
-                              ANY_SPACE_9, W2, W3,         &
-                              GH_BASIS, GH_DIFF_BASIS,     &
-                              CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,     only : r_def
-use kernel_mod,        only : kernel_type
-use planet_config_mod, only : scaled_omega, scaled_radius
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                ANY_SPACE_9,                 &
+                                GH_BASIS, GH_DIFF_BASIS,     &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
+  use planet_config_mod, only : scaled_omega, scaled_radius
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: compute_total_aam_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::compute_total_aam_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: compute_total_aam_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/             &
+        arg_type(GH_FIELD,   GH_WRITE, W3),         &
+        arg_type(GH_FIELD,   GH_READ,  W2),         &
+        arg_type(GH_FIELD,   GH_READ,  W3),         &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/               &
+        func_type(W2, GH_BASIS),                        &
+        func_type(W3, GH_BASIS),                        &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::compute_total_aam_code
+  end type
 
-! overload the default structure constructor for function space
-interface compute_total_aam_kernel_type
-   module procedure compute_total_aam_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_total_aam_code
+  ! overload the default structure constructor for function space
+  interface compute_total_aam_kernel_type
+    module procedure compute_total_aam_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_total_aam_code
+
 contains
 
 type(compute_total_aam_kernel_type) function compute_total_aam_kernel_constructor() result(self)

@@ -8,14 +8,15 @@
 
 module compute_q_operator_kernel_mod
 
-use argument_mod,              only: arg_type, func_type,            &
-                                     GH_OPERATOR, GH_FIELD,          &
-                                     GH_READ, GH_WRITE,              &
-                                     W2, ANY_SPACE_1,                &
-                                     GH_BASIS,                       &
-                                     CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,             only: r_def, i_def
-use kernel_mod,                only: kernel_type
+use argument_mod,      only: arg_type, func_type,   &
+                             GH_OPERATOR, GH_FIELD, &
+                             GH_READ, GH_WRITE,     &
+                             ANY_SPACE_1,           &
+                             GH_BASIS,              &
+                             CELLS, GH_QUADRATURE_XYoZ
+use constants_mod,     only: r_def, i_def
+use fs_continuity_mod, only: W2
+use kernel_mod,        only: kernel_type
 
 implicit none
 

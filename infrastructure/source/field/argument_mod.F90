@@ -31,74 +31,86 @@
 
 module argument_mod
 
-  use fs_continuity_mod, only : W0, W1, W2, W3, Wtheta, W2V, W2H
-
   implicit none
 
+  private
+
 ! Argument types
-  integer, public, parameter :: GH_FIELD               = 1 
-  integer, public, parameter :: GH_OPERATOR            = 2
-  integer, public, parameter :: GH_COLUMNWISE_OPERATOR = 3
-  integer, public, parameter :: GH_REAL                = 4
+  integer, public, parameter :: GH_FIELD               = 507
+  integer, public, parameter :: GH_OPERATOR            = 735
+  integer, public, parameter :: GH_COLUMNWISE_OPERATOR = 841
+  integer, public, parameter :: GH_REAL                = 58
   integer, public, parameter :: GH_INTEGER             = 5
 
 ! Access descriptors
-  integer, public, parameter :: GH_READ  = 11
-  integer, public, parameter :: GH_WRITE = 12
-  integer, public, parameter :: GH_RW    = 13
-  integer, public, parameter :: GH_INC   = 14
-  integer, public, parameter :: GH_SUM   = 15
-  integer, public, parameter :: GH_MIN   = 16
-  integer, public, parameter :: GH_MAX   = 17
+  integer, public, parameter :: GH_READ  = 958
+  integer, public, parameter :: GH_WRITE = 65
+  integer, public, parameter :: GH_RW    = 811
+  integer, public, parameter :: GH_INC   = 542
+  integer, public, parameter :: GH_SUM   = 563
+  integer, public, parameter :: GH_MIN   = 718
+  integer, public, parameter :: GH_MAX   = 391
 
 ! Distinct any_space id's. Separate id's required as we may have groups of fields
 ! that must be on the same space within a kernel.
-  integer, public, parameter :: ANY_SPACE_1  = 201
-  integer, public, parameter :: ANY_SPACE_2  = 202
-  integer, public, parameter :: ANY_SPACE_3  = 203
-  integer, public, parameter :: ANY_SPACE_4  = 204
-  integer, public, parameter :: ANY_SPACE_5  = 205
-  integer, public, parameter :: ANY_SPACE_6  = 206
-  integer, public, parameter :: ANY_SPACE_7  = 207
-  integer, public, parameter :: ANY_SPACE_8  = 208
-  integer, public, parameter :: ANY_SPACE_9  = 209
-  integer, public, parameter :: ANY_SPACE_10 = 210
-  integer, public, parameter :: ANY_W2       = 211
+  integer, public, parameter :: ANY_SPACE_1  = 368
+  integer, public, parameter :: ANY_SPACE_2  = 389
+  integer, public, parameter :: ANY_SPACE_3  = 194
+  integer, public, parameter :: ANY_SPACE_4  = 816
+  integer, public, parameter :: ANY_SPACE_5  = 461
+  integer, public, parameter :: ANY_SPACE_6  = 734
+  integer, public, parameter :: ANY_SPACE_7  = 890
+  integer, public, parameter :: ANY_SPACE_8  = 74
+  integer, public, parameter :: ANY_SPACE_9  = 922
+  integer, public, parameter :: ANY_SPACE_10 = 790
+  integer, public, parameter :: ANY_W2       = 353
 
 ! Function space attributes
-  integer, public, parameter :: GH_BASIS       = 301 
-  integer, public, parameter :: GH_DIFF_BASIS  = 302
-  integer, public, parameter :: GH_ORIENTATION = 303
-  integer, public, parameter :: GH_COLUMN_BANDED_DOFMAP = 304
-  integer, public, parameter :: GH_COLUMN_INDIRECTION_DOFMAP = 305
+  integer, public, parameter :: GH_BASIS       = 751
+  integer, public, parameter :: GH_DIFF_BASIS  = 767
+  integer, public, parameter :: GH_ORIENTATION = 397
+  integer, public, parameter :: GH_COLUMN_BANDED_DOFMAP = 541
+  integer, public, parameter :: GH_COLUMN_INDIRECTION_DOFMAP = 204
 
 
 ! Kernel iterator
-  integer, public, parameter :: CELLS     = 401
-  integer, public, parameter :: ALL_DOFS  = 402
+  integer, public, parameter :: CELLS     = 396
+  integer, public, parameter :: ALL_DOFS  = 945
 
 ! Quadrature metadata
-  integer, public, parameter :: GH_QUADRATURE_XYZ   = 501
-  integer, public, parameter :: GH_QUADRATURE_XYoZ  = 502
-  integer, public, parameter :: GH_QUADRATURE_XoYoZ = 503
+  integer, public, parameter :: GH_QUADRATURE_XYZ   = 912
+  integer, public, parameter :: GH_QUADRATURE_XYoZ  = 849
+  integer, public, parameter :: GH_QUADRATURE_XoYoZ = 701
 
 ! Evaluator metadata
-  integer, public, parameter :: GH_EVALUATOR        = 504
+  integer, public, parameter :: GH_EVALUATOR        = 959
 
 
-! Stencil metadata
-  integer, public, parameter               :: XORY1D = 1
-  integer, public, parameter               :: X1D    = 2
-  integer, public, parameter               :: Y1D    = 3
-  integer, public, parameter               :: CROSS  = 4
-  integer, public, parameter, dimension(4) :: STENCIL = -1
+  !> @defgroup stencil_items Enumeration of stencil types.
+  !> @{
+  integer, public, parameter :: XORY1D = 1
+  integer, public, parameter :: X1D    = 2
+  integer, public, parameter :: Y1D    = 3
+  integer, public, parameter :: CROSS  = 4
+  !> @}
+
+  !> Allows metadata types to be syntactically correct.
+  !>
+  !> This is a dummy array which the enumerators can index. It is not a real
+  !> thing it is just there to ensure the compiler is happy.
+  !>
+  !> @todo In an ideal world this would be implemented as a function which
+  !>       would remove the need for 1-based monotonically increasing
+  !>       enumerator values but GFortran doesn't like that.
+  !>
+  integer, public, parameter :: STENCIL(4) = -1
 
   !> @defgroup mesh_data_items Enumeration of mesh data items.
   !> @{
-  integer, public, parameter :: adjacent_face                             = 600
-  integer, public, parameter :: reference_element_number_horizontal_faces = 601
-  integer, public, parameter :: reference_element_normal_to_face          = 602
-  integer, public, parameter :: reference_element_out_face_normal         = 603
+  integer, public, parameter :: adjacent_face                             = 533
+  integer, public, parameter :: reference_element_number_horizontal_faces = 904
+  integer, public, parameter :: reference_element_normal_to_face          = 171
+  integer, public, parameter :: reference_element_out_face_normal         = 007
   !> @}
 
 ! Metadata argument type 

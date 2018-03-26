@@ -7,15 +7,17 @@
 module compute_tri_precon_kernel_mod_test
 
   use constants_mod,                 only : i_def, r_def
+  use field_mod,                     only : field_type, &
+                                            field_proxy_type
+  use fs_continuity_mod,             only : W0, W3
+  use function_space_mod,            only : function_space_type
   use function_space_collection_mod, only : function_space_collection_type, &
                                             function_space_collection
   use mesh_collection_mod,           only : mesh_collection_type, &
                                             mesh_collection
-  use field_mod,                     only : field_type, &
-                                            field_proxy_type
-  use function_space_mod,            only : function_space_type
-  use fs_continuity_mod,             only : W0, W3
   use pFUnit_Mod
+  use timestepping_config_mod,  only : timestepping_runge_kutta_method_ssp4, &
+                                            timestepping_method_semi_implicit
 
   implicit none
 
@@ -51,19 +53,19 @@ module compute_tri_precon_kernel_mod_test
   real(r_def), parameter :: cp      = 1000.0_r_def
   real(r_def), parameter :: scaling = 1.0_r_def
 
-  integer(i_def), parameter :: method    = 100_i_def
-  integer(i_def), parameter :: rk_method = 102_i_def
+  integer(i_def), parameter :: method    = timestepping_method_semi_implicit
+  integer(i_def), parameter :: rk_method = timestepping_runge_kutta_method_ssp4
   real(r_def),    parameter :: dt = 10.0_r_def
   real(r_def), parameter    :: alpha   = 0.5_r_def
   real(r_def), parameter    :: tau_u   = 0.5_r_def
   real(r_def), parameter    :: tau_t   = 0.5_r_def
   real(r_def), parameter    :: tau_r   = 0.5_r_def
   integer(i_def), parameter :: nout = 1_i_def
-  integer(i_def), parameter :: nin  = 1_i_def 
+  integer(i_def), parameter :: nin  = 1_i_def
   real(r_def), parameter    :: spinup_period = 0.0_r_def
   logical, parameter :: spinup_winds  = .false.
   logical, parameter :: spinup_alpha  = .false.
-  
+
 contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -3,37 +3,40 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the boundary integral part of the projection operator from the velocity space to
-!>        the potential temperature space weighted by the potential temperature gradient
-
-!> @details Kernel which computes the boundary integral part of the projection operator from the velocity space to
-!>          the potential temperature space weighted by the potential temperature gradient
-!>          Compute the projection operator \f<[<\gamma, flux(\theta*v)\cdot n>\f]
-!>          where v is in W2 and gamma is in the potential temperature space
+!> @brief Computes the boundary integral part of the projection operator from
+!>        the velocity space to the potential temperature space weighted by
+!>        the potential temperature gradient.
+!>
+!> Kernel which computes the boundary integral part of the projection operator
+!> from the velocity space to the potential temperature space weighted by the
+!> potential temperature gradient Compute the projection operator
+!> \f<[<\gamma, flux(\theta*v)\cdot n>\f] where v is in W2 and gamma is in the
+!> potential temperature space.
+!>
 module weighted_proj_theta2_bd_kernel_mod
 
-  use kernel_mod,              only : kernel_type
-  use argument_mod,            only : arg_type, func_type, mesh_data_type, &
-                                      GH_OPERATOR, GH_FIELD, GH_REAL,      &
-                                      GH_READ, GH_INC,                     &
-                                      W2, Wtheta, GH_BASIS,                &
-                                      CELLS, GH_QUADRATURE_XYoZ,           &
-                                      adjacent_face,                       &
-                                      reference_element_normal_to_face,    &
-                                      reference_element_out_face_normal
-  use constants_mod,           only : r_def, i_def
-  use cross_product_mod,       only : cross_product
-  use planet_config_mod,       only : cp
+  use argument_mod,      only : arg_type, func_type, mesh_data_type, &
+                                GH_OPERATOR, GH_FIELD, GH_REAL,      &
+                                GH_READ, GH_INC,                     &
+                                GH_BASIS,                            &
+                                CELLS, GH_QUADRATURE_XYoZ,           &
+                                adjacent_face,                       &
+                                reference_element_normal_to_face,    &
+                                reference_element_out_face_normal
+  use constants_mod,     only : r_def, i_def
+  use cross_product_mod, only : cross_product
+  use fs_continuity_mod, only : W2, Wtheta
+  use kernel_mod,        only : kernel_type
+  use planet_config_mod, only : cp
 
   implicit none
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Public types
-  !-------------------------------------------------------------------------------
-  !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
   type, public, extends(kernel_type) :: weighted_proj_theta2_bd_kernel_type
     private
     type(arg_type) :: meta_args(3) = (/                            &
@@ -56,22 +59,23 @@ module weighted_proj_theta2_bd_kernel_mod
     procedure, nopass ::weighted_proj_theta2_bd_code
   end type
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Constructors
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
   ! Overload the default structure constructor for function space
   interface weighted_proj_theta2_bd_kernel_type
     module procedure weighted_proj_theta2_bd_kernel_constructor
   end interface
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Contained functions/subroutines
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   public weighted_proj_theta2_bd_code
 contains
 
-  type(weighted_proj_theta2_bd_kernel_type) function weighted_proj_theta2_bd_kernel_constructor() result(self)
+  type(weighted_proj_theta2_bd_kernel_type) &
+  function weighted_proj_theta2_bd_kernel_constructor() result(self)
     return
   end function weighted_proj_theta2_bd_kernel_constructor
 

@@ -15,7 +15,8 @@
 module function_space_mod
 
 
-use constants_mod,         only: r_def, i_def, l_def, i_halo_index, dp_xios
+use constants_mod,         only: i_def, i_native, i_halo_index, &
+                                 l_def, r_def, dp_xios
 use mesh_mod,              only: mesh_type
 use master_dofmap_mod,     only: master_dofmap_type
 use stencil_dofmap_mod,    only: stencil_dofmap_type, STENCIL_POINT
@@ -364,9 +365,9 @@ function fs_constructor(mesh_id, element_order, dynamo_fs) result(instance)
 
   implicit none
 
-  integer(i_def), intent(in) :: mesh_id
-  integer(i_def), intent(in) :: element_order
-  integer(i_def), intent(in) :: dynamo_fs
+  integer(i_def),    intent(in) :: mesh_id
+  integer(i_def),    intent(in) :: element_order
+  integer(i_native), intent(in) :: dynamo_fs
 
   type(function_space_type), pointer :: instance
 

@@ -3,59 +3,62 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief The kernel computes the rhs of the thermodynamic equation for the nonlinear equations, 
-!>         this constists entirely of the advection term u.grad(theta)
-!> @details Kernel to  compute the rhs of thermodynamic equation for the nonlinear equations, in 
-!>         the absense of source terms this is purely an advection term:
+!> @brief Computes the rhs of the thermodynamic equation for the nonlinear
+!>        equations.
+!>
+!> Kernel to  compute the rhs of thermodynamic equation for the nonlinear
+!> equations, in the absense of source terms this is purely an advection term:
 !>         rtheta = u.grad(theta)
+!>
 module rtheta_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,               &
-                                    GH_FIELD, GH_READ, GH_INC,         &
-                                    W0, W2,                            &
-                                    GH_BASIS, GH_DIFF_BASIS,           &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def, i_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W0, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: rtheta_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W0),                              &
-       arg_type(GH_FIELD,   GH_READ, W0),                              &
-       arg_type(GH_FIELD,   GH_READ, W2)                               &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W0, GH_BASIS, GH_DIFF_BASIS),                         &
-       func_type(W2, GH_BASIS)                                         &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::rtheta_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: rtheta_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/    &
+        arg_type(GH_FIELD,   GH_INC,  W0), &
+        arg_type(GH_FIELD,   GH_READ, W0), &
+        arg_type(GH_FIELD,   GH_READ, W2)  &
+        /)
+    type(func_type) :: meta_funcs(2) = (/       &
+        func_type(W0, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W2, GH_BASIS)                 &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::rtheta_code
+  end type
 
-! overload the default structure constructor for function space
-interface rtheta_kernel_type
-   module procedure rtheta_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public rtheta_code
+  ! overload the default structure constructor for function space
+  interface rtheta_kernel_type
+    module procedure rtheta_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public rtheta_code
+
 contains
 
 type(rtheta_kernel_type) function rtheta_kernel_constructor() result(self)

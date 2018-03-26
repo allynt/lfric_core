@@ -3,52 +3,54 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief Kernel which performs halo exchange dependent on halo cell orientation
 !>        when the exchange is in the x direction relative to the cubed-sphere
 !>        panel's orientation.
+!>
 module cosmic_halo_correct_y_kernel_mod
 
-use argument_mod,  only : arg_type, func_type,                  &
-                          GH_FIELD, GH_WRITE, GH_READ, GH_INC,  &
-                          W3, CELLS
-use constants_mod, only : r_def
-use kernel_mod,    only : kernel_type
+  use argument_mod,      only : arg_type, func_type,                  &
+                                GH_FIELD, GH_WRITE, GH_READ, GH_INC,  &
+                                CELLS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: cosmic_halo_correct_y_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE,  W3),                            &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3)                              &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::cosmic_halo_correct_y_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: cosmic_halo_correct_y_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/     &
+        arg_type(GH_FIELD,   GH_WRITE, W3), &
+        arg_type(GH_FIELD,   GH_READ,  W3), &
+        arg_type(GH_FIELD,   GH_READ,  W3), &
+        arg_type(GH_FIELD,   GH_READ,  W3)  &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::cosmic_halo_correct_y_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! Overload the default structure constructor for function space
-interface cosmic_halo_correct_y_kernel_type
-   module procedure cosmic_halo_correct_y_kernel_constructor
-end interface
+  ! Overload the default structure constructor for function space
+  interface cosmic_halo_correct_y_kernel_type
+    module procedure cosmic_halo_correct_y_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public cosmic_halo_correct_y_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public cosmic_halo_correct_y_code
+
 contains
 
 type(cosmic_halo_correct_y_kernel_type) function cosmic_halo_correct_y_kernel_constructor() result(self)

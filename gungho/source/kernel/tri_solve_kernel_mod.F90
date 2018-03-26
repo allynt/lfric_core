@@ -3,53 +3,54 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Tridiagonal solver using Thomas algorithm 
+!> @brief Tridiagonal solver using Thomas algorithm.
+!>
 !> @details Solve the triadiagonal system of equations
 !>          \f[ A^+ y^+ + A^0 y + A^- y^- = x \]f
 !>          for known x and matrix A using the Thomas algorithm
 !>          Code is only valid for lowest order elements
+!>
 module tri_solve_kernel_mod
-use constants_mod,           only: r_def, i_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,         &
-                                   GH_FIELD, GH_READ, GH_WRITE, &
-                                   W3,                          &
-                                   CELLS
 
-implicit none
+  use argument_mod,      only: arg_type, func_type,         &
+                               GH_FIELD, GH_READ, GH_WRITE, &
+                               CELLS
+  use constants_mod,     only: r_def, i_def
+  use fs_continuity_mod, only: W3
+  use kernel_mod,        only: kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-type, public, extends(kernel_type) :: tri_solve_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                 &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                            &
-       arg_type(GH_FIELD,   GH_READ,  W3),                            &
-       arg_type(GH_FIELD*3, GH_READ,  W3)                             &
-       /)
-  integer :: iterates_over = CELLS
+  implicit none
 
-contains
-  procedure, nopass :: tri_solve_code
-end type tri_solve_kernel_type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  type, public, extends(kernel_type) :: tri_solve_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/     &
+        arg_type(GH_FIELD,   GH_WRITE, W3), &
+        arg_type(GH_FIELD,   GH_READ,  W3), &
+        arg_type(GH_FIELD*3, GH_READ,  W3)  &
+        /)
+    integer :: iterates_over = CELLS
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  contains
+    procedure, nopass :: tri_solve_code
+  end type tri_solve_kernel_type
 
-! overload the default structure constructor for function space
-interface tri_solve_kernel
-   module procedure tri_solve_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public tri_solve_code
+  ! overload the default structure constructor for function space
+  interface tri_solve_kernel
+    module procedure tri_solve_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public tri_solve_code
+
 contains
 
 type(tri_solve_kernel_type) function tri_solve_constructor() result(self)

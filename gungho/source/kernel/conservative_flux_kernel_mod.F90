@@ -3,50 +3,51 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the fluxes for the split transport scheme
-
+!> @brief Computes the fluxes for the split transport scheme.
+!>
 module conservative_flux_kernel_mod
 
-use argument_mod,  only : arg_type, func_type,                  &
-                          GH_FIELD, GH_WRITE, GH_READ,          &
-                          W0, W2, W3, GH_BASIS, CELLS
-use constants_mod, only : r_def
-use kernel_mod,    only : kernel_type
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_WRITE, GH_READ, &
+                                GH_BASIS, CELLS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W0, W2, W3
+  use kernel_mod,        only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: conservative_flux_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3)                              &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::conservative_flux_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: conservative_flux_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/     &
+        arg_type(GH_FIELD,   GH_WRITE, W2), &
+        arg_type(GH_FIELD,   GH_READ,  W2), &
+        arg_type(GH_FIELD,   GH_READ,  W3)  &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::conservative_flux_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! Overload the default structure constructor for function space
-interface conservative_flux_kernel_type
-   module procedure conservative_flux_kernel_constructor
-end interface
+  ! Overload the default structure constructor for function space
+  interface conservative_flux_kernel_type
+    module procedure conservative_flux_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public conservative_flux_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public conservative_flux_code
+
 contains
 
 type(conservative_flux_kernel_type) function conservative_flux_kernel_constructor() result(self)

@@ -3,63 +3,66 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel to sample a flux at nodal points: F = u*q
-
-!> @details Samples a flux field F at nodal points where the flux
-!> is defined as the product of a velocity u and a scalar q
-!> The quadrature rule is overloaded to give the nodal points 
-!> of the flux space
+!> @brief Samples a flux at nodal points: F = u*q.
+!>
+!> Samples a flux field F at nodal points where the flux is defined as the
+!> product of a velocity u and a scalar q The quadrature rule is overloaded to
+!> give the nodal points of the flux space.
+!>
 module sample_flux_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    W0, W2, ANY_SPACE_1,                     &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS, GH_EVALUATOR
-use constants_mod,           only : r_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_1,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_EVALUATOR
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W0, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: sample_flux_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1)                      &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(ANY_SPACE_1, GH_BASIS)                                &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: sample_flux_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1) &
+        /)
+    type(func_type) :: meta_funcs(1) = (/ &
+        func_type(ANY_SPACE_1, GH_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass ::sample_flux_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface sample_flux_kernel_type
+    module procedure sample_flux_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public sample_flux_code
+
 contains
-  procedure, nopass ::sample_flux_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface sample_flux_kernel_type
-   module procedure sample_flux_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public sample_flux_code
-contains
-
-type(sample_flux_kernel_type) function sample_flux_kernel_constructor() result(self)
+type(sample_flux_kernel_type) &
+function sample_flux_kernel_constructor() result(self)
   return
 end function sample_flux_kernel_constructor
 

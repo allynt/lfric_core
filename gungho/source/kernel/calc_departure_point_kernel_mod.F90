@@ -3,53 +3,52 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel computes the departure points in 1D
-
-!> @details The kernel computes the departure points using the departure wind.
-!>         The kernel works in 1D only.
-
+!> @brief Computes the departure points in 1D.
+!>
+!> The kernel computes the departure points using the departure wind. The
+!> kernel works in 1D only.
+!>
 module calc_departure_point_kernel_mod
 
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    W0, W2, W3,                              &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS
-use constants_mod,           only : r_def
-use biperiodic_deppt_config_mod, only : n_dep_pt_iterations
-use timestepping_config_mod, only : dt
+  use argument_mod,                only : arg_type, func_type,         &
+                                          GH_FIELD, GH_READ, GH_WRITE, &
+                                          GH_BASIS, GH_DIFF_BASIS,     &
+                                          CELLS
+  use biperiodic_deppt_config_mod, only : n_dep_pt_iterations
+  use constants_mod,               only : r_def
+  use fs_continuity_mod,           only : W0, W2, W3
+  use kernel_mod,                  only : kernel_type
+  use timestepping_config_mod,     only : dt
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: calc_departure_point_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2)                              &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::calc_departure_point_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: calc_departure_point_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/     &
+        arg_type(GH_FIELD,   GH_WRITE, W3), &
+        arg_type(GH_FIELD,   GH_READ,  W2)  &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::calc_departure_point_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! Overload the default structure constructor for function space
-interface calc_departure_point_kernel_type
-   module procedure calc_departure_point_kernel_constructor
-end interface
+  ! Overload the default structure constructor for function space
+  interface calc_departure_point_kernel_type
+    module procedure calc_departure_point_kernel_constructor
+  end interface
 
-public calc_departure_point_code
+  public calc_departure_point_code
 
 contains
 

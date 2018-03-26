@@ -3,59 +3,62 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes LHS of Galerkin projection and solves equation in W3 space
-
+!> @brief Computes LHS of Galerkin projection and solves equation in W3 space.
+!>
 module w3_solver_kernel_mod
-use kernel_mod,              only : kernel_type
-use constants_mod,           only : r_def
-use argument_mod,            only : arg_type, func_type,             &
-                                    GH_FIELD, GH_READ, GH_WRITE,     &
-                                    ANY_SPACE_9, W3,                 & 
-                                    GH_BASIS, GH_DIFF_BASIS,         &
-                                    CELLS, GH_QUADRATURE_XYoZ
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                ANY_SPACE_9,                 &
+                                GH_BASIS, GH_DIFF_BASIS,     &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: w3_solver_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: w3_solver_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/             &
+        arg_type(GH_FIELD,   GH_WRITE, W3),         &
+        arg_type(GH_FIELD,   GH_READ,  W3),         &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/     &
+        func_type(W3, GH_BASIS),              &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::solver_w3_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface w3_solver_kernel_type
+    module procedure w3_solver_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public solver_w3_code
+
 contains
-  procedure, nopass ::solver_w3_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface w3_solver_kernel_type
-   module procedure w3_solver_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public solver_w3_code
-contains
-
-type(w3_solver_kernel_type) function w3_solver_kernel_constructor() result(self)
+type(w3_solver_kernel_type) &
+function w3_solver_kernel_constructor() result(self)
   return
 end function w3_solver_kernel_constructor
 

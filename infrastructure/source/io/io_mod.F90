@@ -9,14 +9,15 @@
 !!  @details Module for IO subroutines
 !-------------------------------------------------------------------------------
 module io_mod
-  use constants_mod,                 only: i_def, r_def, dp_xios, &
-                                           str_short, str_max_filename, &
+  use constants_mod,                 only: i_def, i_native, r_def, dp_xios, &
+                                           str_short, str_max_filename,     &
                                            PI
   use field_mod,                     only: field_type, field_proxy_type
   use finite_element_config_mod,     only: element_order
   use base_mesh_config_mod,          only: geometry, &
                                            base_mesh_geometry_spherical
-  use fs_continuity_mod,             only: W0, W3, Wtheta
+  use fs_continuity_mod,             only: W0, W1, W2, W3, Wtheta, &
+                                           name_from_functionspace
   use mesh_mod,                      only: mesh_type
   use mesh_collection_mod,           only: mesh_collection 
   use function_space_mod,            only: function_space_type, BASIS
@@ -221,7 +222,7 @@ subroutine output_xios_nodal(field_name, field, mesh_id)
 
          ! Call write on the projected field
          call projected_field(dir)%write_field(trim(field_name_new))
-           
+
       end do
 
     deallocate(projected_field)
@@ -284,8 +285,6 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, restart, mesh_id, chi, &
   call xios_get_handle(xios_ctx, xios_ctx_hdl)
   call xios_set_current_context(xios_ctx_hdl)
 
-
-  
   !!!!!!!!!!!!!!!!!!!!!!!!!!! Setup diagnostic domains !!!!!!!!!!!!!!!!!!!!!!!!!!
 
   call xios_diagnostic_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
@@ -537,7 +536,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi, vm, local_rank, total_ranks
                           size(fractional_levels_nodes), num_face_local, &
                           nodes_lon_full, nodes_lat_full, &
                           bnd_faces_lon, bnd_faces_lat)
- 
+
   ! Get nodal coordinates (owned part of full length arrays)
   nodes_lon =  nodes_lon_full(1:coord_dim_owned)
   nodes_lat =  nodes_lat_full(1:coord_dim_owned)
@@ -691,7 +690,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi, vm, local_rank, total_ranks
 
   allocate(local_undf(1))
   allocate(all_undfs(total_ranks))
-  
+
   all_undfs = 0
 
   ! Calculate the nodal coords for a field on Wtheta
@@ -761,25 +760,30 @@ end subroutine xios_diagnostic_domain_init
 !-------------------------------------------------------------------------------
 
 subroutine xios_restart_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
+
+  use fs_continuity_mod, only : fs_enumerator, fs_name
+
   implicit none
 
   ! Arguments
 
-  integer(i_def),             intent(in)  :: mesh_id
-  type(field_type), intent(in)            :: chi(3)
-  type(ESMF_VM),              intent(in)  :: vm
-  integer(i_def),             intent(in)  :: local_rank
-  integer(i_def),             intent(in)  :: total_ranks
+  integer(i_def),   intent(in)  :: mesh_id
+  type(field_type), intent(in)  :: chi(3)
+  type(ESMF_VM),    intent(in)  :: vm
+  integer(i_def),   intent(in)  :: local_rank
+  integer(i_def),   intent(in)  :: total_ranks
 
 
-  ! Local variables 
+  integer(i_native), parameter :: domain_function_spaces(5) &
+                                                  = (/W0, W1, W2, W3, Wtheta/)
 
-  integer(i_def)                       :: i, rc, fs_id
+  ! Local variables
 
+  integer(i_def)    :: i, rc
+  integer(i_native) :: fs_index
 
   ! Restart domain
   character(len=str_short)   :: domain_name
-  character(len=3)           :: fs_str
   integer(i_def)             :: ibegin_restart
   real(dp_xios),allocatable  :: restart_lon(:)
   real(dp_xios),allocatable  :: restart_lat(:)
@@ -818,18 +822,21 @@ subroutine xios_restart_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
 
   !!!! Loop over function spaces we need to create domains for !!!!!!!!!
 
-  do fs_id = W0, Wtheta,1
+  do fs_index = lbound(domain_function_spaces, 1), &
+                ubound(domain_function_spaces, 1)
 
     ! Set up arrays to hold number of dofs for local and global domains
 
 
     allocate(local_undf(1))
     allocate(all_undfs_restart_domain(total_ranks))
-  
+
     all_undfs_restart_domain = 0
 
     ! Calculate the nodal coords for a field on the function space
-    output_field_fs => function_space_collection%get_fs( mesh_id, element_order, fs_id)
+    output_field_fs => function_space_collection%get_fs( mesh_id,       &
+                                                         element_order, &
+                                                     fs_enumerator(fs_index) )
 
     ! Set up fields to hold the output coordinates
     do i = 1,3
@@ -858,18 +865,21 @@ subroutine xios_restart_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
 
     !!!!!!!!!!!!  Global domain calculation !!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call ESMF_VMAllGather(vm, sendData=local_undf, recvData=all_undfs_restart_domain, count=1, rc=rc)
+    call ESMF_VMAllGather(vm,                                &
+                          sendData=local_undf,               &
+                          recvData=all_undfs_restart_domain, &
+                          count=1,                           &
+                          rc=rc)
 
     ! Return code indicates something went wrong in the above, so log an error
     if (rc /= ESMF_SUCCESS) &
-        call ESMF_LogWrite("Error doing allGather for restart domain sizes", ESMF_LOGMSG_ERROR, rc=rc)
- 
+        call ESMF_LogWrite("Error doing allGather for restart domain sizes", &
+                           ESMF_LOGMSG_ERROR, rc=rc)
 
     ! Now get the global sum of undf across all ranks to set the global domain sizes
     ! for restart domain
 
     global_undf_restart = sum(all_undfs_restart_domain)
-
 
     ! Calculate ibegin for each rank as we have the array of undfs in order
     ! we can just sum to get it.
@@ -879,7 +889,6 @@ subroutine xios_restart_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
     else
       ibegin_restart = sum(all_undfs_restart_domain(1:local_rank))
     end if
-
 
     ! Allocate coordinate arrays to be the size required for restart domain.
     ! Essentially up to last owned dof of the current partition.
@@ -898,35 +907,28 @@ subroutine xios_restart_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
     bnd_restart_lon=(reshape(restart_lon, (/1, size(restart_lon)/) ) )
     bnd_restart_lat=(reshape(restart_lat, (/1, size(restart_lat)/) ) )
 
-   ! Set the domain name
+    ! Set the domain name
 
-   write(fs_str,'(i3)') fs_id
+    domain_name = "restart_" // fs_name(fs_index)
 
-   domain_name = "restart_"//fs_str
+    call xios_set_domain_attr(domain_name, ni_glo=global_undf_restart, &
+                              ibegin=ibegin_restart, ni=local_undf(1), &
+                              type='unstructured')
+    call xios_set_domain_attr(domain_name, lonvalue_1d=restart_lon, &
+                              latvalue_1d=restart_lat)
+    call xios_set_domain_attr(domain_name, bounds_lon_1d=bnd_restart_lon, &
+                              bounds_lat_1d=bnd_restart_lat)
 
-   call xios_set_domain_attr(domain_name, ni_glo=global_undf_restart, &
-                                    ibegin=ibegin_restart, ni=local_undf(1), &
-                                    type='unstructured')
-   call xios_set_domain_attr(domain_name, lonvalue_1d=restart_lon, &
-                                          latvalue_1d=restart_lat)
-   call xios_set_domain_attr(domain_name, bounds_lon_1d=bnd_restart_lon, &
-                                          bounds_lat_1d=bnd_restart_lat)
+    ! Clean up things for next domain
+    deallocate(local_undf, all_undfs_restart_domain)
+    deallocate(restart_lat, restart_lon, bnd_restart_lat, bnd_restart_lon)
 
-
-   ! Clean up things for next domain
-   deallocate(local_undf, all_undfs_restart_domain)
-   deallocate(restart_lat, restart_lon, bnd_restart_lat, bnd_restart_lon)
-
-   output_field_fs => null()
+    output_field_fs => null()
 
   end do
 
   return
 end subroutine xios_restart_domain_init
-
-
-
-
 
 
 !> @brief   Compute the node domain coords for this partition
@@ -948,7 +950,7 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
                                    face_bnds_lat_coords)
 
   implicit none
-    
+
   type(field_type), intent(in)         :: nodal_coords(3)
   type(field_type), intent(in)         :: chi(3)
   integer(i_def),   intent(in)         :: nlayers
@@ -1042,8 +1044,7 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
         face_bnds_lat_coords(df_x,cell) = xyz(2)*r2d
 
       endif
-        
-   
+
     end do
 
 
@@ -1116,7 +1117,7 @@ subroutine nodal_write_field(nodal_coordinates, level, nodal_output, &
   end if
   write(OUTPUT_UNIT,'(A)') '];'
   close(OUTPUT_UNIT)
-  
+
 end subroutine nodal_write_field
 
 ! Procedure to restart a field (original method)
@@ -1234,7 +1235,7 @@ subroutine xios_write_field_node(xios_field_name, field_proxy)
 
 
   undf = field_proxy%vspace%get_last_dof_owned()
-  
+
   ! Get the expected horizontal domain size for the rank
   call xios_get_domain_attr('node', ni=domain_size)
   ! Get the expected vertical axis size
@@ -1262,7 +1263,7 @@ subroutine xios_write_field_node(xios_field_name, field_proxy)
                        reshape (send_field, (/domain_size, axis_size/) ))
 
   deallocate(send_field)
-  
+
 end subroutine xios_write_field_node
 
 !> @brief   Output a field in UGRID format on the face domain via XIOS
@@ -1284,7 +1285,7 @@ subroutine xios_write_field_face(xios_field_name, field_proxy)
 
   undf = field_proxy%vspace%get_last_dof_owned()
   fs_id = field_proxy%vspace%which()
-  
+
   ! Get the expected horizontal and vertical axis size
 
   if (fs_id == W3) then
@@ -1318,7 +1319,7 @@ subroutine xios_write_field_face(xios_field_name, field_proxy)
                        reshape (send_field, (/domain_size, axis_size/) ))
 
   deallocate(send_field)
-  
+
 end subroutine xios_write_field_face
 
 end module io_mod

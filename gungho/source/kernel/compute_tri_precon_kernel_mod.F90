@@ -3,68 +3,70 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Compute the tridiagonal vertical only terms for the helmholtz matrix 
-!!        for lowest order elements 
+!> @brief Compute the tridiagonal vertical only terms for the helmholtz matrix
+!!        for lowest order elements.
+!>
 !> @details Compute the terms from the helmholtz matrix restricted to the
 !!          vertical for lowest order and store them in three fields suitable
-!!          for use with a triadiagonal solver
-
+!!          for use with a triadiagonal solver.
+!>
 module compute_tri_precon_kernel_mod
-use constants_mod,           only: r_def, i_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,                      &
-                                   GH_FIELD, GH_READ, GH_WRITE,              &
-                                   ANY_SPACE_9, W3, ANY_SPACE_1,             &
-                                   GH_BASIS, GH_DIFF_BASIS,                  &
-                                   CELLS, GH_EVALUATOR
-use planet_config_mod,       only: kappa, cp
-use timestepping_config_mod, only: dt, tau_u, tau_t
 
-implicit none
+  use argument_mod,            only: arg_type, func_type,        &
+                                    GH_FIELD, GH_READ, GH_WRITE, &
+                                    ANY_SPACE_9, ANY_SPACE_1,    &
+                                    GH_BASIS, GH_DIFF_BASIS,     &
+                                    CELLS, GH_EVALUATOR
+  use constants_mod,           only: r_def, i_def
+  use fs_continuity_mod,       only: W3
+  use kernel_mod,              only: kernel_type
+  use planet_config_mod,       only: kappa, cp
+  use timestepping_config_mod, only: dt, tau_u, tau_t
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-type, public, extends(kernel_type) :: compute_tri_precon_kernel_type
-  private
-  type(arg_type) :: meta_args(5) = (/                                  &
-       arg_type(GH_FIELD*3,  GH_WRITE, W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9),                   &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)                    &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(ANY_SPACE_1, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  type, public, extends(kernel_type) :: compute_tri_precon_kernel_type
+    private
+    type(arg_type) :: meta_args(5) = (/               &
+        arg_type(GH_FIELD*3,  GH_WRITE, W3),          &
+        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_9), &
+        arg_type(GH_FIELD,    GH_READ,  W3),          &
+        arg_type(GH_FIELD,    GH_READ,  W3),          &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_1)  &
+        /)
+    type(func_type) :: meta_funcs(1) = (/     &
+        func_type(ANY_SPACE_1, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass :: compute_tri_precon_code
+  end type compute_tri_precon_kernel_type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface compute_tri_precon_kernel
+    module procedure compute_tri_precon_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_tri_precon_code
+
 contains
-  procedure, nopass :: compute_tri_precon_code
-end type compute_tri_precon_kernel_type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! Overload the default structure constructor for function space
-interface compute_tri_precon_kernel
-   module procedure compute_tri_precon_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_tri_precon_code
-contains
-
-type(compute_tri_precon_kernel_type) function compute_tri_precon_constructor() result(self)
+type(compute_tri_precon_kernel_type) &
+function compute_tri_precon_constructor() result(self)
   return
 end function compute_tri_precon_constructor
-  
+
 !> @brief Compute the tridiagonal vertical only terms for the helmholtz matrix 
 !!        for lowest order elements
 !! @param[in] nlayers Number of layers.

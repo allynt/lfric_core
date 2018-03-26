@@ -3,52 +3,55 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel to compute the values of detj at W2 locations.
+!> @brief Computes the values of detj at W2 locations.
+!>
 module calc_detj_at_w2_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    W0, W2, GH_DIFF_BASIS,                   &
-                                    CELLS, GH_EVALUATOR
-use constants_mod,           only : r_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                GH_DIFF_BASIS,               &
+                                CELLS, GH_EVALUATOR
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W0, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: calc_detj_at_w2_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,    GH_WRITE, W2),                            &
-       arg_type(GH_FIELD*3,  GH_READ,  W0)                             &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(W0, GH_DIFF_BASIS)                                    &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass ::calc_detj_at_w2_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: calc_detj_at_w2_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/      &
+        arg_type(GH_FIELD,    GH_WRITE, W2), &
+        arg_type(GH_FIELD*3,  GH_READ,  W0)  &
+        /)
+    type(func_type) :: meta_funcs(1) = (/ &
+        func_type(W0, GH_DIFF_BASIS)      &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass ::calc_detj_at_w2_code
+  end type
 
-! overload the default structure constructor for function space
-interface calc_detj_at_w2_kernel_type
-   module procedure calc_detj_at_w2_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public calc_detj_at_w2_code
+  ! overload the default structure constructor for function space
+  interface calc_detj_at_w2_kernel_type
+    module procedure calc_detj_at_w2_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public calc_detj_at_w2_code
+
 contains
 
 type(calc_detj_at_w2_kernel_type) function calc_detj_at_w2_kernel_constructor() result(self)

@@ -3,61 +3,63 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief Provides access to the members of the w3_kernel class.
-
-!> @details Accessor functions for the w3_kernel class are defined in this module.
-
+!>
+!> Accessor functions for the w3_kernel class are defined in this module.
+!>
 module compute_mass_matrix_kernel_w3_mod
 
-use argument_mod,              only: arg_type, func_type,                      &
-                                     GH_OPERATOR, GH_FIELD, GH_READ, GH_WRITE, &
-                                     ANY_SPACE_9, W3, GH_BASIS, GH_DIFF_BASIS, &
-                                     CELLS, GH_QUADRATURE_XYoZ
-use coordinate_jacobian_mod,   only: coordinate_jacobian
-use constants_mod,             only: r_def
-use finite_element_config_mod, only: rehabilitate
-use kernel_mod,                only: kernel_type
+  use argument_mod,              only: arg_type, func_type,    &
+                                      GH_OPERATOR, GH_FIELD,   &
+                                      GH_READ, GH_WRITE,       &
+                                      ANY_SPACE_9,             &
+                                      GH_BASIS, GH_DIFF_BASIS, &
+                                      CELLS, GH_QUADRATURE_XYoZ
+  use coordinate_jacobian_mod,   only: coordinate_jacobian
+  use constants_mod,             only: r_def
+  use finite_element_config_mod, only: rehabilitate
+  use fs_continuity_mod,         only: W3
+  use kernel_mod,                only: kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w3_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W3, W3),                        &
-       arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9)                    &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w3_type
+    private
+    type(arg_type) :: meta_args(2) = (/              &
+        arg_type(GH_OPERATOR, GH_WRITE, W3, W3),     &
+        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/     &
+        func_type(W3, GH_BASIS),              &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: compute_mass_matrix_w3_code
+  end type compute_mass_matrix_kernel_w3_type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface compute_mass_matrix_kernel_w3
+    module procedure compute_mass_matrix_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_mass_matrix_w3_code
+
 contains
-  procedure, nopass :: compute_mass_matrix_w3_code
-end type compute_mass_matrix_kernel_w3_type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface compute_mass_matrix_kernel_w3
-   module procedure compute_mass_matrix_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_mass_matrix_w3_code
-contains
-
-type(compute_mass_matrix_kernel_w3_type) function compute_mass_matrix_constructor() result(self)
+type(compute_mass_matrix_kernel_w3_type) &
+function compute_mass_matrix_constructor() result(self)
   return
 end function compute_mass_matrix_constructor
 

@@ -14,62 +14,64 @@
 !> rtheta_bd = theta * gamma * u * normal.
 !>
 module rtheta_bd_kernel_mod
-    use kernel_mod,            only : kernel_type
-    use argument_mod,          only : arg_type, func_type, mesh_data_type, &
-                                      GH_FIELD, GH_READ, GH_INC,           &
-                                      W2, Wtheta, GH_BASIS, GH_DIFF_BASIS, &
-                                      CELLS, GH_QUADRATURE_XYoZ,           &
-                                      adjacent_face,                       &
-                                      reference_element_normal_to_face,    &
-                                      reference_element_out_face_normal
-    use constants_mod,         only : r_def, i_def
-    use cross_product_mod,     only : cross_product
-    use planet_config_mod,     only : cp
-    use reference_element_mod, only : reference_element_type
 
+  use argument_mod,          only : arg_type, func_type, mesh_data_type, &
+                                    GH_FIELD, GH_READ, GH_INC,           &
+                                    GH_BASIS, GH_DIFF_BASIS,             &
+                                    CELLS, GH_QUADRATURE_XYoZ,           &
+                                    adjacent_face,                       &
+                                    reference_element_normal_to_face,    &
+                                    reference_element_out_face_normal
+  use constants_mod,         only : r_def, i_def
+  use cross_product_mod,     only : cross_product
+  use fs_continuity_mod,     only : W2, Wtheta
+  use kernel_mod,            only : kernel_type
+  use planet_config_mod,     only : cp
+  use reference_element_mod, only : reference_element_type
 
+  implicit none
 
-    implicit none
-
-    !-------------------------------------------------------------------------------
-    ! Public types
-    !-------------------------------------------------------------------------------
-    !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-    type, public, extends(kernel_type) :: rtheta_bd_kernel_type
-        private
-        type(arg_type) :: meta_args(3) = (/                               &
-            arg_type(GH_FIELD,   GH_INC,  Wtheta),                        &
-            arg_type(GH_FIELD,   GH_READ, Wtheta),                        &
-            arg_type(GH_FIELD,   GH_READ, W2)                             &
-            /)
-        type(func_type) :: meta_funcs(2) = (/                             &
-            func_type(W2, GH_BASIS),                                      &
-            func_type(Wtheta, GH_BASIS)                                   &
-            /)
-        integer :: iterates_over = CELLS
-        integer :: gh_shape = GH_QUADRATURE_XYoZ
-        type(mesh_data_type) :: meta_init(3) = (/                         &
-            mesh_data_type( adjacent_face ),                              &
-            mesh_data_type( reference_element_normal_to_face ),           &
-            mesh_data_type( reference_element_out_face_normal )           &
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: rtheta_bd_kernel_type
+      private
+      type(arg_type) :: meta_args(3) = (/                               &
+          arg_type(GH_FIELD,   GH_INC,  Wtheta),                        &
+          arg_type(GH_FIELD,   GH_READ, Wtheta),                        &
+          arg_type(GH_FIELD,   GH_READ, W2)                             &
           /)
-    contains
-        procedure, nopass ::rtheta_bd_code
-    end type
+      type(func_type) :: meta_funcs(2) = (/                             &
+          func_type(W2, GH_BASIS),                                      &
+          func_type(Wtheta, GH_BASIS)                                   &
+          /)
+      integer :: iterates_over = CELLS
+      integer :: gh_shape = GH_QUADRATURE_XYoZ
+      type(mesh_data_type) :: meta_init(3) = (/                         &
+          mesh_data_type( adjacent_face ),                              &
+          mesh_data_type( reference_element_normal_to_face ),           &
+          mesh_data_type( reference_element_out_face_normal )           &
+        /)
+  contains
+      procedure, nopass ::rtheta_bd_code
+  end type
 
-    !-------------------------------------------------------------------------------
-    ! Constructors
-    !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-    ! overload the default structure constructor for function space
-    interface rtheta_bd_kernel_type
-        module procedure rtheta_bd_kernel_constructor
-    end interface
+  ! overload the default structure constructor for function space
+  interface rtheta_bd_kernel_type
+      module procedure rtheta_bd_kernel_constructor
+  end interface
 
-    !-------------------------------------------------------------------------------
-    ! Contained functions/subroutines
-    !-------------------------------------------------------------------------------
-    public rtheta_bd_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public rtheta_bd_code
 
 contains
 

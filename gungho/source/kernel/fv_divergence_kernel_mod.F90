@@ -3,64 +3,64 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the finite-volume divergence in either the x or
-!>        y direction.
-!> @details The Cosmic scheme updates density in the x, y and z directions
-!>          separately.
-!>          This code calculates the divergence for either the x or y direction.
-!>          The z direction update has not been developed yet.
-!>          The scheme is a simple finite difference of the fluxes at opposite
-!>          cell edges and is designed to work only with lowest order W2 and W3
-!>          spaces.
+!> @brief Computes the finite-volume divergence in either the x or y
+!>        direction.
+!>
+!> The Cosmic scheme updates density in the x, y and z directions separately.
+!> This code calculates the divergence for either the x or y direction. The
+!> z direction update has not been developed yet. The scheme is a simple
+!> finite difference of the fluxes at opposite cell edges and is designed to
+!> work only with lowest order W2 and W3 spaces.
 
 module fv_divergence_kernel_mod
 
-use argument_mod,  only : arg_type, func_type,                  &
-                          GH_FIELD, GH_WRITE, GH_READ,          &
-                          W0, W2, W3, GH_BASIS, CELLS
-use constants_mod, only : r_def, i_def
-use kernel_mod,    only : kernel_type
-use flux_direction_mod, only : z_direction
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_WRITE, GH_READ, &
+                                GH_BASIS, CELLS
+  use constants_mod,      only : r_def, i_def
+  use flux_direction_mod, only : z_direction
+  use fs_continuity_mod,  only : W0, W2, W3
+  use kernel_mod,         only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: fv_divergence_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3)                              &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W3, GH_BASIS)                                         &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::fv_divergence_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: fv_divergence_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/     &
+        arg_type(GH_FIELD,   GH_WRITE, W3), &
+        arg_type(GH_FIELD,   GH_READ,  W2), &
+        arg_type(GH_FIELD,   GH_READ,  W3)  &
+        /)
+    type(func_type) :: meta_funcs(3) = (/ &
+        func_type(W3, GH_BASIS),          &
+        func_type(W2, GH_BASIS),          &
+        func_type(W3, GH_BASIS)           &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::fv_divergence_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! Overload the default structure constructor for function space
-interface fv_divergence_kernel_type
-   module procedure fv_divergence_kernel_constructor
-end interface
+  ! Overload the default structure constructor for function space
+  interface fv_divergence_kernel_type
+    module procedure fv_divergence_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public fv_divergence_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public fv_divergence_code
+
 contains
 
 type(fv_divergence_kernel_type) function fv_divergence_kernel_constructor() result(self)

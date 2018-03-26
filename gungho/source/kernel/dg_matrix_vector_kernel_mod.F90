@@ -3,54 +3,55 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 module dg_matrix_vector_kernel_mod
-use argument_mod,            only : arg_type,                               &
-                                    GH_FIELD, GH_OPERATOR,                  &
-                                    GH_READ, GH_WRITE,                      &
-                                    ANY_SPACE_1, W3,                        &
-                                    CELLS 
-use constants_mod,           only : r_def
-use kernel_mod,              only : kernel_type
 
-implicit none
+  use argument_mod,      only : arg_type,              &
+                                GH_FIELD, GH_OPERATOR, &
+                                GH_READ, GH_WRITE,     &
+                                ANY_SPACE_1,           &
+                                CELLS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  implicit none
 
-type, public, extends(kernel_type) :: dg_matrix_vector_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,    GH_WRITE, W3),                            &  
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),                   &
-       arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1)                &
-       /)
-  integer :: iterates_over = CELLS
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+
+  type, public, extends(kernel_type) :: dg_matrix_vector_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/                  &
+        arg_type(GH_FIELD,    GH_WRITE, W3),             &
+        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),    &
+        arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1) &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::dg_matrix_vector_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface dg_matrix_vector_kernel_type
+    module procedure dg_matrix_vector_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public dg_matrix_vector_code
+
 contains
-  procedure, nopass ::dg_matrix_vector_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface dg_matrix_vector_kernel_type
-   module procedure dg_matrix_vector_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public dg_matrix_vector_code
-contains
-
-  type(dg_matrix_vector_kernel_type) function dg_matrix_vector_kernel_constructor() result(self)
-  return
-end function dg_matrix_vector_kernel_constructor
+  type(dg_matrix_vector_kernel_type) &
+  function dg_matrix_vector_kernel_constructor() result(self)
+    return
+  end function dg_matrix_vector_kernel_constructor
 
 !> @brief Computes lhs = matrix*x for discontinuous function spaces
 !> @param[in] cell Horizontal cell index

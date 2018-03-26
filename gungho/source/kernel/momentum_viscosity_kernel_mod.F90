@@ -3,50 +3,54 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
 !> @brief Apply 3D viscosity mu * (d2dx2 + d2dy2 + d2dz2) to the components
-!> of the momentum equation for lowest order elements 
+!>        of the momentum equation for lowest order elements.
+!>
 module momentum_viscosity_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    ANY_SPACE_9, W2,                         &
-                                    CELLS, STENCIL, CROSS                                   
-use constants_mod,           only : r_def
-use mixing_config_mod,       only : viscosity_mu
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer.
-type, public, extends(kernel_type) :: momentum_viscosity_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                &
-       arg_type(GH_FIELD,   GH_INC,  W2),                            &
-       arg_type(GH_FIELD,   GH_READ, W2,          STENCIL(CROSS)),   &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                    &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::momentum_viscosity_code
-end type
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_9,               &
+                                CELLS, STENCIL, CROSS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2
+  use kernel_mod,        only : kernel_type
+  use mixing_config_mod, only : viscosity_mu
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  implicit none
 
-! Overload the default structure constructor for function space
-interface momentum_viscosity_kernel_type
-   module procedure momentum_viscosity_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: momentum_viscosity_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/                                &
+        arg_type(GH_FIELD,   GH_INC,  W2),                             &
+        arg_type(GH_FIELD,   GH_READ, W2, stencil_map=STENCIL(CROSS)), &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                     &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::momentum_viscosity_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public momentum_viscosity_code
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface momentum_viscosity_kernel_type
+    module procedure momentum_viscosity_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public momentum_viscosity_code
+
 contains
 
 type(momentum_viscosity_kernel_type) function momentum_viscosity_kernel_constructor() result(self)

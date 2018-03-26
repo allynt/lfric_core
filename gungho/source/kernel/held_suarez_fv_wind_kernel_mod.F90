@@ -3,67 +3,72 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-
-!> @brief Kernel adds a Held-Suarez forcing using the finite difference 
-!> representation of the fields
-!> In this first version, only the increments to theta are calculated in this way,
-!> for winds we will still use the weak form
-
-!> @detail Kernel adds a Held-Suarez forcing based on Wedi and Smolarkiewicz 2009:
+!> @brief Adds a Held-Suarez forcing using the finite difference
+!>        representation of the fields.
+!>
+!> In this first version, only the increments to theta are calculated in this
+!> way, for winds we will still use the weak form.
+!>
+!> Kernel adds a Held-Suarez forcing based on Wedi and Smolarkiewicz 2009:
 !> Wedi, N. P. and Smolarkiewicz, P. K. (2009), A framework for testing global 
-!> non-hydrostatic models. Q.J.R. Meteorol. Soc., 135: 469–484. doi: 10.1002/qj.377
-
+!> non-hydrostatic models. Q.J.R. Meteorol. Soc., 135: 469–484.
+!> doi: 10.1002/qj.377
+!>
 module held_suarez_fv_wind_kernel_mod
-  
-use kernel_mod,               only: kernel_type
-use argument_mod,             only: arg_type, func_type,                 &
-                                    GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
-                                    WTHETA, W2, ANY_SPACE_9,                 &
-                                    GH_BASIS, CELLS
-use constants_mod,            only: r_def
-use coord_transform_mod,      only: xyz2ll
-use calc_exner_pointwise_mod, only: calc_exner_pointwise
-use held_suarez_forcings_mod, only: held_suarez_damping
-use planet_config_mod,        only: kappa
-use timestepping_config_mod,  only: dt
 
-implicit none
+  use argument_mod,             only: arg_type, func_type,                 &
+                                      GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
+                                      ANY_SPACE_9,                         &
+                                      GH_BASIS, CELLS
+  use constants_mod,            only: r_def
+  use coord_transform_mod,      only: xyz2ll
+  use calc_exner_pointwise_mod, only: calc_exner_pointwise
+  use fs_continuity_mod,        only: W2, Wtheta
+  use held_suarez_forcings_mod, only: held_suarez_damping
+  use kernel_mod,               only: kernel_type
+  use planet_config_mod,        only: kappa
+  use timestepping_config_mod,  only: dt
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: held_suarez_fv_wind_kernel_type
-  private
-  type(arg_type) :: meta_args(5) = (/                              &
-       arg_type(GH_FIELD,   GH_INC,   W2),                         &
-       arg_type(GH_FIELD,   GH_READ,  W2),                         &
-       arg_type(GH_FIELD,   GH_READ,  W2),                         &
-       arg_type(GH_FIELD,   GH_READ,  WTHETA),                     &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                 &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass :: held_suarez_fv_wind_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: held_suarez_fv_wind_kernel_type
+    private
+    type(arg_type) :: meta_args(5) = (/             &
+        arg_type(GH_FIELD,   GH_INC,   W2),         &
+        arg_type(GH_FIELD,   GH_READ,  W2),         &
+        arg_type(GH_FIELD,   GH_READ,  W2),         &
+        arg_type(GH_FIELD,   GH_READ,  WTHETA),     &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9) &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: held_suarez_fv_wind_code
+  end type
 
-! overload the default structure constructor
-interface held_suarez_fv_wind_kernel_type
-   module procedure held_suarez_fv_wind_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public held_suarez_fv_wind_code
+  ! overload the default structure constructor
+  interface held_suarez_fv_wind_kernel_type
+    module procedure held_suarez_fv_wind_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public held_suarez_fv_wind_code
+
 contains
 
 type(held_suarez_fv_wind_kernel_type) &
-   function held_suarez_fv_wind_kernel_constructor() result(self)
+function held_suarez_fv_wind_kernel_constructor() result(self)
   return
 end function held_suarez_fv_wind_kernel_constructor
 

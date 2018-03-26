@@ -16,7 +16,8 @@ module function_space_collection_mod
 
   use constants_mod,      only: i_def, l_def
   use function_space_mod, only: function_space_type
-  use fs_continuity_mod,  only: W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi, fs_name
+  use fs_continuity_mod,  only: W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi, &
+                                name_from_functionspace
   use log_mod,            only: log_event, log_scratch_space, &
                                 LOG_LEVEL_ERROR, LOG_LEVEL_INFO, LOG_LEVEL_TRACE
   use linked_list_mod,    only: linked_list_type, &
@@ -80,7 +81,7 @@ end function function_space_collection_constructor
 !-----------------------------------------------------------------------------
 !> Function to get an instance of a function space from the linked list
 !> or create it if it doesn't exist
-function get_fs(self, mesh_id, element_order, dynamo_fs) &
+function get_fs(self, mesh_id, element_order, lfric_fs) &
                 result(fs)
 
   implicit none
@@ -88,20 +89,20 @@ function get_fs(self, mesh_id, element_order, dynamo_fs) &
   class(function_space_collection_type), intent(inout) :: self
   integer(i_def), intent(in)                           :: mesh_id
   integer(i_def), intent(in)                           :: element_order
-  integer(i_def), intent(in)                           :: dynamo_fs
+  integer(i_def), intent(in)                           :: lfric_fs
 
   type(function_space_type), pointer      :: fs
   type(linked_list_item_type),pointer     :: loop ! temp pointer for looping
 
   integer(i_def) :: fs_id
 
-  select case (dynamo_fs)
+  select case (lfric_fs)
 
   case (W0,W1,W2,W3,WTHETA,W2V,W2H, WCHI)
   case default
     write(log_scratch_space, '(A,I0,A)')                    &
-        'Function space type continuity type (', dynamo_fs, &
-        ') not defined for Dynamo.'
+        'Function space type continuity type (', lfric_fs, &
+        ') not defined for LFRic.'
     call log_event(log_scratch_space, LOG_LEVEL_INFO)
     write(log_scratch_space, '(A)') &
         'Available integer ids are: 100-107, corresponding to:'
@@ -120,7 +121,7 @@ function get_fs(self, mesh_id, element_order, dynamo_fs) &
 
   ! Generate id for requested function space
   ! can use the passed mesh_id
-  fs_id = 1000000*mesh_id + (1000*element_order) + dynamo_fs
+  fs_id = 1000000*mesh_id + (1000*element_order) + lfric_fs
 
   fs => self%get_fs_by_id(fs_id)
 
@@ -128,10 +129,11 @@ function get_fs(self, mesh_id, element_order, dynamo_fs) &
 
     call self%fs_list%insert_item( function_space_type( mesh_id,       &
                                                         element_order, &
-                                                        dynamo_fs) )
+                                                        lfric_fs) )
 
-    write(log_scratch_space, '(A,2(I0,A))')                            &
-      'Generated order-',element_order,' '//trim(fs_name(dynamo_fs))// &
+    write(log_scratch_space, '(A,2(I0,A))')           &
+      'Generated order-',element_order,               &
+      ' '//trim(name_from_functionspace(lfric_fs))// &
       '-function space singleton (id:', fs_id,')'
     call log_event(log_scratch_space, LOG_LEVEL_TRACE)
 

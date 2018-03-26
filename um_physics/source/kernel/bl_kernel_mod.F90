@@ -3,55 +3,57 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-
-!> @brief Interface to BL scheme
-
+!> @brief Interface to boundary layer scheme.
+!>
 module bl_kernel_mod
-use argument_mod,            only : arg_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,  &
-                                    W3, WTHETA,                   &
-                                    CELLS 
-use kernel_mod,              only : kernel_type
-use constants_mod,     only : r_def, i_def, r_double
-use physics_config_mod, only: l_flux_bc, fixed_flux_e, fixed_flux_h
 
-implicit none
+  use argument_mod,       only : arg_type,                    &
+                                 GH_FIELD, GH_READ, GH_WRITE, &
+                                 CELLS
+  use constants_mod,      only : r_def, i_def, r_double
+  use fs_continuity_mod,  only : W3, Wtheta
+  use kernel_mod,         only : kernel_type
+  use physics_config_mod, only: l_flux_bc, fixed_flux_e, fixed_flux_h
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: bl_kernel_type
-  private
-  type(arg_type) :: meta_args(12) = (/                                 &
-       arg_type(GH_FIELD,   GH_WRITE,  WTHETA),                        &
-       arg_type(GH_FIELD,   GH_READ,   W3),                            &
-       arg_type(GH_FIELD,   GH_READ,  WTHETA),                         &
-       arg_type(GH_FIELD,   GH_READ,   W3),                            &
-       arg_type(GH_FIELD,   GH_READ,   WTHETA),                        &
-       arg_type(GH_FIELD,   GH_READ,   W3),                            &
-       arg_type(GH_FIELD,   GH_READ,   W3),                            &
-       arg_type(GH_FIELD,   GH_READ,   W3),                            &
-       arg_type(GH_FIELD,   GH_READ,   WTHETA),                        &
-       arg_type(GH_FIELD,   GH_WRITE,  W3),                            &
-       arg_type(GH_FIELD,   GH_WRITE,  W3),                            &
-       arg_type(GH_FIELD,   GH_WRITE,  W3)                             &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass ::bl_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> Kernel metadata type.
+  !>
+  type, public, extends(kernel_type) :: bl_kernel_type
+    private
+    type(arg_type) :: meta_args(12) = (/         &
+        arg_type(GH_FIELD,   GH_WRITE,  WTHETA), &
+        arg_type(GH_FIELD,   GH_READ,   W3),     &
+        arg_type(GH_FIELD,   GH_READ,  WTHETA),  &
+        arg_type(GH_FIELD,   GH_READ,   W3),     &
+        arg_type(GH_FIELD,   GH_READ,   WTHETA), &
+        arg_type(GH_FIELD,   GH_READ,   W3),     &
+        arg_type(GH_FIELD,   GH_READ,   W3),     &
+        arg_type(GH_FIELD,   GH_READ,   W3),     &
+        arg_type(GH_FIELD,   GH_READ,   WTHETA), &
+        arg_type(GH_FIELD,   GH_WRITE,  W3),     &
+        arg_type(GH_FIELD,   GH_WRITE,  W3),     &
+        arg_type(GH_FIELD,   GH_WRITE,  W3)      &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::bl_code
+  end type
 
-! overload the default structure constructor for function space
-interface bl_kernel_type
-   module procedure bl_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-public bl_code
+  ! overload the default structure constructor for function space
+  interface bl_kernel_type
+    module procedure bl_kernel_constructor
+  end interface
+
+  public bl_code
+
 contains
 
 type(bl_kernel_type) function bl_kernel_constructor() result(self)

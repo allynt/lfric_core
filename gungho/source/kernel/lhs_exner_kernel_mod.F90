@@ -3,68 +3,74 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Computes lhs of the equation of state for the nonlinear equations 
-
-!> @details The kernel computes the lhs of the equation of state for the nonlinear equations, 
-!>          That is: \f[ lhs_{\Pi} = (1-\kappa)/\kappa * \Pi'/\Pi^* - \rho'/\rho^* - \theta'/\theta^* \f]
-!>          Where ' are increments to the fields and ^* are the reference states
+!> @brief Computes lhs of the equation of state for the nonlinear equations.
+!>
+!> The kernel computes the lhs of the equation of state for the nonlinear
+!> equations, that is:
+!> \f[ lhs_{\Pi} = (1-\kappa)/\kappa * \Pi'/\Pi^* - \rho'/\rho^* - \theta'/\theta^* \f]
+!>
+!> Where ' are increments to the fields and ^* are the reference states
+!>
 module lhs_exner_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_WRITE,             &
-                                    ANY_SPACE_1, W3, ANY_SPACE_9,            &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def, i_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,         &
+                                GH_FIELD, GH_READ, GH_WRITE, &
+                                ANY_SPACE_1, ANY_SPACE_9,    &
+                                GH_BASIS, GH_DIFF_BASIS,     &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W3
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: lhs_exner_kernel_type
-  private
-  type(arg_type) :: meta_args(8) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1),                    &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1),                    &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD,   GH_READ,  W3),                             &
-       arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)                     &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS),                          &
-       func_type(ANY_SPACE_1, GH_BASIS)                                &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: lhs_exner_kernel_type
+    private
+    type(arg_type) :: meta_args(8) = (/              &
+        arg_type(GH_FIELD,   GH_WRITE, W3),          &
+        arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1), &
+        arg_type(GH_FIELD,   GH_READ,  W3),          &
+        arg_type(GH_FIELD,   GH_READ,  W3),          &
+        arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1), &
+        arg_type(GH_FIELD,   GH_READ,  W3),          &
+        arg_type(GH_FIELD,   GH_READ,  W3),          &
+        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9)  &
+        /)
+    type(func_type) :: meta_funcs(3) = (/      &
+        func_type(W3, GH_BASIS),               &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS), &
+        func_type(ANY_SPACE_1, GH_BASIS)       &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::lhs_exner_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface lhs_exner_kernel_type
+    module procedure lhs_exner_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public lhs_exner_code
+
 contains
-  procedure, nopass ::lhs_exner_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! Overload the default structure constructor for function space
-interface lhs_exner_kernel_type
-   module procedure lhs_exner_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!------------^*---------------------------------------------------------------
-public lhs_exner_code
-contains
-
-type(lhs_exner_kernel_type) function lhs_exner_kernel_constructor() result(self)
+type(lhs_exner_kernel_type) &
+function lhs_exner_kernel_constructor() result(self)
   return
 end function lhs_exner_kernel_constructor
 

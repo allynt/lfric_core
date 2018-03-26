@@ -1,33 +1,15 @@
 module fs_test_data_mod
 
-  use constants_mod,     only : i_def, r_def
-  use fs_continuity_mod, only : fs_name
+  use constants_mod,     only : i_def, i_native, r_def
+  use fs_continuity_mod, only : W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi
 
   implicit none
 
-  type function_space_description_type
-    integer(i_def) :: element_order
-    integer(i_def) :: ndof_cell
-    integer(i_def) :: ndof_glob
-    integer(i_def) :: dim_space
-    integer(i_def) :: dim_space_diff
-  end type function_space_description_type
-
-! Description of each function space !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-type(function_space_description_type) &
-        :: function_space_description(lbound(fs_name, 1):ubound(fs_name, 1)) &
-= (/function_space_description_type(0,  8, 36, 1, 3), &
-    function_space_description_type(0, 12, 99, 3, 3), &
-    function_space_description_type(0,  6, 90, 3, 1), &
-    function_space_description_type(0,  1, 27, 1, 3), &
-    function_space_description_type(0,  2, 36, 1, 3), &
-    function_space_description_type(0,  2, 36, 3, 1), &
-    function_space_description_type(0,  4, 54, 3, 1), &
-    function_space_description_type(0,  1, 27, 1, 3)/)
+  private
 
 ! W0 arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fs0k0_nodal_coords(3,8) = reshape( [ &
+real(r_def), public, target :: fs0k0_nodal_coords(3,8) = reshape( [ &
 0.00_r_def, 0.00_r_def, 0.00_r_def,  &
 1.00_r_def, 0.00_r_def, 0.00_r_def,  &
 1.00_r_def, 1.00_r_def, 0.00_r_def,  &
@@ -38,7 +20,7 @@ real(r_def), target :: fs0k0_nodal_coords(3,8) = reshape( [ &
 0.00_r_def, 1.00_r_def, 1.00_r_def   &
 ], [3,8] )
 
-integer(i_def), target :: fs0k0_dofmap(8,0:9) = reshape( [ &
+integer(i_def), public, target :: fs0k0_dofmap(8,0:9) = reshape( [ &
   0,   0,   0,   0,   0,   0,   0,   0,   1,   5,  &
   9,  13,   2,   6,  10,  14,   5,  17,  21,   9,  &
   6,  18,  22,  10,  17,   1,  13,  21,  18,   2,  &
@@ -49,7 +31,7 @@ integer(i_def), target :: fs0k0_dofmap(8,0:9) = reshape( [ &
  18,   6,  33,  29,   1,  17,  34,  30,   2,  18   &
 ], [8,10] )
 
-real(r_def), target :: fs0k0_basis_function(1,8,9,3) = reshape( [ &
+real(r_def), public, target :: fs0k0_basis_function(1,8,9,3) = reshape( [ &
  0.69856850115866753E+00_r_def,   0.88729833462074165E-01_r_def,   0.11270166537925829E-01_r_def,   &
  0.88729833462074165E-01_r_def,   0.88729833462074165E-01_r_def,   0.11270166537925829E-01_r_def,   &
  0.14314988413324798E-02_r_def,   0.11270166537925829E-01_r_def,   0.39364916731037086E+00_r_def,   &
@@ -124,7 +106,7 @@ real(r_def), target :: fs0k0_basis_function(1,8,9,3) = reshape( [ &
  0.88729833462074165E-01_r_def,   0.69856850115866753E+00_r_def,   0.88729833462074165E-01_r_def    &
 ], [1,8,9,3] )
 
-real(r_def), target :: fs0k0_basis_diff_function(3,8,9,3) = reshape( [ &
+real(r_def), public, target :: fs0k0_basis_diff_function(3,8,9,3) = reshape( [ &
 -0.78729833462074172E+00_r_def,  -0.78729833462074172E+00_r_def,  -0.78729833462074172E+00_r_def,   &
  0.78729833462074172E+00_r_def,  -0.99999999999999992E-01_r_def,  -0.99999999999999992E-01_r_def,   &
  0.99999999999999992E-01_r_def,   0.99999999999999992E-01_r_def,  -0.12701665379258308E-01_r_def,   &
@@ -345,7 +327,7 @@ real(r_def), target :: fs0k0_basis_diff_function(3,8,9,3) = reshape( [ &
 
 ! W1 arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fs1k0_nodal_coords(3,12) = reshape( [ &
+real(r_def), public, target :: fs1k0_nodal_coords(3,12) = reshape( [ &
 0.00_r_def, 0.50_r_def, 0.00_r_def,  &
 0.50_r_def, 0.00_r_def, 0.00_r_def,  &
 1.00_r_def, 0.50_r_def, 0.00_r_def,  &
@@ -360,7 +342,7 @@ real(r_def), target :: fs1k0_nodal_coords(3,12) = reshape( [ &
 0.50_r_def, 1.00_r_def, 1.00_r_def   &
 ], [3,12] )
 
-integer(i_def), target :: fs1k0_dofmap(12,0:9) = reshape( [ &
+integer(i_def), public, target :: fs1k0_dofmap(12,0:9) = reshape( [ &
   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  &
   0,   0,   1,   5,   9,  13,  17,  20,  23,  26,  &
   2,   6,  10,  14,   9,  29,  33,  37,  20,  41,  &
@@ -375,7 +357,7 @@ integer(i_def), target :: fs1k0_dofmap(12,0:9) = reshape( [ &
  88,  47,  81,  70,  17,  41,  97,  85,  89,  48   &
 ], [12,10] )
 
-real(r_def), target :: fs1k0_basis_function(3,12,9,3) = reshape( [ &
+real(r_def), public, target :: fs1k0_basis_function(3,12,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.78729833462074172E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.78729833462074172E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.99999999999999992E-01_r_def,   0.00000000000000000E+00_r_def,   &
@@ -702,7 +684,7 @@ real(r_def), target :: fs1k0_basis_function(3,12,9,3) = reshape( [ &
  0.78729833462074172E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def    &
 ], [3,12,9,3] )
 
-real(r_def), target :: fs1k0_basis_diff_function(3,12,9,3) = reshape( [ &
+real(r_def), public, target :: fs1k0_basis_diff_function(3,12,9,3) = reshape( [ &
  0.88729833462074170E+00_r_def,   0.00000000000000000E+00_r_def,  -0.88729833462074170E+00_r_def,   &
  0.00000000000000000E+00_r_def,  -0.88729833462074170E+00_r_def,   0.88729833462074170E+00_r_def,   &
  0.11270166537925830E+00_r_def,  -0.00000000000000000E+00_r_def,   0.88729833462074170E+00_r_def,   &
@@ -1031,7 +1013,7 @@ real(r_def), target :: fs1k0_basis_diff_function(3,12,9,3) = reshape( [ &
 
 ! W2 arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fs2k0_nodal_coords(3,6) = reshape( [ &
+real(r_def), public, target :: fs2k0_nodal_coords(3,6) = reshape( [ &
 0.00_r_def, 0.50_r_def, 0.50_r_def,  &
 0.50_r_def, 0.00_r_def, 0.50_r_def,  &
 1.00_r_def, 0.50_r_def, 0.50_r_def,  &
@@ -1040,7 +1022,7 @@ real(r_def), target :: fs2k0_nodal_coords(3,6) = reshape( [ &
 0.50_r_def, 0.50_r_def, 1.00_r_def   &
 ], [3,6] )
 
-integer(i_def), target :: fs2k0_dofmap(6,0:9) = reshape( [ &
+integer(i_def), public, target :: fs2k0_dofmap(6,0:9) = reshape( [ &
   0,   0,   0,   0,   0,   0,   1,   4,   7,  10,  &
  13,  14,   7,  17,  20,  23,  26,  27,  20,  30,  &
   1,  33,  36,  37,  40,  10,  43,  46,  49,  50,  &
@@ -1049,7 +1031,7 @@ integer(i_def), target :: fs2k0_dofmap(6,0:9) = reshape( [ &
  80,  17,  83,  84,  80,  63,  70,  30,  87,  88   &
 ], [6,10] )
 
-real(r_def), target :: fs2k0_basis_function(3,6,9,3) = reshape( [ &
+real(r_def), public, target :: fs2k0_basis_function(3,6,9,3) = reshape( [ &
  0.88729833462074170E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,  -0.88729833462074170E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.11270166537925830E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
@@ -1214,7 +1196,7 @@ real(r_def), target :: fs2k0_basis_function(3,6,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.88729833462074170E+00_r_def    &
 ], [3,6,9,3] )
 
-real(r_def), target :: fs2k0_basis_diff_function(1,6,9,3) = reshape( [ &
+real(r_def), public, target :: fs2k0_basis_diff_function(1,6,9,3) = reshape( [ &
 -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
 -0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
 -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
@@ -1273,15 +1255,15 @@ real(r_def), target :: fs2k0_basis_diff_function(1,6,9,3) = reshape( [ &
 
 ! W3 arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fs3k0_nodal_coords(3,1) = reshape( [ &
+real(r_def), public, target :: fs3k0_nodal_coords(3,1) = reshape( [ &
 0.50_r_def, 0.50_r_def, 0.50_r_def   &
 ], [3,1] )
 
-integer(i_def), target :: fs3k0_dofmap(1,0:9) = reshape( [ &
+integer(i_def), public, target :: fs3k0_dofmap(1,0:9) = reshape( [ &
   0,   1,   4,   7,  10,  13,  16,  19,  22,  25   &
 ], [1,10] )
 
-real(r_def), target :: fs3k0_basis_function(1,1,9,3) = reshape( [ &
+real(r_def), public, target :: fs3k0_basis_function(1,1,9,3) = reshape( [ &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
@@ -1293,7 +1275,7 @@ real(r_def), target :: fs3k0_basis_function(1,1,9,3) = reshape( [ &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def    &
 ], [1,1,9,3] )
 
-real(r_def), target :: fs3k0_basis_diff_function(3,1,9,3) = reshape( [ &
+real(r_def), public, target :: fs3k0_basis_diff_function(3,1,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
@@ -1325,17 +1307,17 @@ real(r_def), target :: fs3k0_basis_diff_function(3,1,9,3) = reshape( [ &
 
 ! Wtheta arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fstk0_nodal_coords(3,2) = reshape( [ &
+real(r_def), public, target :: fstk0_nodal_coords(3,2) = reshape( [ &
 0.50_r_def, 0.50_r_def, 0.00_r_def,  &
 0.50_r_def, 0.50_r_def, 1.00_r_def   &
 ], [3,2] )
 
-integer(i_def), target :: fstk0_dofmap(2,0:9) = reshape( [ &
+integer(i_def), public, target :: fstk0_dofmap(2,0:9) = reshape( [ &
   0,   0,   1,   2,   5,   6,   9,  10,  13,  14,  &
  17,  18,  21,  22,  25,  26,  29,  30,  33,  34   &
 ], [2,10] )
 
-real(r_def),target :: fstk0_basis_function(1,2,9,3) = reshape( [ &
+real(r_def), public, target :: fstk0_basis_function(1,2,9,3) = reshape( [ &
  0.88729833462074170E+00_r_def,   0.11270166537925830E+00_r_def,   0.88729833462074170E+00_r_def,   &
  0.11270166537925830E+00_r_def,   0.88729833462074170E+00_r_def,   0.11270166537925830E+00_r_def,   &
  0.88729833462074170E+00_r_def,   0.11270166537925830E+00_r_def,   0.88729833462074170E+00_r_def,   &
@@ -1356,7 +1338,7 @@ real(r_def),target :: fstk0_basis_function(1,2,9,3) = reshape( [ &
  0.88729833462074170E+00_r_def,   0.11270166537925830E+00_r_def,   0.88729833462074170E+00_r_def    &
 ], [1,2,9,3] )
 
-real(r_def), target :: fstk0_basis_diff_function(3,2,9,3) = reshape( [ &
+real(r_def), public, target :: fstk0_basis_diff_function(3,2,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,  -0.10000000000000000E+01_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.10000000000000000E+01_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,  -0.10000000000000000E+01_r_def,   &
@@ -1415,17 +1397,17 @@ real(r_def), target :: fstk0_basis_diff_function(3,2,9,3) = reshape( [ &
 
 ! W2V arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fs2vk0_nodal_coords(3,2) = reshape( [ &
+real(r_def), public, target :: fs2vk0_nodal_coords(3,2) = reshape( [ &
 0.50_r_def, 0.50_r_def, 0.00_r_def,  &
 0.50_r_def, 0.50_r_def, 1.00_r_def   &
 ], [3,2] )
 
-integer(i_def), target :: fs2vk0_dofmap(2,0:9) = reshape( [ &
+integer(i_def), public, target :: fs2vk0_dofmap(2,0:9) = reshape( [ &
   0,   0,   1,   2,   5,   6,   9,  10,  13,  14,  &
  17,  18,  21,  22,  25,  26,  29,  30,  33,  34   &
 ], [2,10] )
 
-real(r_def), target :: fs2vk0_basis_function(3,2,9,3) = reshape( [ &
+real(r_def), public, target :: fs2vk0_basis_function(3,2,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.88729833462074170E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.11270166537925830E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.88729833462074170E+00_r_def,   &
@@ -1482,7 +1464,7 @@ real(r_def), target :: fs2vk0_basis_function(3,2,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.88729833462074170E+00_r_def    &
 ], [3,2,9,3] )
 
-real(r_def), target :: fs2vk0_basis_diff_function(1,2,9,3) = reshape( [ &
+real(r_def), public, target :: fs2vk0_basis_diff_function(1,2,9,3) = reshape( [ &
 -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,   &
  0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
 -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,   &
@@ -1505,21 +1487,21 @@ real(r_def), target :: fs2vk0_basis_diff_function(1,2,9,3) = reshape( [ &
 
 ! W2H arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fs2hk0_nodal_coords(3,4) = reshape( [ &
+real(r_def), public, target :: fs2hk0_nodal_coords(3,4) = reshape( [ &
 0.00_r_def, 0.50_r_def, 0.50_r_def,  &
 0.50_r_def, 0.00_r_def, 0.50_r_def,  &
 1.00_r_def, 0.50_r_def, 0.50_r_def,  &
 0.50_r_def, 1.00_r_def, 0.50_r_def   &
 ], [3,4] )
 
-integer(i_def), target :: fs2hk0_dofmap(4,0:9) = reshape( [ &
+integer(i_def), public, target :: fs2hk0_dofmap(4,0:9) = reshape( [ &
   0,   0,   0,   0,   1,   4,   7,  10,   7,  13,  &
  16,  19,  16,  22,   1,  25,  28,  10,  31,  34,  &
  31,  19,  37,  40,  37,  25,  28,  43,  46,  34,  &
  49,   4,  49,  40,  52,  13,  52,  43,  46,  22   &
 ], [4,10] )
 
-real(r_def), target :: fs2hk0_basis_function(3,4,9,3) = reshape( [ &
+real(r_def), public, target :: fs2hk0_basis_function(3,4,9,3) = reshape( [ &
  0.88729833462074170E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,  -0.88729833462074170E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.11270166537925830E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
@@ -1630,7 +1612,7 @@ real(r_def), target :: fs2hk0_basis_function(3,4,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,  -0.88729833462074170E+00_r_def,   0.00000000000000000E+00_r_def    &
 ], [3,4,9,3] )
 
-real(r_def), target :: fs2hk0_basis_diff_function(1,4,9,3) = reshape( [ &
+real(r_def), public, target :: fs2hk0_basis_diff_function(1,4,9,3) = reshape( [ &
 -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
 -0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
  0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,  -0.10000000000000000E+01_r_def,   &
@@ -1671,15 +1653,15 @@ real(r_def), target :: fs2hk0_basis_diff_function(1,4,9,3) = reshape( [ &
 
 ! Wchi arrays !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-real(r_def), target :: fsck0_nodal_coords(3,1) = reshape( [ &
+real(r_def), public, target :: fsck0_nodal_coords(3,1) = reshape( [ &
 0.50_r_def, 0.50_r_def, 0.50_r_def   &
 ], [3,1] )
 
-integer(i_def), target :: fsck0_dofmap(1,0:9) = reshape( [ &
+integer(i_def), public, target :: fsck0_dofmap(1,0:9) = reshape( [ &
   0,   1,   4,   7,  10,  13,  16,  19,  22,  25   &
 ], [1,10] )
 
-real(r_def), target :: fsck0_basis_function(1,1,9,3) = reshape( [ &
+real(r_def), public, target :: fsck0_basis_function(1,1,9,3) = reshape( [ &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   &
@@ -1691,7 +1673,7 @@ real(r_def), target :: fsck0_basis_function(1,1,9,3) = reshape( [ &
  0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def,   0.10000000000000000E+01_r_def    &
 ], [1,1,9,3] )
 
-real(r_def), target :: fsck0_basis_diff_function(3,1,9,3) = reshape( [ &
+real(r_def), public, target :: fsck0_basis_diff_function(3,1,9,3) = reshape( [ &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &
  0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   0.00000000000000000E+00_r_def,   &

@@ -3,75 +3,81 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the pressure gradient for rhs of the momentum equation
-!!        the exner pressure is computed from the equation of state using density
-!!        and potential temperature
-
-
-!> @details The kernel computes the pressure gradient part of the 
-!>         rhs of the momentum equation for the nonlinear equations,
-!>         written in the vector invariant form
-!>         This rhs consists of four terms:
-!>         Pressure gradient: \f[ cp*\theta*\nabla(\Pi)\f]
-!>         geopotential gradient: \f[ \nabla(\Phi) ( \equiv g for some domains)\f]
-!>         gradient of kinetic energy: \f[ \nabla(1/2*u.u) \f] 
-!>         vorticity advection: \f[ \xi/\rho \times F (with vorticity \xi and mass flux F) \f]
-!>         This results in:
-!>         \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2*u.u) - cp*\theta*\nabla(\Pi) \f]
+!> @brief Computes the pressure gradient for rhs of the momentum equation.
+!>
+!! The exner pressure is computed from the equation of state using density
+!! and potential temperature
+!>
+!> The kernel computes the pressure gradient part of the
+!> rhs of the momentum equation for the nonlinear equations,
+!> written in the vector invariant form.
+!>
+!> This rhs consists of four terms:
+!> Pressure gradient: \f[ cp*\theta*\nabla(\Pi)\f]
+!> geopotential gradient: \f[ \nabla(\Phi) ( \equiv g for some domains)\f]
+!> gradient of kinetic energy: \f[ \nabla(1/2*u.u) \f]
+!> vorticity advection:
+!> \f[ \xi/\rho \times F (with vorticity \xi and mass flux F) \f]
+!>
+!> This results in:
+!> \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2*u.u) - cp*\theta*\nabla(\Pi) \f]
+!>
 module pressure_gradient_kernel_mod
 
-use argument_mod,      only : arg_type, func_type,                 &
-                              GH_FIELD, GH_READ, GH_INC,           &
-                              ANY_SPACE_1, W2, W3,                 &
-                              GH_BASIS, GH_DIFF_BASIS,             &
-                              CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,     only : r_def
-use kernel_mod,        only : kernel_type
-use planet_config_mod, only : cp
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_1,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
+  use planet_config_mod, only : cp
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: pressure_gradient_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W3),                              &
-       arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1)                      &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2,          GH_BASIS, GH_DIFF_BASIS),                &
-       func_type(W3,          GH_BASIS),                               &
-       func_type(ANY_SPACE_1, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: pressure_gradient_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        arg_type(GH_FIELD,   GH_READ, W3),         &
+        arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1) &
+        /)
+    type(func_type) :: meta_funcs(3) = (/                &
+        func_type(W2,          GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W3,          GH_BASIS),                &
+        func_type(ANY_SPACE_1, GH_BASIS, GH_DIFF_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::pressure_gradient_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface pressure_gradient_kernel_type
+    module procedure pressure_gradient_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public pressure_gradient_code
+
 contains
-  procedure, nopass ::pressure_gradient_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface pressure_gradient_kernel_type
-   module procedure pressure_gradient_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public pressure_gradient_code
-contains
-
-type(pressure_gradient_kernel_type) function pressure_gradient_kernel_constructor() result(self)
+type(pressure_gradient_kernel_type) &
+function pressure_gradient_kernel_constructor() result(self)
   return
 end function pressure_gradient_kernel_constructor
 

@@ -3,51 +3,51 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-
-!> @brief Performs a simple insert sort on reference theta field to remove any 
-!>        static instability
-
-!> @detail Performs a simple insert sort on reference theta field to remove any 
-!>         static instability
-
+!> @brief Performs a simple insert sort on reference theta field to remove any
+!>        static instability.
+!>
 module sort_ref_kernel_mod
-  
-use kernel_mod,               only: kernel_type
-use argument_mod,             only: arg_type, func_type,                 &
-                                    GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
-                                    WTHETA, ANY_SPACE_9,                 &
-                                    GH_BASIS, CELLS
-use constants_mod,            only: r_def
 
-implicit none
+  use argument_mod,      only: arg_type, func_type,                 &
+                               GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
+                               ANY_SPACE_9,                         &
+                               GH_BASIS, CELLS
+  use constants_mod,     only: r_def
+  use fs_continuity_mod, only: Wtheta
+  use kernel_mod,        only: kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: sort_ref_kernel_type
-  private
-  type(arg_type) :: meta_args(1) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,   WTHETA)                          &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass :: sort_ref_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: sort_ref_kernel_type
+    private
+    type(arg_type) :: meta_args(1) = (/        &
+        arg_type(GH_FIELD,   GH_INC,   WTHETA) &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: sort_ref_code
+  end type
 
-! overload the default structure constructor
-interface sort_ref_kernel_type
-   module procedure sort_ref_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public sort_ref_code
+  ! overload the default structure constructor
+  interface sort_ref_kernel_type
+    module procedure sort_ref_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public sort_ref_code
+
 contains
 
 type(sort_ref_kernel_type) function sort_ref_kernel_constructor() result(self)

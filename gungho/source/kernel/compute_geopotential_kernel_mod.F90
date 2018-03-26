@@ -3,61 +3,60 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel computes the geopotential field
-
-!> @details Computes the geopotential field Phi = g*r or g*z for Cartesian
-!!         domains
-
+!> @brief Computes the geopotential field.
+!>
+!> Computes the geopotential field Phi = g*r or g*z for Cartesian domains.
+!>
 module compute_geopotential_kernel_mod
 
-use argument_mod,           only : arg_type, func_type,                      &
-                                   GH_FIELD, GH_READ, GH_WRITE,              &
-                                   W0, ANY_SPACE_9, GH_BASIS,                &
-                                   CELLS, GH_EVALUATOR
-use base_mesh_config_mod,   only : geometry, &
-                                   base_mesh_geometry_spherical
-use constants_mod,          only : r_def
-use coord_transform_mod,    only : xyz2llr
-use kernel_mod,             only : kernel_type
-use planet_config_mod,      only : gravity, scaled_radius
-use formulation_config_mod, only : shallow
-implicit none
+  use argument_mod,           only : arg_type, func_type,         &
+                                     GH_FIELD, GH_READ, GH_WRITE, &
+                                     ANY_SPACE_9, GH_BASIS,       &
+                                     CELLS, GH_EVALUATOR
+  use base_mesh_config_mod,   only : geometry, &
+                                     base_mesh_geometry_spherical
+  use constants_mod,          only : r_def
+  use coord_transform_mod,    only : xyz2llr
+  use formulation_config_mod, only : shallow
+  use fs_continuity_mod,      only : W0
+  use kernel_mod,             only : kernel_type
+  use planet_config_mod,      only : gravity, scaled_radius
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: compute_geopotential_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, W0),                             &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                      &
-       /)
-  type(func_type) :: meta_funcs(1) = (/                                &
-       func_type(ANY_SPACE_9, GH_BASIS)                                &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass :: compute_geopotential_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+  type, public, extends(kernel_type) :: compute_geopotential_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/            &
+        arg_type(GH_FIELD,   GH_WRITE, W0),        &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(1) = (/ &
+        func_type(ANY_SPACE_9, GH_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass :: compute_geopotential_code
+  end type
 
-! Overload the default structure constructor for function space
-interface compute_geopotential_kernel_type
-   module procedure compute_geopotential_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public compute_geopotential_code
+  ! Overload the default structure constructor for function space
+  interface compute_geopotential_kernel_type
+    module procedure compute_geopotential_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public compute_geopotential_code
+
 contains
 
 type(compute_geopotential_kernel_type) function compute_geopotential_kernel_constructor() result(self)

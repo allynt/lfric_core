@@ -3,85 +3,84 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the advective update u.grad(t) through fitting a high order 
-!>        upwind 1D reconstruction
-!> @details Compute the advective update for a tracer field using a high order
-!>          polynomial fit to the tracer values. The stencil used for the
-!>          polynomial is centred, with an upwind bias if an even number of 
-!>          points are used, therefore for an upwind shceme an odd ordered 
-!>          polynomial should be used. In the vertical the order is reduced 
-!>          near the boundaries depending on the number of points available.
-!>          This method is only valid for lowest order elements 
-
+!> @brief Computes the advective update u.grad(t) through fitting a high order
+!>        upwind 1D reconstruction.
+!>
+!> Compute the advective update for a tracer field using a high order
+!> polynomial fit to the tracer values. The stencil used for the polynomial is
+!> centred, with an upwind bias if an even number of points are used,
+!> therefore for an upwind shceme an odd ordered polynomial should be used. In
+!> the vertical the order is reduced near the boundaries depending on the
+!> number of points available. This method is only valid for lowest order
+!> elements.
+!>
 module sample_poly_adv_kernel_mod
 
-use argument_mod,  only : arg_type, func_type,                  &
-                          GH_FIELD, GH_WRITE, GH_READ,          &
-                          W2, Wtheta, ANY_SPACE_1,              &
-                          GH_BASIS, GH_DIFF_BASIS, CELLS,       &
-                          GH_EVALUATOR, STENCIL, CROSS
+  use argument_mod,            only: arg_type, func_type,            &
+                                     GH_FIELD, GH_WRITE, GH_READ,    &
+                                     ANY_SPACE_1,                    &
+                                     GH_BASIS, GH_DIFF_BASIS, CELLS, &
+                                     GH_EVALUATOR, STENCIL, CROSS
+  use constants_mod,           only: r_def, i_def
+  use fs_continuity_mod,       only: W2, Wtheta
+  use kernel_mod,              only: kernel_type
+  use reference_element_mod,   only: W, E, N, S
+  use timestepping_config_mod, only: dt
+  use transport_config_mod,    only: consistent_metric, enforce_monotonicity
 
-use constants_mod,         only: r_def, i_def
-use kernel_mod,            only: kernel_type
-use reference_element_mod, only: W, E, N, S
-use transport_config_mod,  only: consistent_metric
+  implicit none
 
-use transport_config_mod, only: enforce_monotonicity
-use timestepping_config_mod,  only: dt
+  ! Precomputed operators, these are the same for all model columns
+  real(kind=r_def), allocatable,    private :: coeff_matrix(:,:)
+  integer(kind=i_def), allocatable, private :: dof_stencil(:,:)
+  integer(kind=i_def), allocatable, private :: np_v(:,:)
+  integer(kind=i_def),              private :: np
+  real(kind=r_def),                 private :: x0
+  real(kind=r_def), allocatable,    private :: dx0(:)
+  real(kind=r_def), allocatable,    private :: coeff_matrix_v(:,:,:)
 
-implicit none
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: sample_poly_adv_kernel_type
+    private
+    type(arg_type) :: meta_args(7) = (/                              &
+        arg_type(GH_FIELD,   GH_WRITE, Wtheta),                      &
+        arg_type(GH_FIELD,   GH_READ,  Wtheta, STENCIL(CROSS)),      &
+        arg_type(GH_FIELD,   GH_READ,  W2),                          &
+        arg_type(GH_FIELD,   GH_READ,  Wtheta),                      &
+        arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1, STENCIL(CROSS)), &
+        arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1),                 &
+        arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1)                  &
+        /)
+    type(func_type) :: meta_funcs(2) = (/               &
+        func_type(W2,          GH_BASIS),               &
+        func_type(ANY_SPACE_1, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass ::sample_poly_adv_code
+  end type
 
-! Precomputed operators, these are the same for all model columns
-real(kind=r_def), allocatable,    private :: coeff_matrix(:,:)
-integer(kind=i_def), allocatable, private :: dof_stencil(:,:)
-integer(kind=i_def), allocatable, private :: np_v(:,:)
-integer(kind=i_def),              private :: np
-real(kind=r_def),                 private :: x0
-real(kind=r_def), allocatable,    private :: dx0(:)
-real(kind=r_def), allocatable,    private :: coeff_matrix_v(:,:,:)
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: sample_poly_adv_kernel_type
-  private
-  type(arg_type) :: meta_args(7) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE, Wtheta),                         &
-       arg_type(GH_FIELD,   GH_READ,  Wtheta, STENCIL(CROSS)),         &
-       arg_type(GH_FIELD,   GH_READ,  W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  Wtheta),                         &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1, STENCIL(CROSS)),    &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1),                    &
-       arg_type(GH_FIELD,   GH_READ,  ANY_SPACE_1)                     &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2,          GH_BASIS),                               &
-       func_type(ANY_SPACE_1, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass ::sample_poly_adv_code
-end type
+  ! Overload the default structure constructor for function space
+  interface sample_poly_adv_kernel_type
+    module procedure sample_poly_adv_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public sample_poly_adv_code
+  public sample_poly_adv_init
 
-! Overload the default structure constructor for function space
-interface sample_poly_adv_kernel_type
-   module procedure sample_poly_adv_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public sample_poly_adv_code
-public sample_poly_adv_init
 contains
 
 type(sample_poly_adv_kernel_type) function sample_poly_adv_kernel_constructor() result(self)

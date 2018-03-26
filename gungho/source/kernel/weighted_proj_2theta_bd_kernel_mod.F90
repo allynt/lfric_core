@@ -3,25 +3,26 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-!> @brief Compute the boundary part of the projection operator from the potential temperature space
-!!        to the velocity space weighted by the pressure gradient
-!> @details Compute the boundary projection operator \f[<v.n,{\Pi}*\gamma>\f]
-!!          where v is in W2, gamma is in the potential temperature space and
-!!          exner is computed pointwise from the equation of state.
+!> @brief Computes the boundary part of the projection operator from the
+!>        potential temperature space to the velocity space weighted by the
+!>        pressure gradient.
+!>
+!> Compute the boundary projection operator \f[<v.n,{\Pi}*\gamma>\f] where v
+!> is in W2, gamma is in the potential temperature space and exner is computed
+!> pointwise from the equation of state.
+!>
 module weighted_proj_2theta_bd_kernel_mod
 
-  use constants_mod, only: r_def, i_def
-  use kernel_mod,    only: kernel_type
-  use argument_mod,  only: arg_type, func_type, mesh_data_type, &
-                           GH_OPERATOR, GH_FIELD, GH_REAL,      &
-                           GH_READ, GH_INC,                     &
-                           Wtheta, W2, W3,                      &
-                           GH_BASIS,GH_DIFF_BASIS,              &
-                           CELLS, GH_QUADRATURE_XYoZ,           &
-                           adjacent_face,                       &
-                           reference_element_out_face_normal
+  use argument_mod,      only: arg_type, func_type, mesh_data_type, &
+                               GH_OPERATOR, GH_FIELD, GH_REAL,      &
+                               GH_READ, GH_INC,                     &
+                               GH_BASIS,GH_DIFF_BASIS,              &
+                               CELLS, GH_QUADRATURE_XYoZ,           &
+                               adjacent_face,                       &
+                               reference_element_out_face_normal
+  use constants_mod,     only: r_def, i_def
+  use fs_continuity_mod, only: W2, W3, Wtheta
+  use kernel_mod,        only: kernel_type
 
   implicit none
 
@@ -51,23 +52,24 @@ module weighted_proj_2theta_bd_kernel_mod
     procedure, nopass :: weighted_proj_2theta_bd_code
   end type
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Constructors
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
   ! Overload the default structure constructor for function space
   interface weighted_proj_2theta_bd_kernel_type
     module procedure weighted_proj_2theta_bd_constructor
   end interface
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Contained functions/subroutines
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   public weighted_proj_2theta_bd_code
 
 contains
 
-  type(weighted_proj_2theta_bd_kernel_type) function weighted_proj_2theta_bd_constructor() result(self)
+  type(weighted_proj_2theta_bd_kernel_type) &
+  function weighted_proj_2theta_bd_constructor() result(self)
     implicit none
     return
   end function weighted_proj_2theta_bd_constructor

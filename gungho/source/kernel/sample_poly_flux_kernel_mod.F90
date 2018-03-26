@@ -3,29 +3,27 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which computes the fluxes through fitting a high order 1D
-!>        upwind reconstruction
-!> @details Compute the flux for a tracer density field using a high order
-!>          polynomial fit to the integrated tracer values. The stencil used
-!>          for the polynomial is centred, with an upwind bias if an odd
-!>          number of points are used, therefore for an upwind shceme an even
-!>          ordered polynomial should be used (this means odd ordered for the
-!>          tracer integral. In the vertical the order is reduced near the
-!>          boundaries depending on the number of points available. This
-!>          method is only valid for lowest order elements
+!> @brief Computes the fluxes through fitting a high order 1D upwind
+!>        reconstruction.
+!>
+!> Compute the flux for a tracer density field using a high order polynomial
+!> fit to the integrated tracer values. The stencil used for the polynomial is
+!> centred, with an upwind bias if an odd number of points are used, therefore
+!> for an upwind shceme an even ordered polynomial should be used (this means
+!> odd ordered for the tracer integral. In the vertical the order is reduced
+!> near the boundaries depending on the number of points available. This
+!> method is only valid for lowest order elements.
 !>
 module sample_poly_flux_kernel_mod
 
-  use argument_mod,  only : arg_type, func_type, mesh_data_type, &
-                            GH_FIELD, GH_WRITE, GH_READ,         &
-                            W2, W3, GH_BASIS, CELLS,             &
-                            GH_EVALUATOR, STENCIL, CROSS,        &
-                            reference_element_out_face_normal
-  use constants_mod, only : r_def, i_def
-  use kernel_mod,    only : kernel_type
+  use argument_mod,      only : arg_type, func_type, mesh_data_type, &
+                                GH_FIELD, GH_WRITE, GH_READ,         &
+                                GH_BASIS, CELLS,                     &
+                                GH_EVALUATOR, STENCIL, CROSS,        &
+                                reference_element_out_face_normal
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
 
   implicit none
 
@@ -46,10 +44,10 @@ module sample_poly_flux_kernel_mod
   !>
   type, public, extends(kernel_type) :: sample_poly_flux_kernel_type
     private
-    type(arg_type) :: meta_args(3) = (/                    &
-        arg_type(GH_FIELD,   GH_WRITE, W2),                &
-        arg_type(GH_FIELD,   GH_READ,  W2),                &
-        arg_type(GH_FIELD,   GH_READ,  W3, STENCIL(CROSS)) &
+    type(arg_type) :: meta_args(3) = (/                                &
+        arg_type(GH_FIELD, GH_WRITE, W2),                            &
+        arg_type(GH_FIELD, GH_READ,  W2),                            &
+        arg_type(GH_FIELD, GH_READ,  W3, stencil_map=STENCIL(CROSS)) &
         /)
     type(func_type) :: meta_funcs(1) = (/ &
         func_type(W2, GH_BASIS)           &
@@ -63,24 +61,25 @@ module sample_poly_flux_kernel_mod
     procedure, nopass ::sample_poly_flux_code
   end type
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Constructors
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
   ! overload the default structure constructor for function space
   interface sample_poly_flux_kernel_type
     module procedure sample_poly_flux_kernel_constructor
   end interface
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Contained functions/subroutines
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   public :: sample_poly_flux_code, &
             sample_poly_flux_init, sample_poly_flux_final
 
 contains
 
-  type(sample_poly_flux_kernel_type) function sample_poly_flux_kernel_constructor() result(self)
+  type(sample_poly_flux_kernel_type) &
+  function sample_poly_flux_kernel_constructor() result(self)
     return
   end function sample_poly_flux_kernel_constructor
 

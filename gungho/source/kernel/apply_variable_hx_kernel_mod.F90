@@ -5,79 +5,88 @@
 !-----------------------------------------------------------------------------
 
 module apply_variable_hx_kernel_mod
-use argument_mod,            only : arg_type,                               &
-                                    GH_FIELD, GH_OPERATOR, GH_REAL,         &
-                                    GH_READ, GH_WRITE,                      &
-                                    ANY_SPACE_1, W3, W2,                    &
-                                    CELLS 
-use constants_mod,           only : r_def
-use kernel_mod,              only : kernel_type
-implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  use argument_mod,      only : arg_type,                       &
+                                GH_FIELD, GH_OPERATOR, GH_REAL, &
+                                GH_READ, GH_WRITE,              &
+                                ANY_SPACE_1,                    &
+                                CELLS
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2, W3
+  use kernel_mod,        only : kernel_type
 
-type, public, extends(kernel_type) :: apply_variable_hx_kernel_type
-  private
-  type(arg_type) :: meta_args(9) = (/                                  &
-       arg_type(GH_FIELD,    GH_WRITE, W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  W2),                            &
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),                   &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_OPERATOR, GH_READ,  W3, W2),                        &
-       arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1),               &
-       arg_type(GH_OPERATOR, GH_READ,  ANY_SPACE_1, W2),               &
-       arg_type(GH_OPERATOR, GH_READ,  W3, W3),                        &
-       arg_type(GH_REAL,     GH_READ)                                  &
-       /)
-  integer :: iterates_over = CELLS
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+
+  type, public, extends(kernel_type) :: apply_variable_hx_kernel_type
+    private
+    type(arg_type) :: meta_args(9) = (/                   &
+        arg_type(GH_FIELD,    GH_WRITE, W3),              &
+        arg_type(GH_FIELD,    GH_READ,  W2),              &
+        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),     &
+        arg_type(GH_FIELD,    GH_READ,  W3),              &
+        arg_type(GH_OPERATOR, GH_READ,  W3, W2),          &
+        arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1), &
+        arg_type(GH_OPERATOR, GH_READ,  ANY_SPACE_1, W2), &
+        arg_type(GH_OPERATOR, GH_READ,  W3, W3),          &
+        arg_type(GH_REAL,     GH_READ)                    &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass ::apply_variable_hx_code
+  end type
+
+  type, public, extends(kernel_type) :: opt_apply_variable_hx_kernel_type
+    private
+    type(arg_type) :: meta_args(9) = (/                   &
+        arg_type(GH_FIELD,    GH_WRITE, W3),              &
+        arg_type(GH_FIELD,    GH_READ,  W2),              &
+        arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),     &
+        arg_type(GH_FIELD,    GH_READ,  W3),              &
+        arg_type(GH_OPERATOR, GH_READ,  W3, W2),          &
+        arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1), &
+        arg_type(GH_OPERATOR, GH_READ,  ANY_SPACE_1, W2), &
+        arg_type(GH_OPERATOR, GH_READ,  W3, W3),          &
+        arg_type(GH_REAL,     GH_READ)                    &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, nopass :: opt_apply_variable_hx_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface apply_variable_hx_kernel_type
+    module procedure apply_variable_hx_kernel_constructor
+  end interface
+
+  interface opt_apply_variable_hx_kernel_type
+    module procedure opt_apply_variable_hx_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public apply_variable_hx_code
+  public opt_apply_variable_hx_code
+
 contains
-  procedure, nopass ::apply_variable_hx_code
-end type
-type, public, extends(kernel_type) :: opt_apply_variable_hx_kernel_type
-  private
-  type(arg_type) :: meta_args(9) = (/                                  &
-       arg_type(GH_FIELD,    GH_WRITE, W3),                            &
-       arg_type(GH_FIELD,    GH_READ,  W2),                            &
-       arg_type(GH_FIELD,    GH_READ,  ANY_SPACE_1),                   &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_OPERATOR, GH_READ,  W3, W2),                        &
-       arg_type(GH_OPERATOR, GH_READ,  W3, ANY_SPACE_1),               &
-       arg_type(GH_OPERATOR, GH_READ,  ANY_SPACE_1, W2),               &
-       arg_type(GH_OPERATOR, GH_READ,  W3, W3),                        &
-       arg_type(GH_REAL,     GH_READ)                                  &
-       /)
-  integer :: iterates_over = CELLS
-contains
-  procedure, nopass :: opt_apply_variable_hx_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  type(apply_variable_hx_kernel_type) &
+  function apply_variable_hx_kernel_constructor() result(self)
+    return
+  end function apply_variable_hx_kernel_constructor
 
-! Overload the default structure constructor for function space
-interface apply_variable_hx_kernel_type
-   module procedure apply_variable_hx_kernel_constructor
-end interface
-interface opt_apply_variable_hx_kernel_type
-   module procedure opt_apply_variable_hx_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public apply_variable_hx_code
-public opt_apply_variable_hx_code
-contains
-
-  type(apply_variable_hx_kernel_type) function apply_variable_hx_kernel_constructor() result(self)
-  return
-end function apply_variable_hx_kernel_constructor
-  type(opt_apply_variable_hx_kernel_type) function opt_apply_variable_hx_kernel_constructor() result(self)
-  return
-end function opt_apply_variable_hx_kernel_constructor
+  type(opt_apply_variable_hx_kernel_type) &
+  function opt_apply_variable_hx_kernel_constructor() result(self)
+    return
+  end function opt_apply_variable_hx_kernel_constructor
 
 !> @brief Applies the component of the helmholtz operator that maps from velocity space 
 !>        to the pressure space as well as the constant in space part

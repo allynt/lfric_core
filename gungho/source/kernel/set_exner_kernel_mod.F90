@@ -3,59 +3,60 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Computes LHS of Galerkin projection and solves equation in W3 space
-
+!> @brief Computes LHS of Galerkin projection and solves equation in W3 space.
+!>
 module set_exner_kernel_mod
 
-use argument_mod,               only : arg_type, func_type,            &
-                                       GH_FIELD, GH_READ, GH_WRITE,    &
-                                       ANY_SPACE_9, W3,                &
-                                       GH_BASIS, GH_DIFF_BASIS,        &
-                                       CELLS, GH_QUADRATURE_XYoZ,      &
-                                       GH_REAL
-use constants_mod,              only : r_def, i_def
-use idealised_config_mod,       only : test
-use kernel_mod,                 only : kernel_type
+  use argument_mod,         only : arg_type, func_type,        &
+                                  GH_FIELD, GH_READ, GH_WRITE, &
+                                  ANY_SPACE_9,                 &
+                                  GH_BASIS, GH_DIFF_BASIS,     &
+                                  CELLS, GH_QUADRATURE_XYoZ,   &
+                                  GH_REAL
+  use constants_mod,        only : r_def, i_def
+  use fs_continuity_mod,    only : W3
+  use idealised_config_mod, only : test
+  use kernel_mod,           only : kernel_type
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: set_exner_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_WRITE,  W3),                            &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9),                     &
-       arg_type(GH_REAL,    GH_READ)                                   &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W3, GH_BASIS),                                        &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)                 &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::set_exner_code
-end type
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: set_exner_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/             &
+        arg_type(GH_FIELD,   GH_WRITE,  W3),        &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9), &
+        arg_type(GH_REAL,    GH_READ)               &
+        /)
+    type(func_type) :: meta_funcs(2) = (/               &
+        func_type(W3, GH_BASIS),                        &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::set_exner_code
+  end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-! overload the default structure constructor for function space
-interface set_exner_kernel_type
-   module procedure set_exner_kernel_constructor
-end interface
+  ! overload the default structure constructor for function space
+  interface set_exner_kernel_type
+    module procedure set_exner_kernel_constructor
+  end interface
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public set_exner_code
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public set_exner_code
+
 contains
 
 type(set_exner_kernel_type) function set_exner_kernel_constructor() result(self)

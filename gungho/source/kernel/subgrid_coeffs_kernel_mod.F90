@@ -3,73 +3,72 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-
 !> @brief Calculates the coefficients, a0,a1,a2, for 1D subgrid
-!>        representation of rho, rho(x) = a0 + a1*x+a2*x**2 with 0<x<1,
-!>        here x simply represents a local coordinate within a cell in either
-!>        the chi1, chi2, or chi3 directions.
-
-!> @details The kernel computes the coefficients a0,a1,a2 where rho is represented in 1D
-!>         by the approximation rho(x) = a0+a1*x+a2*x**2
-!>         Various cases for calculating a0,a1 and a2 are available, including 
-!>         constant,linear and quadratic subgrid representations of rho.
-!>         For linear representation there are several options. If no slope limiter is
-!>         required then centered difference is used to estimate the slope.
-!>         Slope limiters which are currently available are minmod and superbee.
-!>         These slope limiters are extensively covered in the literature on slope limiters
-!>         and have good performance.
-!>         For quadratic representation of rho PPM is used and the options of
-!>         positivity and monotonicity are available
+!>        representation of rho, rho(x) = a0 + a1*x+a2*x**2 with 0<x<1.
 !>
-!>         Note that this kernel only works when rho is a W3 field at lowest order
-!>         since it is assumed that ndf_w3 = 1 with stencil_map(1,:) containing
-!>         the relevant dofmaps.
+!> The kernel computes the coefficients a0,a1,a2 where rho is represented in
+!> 1D by the approximation rho(x) = a0+a1*x+a2*x**2 Various cases for
+!> calculating a0,a1 and a2 are available, including constant,linear and
+!> quadratic subgrid representations of rho. For linear representation there
+!> are several options. If no slope limiter is required then centered
+!> difference is used to estimate the slope. Slope limiters which are
+!> currently available are minmod and superbee. These slope limiters are
+!> extensively covered in the literature on slope limiters and have good
+!> performance. For quadratic representation of rho PPM is used and the
+!> options of positivity and monotonicity are available.
+!>
+!> @note This kernel only works when rho is a W3 field at lowest order since
+!>       it is assumed that ndf_w3 = 1 with stencil_map(1,:) containing the
+!>       relevant dofmaps.
+!>
 module subgrid_coeffs_kernel_mod
 
-use argument_mod,       only : arg_type, func_type,        &
-                               GH_FIELD, GH_INC, GH_WRITE, &
-                               W3,                         &
-                               GH_BASIS,                   &
-                               CELLS
-use constants_mod,      only : r_def, i_def
-use subgrid_config_mod, only : subgrid_rho_approximation_constant_subgrid,     &
-                               subgrid_rho_approximation_constant_positive,    &
-                               subgrid_rho_approximation_ppm_no_limiter,       &
-                               subgrid_rho_approximation_ppm_positive_only,    &
-                               subgrid_rho_approximation_ppm_positive_monotone
-use kernel_mod,         only : kernel_type
+  use argument_mod,       only : arg_type, func_type,        &
+                                 GH_FIELD, GH_INC, GH_WRITE, &
+                                 GH_BASIS,                   &
+                                 CELLS
+  use constants_mod,      only : r_def, i_def
+  use fs_continuity_mod,  only : W3
+  use kernel_mod,         only : kernel_type
+  use subgrid_config_mod, only :                                             &
+                             subgrid_rho_approximation_constant_subgrid,     &
+                             subgrid_rho_approximation_constant_positive,    &
+                             subgrid_rho_approximation_ppm_no_limiter,       &
+                             subgrid_rho_approximation_ppm_positive_only,    &
+                             subgrid_rho_approximation_ppm_positive_monotone
 
-implicit none
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: subgrid_coeffs_kernel_type
-  private
-  type(arg_type) :: meta_args(1) = (/                                  &
-       arg_type(GH_FIELD, GH_WRITE, W3)                                &
-       /)
-  integer :: iterates_over = CELLS
+  !-------------------------------------------------------------------------------
+  ! Public types
+  !-------------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+  type, public, extends(kernel_type) :: subgrid_coeffs_kernel_type
+    private
+    type(arg_type) :: meta_args(1) = (/                                  &
+        arg_type(GH_FIELD, GH_WRITE, W3)                                &
+        /)
+    integer :: iterates_over = CELLS
+  contains
+    procedure, public, nopass :: subgrid_coeffs_code
+  end type
+
+  !-------------------------------------------------------------------------------
+  ! Constructors
+  !-------------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface subgrid_coeffs_kernel_type
+    module procedure subgrid_coeffs_kernel_constructor
+  end interface
+
+  !-------------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !-------------------------------------------------------------------------------
 contains
-  procedure, public, nopass :: subgrid_coeffs_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! Overload the default structure constructor for function space
-interface subgrid_coeffs_kernel_type
-   module procedure subgrid_coeffs_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-contains
-
-type(subgrid_coeffs_kernel_type) function subgrid_coeffs_kernel_constructor() result(self)
+type(subgrid_coeffs_kernel_type) &
+function subgrid_coeffs_kernel_constructor() result(self)
   return
 end function subgrid_coeffs_kernel_constructor
 

@@ -3,60 +3,63 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel which projection of the flux of a field into a vector space
-
-!> @details Compute the flux of a field f when transported by a velocity field
-!> u as int(u*f) this can be used to compute a flux field F = u*f.
+!> @brief Projection of the flux of a field into a vector space.
+!>
+!> Compute the flux of a field f when transported by a velocity field u as
+!> int(u*f) this can be used to compute a flux field F = u*f.
+!>
 module flux_rhs_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    ANY_SPACE_9, W2, ANY_SPACE_1,            &
-                                    GH_BASIS, GH_DIFF_BASIS,                 &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_9, ANY_SPACE_1,  &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: flux_rhs_kernel_type
-  private
-  type(arg_type) :: meta_args(4) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1),                     &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                               &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2,          GH_BASIS),                               &
-       func_type(ANY_SPACE_1, GH_BASIS),                               &
-       func_type(ANY_SPACE_9, GH_DIFF_BASIS)                           &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
-contains
-  procedure, nopass ::flux_rhs_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: flux_rhs_kernel_type
+    private
+    type(arg_type) :: meta_args(4) = (/              &
+        arg_type(GH_FIELD,   GH_INC,  W2),          &
+        arg_type(GH_FIELD,   GH_READ, W2),          &
+        arg_type(GH_FIELD,   GH_READ, ANY_SPACE_1), &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)  &
+        /)
+    type(func_type) :: meta_funcs(3) = (/      &
+        func_type(W2,          GH_BASIS),     &
+        func_type(ANY_SPACE_1, GH_BASIS),     &
+        func_type(ANY_SPACE_9, GH_DIFF_BASIS) &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::flux_rhs_code
+  end type
 
-! overload the default structure constructor for function space
-interface flux_rhs_kernel_type
-   module procedure flux_rhs_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public flux_rhs_code
+  ! overload the default structure constructor for function space
+  interface flux_rhs_kernel_type
+    module procedure flux_rhs_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public flux_rhs_code
+
 contains
 
 type(flux_rhs_kernel_type) function flux_rhs_kernel_constructor() result(self)

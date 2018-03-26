@@ -33,6 +33,8 @@ module gungho_extrusion_mod
   private
   public create_extrusion
 
+  character(*), parameter :: module_name = 'gungho_extrusion_mod'
+
 contains
 
   function create_extrusion() result(new)
@@ -49,9 +51,9 @@ contains
       case (base_mesh_geometry_spherical)
         atmosphere_bottom = scaled_radius
       case default
-        write( log_scratch_space,                 &
-               '("Unrecognised geometry: ", A)' ) &
-             key_from_geometry( geometry )
+        write( log_scratch_space,                      &
+               '(A, ": Unrecognised geometry: ", A)' ) &
+             module_name, key_from_geometry( geometry )
         call log_event( log_scratch_space, log_level_error )
     end select
 
@@ -74,8 +76,8 @@ contains
                                                     number_of_layers ) )
       case default
         write( log_scratch_space,                         &
-               '("Unrecognised extrusion method: ", A)' ) &
-             key_from_method( method )
+               '(A, ": Unrecognised extrusion method: ", A)' ) &
+             module_name, key_from_method( method )
         call log_event( log_scratch_space, log_level_error )
     end select
 

@@ -3,60 +3,62 @@
 ! For further details please refer to the file COPYRIGHT.txt
 ! which you should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Kernel to apply the strong curl: xi = curl(u) with
-!>        u in W1 and xi in W2
-
+!> @brief Applies the strong curl: xi = curl(u) with u in W1 and xi in W2.
+!>
 !> @details Applies the strong form of the curl operator: xi = curl(u) with
-!>          u in W1 and xi in W2. Since curl maps W1->W2 then curl(u) is in 
+!>          u in W1 and xi in W2. Since curl maps W1->W2 then curl(u) is in
 !>          W2 and so the equation holds the strong form and can therefore
 !>          be applied anywhere, for convenience if is sampled at
 !>          the nodal points of xi to compute xi in w2
+!>
 module strong_curl_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                     &
-                                    GH_FIELD, GH_READ, GH_INC,               &
-                                    W1, W2, GH_DIFF_BASIS, GH_BASIS,         & 
-                                    CELLS, GH_EVALUATOR
-use constants_mod,           only : r_def, i_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                GH_DIFF_BASIS, GH_BASIS,   &
+                                CELLS, GH_EVALUATOR
+  use constants_mod,     only : r_def, i_def
+  use fs_continuity_mod, only : W1, W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: strong_curl_kernel_type
-  private
-  type(arg_type) :: meta_args(2) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,   W2),                             &
-       arg_type(GH_FIELD,   GH_READ,  W1)                              &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2, GH_BASIS),                                        &
-       func_type(W1, GH_DIFF_BASIS)                                    &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_EVALUATOR
-contains
-  procedure, nopass ::strong_curl_code
-end type
+  implicit none
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
+  type, public, extends(kernel_type) :: strong_curl_kernel_type
+    private
+    type(arg_type) :: meta_args(2) = (/     &
+        arg_type(GH_FIELD,   GH_INC,   W2), &
+        arg_type(GH_FIELD,   GH_READ,  W1)  &
+        /)
+    type(func_type) :: meta_funcs(2) = (/ &
+        func_type(W2, GH_BASIS),          &
+        func_type(W1, GH_DIFF_BASIS)      &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_EVALUATOR
+  contains
+    procedure, nopass ::strong_curl_code
+  end type
 
-! overload the default structure constructor for function space
-interface strong_curl_kernel_type
-   module procedure strong_curl_kernel_constructor
-end interface
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
 
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public strong_curl_code
+  ! overload the default structure constructor for function space
+  interface strong_curl_kernel_type
+    module procedure strong_curl_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public strong_curl_code
+
 contains
 
 type(strong_curl_kernel_type) function strong_curl_kernel_constructor() result(self)

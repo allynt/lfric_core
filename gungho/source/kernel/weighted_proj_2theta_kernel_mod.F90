@@ -3,10 +3,9 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-!> @brief Compute the projection operator from the potential temperature space 
-!!        to the velocity space weighted by the pressure gradient
+!> @brief Compute the projection operator from the potential temperature space
+!!        to the velocity space weighted by the pressure gradient.
+!>
 !> @details Compute the projection operator \f[<v,\nabla(\Pi)*\gamma>\f]
 !!          where v is in W2 and gamma is in the potential temperature space and
 !!          exner is computed pointwise from the equation of state.
@@ -14,56 +13,61 @@
 !!          \f[
 !!          \left< \nabla.v,\Pi\gamma\right> + \left< v,\Pi\nabla\gamma\right>
 !!          \f]
+!>
 module weighted_proj_2theta_kernel_mod
-use constants_mod,           only: r_def, i_def
-use kernel_mod,              only: kernel_type
-use argument_mod,            only: arg_type, func_type,            &
-                                   GH_OPERATOR, GH_FIELD, GH_REAL, &
-                                   GH_READ, GH_WRITE,              &
-                                   ANY_SPACE_9, W2, W3,            &
-                                   GH_BASIS,GH_DIFF_BASIS,         &
-                                   CELLS, GH_QUADRATURE_XYoZ
 
-implicit none
+  use argument_mod,      only: arg_type, func_type,            &
+                               GH_OPERATOR, GH_FIELD, GH_REAL, &
+                               GH_READ, GH_WRITE,              &
+                               ANY_SPACE_9,                    &
+                               GH_BASIS,GH_DIFF_BASIS,         &
+                               CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only: r_def, i_def
+  use fs_continuity_mod, only: W2, W3
+  use kernel_mod,        only: kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
+  implicit none
 
-type, public, extends(kernel_type) :: weighted_proj_2theta_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_OPERATOR, GH_WRITE, W2, ANY_SPACE_9),               &
-       arg_type(GH_FIELD,    GH_READ,  W3),                            &
-       arg_type(GH_REAL,     GH_READ)                                  &
-       /)
-  type(func_type) :: meta_funcs(3) = (/                                &
-       func_type(W2, GH_BASIS, GH_DIFF_BASIS),                         &
-       func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS),                &
-       func_type(W3, GH_BASIS)                                         &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+
+  type, public, extends(kernel_type) :: weighted_proj_2theta_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/                   &
+        arg_type(GH_OPERATOR, GH_WRITE, W2, ANY_SPACE_9), &
+        arg_type(GH_FIELD,    GH_READ,  W3),              &
+        arg_type(GH_REAL,     GH_READ)                    &
+        /)
+    type(func_type) :: meta_funcs(3) = (/                &
+        func_type(W2, GH_BASIS, GH_DIFF_BASIS),          &
+        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(W3, GH_BASIS)                          &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass :: weighted_proj_2theta_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! Overload the default structure constructor for function space
+  interface weighted_proj_2theta_kernel_type
+    module procedure weighted_proj_2theta_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public weighted_proj_2theta_code
+
 contains
-  procedure, nopass :: weighted_proj_2theta_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! Overload the default structure constructor for function space
-interface weighted_proj_2theta_kernel_type
-   module procedure weighted_proj_2theta_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public weighted_proj_2theta_code
-contains
-
-type(weighted_proj_2theta_kernel_type) function weighted_proj_2theta_constructor() result(self)
+type(weighted_proj_2theta_kernel_type) &
+function weighted_proj_2theta_constructor() result(self)
   return
 end function weighted_proj_2theta_constructor
 

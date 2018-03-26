@@ -3,72 +3,75 @@
 ! For further details please refer to the file LICENCE.original which you
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Computes the kinetic gradient component of the rhs of the momentum equation 
-!>        for the nonlinear equations, written in the vector invariant form
-
-
-!> @details The kernel computes the kinetic gradient component of the rhs of the
-!>         momentum equation for the nonlinear equations,
-!>         written in the vector invariant form
-!>         This consists of four terms:
-!>         This consists of four terms:
-!>         Pressure gradient: \f[ cp*\theta*\nabla(\Pi)\f]
-!>         geopotential gradient: \f[ \nabla(\Phi) ( \equiv g for some domains)\f]
-!>         gradient of kinetic energy: \f[ \nabla(1/2*u.u) \f] 
-!>         vorticity advection: \f[ \xi/\rho \times F (with vorticity \xi and mass flux F) \f]
-!>         This results in:
-!>         \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2*u.u) - cp*\theta*\nabla(\Pi) \f]
+!> @brief Computes the kinetic gradient component of the rhs of the momentum
+!>        equation for the nonlinear equations.
+!>
+!> The kernel computes the kinetic gradient component of the rhs of the
+!> momentum equation for the nonlinear equations, written in the vector
+!> invariant form.
+!>
+!> This consists of four terms:
+!> Pressure gradient: \f[ cp*\theta*\nabla(\Pi)\f]
+!> geopotential gradient: \f[ \nabla(\Phi) ( \equiv g for some domains)\f]
+!> gradient of kinetic energy: \f[ \nabla(1/2*u.u) \f]
+!> vorticity advection: \f[ \xi/\rho \times F (with vorticity \xi and mass flux F) \f]
+!>
+!> This results in:
+!> \f[ r_u = -\xi/\rho \times F - \nabla(\Phi + 1/2*u.u) - cp*\theta*\nabla(\Pi) \f]
+!>
 module kinetic_energy_gradient_kernel_mod
-use kernel_mod,              only : kernel_type
-use argument_mod,            only : arg_type, func_type,                 &
-                                    GH_FIELD, GH_READ, GH_INC,           &
-                                    ANY_SPACE_9, W2,                     &
-                                    GH_BASIS, GH_DIFF_BASIS,             &
-                                    CELLS, GH_QUADRATURE_XYoZ
-use constants_mod,           only : r_def
 
-implicit none
+  use argument_mod,      only : arg_type, func_type,       &
+                                GH_FIELD, GH_READ, GH_INC, &
+                                ANY_SPACE_9,               &
+                                GH_BASIS, GH_DIFF_BASIS,   &
+                                CELLS, GH_QUADRATURE_XYoZ
+  use constants_mod,     only : r_def
+  use fs_continuity_mod, only : W2
+  use kernel_mod,        only : kernel_type
 
-!-------------------------------------------------------------------------------
-! Public types
-!-------------------------------------------------------------------------------
-!> The type declaration for the kernel. Contains the metadata needed by the Psy layer
-type, public, extends(kernel_type) :: kinetic_energy_gradient_kernel_type
-  private
-  type(arg_type) :: meta_args(3) = (/                                  &
-       arg_type(GH_FIELD,   GH_INC,  W2),                              &
-       arg_type(GH_FIELD,   GH_READ, W2),                              &
-       arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9)                      &
-       /)
-  type(func_type) :: meta_funcs(2) = (/                                &
-       func_type(W2, GH_BASIS, GH_DIFF_BASIS),                         &
-       func_type(ANY_SPACE_9,  GH_DIFF_BASIS)                          &
-       /)
-  integer :: iterates_over = CELLS
-  integer :: gh_shape = GH_QUADRATURE_XYoZ
+  implicit none
+
+  !---------------------------------------------------------------------------
+  ! Public types
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  type, public, extends(kernel_type) :: kinetic_energy_gradient_kernel_type
+    private
+    type(arg_type) :: meta_args(3) = (/            &
+        arg_type(GH_FIELD,   GH_INC,  W2),         &
+        arg_type(GH_FIELD,   GH_READ, W2),         &
+        arg_type(GH_FIELD*3, GH_READ, ANY_SPACE_9) &
+        /)
+    type(func_type) :: meta_funcs(2) = (/       &
+        func_type(W2, GH_BASIS, GH_DIFF_BASIS), &
+        func_type(ANY_SPACE_9,  GH_DIFF_BASIS)  &
+        /)
+    integer :: iterates_over = CELLS
+    integer :: gh_shape = GH_QUADRATURE_XYoZ
+  contains
+    procedure, nopass ::kinetic_energy_gradient_code
+  end type
+
+  !---------------------------------------------------------------------------
+  ! Constructors
+  !---------------------------------------------------------------------------
+
+  ! overload the default structure constructor for function space
+  interface kinetic_energy_gradient_kernel_type
+    module procedure kinetic_energy_gradient_kernel_constructor
+  end interface
+
+  !---------------------------------------------------------------------------
+  ! Contained functions/subroutines
+  !---------------------------------------------------------------------------
+  public kinetic_energy_gradient_code
+
 contains
-  procedure, nopass ::kinetic_energy_gradient_code
-end type
 
-!-------------------------------------------------------------------------------
-! Constructors
-!-------------------------------------------------------------------------------
-
-! overload the default structure constructor for function space
-interface kinetic_energy_gradient_kernel_type
-   module procedure kinetic_energy_gradient_kernel_constructor
-end interface
-
-!-------------------------------------------------------------------------------
-! Contained functions/subroutines
-!-------------------------------------------------------------------------------
-public kinetic_energy_gradient_code
-contains
-
-type(kinetic_energy_gradient_kernel_type) function kinetic_energy_gradient_kernel_constructor() result(self)
+type(kinetic_energy_gradient_kernel_type) &
+function kinetic_energy_gradient_kernel_constructor() result(self)
   return
 end function kinetic_energy_gradient_kernel_constructor
 

@@ -3,27 +3,27 @@
 ! For further details please refer to the file LICENCE which you should have
 ! received as part of this distribution.
 !-----------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-
-!> @brief Computes initial exner field
-
+!> @brief Computes initial exner field.
+!>
 module initial_exner_sample_kernel_mod
 
-  use argument_mod,               only : arg_type, func_type,      &
-                                         GH_FIELD, GH_REAL,        &
-                                         GH_READ, GH_WRITE,        &
-                                         ANY_SPACE_9, W3, CELLS
-  use constants_mod,              only : r_def, i_def
-  use idealised_config_mod,       only : test
-  use kernel_mod,                 only : kernel_type
+  use argument_mod,         only : arg_type, func_type, &
+                                   GH_FIELD, GH_REAL,   &
+                                   GH_READ, GH_WRITE,   &
+                                   ANY_SPACE_9, CELLS
+  use constants_mod,        only : r_def, i_def
+  use fs_continuity_mod,    only : W3
+  use idealised_config_mod, only : test
+  use kernel_mod,           only : kernel_type
 
   implicit none
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Public types
-  !-------------------------------------------------------------------------------
-  !> The type declaration for the kernel. Contains the metadata needed by the Psy layer
+  !---------------------------------------------------------------------------
+  !> The type declaration for the kernel. Contains the metadata needed by the
+  !> Psy layer.
+  !>
   type, public, extends(kernel_type) :: initial_exner_sample_kernel_type
       private
       type(arg_type) :: meta_args(3) = (/                                 &
@@ -36,18 +36,18 @@ module initial_exner_sample_kernel_mod
       procedure, nopass ::initial_exner_sample_code
   end type
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Constructors
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
   ! Overload the default structure constructor for function space
   interface initial_exner_sample_kernel_type
       module procedure initial_exner_sample_kernel_constructor
   end interface
 
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   ! Contained functions/subroutines
-  !-------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
   public initial_exner_sample_code
 
 contains
