@@ -102,6 +102,8 @@ contains
        end do
     end if
 
+    nullify(chi)
+
   end subroutine galerkin_projection_algorithm
   
 end module galerkin_projection_algorithm_mod

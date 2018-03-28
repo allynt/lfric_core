@@ -178,9 +178,9 @@ extract-integration-tests: ALWAYS
 #
 .PHONY: clean
 clean: ALWAYS
-	$(call MESSAGE,Removing,gungho work space)
+	$(call MESSAGE,Removing,"gungho work space")
 	$(Q)-rm -r $(WORKING_DIR)
-	$(call MESSAGE,Removing,gungho documents)
+	$(call MESSAGE,Removing,"gungho documents")
 	$(Q)if [ -d documents ] ; then rm -r documents; fi
-	$(call MESSAGE,Removing,gungho binaries)
+	$(call MESSAGE,Removing,"gungho binaries")
 	$(Q)-rm -r bin test

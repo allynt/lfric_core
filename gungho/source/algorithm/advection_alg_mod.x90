@@ -71,9 +71,12 @@ module advection_alg_mod
   real(r_def),        allocatable :: ak_adv(:,:)
   type(function_space_type), pointer :: w1_fs => null()
 
-  public  :: advection_alg, advection_alg_init, advection_alg_final, &
-             advection_mr_alg
-  private :: mass_flux_alg, advective_inc_alg
+  public  :: advection_alg
+  public  :: advection_alg_init
+  public  :: advection_alg_final
+  public  :: advection_mr_alg
+  private :: mass_flux_alg
+  private :: advective_inc_alg
 
 contains
 
@@ -129,17 +132,26 @@ contains
     if ( .not. vorticity_in_w1 ) &
       w1_fs => function_space_collection%get_fs( mesh_id, element_order, W1 )
 
+    nullify(mesh)
+
   end subroutine advection_alg_init
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> Releases all resources after completion.
-  !>
+  !=============================================================================
+  !>@details Finalises allocatable arrays, nullifies pointer in module scope
+  !>         and calls finalising routines for kernels that this algorithm
+  !>         initialised.
   subroutine advection_alg_final()
 
-    use sample_poly_flux_kernel_mod, only : sample_poly_flux_final
+    use sample_poly_flux_kernel_mod, only: sample_poly_flux_final
+    use sample_poly_adv_kernel_mod,  only: sample_poly_adv_final
 
     implicit none
 
+    if (allocated(mr_prediction)) deallocate( mr_prediction )
+    if (allocated(ak_adv))        deallocate( ak_adv )
+    nullify (w1_fs)
+
+    call sample_poly_adv_final()
     call sample_poly_flux_final()
 
   end subroutine advection_alg_final
@@ -367,6 +379,10 @@ contains
 
 
   deallocate ( rrho_prediction, rtheta_prediction )
+
+  nullify( mm_wt, mm_w3_inv, div, curl, chi, u, theta, rho, &
+           xi_fs, u_fs, rho_fs, theta_fs, mt_lumped_inv )
+
   if ( subroutine_timers ) call timer('advection_alg')
   end subroutine advection_alg
 
@@ -421,6 +437,9 @@ contains
                      X_plus_Y(mr_latest, mr_inc(imr), mr(imr)) )
       end do
     end do
+
+    nullify( theta_fs, mt_lumped_inv )
+
     if ( subroutine_timers ) call timer('advection_mr_alg')
 
   end subroutine advection_mr_alg
@@ -475,6 +494,9 @@ contains
       call solver_algorithm( mass_flux, rhs_f)
   end select
 
+  nullify( mm_w2, chi, mmd_w2, u_fs )
+
+
   end subroutine mass_flux_alg
 
   !>@brief Compute advective update u.grad(theta) using desired spatial 
@@ -515,6 +537,8 @@ contains
       call invoke( rtheta_kernel_type (rtheta, theta, wind, qr) )
       call invoke_rtheta_bd_kernel ( rtheta, theta, wind, qr )
    end select
+
+  nullify( chi, mt_lumped_inv )
 
   end subroutine advective_inc_alg
 

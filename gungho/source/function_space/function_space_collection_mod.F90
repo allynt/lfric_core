@@ -15,7 +15,7 @@
 module function_space_collection_mod
 
   use constants_mod,      only: i_def, l_def
-  use function_space_mod, only: function_space_type
+  use function_space_mod, only: function_space_type, generate_function_space_id
   use fs_continuity_mod,  only: W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi, &
                                 name_from_functionspace
   use log_mod,            only: log_event, log_scratch_space, &
@@ -91,16 +91,17 @@ function get_fs(self, mesh_id, element_order, lfric_fs) &
   integer(i_def), intent(in)                           :: element_order
   integer(i_def), intent(in)                           :: lfric_fs
 
-  type(function_space_type), pointer      :: fs
-  type(linked_list_item_type),pointer     :: loop ! temp pointer for looping
+  type(function_space_type),   pointer :: fs
 
   integer(i_def) :: fs_id
+
+  nullify(fs)
 
   select case (lfric_fs)
 
   case (W0,W1,W2,W3,WTHETA,W2V,W2H, WCHI)
   case default
-    write(log_scratch_space, '(A,I0,A)')                    &
+    write(log_scratch_space, '(A,I0,A)')                   &
         'Function space type continuity type (', lfric_fs, &
         ') not defined for LFRic.'
     call log_event(log_scratch_space, LOG_LEVEL_INFO)
@@ -113,7 +114,7 @@ function get_fs(self, mesh_id, element_order, lfric_fs) &
   end select
 
   if (element_order < 0) then
-    write(log_scratch_space, '(A,I0)')                                         &
+    write(log_scratch_space, '(A,I0)') &
       'Function space element order must be >= 0   ',element_order
     call log_event(log_scratch_space, LOG_LEVEL_ERROR)
     return
@@ -121,7 +122,7 @@ function get_fs(self, mesh_id, element_order, lfric_fs) &
 
   ! Generate id for requested function space
   ! can use the passed mesh_id
-  fs_id = 1000000*mesh_id + (1000*element_order) + lfric_fs
+  fs_id = generate_function_space_id( mesh_id, element_order, lfric_fs )
 
   fs => self%get_fs_by_id(fs_id)
 
@@ -131,19 +132,13 @@ function get_fs(self, mesh_id, element_order, lfric_fs) &
                                                         element_order, &
                                                         lfric_fs) )
 
-    write(log_scratch_space, '(A,2(I0,A))')           &
-      'Generated order-',element_order,               &
+    write(log_scratch_space, '(A,2(I0,A))')          &
+      'Generated order-',element_order,              &
       ' '//trim(name_from_functionspace(lfric_fs))// &
       '-function space singleton (id:', fs_id,')'
     call log_event(log_scratch_space, LOG_LEVEL_TRACE)
 
-    loop => self%fs_list%get_tail()
-
-    ! 'cast' to the function_space_type
-    select type(v => loop%payload)
-    type is (function_space_type)
-      fs => v
-    end select
+    fs => self%get_fs_by_id(fs_id)
 
   end if
 
@@ -198,6 +193,7 @@ function get_fs_by_id(self, fs_id) result(instance)
     loop => loop%next
   end do
 
+  nullify(loop)
   return
 end function get_fs_by_id
 
@@ -234,6 +230,7 @@ subroutine clear(self)
   class(function_space_collection_type), intent(inout) :: self
 
   call self%fs_list%clear()
+  if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
 
   return
 end subroutine clear
@@ -247,6 +244,8 @@ subroutine function_space_collection_destructor(self)
   implicit none
 
   type (function_space_collection_type), intent(inout) :: self
+
+  call self%clear()
 
   return
 end subroutine function_space_collection_destructor

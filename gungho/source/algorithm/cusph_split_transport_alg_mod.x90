@@ -174,6 +174,9 @@ contains
     call conservative_flux_alg(u_n, dep_pts_x, dep_pts_y,             &
                            cell_orientation, rho_hat_adv_x, rho_hat_adv_y, mass_flux_x, mass_flux_y )
 
+    nullify( w2_fs )
+    nullify( w3_fs )
+
   end subroutine cusph_split_transport_alg
 
 end module cusph_split_transport_alg_mod

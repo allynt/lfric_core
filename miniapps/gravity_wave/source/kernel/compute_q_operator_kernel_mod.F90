@@ -56,6 +56,8 @@ end interface
 !-------------------------------------------------------------------------------
 public compute_q_operator_init
 public compute_q_operator_code
+public compute_q_operator_final
+
 contains
 
 type(compute_q_operator_type) &
@@ -113,13 +115,13 @@ subroutine compute_q_operator_code(cell, nlayers, ncell_3d,     &
           do qp1 = 1, nqp_h
             integrand = wqp_h(qp1)*wqp_v(qp2)                               &
                       *dot_product(basis_w2(:,df2,qp1,qp2),z_hat)           &
-                      *basis_wt(1,dft,qp1,qp2) 
+                      *basis_wt(1,dft,qp1,qp2)
             q(df2,dft,ik) = q(df2,dft,ik) + integrand
           end do
         end do
       end do
     end do
-  end do 
+  end do
 end subroutine compute_q_operator_code
 
 !=============================================================================!
@@ -130,12 +132,22 @@ end subroutine compute_q_operator_code
 subroutine compute_q_operator_init(dz, nlayers)
 
   implicit none
-  
+
   integer(kind=i_def),                  intent(in) :: nlayers
   real(kind=r_def), dimension(nlayers), intent(in) :: dz
 
   allocate( delta_z(nlayers) )
   delta_z = dz
 end subroutine compute_q_operator_init
+
+!=============================================================================!
+!>@brief Reclaims memory from private allocatable arrays
+subroutine compute_q_operator_final()
+
+  implicit none
+
+  if (allocated(delta_z)) deallocate (delta_z)
+
+end subroutine compute_q_operator_final
 
 end module compute_q_operator_kernel_mod

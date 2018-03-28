@@ -67,8 +67,12 @@ module operator_mod
     !> Function to get a proxy with public pointers to the data in a
     !! operator_type.
     procedure, public :: get_proxy => get_proxy_op
-    !> Procedures to finalize the operator
-    final             :: operator_destructor
+
+    !> Destroys object
+    procedure, public :: operator_final
+
+    ! Finalizer for the object
+    final :: operator_destructor
 
  end type operator_type
 
@@ -312,16 +316,30 @@ contains
     allocate(get_proxy_op%gnu_dummy(2))
   end function get_proxy_op
 
-  !>@brief Destroy the operator type
+  !>@brief Finalizer for the object type
   subroutine operator_destructor(self)
+
     implicit none
     type(operator_type), intent(inout) :: self
+
+    call self%operator_final()
+
+  end subroutine operator_destructor
+
+  !>@brief Destroys the operator type
+  subroutine operator_final(self)
+
+    implicit none
+
+    class(operator_type), intent(inout) :: self
+
     nullify(self%fs_to) 
     nullify(self%fs_from) 
     if(allocated(self%local_stencil)) then
        deallocate(self%local_stencil)
     end if
-  end subroutine operator_destructor
+
+  end subroutine operator_final
 
   !>@brief Destroy the operator proxy
   subroutine destroy_op_proxy(self)

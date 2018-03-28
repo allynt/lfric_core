@@ -47,6 +47,8 @@ contains
 
     end if
 
+    nullify( detJ )
+
   end subroutine check_fields
 
 end module checks_and_balances_alg_mod

@@ -140,6 +140,9 @@ contains
           call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end select
     end if
+
+    nullify( mm, mmd )
+
     if ( subroutine_timers ) call timer('solver_alg')
 
   end subroutine solver_algorithm
@@ -267,6 +270,8 @@ contains
       end if
     end do
 
+    nullify(rhs_fs)
+
     if(iter >= maximum_iterations) then
       write(log_scratch_space, '(A, I3, A, E15.8)')     &
            "solver_algorithm: NOT converged in ", iter, &
@@ -387,6 +392,8 @@ contains
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
 
+    nullify(rhs_fs)
+
   end subroutine cg_solver_algorithm
 
 !--------------------------------------------------
@@ -442,6 +449,8 @@ contains
 
 ! Ready for next iteration
   end do
+
+  nullify(rhs_fs)
 
   end subroutine jacobi_solver_algorithm
 
@@ -618,6 +627,8 @@ contains
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
 
+    nullify(rhs_fs)
+
   end subroutine gmres_solver_algorithm
 
 !--------------------------------------------------
@@ -726,6 +737,8 @@ contains
            " iters, Res=", err
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
+
+    nullify(rhs_fs)
 
 end subroutine gcr_solver_algorithm
 

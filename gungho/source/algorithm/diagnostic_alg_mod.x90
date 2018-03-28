@@ -82,6 +82,8 @@ contains
       end if
     end if 
 
+    nullify( div, m3_inv, tmp_ptr )
+
   end subroutine divergence_diagnostic_alg
 
 !=============================================================================!
@@ -135,6 +137,7 @@ contains
       end if
     end if 
 
+    nullify( m3_inv, chi, tmp_ptr )
 
   end subroutine pressure_diagnostic_alg
 
@@ -205,6 +208,9 @@ contains
     write( log_scratch_space, '(A,E16.8)' )  &
        'L2 of rho difference =',sqrt(sum_diff)/sqrt(sum_analytic)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+    nullify( chi )
+    nullify( mm_w3 )
 
   end subroutine density_diagnostic_alg
 

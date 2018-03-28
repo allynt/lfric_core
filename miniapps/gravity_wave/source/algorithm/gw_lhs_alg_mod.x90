@@ -61,10 +61,12 @@ contains
     qr = quadrature_xyoz_type(element_order+2, quadrature_rule)
     call invoke( compute_q_operator_type(Q, qr) )
 
+    nullify( u_fs, b_fs, p_fs )
+
   end subroutine gw_lhs_init
   !============================================================================!
 !>@details A wrapper for computing the lhs of the prognostic
-!>         equations by choosing certain terms to approximate the 
+!>         equations by choosing certain terms to approximate the
 !>         Jacobian, namely:
 !>         \f[
 !>         \mathbf{L_u} = \mathbf{u}' - \alpha\Delta t\nabla p' - b\mathbf{z}
@@ -82,7 +84,7 @@ contains
   use derived_config_mod,                 only: bundle_size
   use transpose_matrix_vector_kernel_mod, only: transpose_matrix_vector_kernel_type
   use dg_matrix_vector_kernel_mod,        only: dg_matrix_vector_kernel_type
-  use initial_temperature_config_mod,     only: bvf_square  
+  use initial_temperature_config_mod,     only: bvf_square
   use gravity_wave_constants_config_mod,  only: cs_square, b_space,                &
                                                 gravity_wave_constants_b_space_w0, &
                                                 gravity_wave_constants_b_space_w3, &
@@ -96,27 +98,30 @@ contains
   type(field_type), target,        intent(inout) :: state(bundle_size)
   type(field_type),                intent(inout) :: lhs(bundle_size)
 
-  type(operator_type), pointer :: mm_w2, mm_wt => null()
-  type(operator_type), pointer :: div, m3_inv => null()
+  type(operator_type), pointer :: mm_w2  => null()
+  type(operator_type), pointer :: mm_wt  => null()
+  type(operator_type), pointer :: m3_inv => null()
+  type(operator_type), pointer :: div    => null()
+
   type(field_type),    pointer :: u => null(),  &
                                   p => null(),  &
                                   b => null()
 
   ! Auxiliary constants to group invokes
   real(kind=r_def)             :: const1, const2, const3
-  
+
   select case(b_space)
-    case(gravity_wave_constants_b_space_w0)  
+    case(gravity_wave_constants_b_space_w0)
       mm_wt => get_mass_matrix(w0_id)
-    case(gravity_wave_constants_b_space_w3)  
+    case(gravity_wave_constants_b_space_w3)
       mm_wt => get_mass_matrix(w3_id)
-    case(gravity_wave_constants_b_space_wtheta)  
+    case(gravity_wave_constants_b_space_wtheta)
       mm_wt => get_mass_matrix(wt_id)
   end select
 
 
   mm_w2 => get_mass_matrix(w2_id)
-  div   => get_div() 
+  div   => get_div()
   m3_inv => get_mass_matrix(w3inv_id)
 
   u => state(igw_u)
@@ -147,6 +152,8 @@ contains
                enforce_bc_kernel_type(lhs(igw_u)),                             &
                matrix_vector_kernel_type(lhs(igw_b), b, mm_wt),                &
                inc_aX_plus_Y(const3, lhs(igw_p), p) )
+
+  nullify( mm_w2, mm_wt, m3_inv, div, u, p, b )
 
   end subroutine gw_lhs_alg
   !============================================================================!

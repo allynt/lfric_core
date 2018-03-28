@@ -66,6 +66,9 @@ contains
   procedure, public :: compute_function
 
   ! Destroy the quadrature object
+  procedure, public :: quadrature_final
+
+  ! Object finalizer
   final :: quadrature_destructor
 
 end type quadrature_xyoz_type
@@ -187,6 +190,7 @@ function init_quadrature_symmetrical(np, rule) result (self)
 
   ! Tidy memory
   deallocate( points_weights_x )
+  nullify( points_weights_y, points_weights_z)
 
 end function init_quadrature_symmetrical
 !-------------------------------------------------------------------------------
@@ -305,13 +309,27 @@ subroutine compute_function(self, function_to_call, function_space, &
     end do
   end do
 
-
 end subroutine compute_function
 
 !-------------------------------------------------------------------------------
+!> @brief Routine to destroy quadrature.
+!> @param[in] self, The calling quadrature_type
+subroutine quadrature_final(self)
+
+  implicit none
+
+  class(quadrature_xyoz_type) :: self
+
+  if (allocated(self%points_z))   deallocate(self%points_z)
+  if (allocated(self%points_xy))  deallocate(self%points_xy)
+  if (allocated(self%weights_z))  deallocate(self%weights_z)
+  if (allocated(self%weights_xy)) deallocate(self%weights_xy)
+  
+end subroutine quadrature_final
 
 !-------------------------------------------------------------------------------
-!> @brief Routine to destroy quadrature.
+!> @brief Finalizer routine which should automatically call quadrature_final
+!>        when object is out of scope.
 !> @param[in] self, The calling quadrature_type
 subroutine quadrature_destructor(self)
 
@@ -319,12 +337,10 @@ subroutine quadrature_destructor(self)
 
   type(quadrature_xyoz_type) :: self
 
-  if(allocated(self%points_z))   deallocate(self%points_z)
-  if(allocated(self%points_xy))  deallocate(self%points_xy)
-  if(allocated(self%weights_z))  deallocate(self%weights_z)
-  if(allocated(self%weights_xy)) deallocate(self%weights_xy)
+  call self%quadrature_final()
   
 end subroutine quadrature_destructor
+
 !-------------------------------------------------------------------------------
 
 end module quadrature_xyoz_mod

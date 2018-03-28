@@ -21,7 +21,7 @@ module {{listname}}_config_mod
 {{- ' '}}{{name}}_from_key, key_from_{{name}}, &{{'\n'}}{{' ' * 11}}
 {%- endfor %}
 {{- ' '}}read_{{listname}}_namelist, postprocess_{{listname}}_namelist, &
-{{' '*12}}{{listname}}_is_loadable, {{listname}}_is_loaded
+{{' '*12}}{{listname}}_is_loadable, {{listname}}_is_loaded, {{listname}}_final
 
 {%- for name in enumerations | sort %}
 {%-   if loop.first %}{{'\n'}}{%- endif %}
@@ -346,6 +346,7 @@ contains
     end if
     new_{{name}}(:size) = {{name}}(:size)
     call move_alloc( new_{{name}}, {{name}} )
+    if (allocated(new_{{name}})) deallocate( new_{{name}})
 {%-   endif %}
 {%- endfor %}
 
@@ -378,5 +379,22 @@ contains
     {{listname}}_is_loaded = namelist_loaded
 
   end function {{listname}}_is_loaded
+
+  !> Clear out any allocated memory
+  !>
+  subroutine {{listname}}_final()
+
+    implicit none
+{%- if allocatables %}
+{%-   for name in allocatables | sort %}
+{%-   set parameter = parameters[name] %}
+{%-     if loop.first %}{{'\n'}}{%- endif %}
+    if ( allocated({{parameter.name}}) ) deallocate({{parameter.name}})
+{%-   endfor %}
+{%- endif %}
+
+    return
+  end subroutine {{listname}}_final
+
 
 end module {{listname}}_config_mod

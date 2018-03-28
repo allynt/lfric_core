@@ -34,7 +34,7 @@ class function_space_mod::function_space_type {
     -fractional_levels: double precision[:] <<allocatable>>
     -comms_fs: logical
 
-    <<create>>+fs_constructor( <<in>>mesh_id: integer, <<in>>element_order: integer, <<in>>dynamo_fs: integer ) : function_space_type <<pointer>>
+    <<create>>+fs_constructor( <<in>>mesh_id: integer, <<in>>element_order: integer, <<in>>gungho_fs: integer ) : function_space_type
     <<destroy>>+function_space_destructor()
 
     +clear()

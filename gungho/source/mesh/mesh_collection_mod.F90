@@ -170,6 +170,7 @@ subroutine clear(self)
   class(mesh_collection_type), intent(inout) :: self
 
   call self%mesh_list%clear()
+  if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
 
 end subroutine clear
 

@@ -91,6 +91,8 @@ contains
     call invoke( setval_X(u_n, u), &
                  setval_X(u_np1, u) )
 
+    nullify( w2_fs, w3_fs, chi )
+
   end subroutine cosmic_transport_init
 
   !> @brief An algorithm for testing the COSMIC transport scheme
@@ -124,6 +126,7 @@ contains
 
     call invoke( setval_X(rho, rho_np1) )
 
+    nullify( chi, detj_at_w2 )
   end subroutine cosmic_transport_step
 
 end module cosmic_transport_alg_mod

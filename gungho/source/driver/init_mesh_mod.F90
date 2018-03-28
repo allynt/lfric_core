@@ -72,9 +72,9 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id )
   real(r_def), parameter    :: atmos_bottom = 0.0_r_def
 
   ! Local variables
-  procedure (partitioner_interface), pointer :: partitioner_ptr   => null()
-  type(global_mesh_type),            pointer :: global_mesh_ptr   => null()
-  class(extrusion_type),             pointer :: extrusion         => null()
+  procedure (partitioner_interface), pointer :: partitioner_ptr => null()
+  type(global_mesh_type),            pointer :: global_mesh_ptr => null()
+  class(extrusion_type),         allocatable :: extrusion
   type(partition_type)                       :: partition
   type(uniform_extrusion_type)               :: extrusion_2d
 
@@ -262,7 +262,7 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id )
                               local_rank,        &
                               total_ranks )
 
-  extrusion => create_extrusion()
+  allocate(extrusion, source=create_extrusion() )
 
   ! Generate the mesh
   call log_event( "Creating prime mesh", LOG_LEVEL_INFO )
@@ -295,6 +295,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id )
   twod_mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr,         &
                                                partition,               &
                                                extrusion_2d )
+
+  deallocate(extrusion)
 
   return
 end subroutine init_mesh

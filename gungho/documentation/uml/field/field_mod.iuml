@@ -12,7 +12,6 @@ class field_mod::field_type {
   -write_field_method : procedure <<pointer>>
   -checkpoint_method : procedure <<pointer>>
   -restart_method : procedure <<pointer>>
-
   <<create>>+field_constructor( <<in>>vector_space : function_space_type ) : field_type
   <<destroy>>+field_destructor_scalar()
   <<destroy>>+field_destructor_array1d()
@@ -36,6 +35,7 @@ class field_mod::field_type {
   +set_restart_behaviour(<<in>> procedure <<pointer>> : restart_behaviour)
   +write_checkpoint( <<in>> character: file_name )
   +set_checkpoint_behaviour(<<in>> procedure <<pointer>> : checkpoint_behaviour)
+  +field_final()
 }
 
 class field_mod::field_proxy_type {

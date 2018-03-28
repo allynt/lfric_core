@@ -25,9 +25,11 @@ module gungho_driver_mod
   use formulation_config_mod,     only : transport_only, &
                                          use_moisture,   &
                                          use_physics
+  use function_space_collection_mod, &
+                                  only : function_space_collection
   use global_mesh_collection_mod, only : global_mesh_collection, &
                                          global_mesh_collection_type
-  use gungho_mod,                 only : load_configuration
+  use gungho_mod,                 only : load_configuration, final_configuration
   use init_fem_mod,               only : init_fem
   use init_gungho_mod,            only : init_gungho
   use init_mesh_mod,              only : init_mesh
@@ -45,6 +47,7 @@ module gungho_driver_mod
                                          LOG_LEVEL_INFO,    &
                                          LOG_LEVEL_DEBUG,   &
                                          LOG_LEVEL_TRACE
+  use mesh_collection_mod,        only : mesh_collection
   use mod_wait
   use mpi
   use mr_indices_mod,             only : imr_v, imr_c, imr_r, imr_nc, &
@@ -53,14 +56,17 @@ module gungho_driver_mod
                                          subroutine_timers, &
                                          write_nodal_output, &
                                          write_xios_output
+
   use restart_config_mod,         only : restart_filename => filename
   use restart_control_mod,        only : restart_type
   use rk_alg_timestep_mod,        only : rk_alg_init, &
-                                         rk_alg_step
+                                         rk_alg_step, &
+                                         rk_alg_final
   use rk_transport_mod,           only : rk_transport_init, &
                                          rk_transport_step, &
                                          rk_transport_final
-  use runge_kutta_init_mod,       only : runge_kutta_init
+  use runge_kutta_init_mod,       only : runge_kutta_init, runge_kutta_final
+  use runtime_constants_mod,      only : final_runtime_constants
   use timer_mod,                  only : timer, output_timer
   use timestepping_config_mod,    only : method, dt, &
                                          timestepping_method_semi_implicit, &
@@ -98,7 +104,7 @@ module gungho_driver_mod
   type( field_type ) :: tstar_2d, zh_2d, z0msea_2d
 
   ! Coordinate field
-  type(field_type), target, dimension(3) :: chi
+  type(field_type), target :: chi(3)
 
   integer(i_def) :: mesh_id, twod_mesh_id
 
@@ -176,6 +182,8 @@ contains
     write(log_scratch_space,'(A)') &
         "Purging global mesh collection."
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+    call global_mesh_collection%clear()
     deallocate(global_mesh_collection)
 
     ! Create FEM specifics (function spaces and chi field)
@@ -410,6 +418,8 @@ contains
 
     end do ! end ts loop
 
+    call runge_kutta_final()
+
   end subroutine run
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -423,6 +433,16 @@ contains
     integer(i_def) :: i
 
     character(5) :: name
+
+    call rho_in_wth%field_final()
+    call u1_in_w3%field_final()
+    call u2_in_w3%field_final()
+    call u3_in_w3%field_final()
+    call theta_in_w3%field_final()
+    call exner_in_wth%field_final()
+    call tstar_2d%field_final()
+    call zh_2d%field_final()
+    call z0msea_2d%field_final()
 
     ! Log fields
     call rho%log_field(   LOG_LEVEL_DEBUG, 'rho' )
@@ -477,7 +497,19 @@ contains
       call rk_transport_final( rho, theta)
     end if
 
+    call theta%field_final()
+    call rho%field_final()
+    call exner%field_final()
+    call u%field_final()
+    call xi%field_final()
+    do i=1, nummr
+      call mr(i)%field_final()
+    end do
+
     call iter_alg_final()
+    call rk_alg_final()
+    call final_runtime_constants()
+    call final_configuration()
 
     if ( subroutine_timers ) then
       call timer('gungho')
@@ -493,6 +525,16 @@ contains
     ! Finalise XIOS context if we used it for diagnostic output or checkpointing
     if ( (write_xios_output) .or. (restart%use_xios()) ) then
       call xios_context_finalize()
+    end if
+
+    if (allocated(mesh_collection)) then
+      call mesh_collection%clear()
+      deallocate(mesh_collection)
+    end if
+
+    if (allocated(function_space_collection)) then
+      call function_space_collection%clear()
+      deallocate(function_space_collection)
     end if
 
     ! Finalise XIOS

@@ -111,12 +111,12 @@ extract-um-physics:
 #
 .PHONY: clean
 clean: partial-clean
-	$(call MESSAGE,Removing,UM work space)
+	$(call MESSAGE,Removing,"UM work space")
 	$(Q)-rm -r $(WORKING_DIR)
 
 .PHONY: partial-clean pclean
 partial-clean pclean: ALWAYS
-	$(call MESSAGE,Removing,GungHo workspace)
+	$(call MESSAGE,Removing,"GungHo workspace")
 	$(Q)-rm -r $(WORKING_DIR)/gungho
-	$(call MESSAGE,Removing,GungHo binaries)
+	$(call MESSAGE,Removing,"GungHo binaries")
 	$(Q)-rm -r bin

@@ -21,14 +21,15 @@ module {{moduleName}}
 {%-   set indent = indent | length() %}
 {{' '*indent}}postprocess_{{listname}}_namelist, &
 {{' '*indent}}{{listname}}_is_loadable, &
-{{' '*indent}}{{listname}}_is_loaded
+{{' '*indent}}{{listname}}_is_loaded, &
+{{' '*indent}}{{listname}}_final
 {%-   endfor %}
 {%- endif %}
 
   implicit none
 
   private
-  public :: read_configuration, ensure_configuration
+  public :: read_configuration, ensure_configuration, final_configuration
 
 contains
 
@@ -250,5 +251,19 @@ contains
     end do
 
   end subroutine read_configuration_namelists
+
+  subroutine final_configuration()
+
+    implicit none
+
+{%- if namelists %}
+{{-'\n'}}
+{%-   for listname in namelists %}
+    call {{listname}}_final()
+{%-   endfor %}
+{%- endif %}
+
+    return
+  end subroutine final_configuration
 
 end module {{moduleName}}

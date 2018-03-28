@@ -11,6 +11,10 @@
 !>
 module io_miniapp_mod
 
+
+  use gungho_configuration_mod, only : read_configuration,   &
+                                       ensure_configuration, &
+                                       final_configuration
   use log_mod, only : log_event,         &
                       log_scratch_space, &
                       LOG_LEVEL_ERROR,   &
@@ -20,16 +24,13 @@ module io_miniapp_mod
   implicit none
 
   private
-  public :: load_configuration
+  public :: load_configuration, final_configuration
 
 contains
 
   !> Loads run-time configuration and ensures everything is ship-shape.
   !>
   subroutine load_configuration( filename )
-
-    use gungho_configuration_mod, only : read_configuration, &
-                                         ensure_configuration
 
     implicit none
 

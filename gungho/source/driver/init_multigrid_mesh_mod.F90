@@ -17,9 +17,7 @@ use log_mod,                    only: log_event, log_scratch_space,    &
                                       LOG_LEVEL_ERROR
 use mesh_collection_mod,        only: mesh_collection
 use mesh_mod,                   only: mesh_type
-use multigrid_config_mod,       only: l_multigrid, &
-                                      ugrid,       &
-                                      multigrid_chain_nitems
+use multigrid_config_mod,       only: ugrid, multigrid_chain_nitems
 use partition_mod,              only: partition_type, partitioner_interface
 
 implicit none
@@ -54,7 +52,7 @@ integer(i_def) :: i
 type(mesh_type),        pointer :: prime_mesh => null()
 type(global_mesh_type), pointer :: global_mesh => null()
 type(partition_type) :: partition
-class(extrusion_type), pointer :: extrusion => null()
+class(extrusion_type), allocatable :: extrusion
 
 character(str_def) :: mesh_name
 
@@ -78,7 +76,7 @@ prime_mesh  => mesh_collection%get_mesh(prime_mesh_id)
 global_mesh_ids(1) = prime_mesh%get_global_mesh_id()
 call global_mesh_collection % set_next_source_mesh(global_mesh_ids(1))
 
-extrusion => create_extrusion()
+allocate( extrusion, source=create_extrusion() )
 
 ! Read global meshes into the global mesh collection,
 ! maps should be created in the order they are added.
@@ -100,6 +98,8 @@ do i=2, multigrid_chain_nitems
                                                 extrusion )
 
 end do
+
+deallocate(extrusion)
 
 return
 end subroutine init_multigrid_mesh

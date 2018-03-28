@@ -100,6 +100,7 @@ subroutine nodal_output_alg(field, chi, nodal_output, nodal_coordinates, level)
     level = field_type( vector_space = output_field_fs )
     call invoke_compute_dof_level_kernel(level)
   
+    nullify( nodal_rmultiplicity, output_field_fs )
 end subroutine nodal_output_alg
 
 end module nodal_output_alg_mod

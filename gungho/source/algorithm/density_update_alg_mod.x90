@@ -72,6 +72,8 @@ contains
 
                  aX_plus_Y(rho, dt, div, rho_n) )
 
+    nullify( m3_inv )
+
   end subroutine density_update_alg
 
 end module density_update_alg_mod

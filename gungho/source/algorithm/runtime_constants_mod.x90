@@ -107,6 +107,7 @@ module runtime_constants_mod
   ! Public functions to create and access the module contents
 
   public :: create_runtime_constants
+  public :: final_runtime_constants
   public :: get_coordinates
   public :: get_geopotential
   public :: get_cell_orientation
@@ -131,8 +132,8 @@ contains
 
     implicit none
 
-    integer(i_def),           intent(in)            :: mesh_id
-    type(field_type),target,  intent(inout)         :: chi(:)
+    integer(i_def),           intent(in) :: mesh_id
+    type(field_type), target, intent(in) :: chi(:)
 
     type(function_space_type), pointer :: w0_fs     => null()
     type(function_space_type), pointer :: w1_fs     => null()
@@ -335,6 +336,15 @@ contains
     ! Store pointer to chi field so things downstream can access it via
     ! runtime_constants
     coords => chi
+
+    nullify( w0_fs  )
+    nullify( w1_fs  )
+    nullify( w2_fs  )
+    nullify( w2h_fs )
+    nullify( w3_fs  )
+    nullify( wtheta_fs )
+    nullify( wth_k0_fs )
+    nullify( w3_k0_fs  )
 
     call log_event( "Gungho: created runtime_constants", LOG_LEVEL_INFO )
     if ( subroutine_timers ) call timer('runtime_constants_alg')
@@ -584,5 +594,48 @@ contains
     end select
 
   end function get_normalisation
+
+  !> @brief Explicitly reclaim memory from module scope variables
+  !
+  subroutine final_runtime_constants()
+
+    implicit none
+
+    call mm0_diag%field_final() 
+    call mm1_diag%field_final() 
+    call mm2_diag%field_final() 
+    call mm3_diag%field_final() 
+    call eye%field_final() 
+    call mmtheta_diag%field_final() 
+    call mm_w0%operator_final()
+    call mm_w1%operator_final()
+    call mm_w2%operator_final()
+    call mm_w3%operator_final()
+    call mm_w3_inv%operator_final()
+    call mm_wtheta%operator_final()
+    call mm_dl%operator_final()
+    call geopotential%field_final() 
+    call temp_w2_field%field_final() 
+    call cell_orientation%field_final() 
+    call detj_at_w2%field_final() 
+    call dA_at_w2%field_final() 
+    call grad%operator_final()
+    call curl%operator_final()
+    call div%operator_final()
+    call qr%quadrature_final()
+    call m0_lumped_inv%field_final() 
+    call m1_lumped_inv%field_final() 
+    call mt_lumped_inv%field_final() 
+    call height_wth%field_final()
+    call height_w3%field_final() 
+    call nodal_rmultiplicity_w1%field_final() 
+    call nodal_rmultiplicity_w2%field_final() 
+    call nodal_rmultiplicity_w2h%field_final() 
+    call nodal_rmultiplicity_w0%field_final() 
+    call w2_normalisation%field_final()
+
+    nullify(coords)
+
+  end subroutine final_runtime_constants
 
 end module runtime_constants_mod

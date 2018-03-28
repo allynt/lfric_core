@@ -231,6 +231,7 @@ subroutine clear(self)
   class(mesh_map_collection_type), intent(inout) :: self
 
   call self%mesh_map_list%clear()
+  if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
 
   return
 end subroutine clear
@@ -242,6 +243,8 @@ subroutine mesh_map_collection_destructor(self)
 
 implicit none
 type(mesh_map_collection_type), intent(inout) :: self
+
+call self%clear()
 
 return
 end subroutine mesh_map_collection_destructor

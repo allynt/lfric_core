@@ -15,6 +15,7 @@ class quadrature_xyoz_mod::quadrature_xyoz_type {
   +<<create>>init_quadrature_symmetrical( <<in>>np: integer, <<in>>rule: quadrature_rule ) : quadrature_xyoz_type
   +compute_function( <<in>>function_to_call: integer, <<in>>function_space: function_space_type, <<in>>fspace_dim: integer, <<in>>ndf: integer, <<out>>basis: real[::::] )
   +get_quadrature_proxy() : quadrature_xyoz_proxy_type
+  +quadrature_final()
   +<<destroy>>quadrature_destructor()
 }
 

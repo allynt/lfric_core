@@ -92,6 +92,13 @@ contains
   procedure :: get_face_edge_connectivity_transpose
   procedure :: get_face_face_connectivity_transpose
   procedure :: write_coordinates
+
+  !> Routine to destroy object
+  procedure :: clear
+
+  !> Object finalizer
+  final     :: ugrid_2d_destructor
+
 end type
 
 !-------------------------------------------------------------------------------
@@ -401,7 +408,7 @@ subroutine set_from_file_read(self, mesh_name, filename)
       face_node_connectivity = self%face_node_connectivity, &
       edge_node_connectivity = self%edge_node_connectivity, &
       face_edge_connectivity = self%face_edge_connectivity, &
-      face_face_connectivity = self%face_face_connectivity, & 
+      face_face_connectivity = self%face_face_connectivity, &
       num_targets            = self%nmaps,                  &
       target_mesh_names      = self%target_mesh_names )
 
@@ -479,7 +486,7 @@ subroutine append_to_file(self, filename)
        face_edge_connectivity = self%face_edge_connectivity, &
        face_face_connectivity = self%face_face_connectivity, &
        num_targets            = self%nmaps,                  &
-       target_mesh_names      = self%target_mesh_names,      & 
+       target_mesh_names      = self%target_mesh_names,      &
        target_mesh_maps       = self%target_mesh_maps )
 
   call self%file_handler%file_close()
@@ -768,5 +775,41 @@ subroutine write_coordinates(self)
 
   return
 end subroutine write_coordinates
+
+!-------------------------------------------------------------------------------
+!> @brief Routine to destroy object.
+!> @param[in] self, The calling ugrid_2d_type
+subroutine clear(self)
+
+  implicit none
+
+  class (ugrid_2d_type), intent(inout) :: self
+
+  if (allocated(self%node_coordinates))       deallocate( self%node_coordinates )
+  if (allocated(self%face_node_connectivity)) deallocate( self%face_node_connectivity )
+  if (allocated(self%edge_node_connectivity)) deallocate( self%edge_node_connectivity )
+  if (allocated(self%face_edge_connectivity)) deallocate( self%face_edge_connectivity )
+  if (allocated(self%face_face_connectivity)) deallocate( self%face_face_connectivity )
+  if (allocated(self%target_mesh_names))      deallocate( self%target_mesh_names )
+
+  if (allocated(self%target_edge_cells_x))    deallocate( self%target_edge_cells_x )
+  if (allocated(self%target_edge_cells_y))    deallocate( self%target_edge_cells_y )
+  if (allocated(self%file_handler))           deallocate( self%file_handler )
+
+end subroutine clear
+
+!-------------------------------------------------------------------------------
+!> @brief Finalizer routine which should automatically call clear
+!>        when object is out of scope.
+!> @param[in] self, The calling ugrid_2d instance
+subroutine ugrid_2d_destructor(self)
+
+  implicit none
+
+  type (ugrid_2d_type), intent(inout) :: self
+
+  call self%clear()
+
+end subroutine ugrid_2d_destructor
 
 end module ugrid_2d_mod

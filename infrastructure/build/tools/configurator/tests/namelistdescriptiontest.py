@@ -60,7 +60,7 @@ module test_config_mod
   private
   public :: enum_from_key, key_from_enum, &
             read_test_namelist, postprocess_test_namelist, &
-            test_is_loadable, test_is_loaded
+            test_is_loadable, test_is_loaded, test_final
 
   integer(i_native), public, parameter :: test_enum_one = 135
   integer(i_native), public, parameter :: test_enum_three = 763
@@ -373,6 +373,16 @@ contains
 
   end function test_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine test_final()
+
+    implicit none
+
+    return
+  end subroutine test_final
+
+
 end module test_config_mod
         '''.strip()
 
@@ -419,7 +429,7 @@ module test_config_mod
 
   private
   public :: read_test_namelist, postprocess_test_namelist, &
-            test_is_loadable, test_is_loaded
+            test_is_loadable, test_is_loaded, test_final
 
   integer(i_def), public, protected :: foo
 
@@ -528,6 +538,16 @@ contains
 
   end function test_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine test_final()
+
+    implicit none
+
+    return
+  end subroutine test_final
+
+
 end module test_config_mod
         '''.strip()
 
@@ -551,7 +571,7 @@ module test_config_mod
 
   private
   public :: read_test_namelist, postprocess_test_namelist, &
-            test_is_loadable, test_is_loaded
+            test_is_loadable, test_is_loaded, test_final
 
   real(r_def), public, protected :: bar
   integer(i_def), public, protected :: foo
@@ -672,6 +692,16 @@ contains
 
   end function test_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine test_final()
+
+    implicit none
+
+    return
+  end subroutine test_final
+
+
 end module test_config_mod
         '''.strip()
 
@@ -713,7 +743,7 @@ module enum_config_mod
   private
   public :: value_from_key, key_from_value, &
             read_enum_namelist, postprocess_enum_namelist, &
-            enum_is_loadable, enum_is_loaded
+            enum_is_loadable, enum_is_loaded, enum_final
 
   integer(i_native), public, parameter :: enum_value_one = 135
   integer(i_native), public, parameter :: enum_value_three = 763
@@ -903,6 +933,16 @@ contains
 
   end function enum_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine enum_final()
+
+    implicit none
+
+    return
+  end subroutine enum_final
+
+
 end module enum_config_mod
         '''.strip()
 
@@ -941,7 +981,7 @@ module twoenum_config_mod
   public :: first_from_key, key_from_first, &
             second_from_key, key_from_second, &
             read_twoenum_namelist, postprocess_twoenum_namelist, &
-            twoenum_is_loadable, twoenum_is_loaded
+            twoenum_is_loadable, twoenum_is_loaded, twoenum_final
 
   integer(i_native), public, parameter :: twoenum_first_one = 135
   integer(i_native), public, parameter :: twoenum_first_three = 763
@@ -1212,6 +1252,16 @@ contains
 
   end function twoenum_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine twoenum_final()
+
+    implicit none
+
+    return
+  end subroutine twoenum_final
+
+
 end module twoenum_config_mod
                        '''.strip()
 
@@ -1248,7 +1298,7 @@ module teapot_config_mod
 
   private
   public :: read_teapot_namelist, postprocess_teapot_namelist, &
-            teapot_is_loadable, teapot_is_loaded
+            teapot_is_loadable, teapot_is_loaded, teapot_final
 
   real(r_def), public, protected :: bar
   real(r_def), public, protected :: foo
@@ -1360,6 +1410,16 @@ contains
 
   end function teapot_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine teapot_final()
+
+    implicit none
+
+    return
+  end subroutine teapot_final
+
+
 end module teapot_config_mod
         '''.strip()
 
@@ -1394,7 +1454,7 @@ module cheese_config_mod
 
   private
   public :: read_cheese_namelist, postprocess_cheese_namelist, &
-            cheese_is_loadable, cheese_is_loaded
+            cheese_is_loadable, cheese_is_loaded, cheese_final
 
   real(r_def), public, protected :: fred
   real(r_def), public, protected :: wilma
@@ -1506,6 +1566,16 @@ contains
 
   end function cheese_is_loaded
 
+  !> Clear out any allocated memory
+  !>
+  subroutine cheese_final()
+
+    implicit none
+
+    return
+  end subroutine cheese_final
+
+
 end module cheese_config_mod
         '''.strip()
 
@@ -1543,7 +1613,7 @@ module aerial_config_mod
 
   private
   public :: read_aerial_namelist, postprocess_aerial_namelist, &
-            aerial_is_loadable, aerial_is_loaded
+            aerial_is_loadable, aerial_is_loaded, aerial_final
 
   integer(i_native), parameter, public :: max_array_size = 100
 
@@ -1695,6 +1765,7 @@ contains
     end if
     new_inlist(:size) = inlist(:size)
     call move_alloc( new_inlist, inlist )
+    if (allocated(new_inlist)) deallocate( new_inlist)
     size = esize
     allocate( new_outlist(size), stat=condition )
     if (condition /= 0) then
@@ -1703,6 +1774,7 @@ contains
     end if
     new_outlist(:size) = outlist(:size)
     call move_alloc( new_outlist, outlist )
+    if (allocated(new_outlist)) deallocate( new_outlist)
     do index=ubound(unknown, 1), 1, -1
       if (unknown(index) /= imdi) exit
     end do
@@ -1714,6 +1786,7 @@ contains
     end if
     new_unknown(:size) = unknown(:size)
     call move_alloc( new_unknown, unknown )
+    if (allocated(new_unknown)) deallocate( new_unknown)
 
   end subroutine postprocess_aerial_namelist
 
@@ -1744,6 +1817,20 @@ contains
     aerial_is_loaded = namelist_loaded
 
   end function aerial_is_loaded
+
+  !> Clear out any allocated memory
+  !>
+  subroutine aerial_final()
+
+    implicit none
+
+    if ( allocated(inlist) ) deallocate(inlist)
+    if ( allocated(outlist) ) deallocate(outlist)
+    if ( allocated(unknown) ) deallocate(unknown)
+
+    return
+  end subroutine aerial_final
+
 
 end module aerial_config_mod
         '''.strip()

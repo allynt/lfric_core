@@ -64,6 +64,9 @@ contains
   procedure, public :: compute_function
 
   ! Destroy the quadrature object
+  procedure, public :: quadrature_final
+
+  ! Object finalizer
   final :: quadrature_destructor
 
 end type quadrature_xyz_type
@@ -181,6 +184,7 @@ function init_quadrature_symmetrical(np, rule) result (self)
 
   ! Tidy memory
   deallocate( points_weights_x )
+  nullify( points_weights_y, points_weights_z )
 
 end function init_quadrature_symmetrical
 
@@ -287,14 +291,29 @@ end subroutine compute_function
 !-------------------------------------------------------------------------------
 !> @brief Routine to destroy quadrature.
 !> @param[in] self, The calling quadrature_type
+subroutine quadrature_final(self)
+
+  implicit none
+
+  class(quadrature_xyz_type) :: self
+
+  if (allocated(self%points_xyz))  deallocate(self%points_xyz)
+  if (allocated(self%weights_xyz)) deallocate(self%weights_xyz)
+  
+end subroutine quadrature_final
+
+!-------------------------------------------------------------------------------
+!> @brief Finalizer routine which should automatically call quadrature_final
+!>        when object is out of scope.
+!> @param[in] self, The calling quadrature_type
+!-------------------------------------------------------------------------------
 subroutine quadrature_destructor(self)
 
   implicit none
 
   type(quadrature_xyz_type) :: self
 
-  if(allocated(self%points_xyz)) deallocate(self%points_xyz)
-  if(allocated(self%weights_xyz)) deallocate(self%weights_xyz)
+  call self%quadrature_final()
   
 end subroutine quadrature_destructor
 !-------------------------------------------------------------------------------

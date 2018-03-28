@@ -178,6 +178,8 @@ module init_gravity_wave_mod
     ! Initialise prognostic fields
     call gw_init_fields_alg(wind, pressure, buoyancy, restart)
 
+    nullify( tmp_write_ptr, tmp_checkpoint_ptr, &
+             tmp_restart_ptr, function_space )
 
     call log_event( 'gravity_wave: Miniapp initialised', LOG_LEVEL_INFO )
 

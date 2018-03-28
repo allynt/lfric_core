@@ -96,6 +96,8 @@ contains
     call dtheta%log_minmax(LOG_LEVEL_INFO, 'slow physics: dtheta' )
     call du%log_minmax(LOG_LEVEL_INFO, 'slow physics: du' )
 
+    nullify( w2_rmultiplicity )
+
   end subroutine slow_physics
 
 

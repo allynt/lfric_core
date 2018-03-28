@@ -13,19 +13,22 @@ implicit none
 
 private
 type, public :: master_dofmap_type
-  private 
-  integer(i_def), allocatable :: dofmap(:,:) 
+  private
+  integer(i_def), allocatable :: dofmap(:,:)
 contains
   procedure :: get_master_dofmap
   procedure :: get_whole_master_dofmap
   procedure :: clear
-end type master_dofmap_type
+
+  final :: master_dofmap_destructor
+
+ end type master_dofmap_type
 
 interface master_dofmap_type
   module procedure master_dofmap_constructor
 end interface
 
-contains 
+contains
 
 !-----------------------------------------------------------------------------
 ! Construct the master dofmap
@@ -53,7 +56,7 @@ end function master_dofmap_constructor
 !-----------------------------------------------------------------------------
 ! Get the master dofmap for a single cell
 !-----------------------------------------------------------------------------
-!> Returns a pointer to the dofmap for the cell 
+!> Returns a pointer to the dofmap for the cell
 !! @param[in] self The calling function_space
 !! @param[in] cell Which cell
 !! @return The pointer which points to a slice of the dofmap
@@ -61,7 +64,7 @@ function get_master_dofmap(self,cell) result(map)
   implicit none
   class(master_dofmap_type), target, intent(in) :: self
   integer(i_def),                    intent(in) :: cell
-  integer(i_def), pointer                       :: map(:) 
+  integer(i_def), pointer                       :: map(:)
 
   map => self%dofmap(:,cell)
   return
@@ -86,19 +89,31 @@ end function get_whole_master_dofmap
 !-----------------------------------------------------------------------------
 !> @details Explcitly deallocates any allocatable arrays in the object
 !>          to avoid memory leaks
-!> @return  Error status variable
-function clear(self) result(err)
+subroutine clear(self)
 
   implicit none
 
   class (master_dofmap_type) :: self
-  integer(i_def) :: err
-  err = 0
 
   if (allocated(self%dofmap))  deallocate( self%dofmap )
 
   return
-end function clear
- 
+end subroutine clear
+
+!-------------------------------------------------------------------------------
+!> @brief Finalizer routine which should automatically call clear
+!>        when object is out of scope.
+!> @param[in] self, The calling master_dofmap instance
+subroutine master_dofmap_destructor(self)
+
+  implicit none
+
+  type (master_dofmap_type), intent(inout) :: self
+
+  call self%clear()
+
+end subroutine master_dofmap_destructor
+
+
 end module master_dofmap_mod
 

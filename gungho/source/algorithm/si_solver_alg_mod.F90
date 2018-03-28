@@ -33,7 +33,6 @@ module si_solver_alg_mod
                                        LOG_LEVEL_DEBUG,   &
                                        LOG_LEVEL_TRACE,   &
                                        LOG_LEVEL_INFO
-  use operator_mod,              only: operator_type
   use mixed_solver_config_mod,   only: si_maximum_iterations, &
                                        si_tolerance, &
                                        si_preconditioner, &
@@ -67,6 +66,7 @@ module si_solver_alg_mod
 
   public  :: si_solver_alg
   public  :: si_solver_init
+  public  :: si_solver_final
   private :: mixed_gmres_alg
   private :: mixed_gcr_alg
   private :: mixed_jacobi_alg
@@ -155,6 +155,29 @@ contains
     call lhs_init(x0)
 
   end subroutine si_solver_init
+
+  !=============================================================================
+  !>@details Finalises allocatable arrays in module scope
+  !>         and calls finalising routines for algorithms that
+  !>         this algorithm initialised.
+  subroutine si_solver_final()
+
+    use lhs_alg_mod, only: lhs_final
+
+    implicit none
+
+    call lhs_final()
+
+    if (allocated( Ax ))          deallocate( Ax ) 
+    if (allocated( dx ))          deallocate( dx )
+    if (allocated( mm_diagonal )) deallocate( mm_diagonal )
+    if (allocated( Pv ))          deallocate( Pv )
+    if (allocated( residual ))    deallocate( residual )
+    if (allocated( s ))           deallocate( s ) 
+    if (allocated( v ))           deallocate( v )
+    if (allocated( w ))           deallocate( w ) 
+
+  end subroutine si_solver_final
 
 !=============================================================================!
   !>@brief GMRES solver adapted for solving the semi-implicit equations

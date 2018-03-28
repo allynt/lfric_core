@@ -103,6 +103,9 @@ contains
     entity_w2h%edges = IMDI
     entity_w2h%verts = IMDI
 
+    nullify( reference_element )
+
+
   end subroutine setup_select_entities
 
   ! Allocates and initialises the select data entity lists.
@@ -176,6 +179,8 @@ contains
     entity_w2h%faces = (/ W, S, E, N, IMDI, IMDI/)
     entity_w2h%edges = IMDI
     entity_w2h%verts = IMDI
+
+    nullify( reference_element )
 
   end subroutine setup_select_data_entities
 
@@ -395,6 +400,8 @@ contains
       ndof_glob = ncells*nlayers*ndof_vol + nedges_per_level*nlayers*ndof_face   &
                 + nedge_g*ndof_edge       + nvert_g*ndof_vert
     end select
+
+    nullify( reference_element )
 
     return
   end subroutine ndof_setup
@@ -1487,7 +1494,6 @@ contains
           if (any(select_entity % faces==iface)) then
             face_id = mesh%get_face_on_cell(iface,icell)
 
-
             if (mesh%is_edge_owned(iface,icell)) then
 
               if ( dofmap_d2(1,face_id) == 0 ) then
@@ -1970,7 +1976,12 @@ contains
     allocate( levels( size(tmp_levs(1:(idx-1))) ) )
     levels=tmp_levs(1:(idx-1))
 
-    deallocate(tmp_levs)
+    nullify( reference_element )
+    if (allocated(vert_coords))   deallocate(vert_coords)
+    if (allocated(edge_coords))   deallocate(edge_coords)
+    if (allocated(face_coords))   deallocate(face_coords)
+    if (allocated(volume_coords)) deallocate(volume_coords)
+    if (allocated(tmp_levs))      deallocate(tmp_levs)
 
   end subroutine levels_setup
 

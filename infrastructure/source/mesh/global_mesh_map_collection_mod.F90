@@ -188,6 +188,7 @@ function get_global_mesh_map( self,                   &
     ! Requested map does not exist between this collections source
     ! global_mesh and the target global mesh.
     nullify(global_mesh_map)
+    nullify(loop)
     write(log_scratch_space, '(A,I0,A)')                       &
         'Requested global mesh map (id: ', global_mesh_map_id, &
         ') does not exist.'
@@ -196,11 +197,13 @@ function get_global_mesh_map( self,                   &
 
   end if
 
+  nullify(loop)
+
 end function get_global_mesh_map
 
 !==============================================================================
-
-
+!> @brief Routine to destroy global_mesh_map_collection.
+!> @param[in] self, The calling global_mesh_map_collection instance
 subroutine clear(self)
 
   ! Clear all items from the linked list in the collection
@@ -209,17 +212,23 @@ subroutine clear(self)
   class(global_mesh_map_collection_type), intent(inout) :: self
 
   call self%global_mesh_map_list%clear()
+  if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
 
   return
 end subroutine clear
 
-!==============================================================================
 
+!-------------------------------------------------------------------------------
+!> @brief Finalizer routine which should automatically call clear
+!>        when object is out of scope.
+!> @param[in] self, The calling quadrature_type
 subroutine global_mesh_map_collection_destructor(self)
 
   implicit none
 
   type(global_mesh_map_collection_type), intent(inout) :: self
+
+  call self%clear()
 
   return
 end subroutine global_mesh_map_collection_destructor

@@ -141,9 +141,9 @@ extract-integration-test: ALWAYS
 #
 .PHONY: clean
 clean: ALWAYS
-	$(call MESSAGE,Removing,infrastructure work space)
+	$(call MESSAGE,Removing,"infrastructure work space")
 	$(Q)-rm -r $(WORKING_DIR)
-	$(call MESSAGE,Removing,infrastructure documents)
+	$(call MESSAGE,Removing,"infrastructure documents")
 	$(Q)if [ -d documents ] ; then rm -r documents; fi
-	$(call MESSAGE,Removing,infrastructure binaries)
+	$(call MESSAGE,Removing,"infrastructure binaries")
 	$(Q)-rm -r test

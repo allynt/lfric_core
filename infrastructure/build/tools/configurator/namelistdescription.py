@@ -287,6 +287,10 @@ class NamelistDescription():
                 'arrays'        : [parameter.name
                                     for parameter in self._parameters.values()
                                     if isinstance(parameter,_Array)],
+                'allocatables'  : [parameter.name
+                                    for parameter in self._parameters.values()
+                                    if ( isinstance(parameter,_Array) and
+                                         not parameter.isImmediateSize() ) ],
                 'enumerations'  : [parameter.name
                                     for parameter in self._parameters.values()
                                     if isinstance(parameter,_Enumeration)],

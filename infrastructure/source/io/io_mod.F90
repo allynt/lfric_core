@@ -173,7 +173,9 @@ subroutine output_nodal(field_name,n, field, mesh_id)
 
     deallocate(projected_field)
 
-   end if
+    nullify( mesh, chi, fs )
+
+  end if
 
 end subroutine output_nodal
 
@@ -235,6 +237,9 @@ subroutine output_xios_nodal(field_name, field, mesh_id)
   end if
 
 
+  if (allocated( projected_field) ) deallocate( projected_field )
+  nullify( chi, fs )
+
 end subroutine output_xios_nodal
 
 
@@ -264,7 +269,7 @@ subroutine xios_domain_init(xios_ctx, mpi_comm, dtime, restart, mesh_id, chi, &
   integer(i_def),      intent(in)      :: dtime
   type(restart_type), intent(in)       :: restart
   integer(i_def),      intent(in)      :: mesh_id
-  type(field_type),    intent(in)      :: chi(3)
+  type(field_type),    intent(in)      :: chi(:)
   type(ESMF_VM),       intent(in)      :: vm
   integer(i_def),      intent(in)      :: local_rank
   integer(i_def),      intent(in)      :: total_ranks
@@ -394,7 +399,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi, vm, local_rank, total_ranks
   ! Arguments
 
   integer(i_def),            intent(in)      :: mesh_id
-  type(field_type), intent(in)               :: chi(3)
+  type(field_type), intent(in)               :: chi(:)
   type(ESMF_VM),             intent(in)      :: vm
   integer(i_def),            intent(in)      :: local_rank
   integer(i_def),            intent(in)      :: total_ranks
@@ -742,6 +747,7 @@ subroutine xios_diagnostic_domain_init(mesh_id, chi, vm, local_rank, total_ranks
   fractional_levels_half_faces => null()
   fractional_levels_full_faces => null()
   output_field_fs => null()
+  local_mesh => null()
 
   return
 end subroutine xios_diagnostic_domain_init
@@ -927,6 +933,14 @@ subroutine xios_restart_domain_init(mesh_id, chi, vm, local_rank, total_ranks)
 
   end do
 
+  if ( allocated(restart_lon) )     deallocate(restart_lon)
+  if ( allocated(restart_lat) )     deallocate(restart_lat)
+  if ( allocated(bnd_restart_lon) ) deallocate(bnd_restart_lon)
+  if ( allocated(bnd_restart_lat) ) deallocate(bnd_restart_lat)
+  if ( allocated(local_undf) )      deallocate(local_undf)
+  if ( allocated(all_undfs_restart_domain) ) deallocate(all_undfs_restart_domain)
+  nullify( output_field_fs )
+
   return
 end subroutine xios_restart_domain_init
 
@@ -952,7 +966,7 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
   implicit none
 
   type(field_type), intent(in)         :: nodal_coords(3)
-  type(field_type), intent(in)         :: chi(3)
+  type(field_type), intent(in)         :: chi(:)
   integer(i_def),   intent(in)         :: nlayers
   integer(i_def),   intent(in)         :: ncells
   real(kind=r_def), intent(out)        :: lon_coords(:), lat_coords(:)
@@ -964,7 +978,8 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
   integer(i_def)            :: cell
   integer(i_def)            :: ndf_chi, ndf_x
   integer(i_def)            :: dim_chi
-  integer, pointer          :: map_chi(:), map_x(:) => null()
+  integer, pointer          :: map_chi(:)   => null()
+  integer, pointer          :: map_x(:)     => null()
   real(kind=r_def), pointer :: nodes_x(:,:) => null()
   real(kind=r_def)          :: xyz(3)
   real(kind=r_def)          :: llr(3)
@@ -1055,6 +1070,8 @@ subroutine calc_xios_domain_coords(nodal_coords, chi, &
   call x_p(3)%set_dirty()
 
   deallocate(basis_chi)
+
+  nullify( map_chi, map_x, nodes_x )
 
 end subroutine calc_xios_domain_coords
 

@@ -36,7 +36,7 @@ module empty_mod
   implicit none
 
   private
-  public :: read_configuration, ensure_configuration
+  public :: read_configuration, ensure_configuration, final_configuration
 
 contains
 
@@ -239,6 +239,13 @@ contains
 
   end subroutine read_configuration_namelists
 
+  subroutine final_configuration()
+
+    implicit none
+
+    return
+  end subroutine final_configuration
+
 end module empty_mod
         '''.strip()
 
@@ -269,12 +276,13 @@ module content_mod
   use foo_config_mod, only : read_foo_namelist, &
                              postprocess_foo_namelist, &
                              foo_is_loadable, &
-                             foo_is_loaded
+                             foo_is_loaded, &
+                             foo_final
 
   implicit none
 
   private
-  public :: read_configuration, ensure_configuration
+  public :: read_configuration, ensure_configuration, final_configuration
 
 contains
 
@@ -490,6 +498,15 @@ contains
     end do
 
   end subroutine read_configuration_namelists
+
+  subroutine final_configuration()
+
+    implicit none
+
+    call foo_final()
+
+    return
+  end subroutine final_configuration
 
 end module content_mod
         '''.strip()

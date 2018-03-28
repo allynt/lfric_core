@@ -14,7 +14,7 @@ module gw_pressure_solver_alg_mod
                                                 get_div, &
                                                 w0_id, w2_id, w3_id, &
                                                 w3inv_id, wt_id
-  use initial_temperature_config_mod,     only: bvf_square  
+  use initial_temperature_config_mod,     only: bvf_square
   use timestepping_config_mod,            only: dt
   use gravity_wave_constants_config_mod,  only: cs_square, b_space,                &
                                                 gravity_wave_constants_b_space_w0, &
@@ -22,7 +22,7 @@ module gw_pressure_solver_alg_mod
                                                 gravity_wave_constants_b_space_wtheta
   use operator_mod,                       only: operator_type
   use field_indices_mod,                  only: igw_u, igw_p, igw_b
-  use output_config_mod,                  only: subroutine_timers 
+  use output_config_mod,                  only: subroutine_timers
   use timer_mod,                          only: timer
   implicit none
 
@@ -33,12 +33,12 @@ module gw_pressure_solver_alg_mod
   integer(kind=i_def), private :: bundle_size = 3
   ! Auxiliary constants to group invokes
   real(kind=r_def), private    :: const1, const2
-  
+
   ! Q matrix
   type(operator_type), private :: Q
-  
+
   type(field_type), private :: pressure_rhs
-  
+
   ! Fields for bicgstab (all W3)
   type(field_type), private :: res, p, v, s, t, z, y
 
@@ -59,7 +59,7 @@ module gw_pressure_solver_alg_mod
   private :: build_gw_pressure_rhs
   private :: apply_gw_pressure_lhs
   private :: bicgstab
-  private :: back_substitute 
+  private :: back_substitute
   private :: gw_pressure_precondition
 
 contains
@@ -113,7 +113,7 @@ contains
     s   = field_type( vector_space = wp)
     y   = field_type( vector_space = wp)
     res = field_type( vector_space = wp)
-    
+
     ! Apply lhs
     grad_p     = field_type(vector_space = wu)
     div_grad_p = field_type(vector_space = wp)
@@ -125,11 +125,11 @@ contains
     M_lumped      = field_type(vector_space = wb)
     Mb_lumped_inv = field_type(vector_space = wb)
     select case(b_space)
-      case(gravity_wave_constants_b_space_w0)  
+      case(gravity_wave_constants_b_space_w0)
         Mb => get_mass_matrix(w0_id)
-      case(gravity_wave_constants_b_space_w3)  
+      case(gravity_wave_constants_b_space_w3)
         Mb => get_mass_matrix(w3_id)
-      case(gravity_wave_constants_b_space_wtheta)  
+      case(gravity_wave_constants_b_space_wtheta)
         Mb => get_mass_matrix(wt_id)
     end select
     call invoke( name = "Compute inverse approximate Mt",       &
@@ -137,8 +137,8 @@ contains
                  setval_c( M_lumped, 0.0_r_def ),               &
                  matrix_vector_kernel_type(M_lumped, ones, Mb), &
                  X_divideby_Y(Mb_lumped_inv, ones, M_lumped) )
-    
-    ! Compute Q operator 
+
+    ! Compute Q operator
     Q = operator_type( wu, wb )
     qr = quadrature_xyoz_type(element_order+2, quadrature_rule)
     call invoke( compute_q_operator_type(Q, qr) )
@@ -153,7 +153,7 @@ contains
     const1 = tau_u*tau_b*dt**2*bvf_square
     call invoke( name = "Compute inverse approximate HB",           &
                  setval_c(ones,     1.0_r_def),                     &
-                 setval_c(M_lumped, 0.0_r_def),                     & 
+                 setval_c(M_lumped, 0.0_r_def),                     &
                  setval_c(QT1,      0.0_r_def),                     &
                  transpose_matrix_vector_kernel_type(QT1, ones, Q), &
                  inc_X_times_Y(QT1, Mb_lumped_inv),                 &
@@ -162,14 +162,16 @@ contains
                  matrix_vector_kernel_type(M_lumped, ones, Mu),     &
                  X_divideby_Y(HB_lumped_inv, ones, M_lumped) )
 
+    nullify( Mb, Mu, wp, wu, wb )
+
     call log_event( 'done', LOG_LEVEL_INFO )
 
   end subroutine gw_pressure_solver_init
 
 !=============================================================================!
-  !>@brief Control routine for the gw_pressure solver to solve A*x0 = rhs0 
+  !>@brief Control routine for the gw_pressure solver to solve A*x0 = rhs0
   !>       Using the approximate Schur complement
-  !>@details Control routine for the gw_pressure solver to solve A*x0 = rhs0 
+  !>@details Control routine for the gw_pressure solver to solve A*x0 = rhs0
   !>         Using the approximate Schur complement of the form H*p = R
   !>         1) Builds the gw_pressure rhs: R
   !>         2) Solves for the presssure increment (p) using a Krylov method
@@ -214,7 +216,7 @@ contains
     ! rhs = Rp - tau_p * dt * cs^2 * M3^-1 * D * HB^-1 * rhs_u
     ! rhs_u = Ru + tau_u * dt * Q * Mb^-1 * Rb
 
-    ! Compute rhs_u    
+    ! Compute rhs_u
     const1 = tau_u*dt
     call invoke( name = "Compute rhs_u",                       &
                  X_times_Y(mb_rb, rhs0(igw_b), Mb_lumped_inv), &
@@ -235,11 +237,13 @@ contains
 
     call gw_pressure_rhs%log_minmax(LOG_LEVEL_DEBUG,  'gw_pressure_rhs ')
 
+    nullify( div, M3_inv )
+
   end subroutine build_gw_pressure_rhs
 
 !=============================================================================!
   !>@brief Apply the full Helmholtz lhs to a pressure field p, this is the Ax
-  !>       routine called from the Krylov solver 
+  !>       routine called from the Krylov solver
   !>@param[inout] Hp Field resulting from the application of the Helmholtz
   !!              matrix H on the input field p
   !>@param[inout] p Pressure field to apply the Helmholtz matrix to
@@ -266,12 +270,14 @@ contains
                  dg_matrix_vector_kernel_type(div_grad_p, grad_p, div), &
                  dg_matrix_vector_kernel_type(Hp, div_grad_p, M3_inv),  &
                  inc_aX_plus_Y(const1, Hp, p) )
-    
+
+    nullify( div, M3_inv )
+
   end subroutine apply_gw_pressure_lhs
 
 !=============================================================================!
-  !>@brief Krylov solver specifically for solving the Helmholtz equation 
-  !!       A*lhs = rhs 
+  !>@brief Krylov solver specifically for solving the Helmholtz equation
+  !!       A*lhs = rhs
   !>@param[inout] lhs Field to solver for
   !>@param[in]    rhs Residual field
   subroutine bicgstab(lhs, rhs)
@@ -293,7 +299,7 @@ contains
     ! Others
     real(kind=r_def)                   :: err,sc_err, init_err
     integer(kind=i_def)                :: iter
-    
+
     ! Compute the residual this is a global sum to the PSy ---
     call invoke( X_innerproduct_X(sc_err, rhs) )
     sc_err = max(sqrt(sc_err), 0.001_r_def)
@@ -333,7 +339,7 @@ contains
                    inc_X_plus_bY(p, const1, v) )
       call gw_pressure_precondition( y, p)
       call apply_gw_pressure_lhs( v, y)
-      
+
       call invoke( X_innerproduct_Y(norm, rhs, v) )
       alpha = rho/norm
       call invoke( X_minus_bY(s, res, alpha, v) )
@@ -423,11 +429,13 @@ contains
                  inc_X_plus_Y(state(igw_u), u_inc), &
                  inc_X_plus_Y(state(igw_p), p_inc), &
                  inc_X_plus_Y(state(igw_b), b_inc) )
-  
+
+    nullify( div )
+
   end subroutine back_substitute
 
 !=============================================================================!
-  !>@brief Preconditioner for the gw_pressure equation 
+  !>@brief Preconditioner for the gw_pressure equation
   !>@details Options to precondition the gw_pressure equation, currently allows only
   !>         preconditioning with the inverse mass matrix or no preconditioner
   !>@param[inout] y Preconditioned field to compute

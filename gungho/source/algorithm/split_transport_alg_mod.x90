@@ -121,6 +121,8 @@ contains
     ! Combine the mass fluxes in the x and y directions
     call invoke( X_plus_Y(mass_flux, mass_flux_x, mass_flux_y) )
 
+    nullify(rho_fs, u_fs)
+
   end subroutine split_transport_alg
 
 end module split_transport_alg_mod

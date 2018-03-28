@@ -67,4 +67,14 @@ implicit none
   end select
 end subroutine runge_kutta_init
 
+
+!-----------------------------------------------------------------------
+subroutine runge_kutta_final()
+
+  implicit none
+
+  if (allocated(ak)) deallocate(ak)
+
+end subroutine runge_kutta_final
+
 end module runge_kutta_init_mod

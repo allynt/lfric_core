@@ -184,6 +184,7 @@ contains
     end if
 
     !==========================================================================!
+    nullify( m3_inv, chi, height_wth, height_w3 )
 
   end subroutine init_prognostic_fields_alg
 

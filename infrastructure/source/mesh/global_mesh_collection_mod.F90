@@ -63,9 +63,10 @@ module global_mesh_collection_mod
     procedure, public  :: add_new_global_mesh
     procedure, public  :: add_unit_test_global_mesh
     procedure, public  :: get_global_mesh
-    procedure, public  :: clear
     procedure, public  :: set_next_source_mesh
     procedure, private :: map_global_meshes
+
+    procedure, public  :: clear
     final              :: global_mesh_collection_destructor
 
   end type global_mesh_collection_type
@@ -105,6 +106,8 @@ contains
     implicit none
 
     type (global_mesh_collection_type), intent(inout) :: self
+
+    call self%clear()
 
     return
   end subroutine global_mesh_collection_destructor
@@ -194,6 +197,9 @@ contains
       call self%set_next_source_mesh( global_mesh_id )
 
     end if
+
+    nullify( global_mesh_at_tail )
+    nullify( list_item )
 
     return
   end function add_new_global_mesh
@@ -399,6 +405,8 @@ contains
     deallocate( coarse_to_fine_gid_map )
     deallocate( fine_to_coarse_gid_map )
 
+    nullify(source_mesh, target_mesh, coarse_mesh, fine_mesh)
+
     return
   end subroutine map_global_meshes
 
@@ -440,6 +448,8 @@ contains
           "Invalid global mesh id: does not exist in collection"
       call log_event(log_scratch_space,LOG_LEVEL_ERROR)
     end if
+
+    nullify(loop)
 
     return
   end subroutine set_next_source_mesh
@@ -526,6 +536,8 @@ contains
       loop => loop%next
     end do
 
+    nullify(loop)
+
   end function get_global_mesh
 
   !===========================================================================
@@ -542,6 +554,10 @@ contains
     class(global_mesh_collection_type), intent(inout) :: self
 
     call self%global_mesh_list%clear()
+
+    nullify(self%source_global_mesh)
+
+    if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
 
     return
   end subroutine clear

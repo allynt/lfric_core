@@ -81,6 +81,8 @@ module sample_poly_adv_kernel_mod
   public sample_poly_adv_code
   public sample_poly_adv_init
 
+public sample_poly_adv_final
+
 contains
 
 type(sample_poly_adv_kernel_type) function sample_poly_adv_kernel_constructor() result(self)
@@ -353,6 +355,9 @@ subroutine sample_poly_adv_code( nlayers,              &
     
     advection(stencil_map(dft,1)+k) = advection_update
   end do
+
+  if (allocated(x)) deallocate(x)
+
 end subroutine sample_poly_adv_code
 
 !=============================================================================!
@@ -472,6 +477,23 @@ subroutine sample_poly_adv_init(order, nlayers)
     call matrix_invert(inv_coeff_matrix(1:p,1:p),coeff_matrix_v(1:p,1:p,p),p)
   end do
 
+  if (allocated(inv_coeff_matrix)) deallocate(inv_coeff_matrix)
+
 end subroutine sample_poly_adv_init
+
+!=============================================================================!
+!>@brief Reclaims memory from private allocatable arrays
+subroutine sample_poly_adv_final
+
+  implicit none
+
+  ! Precomputed operators, these are the same for all model columns
+  if (allocated ( coeff_matrix   )) deallocate( coeff_matrix )
+  if (allocated ( coeff_matrix_v )) deallocate( coeff_matrix_v )
+  if (allocated ( dof_stencil ))    deallocate( dof_stencil )
+  if (allocated ( np_v ))           deallocate( np_v )
+  if (allocated ( dx0 ))            deallocate( dx0 )
+
+end subroutine sample_poly_adv_final
 
 end module sample_poly_adv_kernel_mod

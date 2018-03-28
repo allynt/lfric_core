@@ -41,9 +41,11 @@ contains
 
     implicit none
 
-    class(extrusion_type), pointer :: new
+    class(extrusion_type), allocatable :: new
 
     real(r_def) :: atmosphere_bottom
+
+    if (allocated(new)) deallocate(new)
 
     select case (geometry)
       case (base_mesh_geometry_planar)

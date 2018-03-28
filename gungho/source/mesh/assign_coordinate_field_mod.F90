@@ -104,7 +104,7 @@ contains
     end do
     ! Loop over all the cells
 
-    deallocate ( dz, column_coords )
+    deallocate ( dz, column_coords, vertex_coords )
 
   end subroutine assign_coordinate_field
 

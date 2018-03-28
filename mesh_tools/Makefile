@@ -125,9 +125,9 @@ extract-unit-tests:
 #
 .PHONY: clean
 clean: ALWAYS
-	$(call MESSAGE,Removing,mesh tools work space)
+	$(call MESSAGE,Removing,"mesh tools work space")
 	$(Q)-rm -r $(WORKING_DIR)
-	$(call MESSAGE,Removing,mesh tools binaries)
+	$(call MESSAGE,Removing,"mesh tools binaries")
 	$(Q)-rm -r bin
-	$(call MESSAGE,Removing, mesh tools tests)
+	$(call MESSAGE,Removing,"mesh tools tests")
 	$(Q)-rm -r tests

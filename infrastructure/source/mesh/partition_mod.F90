@@ -284,6 +284,7 @@ contains
     halo_start  = self%get_num_cells_in_layer()
     halo_finish = self%get_num_cells_in_layer() - 1
   end if
+
   if (rc == ESMF_SUCCESS) &
     tmp_esmf_array = &
       ESMF_ArrayCreate( distgrid=distgrid, &
@@ -1019,6 +1020,8 @@ contains
     call bubble_sort( partitioned_cells(start_sort:end_sort), &
                       end_sort-start_sort+1 )
 
+    nullify( last, start_subsect, insert_point, loop )
+
   end subroutine partitioner_rectangular_panels
 
   !---------------------------------------------------------------------------
@@ -1139,8 +1142,10 @@ contains
       loop=>loop%next
     end do
 
-    deallocate(verts)
-    deallocate(cells)
+    if (allocated(verts)) deallocate(verts)
+    if (allocated(cells)) deallocate(cells)
+
+    nullify(loop, insert_ptr)
 
   end subroutine apply_stencil
 

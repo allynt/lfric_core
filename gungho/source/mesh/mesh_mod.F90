@@ -695,8 +695,9 @@ contains
     if (.not. allocated(self%mesh_maps) ) &
         allocate ( self%mesh_maps, source = mesh_map_collection_type() )
 
-    if ( .not. allocated(self%face_id_in_adjacent_cell) ) &
-      allocate ( self%face_id_in_adjacent_cell(nedges_per_2d_cell, self%ncells_2d_with_ghost) )
+    if ( .not. allocated(self%face_id_in_adjacent_cell) )           &
+      allocate ( self%face_id_in_adjacent_cell( nedges_per_2d_cell, & 
+                                                self%ncells_2d_with_ghost) )
 
     call calc_face_id_in_adjacent_cell(                                      &
                                   self%face_id_in_adjacent_cell,             &
@@ -730,6 +731,22 @@ contains
                       self%ncells_global_mesh,                              &
                       gid_from_lid(:) )
     call init_last_cell_per_colour(self)
+
+    if (allocated( verts) )        deallocate(verts)
+    if (allocated( edges) )        deallocate(edges)
+    if (allocated( tmp_list) )     deallocate(tmp_list)
+    if (allocated( gid_from_lid) ) deallocate(gid_from_lid)
+
+    if (allocated( vert_on_cell_2d_gid )) deallocate(vert_on_cell_2d_gid)
+    if (allocated( edge_on_cell_2d_gid )) deallocate(edge_on_cell_2d_gid)
+    if (allocated( cell_next_2d_gid ))    deallocate(cell_next_2d_gid)
+    if (allocated( vert_lid_gid_map ))    deallocate(vert_lid_gid_map)
+
+    if (allocated( vert_on_cell_2d ))  deallocate(vert_on_cell_2d)
+    if (allocated( edge_on_cell_2d ))  deallocate(edge_on_cell_2d)
+    if (allocated( cell_next_2d ))     deallocate(cell_next_2d)
+    if (allocated( vertex_coords_2d )) deallocate(vertex_coords_2d)
+
   end function mesh_constructor
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2137,6 +2154,18 @@ contains
     if (allocated(self%ncells_per_colour)) deallocate( self%ncells_per_colour )
     if (allocated(self%cells_in_colour))   deallocate( self%cells_in_colour )
     if (allocated(self%mesh_maps))         deallocate( self%mesh_maps )
+
+    if (allocated(self%ncells_per_colour_subset))   &
+                                  deallocate( self%ncells_per_colour_subset )
+    if (allocated(self%last_inner_cell_per_colour)) &
+                                  deallocate( self%last_inner_cell_per_colour )
+    if (allocated(self%last_halo_cell_per_colour))  &
+                                  deallocate( self%last_halo_cell_per_colour )
+    if (allocated(self%last_edge_cell_per_colour))  &
+                                  deallocate( self%last_edge_cell_per_colour )
+    if (allocated(self%face_id_in_adjacent_cell))   &
+                                  deallocate( self%face_id_in_adjacent_cell )
+
 
     return
   end subroutine clear

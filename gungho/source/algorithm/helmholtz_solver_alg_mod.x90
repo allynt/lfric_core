@@ -66,6 +66,8 @@ module helmholtz_solver_alg_mod
   ! Sub algorithms used for solving the helmholtz equation
   public  :: helmholtz_solver_init
   public  :: helmholtz_solver_alg
+  public  :: helmholtz_solver_final
+
   private :: build_helmholtz_rhs
   public  :: compute_inv_hb
   private :: apply_helmholtz_lhs
@@ -147,7 +149,45 @@ contains
     ! Set the minimum absolute error level to the tolerance of the si solver
     sc_err_min = si_tolerance
 
+    nullify( w3, w2, wtheta )
+
   end subroutine helmholtz_solver_init
+
+  !=============================================================================
+  !>@details Finalises allocatable arrays in module scope
+  subroutine helmholtz_solver_final()
+
+    implicit none
+
+    if (allocated( rhs_inc )) deallocate(rhs_inc)
+    if (allocated( s_gcr ))   deallocate(s_gcr)
+    if (allocated( v_gcr ))   deallocate(v_gcr)
+
+    call helmholtz_rhs%field_final()
+    call exner_increment%field_final()
+    call res%field_final()
+    call p%field_final()
+    call v%field_final()
+    call s%field_final()
+    call t%field_final()
+    call z%field_final()
+    call y%field_final()
+    call r_u%field_final()
+    call r_p%field_final()
+    call u_term%field_final()
+    call flux%field_final()
+    call theta_adv_term%field_final()
+    call m2_u%field_final()
+    call grad_p%field_final()
+    call l_p%field_final()
+    call rho_inc%field_final()
+    call u_inc%field_final()
+    call theta_inc%field_final()
+    call hb_inv%field_final()
+
+    return
+
+  end subroutine helmholtz_solver_final
 
 !=============================================================================!
   !>@brief Control routine for the helmholtz solver
@@ -269,6 +309,10 @@ contains
     end if
 
     call helmholtz_rhs%log_minmax(LOG_LEVEL_DEBUG, 'helmholtz_rhs')
+
+    nullify( m3_rho_star,  m3_inv, p2theta, ptheta2, p3theta, &
+             compound_div, mt_lumped_inv, u_normalisation, h_diag )
+
     if ( subroutine_timers ) call timer('helmholtz rhs')
 
   end subroutine build_helmholtz_rhs
@@ -314,6 +358,9 @@ contains
                  inc_X_times_Y(hb_inv, u_normalisation) )
     ! PSyclone does not currently support raising field to an integer power
     call invoke_raise_field(hb_inv, -1_i_def)
+
+    nullify( m2, p2theta, ptheta2, u_normalisation, t_normalisation )
+
     if ( subroutine_timers ) call timer('helmholtz HB')
 
   end subroutine compute_inv_hb
@@ -386,6 +433,10 @@ contains
       h_diag => get_helm_diag()
       call invoke( inc_X_times_Y(Hp, h_diag) )
     end if
+
+    nullify( m3_exner_star, div_star, compound_div, ptheta2,  &
+             p3theta, m3_inv, mt_lumped_inv, u_normalisation, &
+             h_diag )
 
     if ( subroutine_timers ) call timer('helmholtz lhs')
 
@@ -781,6 +832,9 @@ contains
     call theta_inc%log_minmax(LOG_LEVEL_DEBUG, 'theta increment ') 
     call rho_inc  %log_minmax(LOG_LEVEL_DEBUG, 'rho increment   ')
  
+    nullify( div_star, ptheta2, div, m3_inv, rho_at_u, &
+             t_normalisation, u_normalisation )
+
     if ( subroutine_timers ) call timer('helmholtz back sub')
 
   end subroutine back_substitute
@@ -825,6 +879,9 @@ contains
       case default
         call invoke( setval_X(y, x) )
     end select
+
+    nullify( m3_inv, tri )
+
     if ( subroutine_timers ) call timer('helmholtz precon')
 
   end subroutine helmholtz_precondition

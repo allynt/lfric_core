@@ -143,6 +143,9 @@ contains
       call invoke( setval_c(rhs(igh_p), 0.0_r_def) )
     end if
 
+    nullify( mm_vel, mm_wtheta, mm_w3_inv, chi, &
+             geopotential, u, theta, rho, exner )
+
     if ( subroutine_timers ) call timer('rhs_alg')
 
   end subroutine rhs_alg

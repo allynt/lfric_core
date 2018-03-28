@@ -33,6 +33,8 @@ use linked_list_data_mod, only : linked_list_data_type
 implicit none
 
 private
+public :: generate_stencil_dofmap_id
+
 type, extends(linked_list_data_type), public :: stencil_dofmap_type
   private 
   integer(i_def) :: dofmap_shape
@@ -43,6 +45,16 @@ contains
   procedure :: get_dofmap
   procedure :: get_whole_dofmap
   procedure :: get_size
+
+  !> Forced clear of this oject from memory.
+  !> This routine should not need to be called manually except
+  !> (possibly) in pfunit tests
+  procedure, public :: clear
+
+  !> Finalizer routine, should be called automatically
+  !> by code when the object is out of scope
+  final :: stencil_dofmap_destructor
+
 end type stencil_dofmap_type
 
 integer(i_def), public, parameter :: STENCIL_POINT = 1100
@@ -75,7 +87,7 @@ function stencil_dofmap_constructor( st_shape, st_extent, ndf, mesh, master_dofm
     integer(i_def),           intent(in) :: st_shape, st_extent, ndf
     type(mesh_type), pointer, intent(in) :: mesh
     type(master_dofmap_type), intent(in) :: master_dofmap
-    type(stencil_dofmap_type), target    :: self
+    type(stencil_dofmap_type)            :: self
 
     integer(i_def) :: cell, ncells
     integer(i_def) :: st_size
@@ -89,6 +101,7 @@ function stencil_dofmap_constructor( st_shape, st_extent, ndf, mesh, master_dofm
     integer(i_def) :: direction
     integer(i_def) :: opposite(4)
     integer(i_def) :: last_halo_index
+    integer(i_def) :: stencil_dofmap_id
 
     ! Set local directions to be those of the reference element
     opposite(W) = E
@@ -101,8 +114,11 @@ function stencil_dofmap_constructor( st_shape, st_extent, ndf, mesh, master_dofm
     self%dofmap_shape  = st_shape
     self%dofmap_extent = st_extent
     self%dofmap_size   = st_size
+
+    stencil_dofmap_id = generate_stencil_dofmap_id(st_shape, st_extent)
+
     ! call base class set_id()
-    call self%set_id(st_shape*100 + st_extent)
+    call self%set_id(stencil_dofmap_id)
 
     ! How far can stencil be computed before stencil goes off edge of halo region
     last_halo_index = mesh%get_halo_depth() - st_extent
@@ -212,6 +228,8 @@ function stencil_dofmap_constructor( st_shape, st_extent, ndf, mesh, master_dofm
         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end select 
 
+    nullify(map)
+
   end function stencil_dofmap_constructor
 
 !-----------------------------------------------------------------------------
@@ -289,6 +307,55 @@ function compute_dofmap_size(st_shape, st_extent) result(size)
   return
 end function compute_dofmap_size
 
+!> Returns a stencil dofmap id using stencil shape and extent
+!> @param[in] stencil_shape   Shape code of stencil
+!> @param[in] stencil_extent  Extent of stencil
+!> @return    stencil_id
+!==============================================================================
+function generate_stencil_dofmap_id( stencil_shape,   &
+                                     stencil_extent ) &
+	                             result( stencil_id )
+	
+  implicit none
+	
+  integer(i_def), intent(in) :: stencil_shape
+  integer(i_def), intent(in) :: stencil_extent
+	
+  integer(i_def) :: stencil_id
+	
+  stencil_id = stencil_shape*100 + stencil_extent
+	
+  return
+end function generate_stencil_dofmap_id
+	
+!==============================================================================
+!> @brief Routine to destroy object.
+!> @param[in] self, The calling object type
+subroutine clear(self)
+	
+  implicit none
+	
+  class (stencil_dofmap_type), intent(inout) :: self
+	
+  if (allocated(self%dofmap)) deallocate( self%dofmap)
+	
+  return
+end subroutine clear
+	
+!==============================================================================
+!> @brief Finalizer routine which should automatically call clear
+!>        when object is out of scope.
+!> @param[in] self, The calling object_type
+subroutine stencil_dofmap_destructor(self)
+	
+  implicit none
+	
+  type (stencil_dofmap_type), intent(inout) :: self
+	
+  call self%clear()
+	
+  return
+end subroutine stencil_dofmap_destructor
 
 end module stencil_dofmap_mod
 

@@ -39,6 +39,7 @@ module si_operators_alg_mod
  ! Public functions to create and access the module contents
   public :: create_si_operators
   public :: compute_si_operators
+  public :: final_si_operators
   public :: get_m3_rho_star
   public :: get_m3_exner_star 
   public :: get_div_star
@@ -99,9 +100,36 @@ contains
       tri_precon(3) = field_type(vector_space = w3_fs)
     end if
     helm_diag = field_type(vector_space = w3_fs)
+
+    nullify( w2_fs, w3_fs, wt_fs )
+
     if ( subroutine_timers ) call timer('si_operators_alg:create')
 
   end subroutine create_si_operators
+
+  !> @brief Explicitly reclaim memory from module scope variables
+  subroutine final_si_operators()
+
+    implicit none
+
+    integer(i_def) :: i
+
+    call m3_rho_star%operator_final()
+    call m3_exner_star%operator_final()
+    call div_star%operator_final()
+    call p2theta%operator_final()
+    call ptheta2%operator_final()
+    call ptheta2v%operator_final()
+    call p3theta%operator_final()
+    call compound_div%operator_final()
+
+    call rho_at_u%field_final()
+    call Helm_diag%field_final()
+    do i=1, size(tri_precon)
+      call tri_precon(i)%field_final()
+    end do
+
+  end subroutine final_si_operators
 
   !>@brief Subroutine to compute the si operators
   !>@param[in] ref_state Bundle of reference states used to create linear operators
@@ -185,6 +213,8 @@ contains
     ! Compute rho^ref at u nodal points
     u_fs => ref_state(igh_u)%get_function_space()
     ones = field_type( vector_space = u_fs )
+    nullify( u_fs )
+
     w2_rmultiplicity => get_rmultiplicity( W2 )
     ! Initialise fields
     call invoke( setval_c(ones,     1.0_r_def),                 &
@@ -217,6 +247,9 @@ contains
     else
       call invoke( setval_c(Helm_diag, 1.0_r_def) )
     end if
+
+    nullify( theta, rho, exner, chi, m3_inv, div, w2_rmultiplicity )
+
     if ( subroutine_timers ) call timer('si_operators_alg:compute')
 
   end subroutine compute_si_operators

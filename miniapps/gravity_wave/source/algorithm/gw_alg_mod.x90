@@ -4,7 +4,7 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!>@brief A two time-level iterative time-discretisation of the linear 
+!>@brief A two time-level iterative time-discretisation of the linear
 !>       gravity wave equations
 module gw_alg_mod
 
@@ -16,17 +16,17 @@ module gw_alg_mod
 
   ! Configuration options
   use finite_element_config_mod,      only: element_order
-  use timestepping_config_mod,        only: dt, alpha 
+  use timestepping_config_mod,        only: dt, alpha
   use derived_config_mod,             only: bundle_size
   use runtime_constants_mod,          only: get_div, &
                                             get_mass_matrix, &
                                             w3inv_id
-  use initial_temperature_config_mod, only: bvf_square  
+  use initial_temperature_config_mod, only: bvf_square
   use gravity_wave_constants_config_mod,only: cs_square
 
   ! PsyKAl-lite kernels
-  use field_bundle_mod,               only: clone_bundle, & 
-                                            copy_bundle  
+  use field_bundle_mod,               only: clone_bundle, &
+                                            copy_bundle
 
   ! Derived Types
   use field_mod,                      only: field_type
@@ -39,22 +39,23 @@ module gw_alg_mod
 
   use field_indices_mod,              only: igw_u, igw_p, igw_b
 
-  use output_config_mod,              only: subroutine_timers 
+  use output_config_mod,              only: subroutine_timers
   use timer_mod,                      only: timer
 
   implicit none
 
   private
 
-  ! 'State' items private to the algorithm that need to be 
+  ! 'State' items private to the algorithm that need to be
   !  created once but used every step
   type( field_type ), allocatable :: state(:), state_n(:)
-  type( field_type ), allocatable :: rhs_n(:) 
+  type( field_type ), allocatable :: rhs_n(:)
   type( field_type )              :: rhs_p
   type(operator_type)             :: Q
 
-  public :: gw_alg_init
-  public :: gw_alg_step
+  public :: gravity_wave_alg_init
+  public :: gravity_wave_alg_step
+  public :: gravity_wave_alg_final
 
 contains
 !=============================================================================!
@@ -64,7 +65,7 @@ contains
   !> @param[inout] wind  The 3D wind field
   !> @param[inout] pressure The pressure field
   !> @param[inout] buoyancy The buoyancy field
-  subroutine gw_alg_init( mesh_id, wind, pressure, buoyancy)
+  subroutine gravity_wave_alg_init( mesh_id, wind, pressure, buoyancy)
     use quadrature_xyoz_mod,           only: quadrature_xyoz_type
     use quadrature_rule_gaussian_mod,  only: quadrature_rule_gaussian_type
     use compute_q_operator_kernel_mod, only: compute_q_operator_type, &
@@ -75,9 +76,9 @@ contains
     implicit none
 
     ! Mesh
-    integer(i_def), intent(in) :: mesh_id 
+    integer(i_def), intent(in) :: mesh_id
 
-    ! Prognostic fields    
+    ! Prognostic fields
     type( field_type ), intent( inout ) :: wind, pressure, buoyancy
 
     type(function_space_type), pointer  :: u_fs => null()
@@ -96,7 +97,7 @@ contains
     allocate(rhs_n(bundle_size))
 
     !=== Initialise internal state field objects =============================!
-    u_fs => wind%get_function_space() 
+    u_fs => wind%get_function_space()
     p_fs => pressure%get_function_space()
     b_fs => buoyancy%get_function_space()
 
@@ -110,9 +111,9 @@ contains
     rhs_p =  field_type( vector_space = p_fs )
 
     !=== Copy prognostic field data to state arrays ===========================!
-    call invoke( name = "Copy init fields to state",  & 
+    call invoke( name = "Copy init fields to state",  &
                  setval_X(state(igw_u), wind    ),    &
-                 setval_X(state(igw_p), pressure),    & 
+                 setval_X(state(igw_p), pressure),    &
                  setval_X(state(igw_b), buoyancy) )
 
     ! Create Q operator
@@ -127,8 +128,13 @@ contains
 
     call gw_si_solver_init(state)
 
+    nullify( u_fs, p_fs, b_fs, mesh )
+    if (allocated(dz)) deallocate(dz)
+
     call log_event( "Gravity Wave: initialised timestepping algorithm", LOG_LEVEL_INFO )
-  end subroutine gw_alg_init
+  end subroutine gravity_wave_alg_init
+
+
 !=============================================================================!
 
   !> @details An algorithm for timestepping the 3D linear  gravity wave equations
@@ -136,7 +142,7 @@ contains
   !> @param[inout] wind  The 3D wind field
   !> @param[inout] pressure The pressure field
   !> @param[inout] buoyancy The buoyancy field
-  subroutine gw_alg_step(wind, pressure, buoyancy)
+  subroutine gravity_wave_alg_step(wind, pressure, buoyancy)
 
   use matrix_vector_kernel_mod,           only: matrix_vector_kernel_type
   use dg_matrix_vector_kernel_mod,        only: dg_matrix_vector_kernel_type
@@ -145,22 +151,22 @@ contains
 
     implicit none
 
-    ! Prognostic fields    
+    ! Prognostic fields
     type( field_type ), intent( inout ) :: wind, pressure, buoyancy
 
-    type(operator_type), pointer :: div    => null() 
-    type(operator_type), pointer :: m3_inv => null() 
+    type(operator_type), pointer :: div    => null()
+    type(operator_type), pointer :: m3_inv => null()
 
     ! Auxiliary constants to group invokes
     real(kind=r_def)             :: const1, const2
 
-    if ( subroutine_timers ) call timer('gw_alg')
+    if ( subroutine_timers ) call timer('gravity_wave_alg')
     !=== Do a single timestep ==============================================!
     div => get_div()
     m3_inv => get_mass_matrix(w3inv_id)
     call invoke( name = "Copy step fields to state",  &
                  setval_X(state(igw_u), wind    ),    &
-                 setval_X(state(igw_p), pressure),    & 
+                 setval_X(state(igw_p), pressure),    &
                  setval_X(state(igw_b), buoyancy) )
     call copy_bundle(state, state_n, bundle_size)
 
@@ -169,7 +175,7 @@ contains
     const2 = -dt*bvf_square
 
     ! Compute rhs
-    call invoke( name = "Compute mixed rhs",                                                & 
+    call invoke( name = "Compute mixed rhs",                                                &
                  setval_c(rhs_n(igw_u), 0.0_r_def),                                         &
                  setval_c(rhs_n(igw_b), 0.0_r_def),                                         &
                  transpose_matrix_vector_kernel_type(rhs_n(igw_u), state_n(igw_p), div),    &
@@ -188,15 +194,33 @@ contains
 
     ! Solve
     call gw_si_solver_alg(state, rhs_n)
-       
+
     ! Return fields
     call invoke( name = "Return fields",           &
                  setval_X(wind,     state(igw_u)), &
-                 setval_X(pressure, state(igw_p)), & 
+                 setval_X(pressure, state(igw_p)), &
                  setval_X(buoyancy, state(igw_b)) )
-    if ( subroutine_timers ) call timer('gw_alg')
 
-  end subroutine gw_alg_step
+    nullify( div, m3_inv )
 
+    if ( subroutine_timers ) call timer('gravity_wave_alg')
+
+  end subroutine gravity_wave_alg_step
+
+  !> @brief Explicitly reclaims memory from module scope variables in gravity_wave
+  !>        algorithm
+  subroutine gravity_wave_alg_final()
+
+    use compute_q_operator_kernel_mod, only: compute_q_operator_final
+
+    implicit none
+
+    if (allocated(state))   deallocate(state)
+    if (allocated(state_n)) deallocate(state_n)
+    if (allocated(rhs_n))   deallocate(rhs_n)
+
+    call compute_q_operator_final()
+
+  end subroutine gravity_wave_alg_final
 
 end module gw_alg_mod

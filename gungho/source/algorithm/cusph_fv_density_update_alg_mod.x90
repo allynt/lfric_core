@@ -95,6 +95,8 @@ contains
     call invoke_set_field_scalar(-99.0_r_def, rho)
     call invoke( X_minus_bY(rho, rho_n, dt, div) )
 
+    nullify( m3_inv )
+
   end subroutine cusph_fv_density_update_alg
 
 end module cusph_fv_density_update_alg_mod

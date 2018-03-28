@@ -57,6 +57,8 @@ module init_io_miniapp_mod
     ! Initialise the test field to a fixed value
     call io_miniapp_init_fields_alg(test_field)
 
+    nullify( tmp_ptr )
+
     call log_event( 'IO Mini App initialised', LOG_LEVEL_INFO )
 
   end subroutine init_io_miniapp

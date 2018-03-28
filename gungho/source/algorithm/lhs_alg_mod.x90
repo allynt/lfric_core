@@ -9,11 +9,13 @@
 module lhs_alg_mod
 
   use constants_mod,                     only: r_def, i_def
-  use runtime_constants_mod,             only: get_coordinates, &
-                                               get_div, &
-                                               get_mass_matrix, &
+  use runtime_constants_mod,             only: get_coordinates,   &
+                                               get_div,           &
+                                               get_mass_matrix,   &
                                                get_rmultiplicity, &
-                                               w2_id, w3inv_id, theta_space_id, dl_id, &
+                                               w2_id, w3inv_id,   &
+                                               theta_space_id,    &
+                                               dl_id,             &
                                                get_normalisation
   use field_mod,                         only: field_type
   use function_space_mod,                only: function_space_type
@@ -32,6 +34,8 @@ module lhs_alg_mod
   private
   public  :: lhs_alg
   public  :: lhs_init
+  public  :: lhs_final
+
   private :: on_the_fly_lhs_alg
   private :: operator_lhs_alg
 
@@ -63,7 +67,20 @@ contains
     u_fs => state(igh_u)%get_function_space()
     f_star = field_type( vector_space = u_fs )
 
+    nullify(rho_fs)
+
   end subroutine lhs_init
+
+  !=============================================================================
+  !>@details Finalises allocatable arrays, nullifies pointer in module scope.
+  subroutine lhs_final()
+
+    implicit none
+
+    if (allocated(lhs_tmp)) deallocate(lhs_tmp)
+    nullify(u_fs)
+
+  end subroutine lhs_final
 
   !============================================================================!
   !>@details A wrapper for computing the lhs of the prognostic
@@ -232,6 +249,10 @@ contains
                inc_X_times_Y(lhs(igh_t), mt_lumped_inv) & 
              )
 
+  nullify( chi, mm_vel, mm_w3_inv, mm_wtheta, div, u, theta, &
+           rho, exner, theta_ref, rho_ref, exner_ref,        &
+           w2_rmultiplicity, mt_lumped_inv, m2_diag )
+
   end subroutine on_the_fly_lhs_alg
 
   !============================================================================!
@@ -261,8 +282,11 @@ contains
   real(kind=r_def),                intent(in)    :: tau_r_dt
 
   type(operator_type), pointer :: mm_vel => null(), mm_w3_inv => null(), mm_wtheta => null()
-  type(operator_type), pointer :: div => null()
-  type(field_type),    pointer :: u ,theta, rho, exner => null()
+  type(operator_type), pointer :: div   => null()
+  type(field_type),    pointer :: u     => null()
+  type(field_type),    pointer :: theta => null()
+  type(field_type),    pointer :: rho   => null()
+  type(field_type),    pointer :: exner => null()
   type(operator_type), pointer :: p2theta => null(), &
                                   div_star => null(), &
                                   ptheta2 => null(), &
@@ -348,6 +372,11 @@ contains
                inc_X_times_Y(lhs(igh_u), m2_diag),                                    &
                inc_X_times_Y(lhs(igh_t), mt_lumped_inv)                               & 
                )
+
+  nullify( mm_vel, mm_w3_inv, mm_wtheta, div, u, theta, rho, exner, p2theta, &
+           div_star, ptheta2, m3_rho_star, m3_exner_star, p3theta, rho_at_u, &
+           mt_lumped_inv, m2_diag )
+
   end subroutine operator_lhs_alg
   !============================================================================!
 

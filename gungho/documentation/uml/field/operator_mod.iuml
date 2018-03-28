@@ -9,6 +9,7 @@ abstract class operator_mod::base_operator_type{
   +which_from():integer
   +which_to():integer
   +get_mesh():mesh_mod::mesh_type
+  +operator_final()
   <<destroy>>+operator_destructor()
 }
 

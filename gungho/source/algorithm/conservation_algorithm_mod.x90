@@ -119,6 +119,10 @@ contains
     end if
 
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+    nullify( geopotential )
+    nullify( chi, w3_fs )
+
     if ( subroutine_timers ) call timer('conservation_alg')
 
   end subroutine conservation_algorithm

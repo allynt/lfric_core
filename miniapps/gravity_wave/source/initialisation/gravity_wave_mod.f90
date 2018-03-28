@@ -11,6 +11,10 @@
 !>
 module gravity_wave_mod
 
+  use gravity_wave_configuration_mod, only : read_configuration,   &
+                                             ensure_configuration, &
+                                             final_configuration
+
   use log_mod, only : log_event,         &
                       log_scratch_space, &
                       LOG_LEVEL_ERROR,   &
@@ -20,7 +24,7 @@ module gravity_wave_mod
   implicit none
 
   private
-  public :: load_configuration
+  public :: load_configuration, final_configuration
 
 contains
 
@@ -28,8 +32,6 @@ contains
   !>
   subroutine load_configuration( filename )
 
-    use gravity_wave_configuration_mod, only : read_configuration, &
-                                               ensure_configuration
 
     implicit none
 

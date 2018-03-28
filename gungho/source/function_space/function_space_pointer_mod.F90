@@ -41,6 +41,10 @@ contains
   !> @return function_space_target Pointer to the function space object.
   procedure, public :: get_target
 
+  procedure, public :: clear
+
+  final :: function_space_pointer_destructor
+
 end type function_space_pointer_type
 
 interface function_space_pointer_type
@@ -79,6 +83,27 @@ function get_target(self) result(function_space_target)
 
   return
 end function get_target
+
+subroutine clear( self )
+ 
+  implicit none
+
+  class(function_space_pointer_type), intent(inout) :: self
+
+  nullify(self%function_space_target)
+  if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
+
+end subroutine clear
+
+subroutine function_space_pointer_destructor( self )
+ 
+  implicit none
+
+  type(function_space_pointer_type), intent(inout) :: self
+
+  call self%clear()
+
+end subroutine function_space_pointer_destructor
 
 !===============================================================================
 end module function_space_pointer_mod

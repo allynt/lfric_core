@@ -149,6 +149,8 @@ contains
     ! Perform multiplicative correction to obtain the advective update of density
     call invoke( X_divideby_Y(rho_out, rho_adv_np1, rho_constant_np1) )
 
+    nullify(mm_w3, rho_fs, u_fs)
+
   end subroutine oned_density_update_alg
 
 end module oned_density_update_alg_mod

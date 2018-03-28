@@ -80,6 +80,7 @@ module rk_alg_timestep_mod
 
   public :: rk_alg_init
   public :: rk_alg_step
+  public :: rk_alg_final
 
 contains
 
@@ -254,8 +255,25 @@ contains
                  setval_X(theta, state(igh_t)), &
                  setval_X(rho,   state(igh_d)), &
                  setval_X(exner, state(igh_p)) )
+
+    nullify( mm_lumped_inv_wtheta, geopotential, chi, m3_inv )
+
     if ( subroutine_timers ) call timer('rk_alg')
 
   end subroutine rk_alg_step
+
+  !=============================================================================
+  !>@details Finalises allocatable arrays in module scope
+  subroutine rk_alg_final()
+
+    implicit none
+
+    if (allocated(state))          deallocate(state)
+    if (allocated(state_n))        deallocate(state_n)
+    if (allocated(rhs))            deallocate(rhs)
+    if (allocated(inc))            deallocate(inc)
+    if (allocated(rhs_prediction)) deallocate(rhs_prediction)
+
+  end subroutine rk_alg_final
 
 end module rk_alg_timestep_mod

@@ -65,8 +65,10 @@ contains
 
     mm_w3_inv => get_mass_matrix(w3inv_id)
     call invoke( dg_matrix_vector_kernel_type(divergence_term, mass_divergence, mm_w3_inv), &
-
                  X_minus_bY(rho, rho_n, dt, divergence_term) )
+
+    nullify(mm_w3_inv)
+    nullify(rho_n_fs)
 
   end subroutine cusph_density_update_alg
 

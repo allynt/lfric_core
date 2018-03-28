@@ -255,7 +255,7 @@ contains
                                       basis_w2_face(:,:,:,:,:)
 
     real(kind=r_def), pointer :: xp(:,:) => null()
-    real(kind=r_def), pointer :: xp_f(:,:,:) => null()
+    real(kind=r_def), allocatable :: xp_f(:,:,:)
     real(kind=r_def), pointer :: zp(:) => null()
     real(kind=r_def), pointer :: wh(:) => null(), wv(:) => null()
 
@@ -331,6 +331,8 @@ contains
         basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
     end do
+    
+    if (allocated(xp_f)) deallocate(xp_f)
 
     if(r_theta_bd_proxy%is_dirty(depth=2) ) call r_theta_bd_proxy%halo_exchange(depth=2)
     if(theta_proxy%is_dirty(depth=2) ) call theta_proxy%halo_exchange(depth=2)
@@ -361,7 +363,7 @@ contains
     end do
     call r_theta_bd_proxy%set_dirty()
 
-    deallocate( basis_wtheta_face, basis_w2_face, xp_f )
+    deallocate( basis_wtheta_face, basis_w2_face )
 
   end subroutine invoke_rtheta_bd_kernel
 
@@ -410,7 +412,7 @@ contains
       basis_wtheta_face(:,:,:,:,:)
 
     real(kind=r_def), pointer :: xp(:,:) => null()
-    real(kind=r_def), pointer :: xp_f(:,:,:) => null()
+    real(kind=r_def), allocatable :: xp_f(:,:,:)
     real(kind=r_def), pointer :: zp(:) => null()
     real(kind=r_def), pointer :: wh(:) => null()
     real(kind=r_def), pointer :: wv(:) => null()
@@ -488,6 +490,8 @@ contains
 
     end do
 
+    if (allocated(xp_f)) deallocate(xp_f)
+
     if(theta_proxy%is_dirty(depth=2) ) call theta_proxy%halo_exchange(depth=2)
     if(exner_proxy%is_dirty(depth=2) ) call exner_proxy%halo_exchange(depth=2)
     if(r_u_bd_proxy%is_dirty(depth=2) ) call r_u_bd_proxy%halo_exchange(depth=2)
@@ -520,7 +524,7 @@ contains
     end do
     call r_u_bd_proxy%set_dirty()
 
-    deallocate( basis_wtheta_face, basis_w3_face, basis_w2_face, xp_f )
+    deallocate( basis_wtheta_face, basis_w3_face, basis_w2_face )
 
   end subroutine invoke_ru_bd_kernel
 
@@ -570,7 +574,7 @@ contains
     real(kind=r_def), allocatable  :: basis_wtheta_face(:,:,:,:,:)
 
     real(kind=r_def), pointer :: xp(:,:) => null()
-    real(kind=r_def), pointer :: xp_f(:,:,:) => null()
+    real(kind=r_def), allocatable :: xp_f(:,:,:)
     real(kind=r_def), pointer :: zp(:) => null()
     real(kind=r_def), pointer :: wh(:) => null()
     real(kind=r_def), pointer :: wv(:) => null()
@@ -648,6 +652,8 @@ contains
 
     end do
 
+    if (allocated(xp_f)) deallocate(xp_f)
+
     if( theta_proxy%is_dirty(depth=1) ) call theta_proxy%halo_exchange(depth=1)
 
     if(exner_proxy%is_dirty(depth=2) ) call exner_proxy%halo_exchange(depth=2)
@@ -681,7 +687,8 @@ contains
     end do
     call r_u_bd_proxy%set_dirty()
 
-    deallocate(basis_w3_face, basis_w2_face, basis_wtheta_face, xp_f)
+    deallocate(basis_w3_face, basis_w2_face, basis_wtheta_face)
+
 
   end subroutine invoke_exner_gradient_bd_kernel
 
@@ -723,7 +730,7 @@ contains
       basis_wtheta_face(:,:,:,:,:)
 
       real(kind=r_def), pointer :: xp(:,:) => null()
-      real(kind=r_def), pointer :: xp_f(:,:,:) => null()
+      real(kind=r_def), allocatable :: xp_f(:,:,:)
       real(kind=r_def), pointer :: zp(:) => null()
       real(kind=r_def), pointer :: wh(:) => null()
       real(kind=r_def), pointer :: wv(:) => null()
@@ -816,6 +823,9 @@ contains
           basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       end do
+
+      if (allocated(xp_f)) deallocate(xp_f)
+
       !
       ! Call kernels and communication routines
       !
@@ -848,8 +858,14 @@ contains
       !
       ! Deallocate basis arrays
       !
-      deallocate( basis_wtheta_face, basis_w3_face, basis_w2_face, xp_f )
+      deallocate( basis_wtheta_face, basis_w3_face, basis_w2_face )
       !
+
+      nullify( mesh,                     &
+               cross_stencil_wtheta_map, &
+               cross_stencil_wtheta,     &
+               xp, zp, wh, wv, adjacent_face )
+
     end subroutine invoke_weighted_div_bd_kernel_type
 
   !-------------------------------------------------------------------------------
@@ -890,7 +906,7 @@ contains
                                         basis_wtheta_face(:,:,:,:,:)
 
       real(kind=r_def), pointer :: xp(:,:)     => null()
-      real(kind=r_def), pointer :: xp_f(:,:,:) => null()
+      real(kind=r_def), allocatable :: xp_f(:,:,:)
       real(kind=r_def), pointer :: zp(:)       => null()
       real(kind=r_def), pointer :: wv(:)       => null()
 
@@ -980,6 +996,9 @@ contains
           basis_w3_face(:,:,:,:,ff), ndf_w3, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       end do
+
+      if (allocated(xp_f)) deallocate(xp_f)
+
       !
       ! Call kernels and communication routines
       !
@@ -1011,7 +1030,7 @@ contains
       !
       ! Deallocate basis arrays
       !
-      deallocate( basis_wtheta_face, basis_w3_face, basis_w2_face, xp_f )
+      deallocate( basis_wtheta_face, basis_w3_face, basis_w2_face )
       !
     end subroutine invoke_weighted_proj_2theta_bd_kernel_type
 
@@ -1054,7 +1073,7 @@ contains
       real(kind=r_def), allocatable  :: basis_w2_face(:,:,:,:,:), basis_wtheta_face(:,:,:,:,:)
 
       real(kind=r_def), pointer :: xp(:,:)     => null()
-      real(kind=r_def), pointer :: xp_f(:,:,:) => null()
+      real(kind=r_def), allocatable :: xp_f(:,:,:)
       real(kind=r_def), pointer :: zp(:)       => null()
       real(kind=r_def), pointer :: wv(:)       => null()
 
@@ -1138,6 +1157,9 @@ contains
           basis_wtheta_face(:,:,:,:,ff), ndf_wtheta, nqp_h_1d, nqp_v, xp_f(:, :, ff), zp)
 
       end do
+
+      if (allocated(xp_f)) deallocate(xp_f)
+
       !
       ! Call kernels and communication routines
       !
@@ -1168,7 +1190,7 @@ contains
       !
       ! Deallocate basis arrays
       !
-      deallocate( basis_wtheta_face, basis_w2_face, xp_f )
+      deallocate( basis_wtheta_face, basis_w2_face )
       !
     end subroutine invoke_weighted_proj_theta2_bd_kernel_type
 

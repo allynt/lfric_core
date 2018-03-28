@@ -30,9 +30,9 @@ module init_fem_mod
 
   subroutine init_fem( mesh_id, chi )
 
-    integer(i_def), intent(in)                :: mesh_id
+    integer(i_def), intent(in)        :: mesh_id
     ! Coordinate field
-    type( field_type ), target, intent(inout) :: chi(:)
+    type( field_type ), intent(inout) :: chi(:)
 
     integer(i_native), parameter :: fs_list(5) = [W0, W1, W2, W3, Wtheta]
 
@@ -64,14 +64,16 @@ module init_fem_mod
       call log_event( "FEM specifics: Computing Wchi coordinate fields", LOG_LEVEL_INFO )
     end if
 
-    do coord = 1,3
-      chi(coord) = field_type (vector_space = &
-                   function_space_collection%get_fs(mesh_id, coordinate_order, chi_space) )
+    fs => function_space_collection%get_fs(mesh_id, coordinate_order, chi_space)
+
+    do coord = 1, size(chi)
+      chi(coord) = field_type (vector_space = fs )
     end do
 
     call assign_coordinate_field(chi, mesh_id)
     call assign_orography_field(chi, mesh_id)
 
+    nullify( fs )
     call log_event( 'FEM specifics created', LOG_LEVEL_INFO )
 
   end subroutine init_fem

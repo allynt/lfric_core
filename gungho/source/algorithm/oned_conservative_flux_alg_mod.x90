@@ -106,6 +106,8 @@ contains
                                   a0, a1, a2, direction, dep_pt_stencil_extent )
     end if
 
+    nullify(rho_fs)
+
   end subroutine oned_conservative_flux_alg
 
 end module oned_conservative_flux_alg_mod

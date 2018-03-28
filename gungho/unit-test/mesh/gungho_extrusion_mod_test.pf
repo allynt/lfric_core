@@ -43,7 +43,7 @@ contains
 
     class(gungho_extrusion_test_type), intent(inout) :: this
 
-    class(extrusion_type), pointer :: unit_under_test
+    class(extrusion_type), allocatable :: unit_under_test
 
     call feign_base_mesh_config( '/foo.nc', 'unit_test',       &
                                  base_mesh_geometry_planar,    &
@@ -60,7 +60,7 @@ contains
                               p_zero=100000.0_r_def, &
                               scaling_factor=0.5_r_def )
 
-    unit_under_test => create_extrusion()
+    allocate( unit_under_test, source=create_extrusion() )
 
     @assertEqual( 'uniform',  trim( this%identify_extrusion( unit_under_test ) ) )
     @assertEqual( 0.0_r_def,  unit_under_test%get_atmosphere_bottom() )
@@ -83,7 +83,7 @@ contains
 
     class(gungho_extrusion_test_type), intent(inout) :: this
 
-    class(extrusion_type), pointer :: unit_under_test
+    class(extrusion_type), allocatable :: unit_under_test
 
     call feign_base_mesh_config( filename='/foo.nc',                    &
                                  prime_mesh_name='prime',               &
@@ -102,7 +102,7 @@ contains
                               p_zero=100000.0_r_def, &
                               scaling_factor=2.0_r_def )
 
-    unit_under_test => create_extrusion()
+    allocate( unit_under_test, source=create_extrusion() )
 
     @assertEqual( 'geometric',    trim( this%identify_extrusion( unit_under_test ) ) )
     @assertEqual( 318550.0_r_def, unit_under_test%get_atmosphere_bottom() )
@@ -123,7 +123,7 @@ contains
     implicit none
 
     class(gungho_extrusion_test_type), intent(in) :: this
-    class(extrusion_type), pointer,    intent(in) :: extrusion
+    class(extrusion_type),             intent(in) :: extrusion
     character(9) :: id
 
     id = 'unknown  '

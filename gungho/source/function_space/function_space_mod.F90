@@ -19,7 +19,8 @@ use constants_mod,         only: i_def, i_native, i_halo_index, &
                                  l_def, r_def, dp_xios
 use mesh_mod,              only: mesh_type
 use master_dofmap_mod,     only: master_dofmap_type
-use stencil_dofmap_mod,    only: stencil_dofmap_type, STENCIL_POINT
+use stencil_dofmap_mod,    only: stencil_dofmap_type, STENCIL_POINT,           &
+                                 generate_stencil_dofmap_id
 use ESMF,                  only: ESMF_RouteHandle, ESMF_DistGrid, ESMF_Array   &
                                , ESMF_Success, ESMF_DistGridCreate             &
                                , ESMF_ArrayCreate, ESMF_ArrayHaloStore         &
@@ -44,7 +45,8 @@ implicit none
 
 private
 
-public :: W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi
+public :: W0, W1, W2, W3, Wtheta, W2V, W2H, Wchi, &
+          generate_function_space_id
 
 integer(i_def), public, parameter :: BASIS      = 100
 integer(i_def), public, parameter :: DIFF_BASIS = 101
@@ -355,34 +357,34 @@ contains
 !>                           for dynamo.
 !>                           @b Note: This is not necessarily the same as the
 !>                           order of the function space
-!> @param[in] dynamo_fs      The integer number indicating which of the function
-!>                           spaces predefined for dynamo to base the
+!> @param[in] lfric_fs       The integer number indicating which of the function
+!>                           spaces predefined for lfric to base the
 !>                           instantiated function space on. Recognised integers
 !>                           are assigned to the function spaces "handles" in the
 !>                           fs_handles_mod module.
 !> @return    A pointer to the function space held in this module
-function fs_constructor(mesh_id, element_order, dynamo_fs) result(instance)
+function fs_constructor(mesh_id, element_order, lfric_fs) result(instance)
 
   implicit none
 
   integer(i_def),    intent(in) :: mesh_id
   integer(i_def),    intent(in) :: element_order
-  integer(i_native), intent(in) :: dynamo_fs
+  integer(i_native), intent(in) :: lfric_fs
 
-  type(function_space_type), pointer :: instance
+  type(function_space_type) :: instance
 
-  allocate(instance)
+  integer(i_def) :: id
 
-  instance%mesh => mesh_collection%get_mesh( mesh_id )
 
   ! Set the id in the base class
-  call instance%set_id(1000000*mesh_id + (1000*element_order) + dynamo_fs)
+  id = generate_function_space_id(mesh_id, element_order, lfric_fs)
+  call instance%set_id(id)
 
-  instance%fs = dynamo_fs
-
+  instance%mesh          => mesh_collection%get_mesh( mesh_id )
+  instance%fs            =  lfric_fs
   instance%element_order =  element_order
 
-  if (dynamo_fs == W0) then
+  if (lfric_fs == W0) then
     instance%fs_order = element_order + 1
   else
     instance%fs_order = element_order
@@ -397,7 +399,7 @@ subroutine init_function_space( self )
 
   implicit none
 
-  class(function_space_type) :: self
+  type(function_space_type), intent(inout) :: self
 
   integer(i_def) :: ncells_2d
   integer(i_def) :: ncells_2d_with_ghost
@@ -440,11 +442,18 @@ subroutine init_function_space( self )
 
   end select
 
-  call ndof_setup ( self%mesh, self%element_order, self%fs   &
-                  , self%ndof_vert, self%ndof_edge, self%ndof_face               &
-                  , self%ndof_vol,  self%ndof_cell, self%ndof_glob               &
+  call ndof_setup ( self%mesh, self%element_order, self%fs         &
+                  , self%ndof_vert, self%ndof_edge, self%ndof_face &
+                  , self%ndof_vol,  self%ndof_cell, self%ndof_glob &
                   , self%ndof_interior, self%ndof_exterior )
 
+  if (allocated( self%basis_index  ))    deallocate( self%basis_index )
+  if (allocated( self%basis_order  ))    deallocate( self%basis_order )
+  if (allocated( self%basis_vector ))    deallocate( self%basis_vector)
+  if (allocated( self%basis_x      ))    deallocate( self%basis_x )   
+  if (allocated( self%nodal_coords ))    deallocate( self%nodal_coords )
+  if (allocated( self%dof_on_vert_boundary )) &
+                                  deallocate(self%dof_on_vert_boundary )
 
   allocate( self%basis_index  (                     3, self%ndof_cell) )
   allocate( self%basis_order  (                     3, self%ndof_cell) )
@@ -464,6 +473,7 @@ subroutine init_function_space( self )
 
   allocate( dofmap             ( self%ndof_cell                                &
                                , 0:ncells_2d_with_ghost ) )
+
   allocate( self%global_dof_id ( self%ndof_glob) )
 
   allocate( self%last_dof_halo ( self%mesh % get_halo_depth()) )
@@ -480,14 +490,6 @@ subroutine init_function_space( self )
 
   ! create the linked list
   self%dofmap_list = linked_list_type()
-
-  ! Create the stencil_dofmap object and add to linked list
-
-  call self%dofmap_list%insert_item( stencil_dofmap_type(st_shape,           &
-                                                         st_extent,          &
-                                                         self%ndof_cell,     &
-                                                         self%mesh,          &
-                                                         self%master_dofmap) )
 
   !Set up routing tables for halo exchanges
   allocate(self%haloHandle(size(self%last_dof_halo)))
@@ -515,12 +517,12 @@ subroutine init_function_space( self )
       end if
       ! Can only halo-swap an ESMF array so set up a temporary one that's big
       ! enough to hold all the owned cells and all the halos
-      if (rc == ESMF_SUCCESS) &
-        temporary_esmf_array = &
-          ESMF_ArrayCreate( distgrid=self%distgrid, &
-                            typekind=ESMF_TYPEKIND_R8, &
-                            haloSeqIndexList= &
-                                 self%global_dof_id( halo_start:halo_finish ), &
+      if (rc == ESMF_SUCCESS)                                                 &
+        temporary_esmf_array =                                                &
+          ESMF_ArrayCreate( distgrid=self%distgrid,                           &
+                            typekind=ESMF_TYPEKIND_R8,                        &
+                            haloSeqIndexList=                                 &
+                                self%global_dof_id( halo_start:halo_finish ), &
                             rc=rc )
 
       ! Calculate the routing table required to perform the halo-swap, so the
@@ -548,7 +550,7 @@ subroutine init_function_space( self )
   call levels_setup( self%mesh, self%get_nlayers(), &
                      self%fs, self%fractional_levels )
 
-  deallocate (dofmap)
+  if (allocated(dofmap)) deallocate (dofmap)
 
   return
 end subroutine init_function_space
@@ -1148,7 +1150,7 @@ function get_stencil_dofmap(self, stencil_shape, stencil_extent) result(map)
   map => null()
 
   ! Calculate id of the stencil_dofmap we want
-  id = stencil_shape*100 + stencil_extent
+  id = generate_stencil_dofmap_id( stencil_shape, stencil_extent )
 
 
   ! point at the head of the stencil_dofmap linked list
@@ -1237,22 +1239,25 @@ subroutine clear(self)
   implicit none
 
   class (function_space_type), intent(inout) :: self
-  integer (i_def) :: err
 
-  if (allocated(self%nodal_coords))   deallocate( self%nodal_coords )
-  if (allocated(self%basis_order))    deallocate( self%basis_order )
-  if (allocated(self%basis_index))    deallocate( self%basis_index )
-  if (allocated(self%basis_vector))   deallocate( self%basis_vector )
-  if (allocated(self%basis_x))        deallocate( self%basis_x )
-  if (allocated(self%global_dof_id))  deallocate( self%global_dof_id )
-  if (allocated(self%last_dof_halo))  deallocate( self%last_dof_halo )
-  if (allocated(self%haloHandle))     deallocate( self%haloHandle )
+  integer(i_def) :: rc, i
 
+  if (allocated(self%nodal_coords))      deallocate( self%nodal_coords )
+  if (allocated(self%basis_order))       deallocate( self%basis_order )
+  if (allocated(self%basis_index))       deallocate( self%basis_index )
+  if (allocated(self%basis_vector))      deallocate( self%basis_vector )
+  if (allocated(self%basis_x))           deallocate( self%basis_x )
+  if (allocated(self%fractional_levels)) deallocate( self%fractional_levels )
+  if (allocated(self%global_dof_id))     deallocate( self%global_dof_id )
+  if (allocated(self%last_dof_halo))     deallocate( self%last_dof_halo )
+
+  if (allocated(self%haloHandle))        deallocate( self%haloHandle )
   if (allocated(self%dof_on_vert_boundary)) &
-                                      deallocate( self%dof_on_vert_boundary )
-  nullify(self%mesh)
-  err = self%master_dofmap%clear()
+                                         deallocate( self%dof_on_vert_boundary )
+  call self%master_dofmap%clear()
   call self%dofmap_list%clear()
+
+  nullify(self%mesh)
 
 end subroutine clear
 
@@ -1269,5 +1274,27 @@ subroutine function_space_destructor(self)
   call self%clear()
 
 end subroutine function_space_destructor
+
+!==============================================================================
+!> Returns a function_space id using the function_space constructor arguments.
+!> @param[in] mesh_id  ID of mesh object
+!> @param[in] element_order  function space order
+!> @param[in] lfric_fs       lfric id code for given supported function space
+!> @return    id 
+function generate_function_space_id(mesh_id,element_order,lfric_fs) result(id)
+
+  implicit none
+
+  integer(i_def), intent(in) :: mesh_id
+  integer(i_def), intent(in) :: element_order
+  integer(i_def), intent(in) :: lfric_fs
+
+  integer(i_def) :: id
+
+  id = (1000000*mesh_id) + (1000*element_order) + lfric_fs
+
+  return
+
+end function generate_function_space_id
 
 end module function_space_mod

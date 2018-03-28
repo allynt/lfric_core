@@ -82,6 +82,8 @@ contains
   !> @brief   Manually release memory used by this object.
   procedure, public :: clear
 
+  final :: function_space_chain_destructor
+
 end type function_space_chain_type
 
 interface function_space_chain_type
@@ -145,6 +147,10 @@ end if
 this_function_space_pointer = function_space_pointer_type(function_space)
 call self%function_space_chain_list%insert_item(this_function_space_pointer)
 
+nullify(previous_function_space_pointer)
+nullify(previous_list_item)
+nullify(previous_function_space)
+
 return
 end subroutine add
 
@@ -182,6 +188,9 @@ type is (function_space_pointer_type)
 end select
 
 start_function_space => function_space_pointer%get_target()
+
+nullify( head )
+nullify( function_space_pointer )
 
 return
 end function get_start
@@ -224,6 +233,9 @@ end select
 
 next_function_space => function_space_pointer%get_target()
 
+nullify( next )
+nullify( tmp )
+nullify( function_space_pointer )
 return
 end function get_next
 
@@ -274,14 +286,20 @@ end select
 
 previous_function_space => function_space_pointer%get_target()
 
+nullify( previous )
+nullify( head )
+nullify( tmp  )
+nullify( function_space_pointer )
+
 return
 end function get_previous
 
 
 !==============================================================================
-! Subroutine to clear up objects - called by destructor
-! Explcitly deallocates any allocatable arrays in the mesh map
-! to avoid memory leaks
+!  @brief Subroutine to clear up objects - called by destructor
+!         Explcitly deallocates any allocatable arrays in the object
+!         to avoid memory leaks
+!> @param[inout] self, The calling function_space_chain instance
 subroutine clear(self)
 
 implicit none
@@ -290,8 +308,29 @@ class(function_space_chain_type), intent(inout) :: self
 
 call self%function_space_chain_list%clear()
 
+if (allocated(self%dummy_for_gnu)) deallocate(self%dummy_for_gnu)
+
 return
 end subroutine clear
+
+
+
+!-------------------------------------------------------------------------------
+!> @brief Finalizer routine which should automatically call clear
+!>        when object is out of scope.
+!> @param[inout] self, The calling function_space_chain instance
+subroutine function_space_chain_destructor(self)
+
+  implicit none
+
+  type(function_space_chain_type), intent(inout) :: self
+
+  call self%clear()
+
+  return
+end subroutine function_space_chain_destructor
+
+
 
 
 !==============================================================================
@@ -344,6 +383,9 @@ else
       'Unassociated pointers to Source or Target function spaces.'
   call log_event(log_scratch_space, LOG_LEVEL_ERROR)
 end if
+
+nullify(source_mesh)
+nullify(target_mesh)
 
 return
 end subroutine create_function_space_chain_mesh_maps

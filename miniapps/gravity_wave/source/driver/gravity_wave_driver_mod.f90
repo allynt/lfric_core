@@ -19,7 +19,9 @@ module gravity_wave_driver_mod
   use global_mesh_collection_mod,     only: global_mesh_collection, &
                                             global_mesh_collection_type
   use gravity_wave_mod,               only: load_configuration
-  use gw_alg_mod,                     only: gw_alg_init, gw_alg_step
+  use gw_alg_mod,                     only: gravity_wave_alg_init, &
+                                            gravity_wave_alg_step, &
+                                            gravity_wave_alg_final
   use init_fem_mod,                   only: init_fem
   use init_gravity_wave_mod,          only: init_gravity_wave
   use init_mesh_mod,                  only: init_mesh
@@ -237,10 +239,10 @@ contains
     write( log_scratch_space, '(A,I0)' ) 'Start of timestep ', timestep
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     if (timestep == restart%ts_start()) then
-      call gw_alg_init(mesh_id, wind, pressure, buoyancy)
+      call gravity_wave_alg_init(mesh_id, wind, pressure, buoyancy)
     end if
 
-    call gw_alg_step(wind, pressure, buoyancy)
+    call gravity_wave_alg_step(wind, pressure, buoyancy)
     write( log_scratch_space, '(A,I0)' ) 'End of timestep ', timestep
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     call log_event( &
@@ -314,6 +316,8 @@ contains
     call timer(program_name)
     call output_timer()
   end if
+
+  call gravity_wave_alg_final()
 
   !----------------------------------------------------------------------------
   ! Driver layer finalise

@@ -60,7 +60,7 @@ contains
     ! Diagnostic fields
     type( field_type ), intent(inout)        :: xi, rho_in_wth
     ! Coordinate fields
-    type( field_type ), intent(inout)        :: chi(:)
+    type( field_type ), intent(in)           :: chi(:)
 
     type(restart_type), intent(in)           :: restart
 
@@ -187,6 +187,8 @@ contains
     ! Initialise prognostic fields
     call init_prognostic_fields_alg( u, rho, theta, exner, &
                                      rho_in_wth, mr, xi, restart )
+
+    nullify( tmp_write_ptr, tmp_checkpoint_ptr, tmp_restart_ptr )
 
     call log_event( 'Gungho initialised', LOG_LEVEL_INFO )
 

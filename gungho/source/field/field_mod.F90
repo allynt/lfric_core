@@ -113,6 +113,9 @@ module field_mod
     procedure         :: field_type_assign
 
     !> Routine to destroy field_type
+    procedure         :: field_final
+
+    !> Finalizers for scalar and arrays of field_type objects
     final             :: field_destructor_scalar, &
                          field_destructor_array1d, &
                          field_destructor_array2d
@@ -284,78 +287,72 @@ contains
 
   end function field_constructor
 
-  !> Destroy a scalar <code>field_type</code> instance.
-  subroutine field_destructor_scalar(self)
 
-    use log_mod,         only : log_event, &
-                                LOG_LEVEL_ERROR
+  !> Destroy a scalar field_type instance.
+  subroutine field_final(self)
+
+    use log_mod, only : log_event, LOG_LEVEL_ERROR
+
     implicit none
-    type(field_type), intent(inout)    :: self
+
+    class(field_type), intent(inout)    :: self
     integer(i_def) :: rc
 
-    nullify(self%vspace)
-    if(allocated(self%data)) then
+    if ( allocated(self%data) ) then
       call ESMF_ArrayDestroy(self%esmf_array, noGarbage=.TRUE., rc=rc)
       if (rc /= ESMF_SUCCESS ) &
-        call log_event( "ESMF failed to destroy a field.", &
-                        LOG_LEVEL_ERROR )
+           call log_event( "ESMF failed to destroy a field.", &
+                           LOG_LEVEL_ERROR )
       deallocate(self%data)
     end if
-    if(allocated(self%halo_dirty)) then
-      deallocate(self%halo_dirty)
-    end if
+
+    if ( allocated(self%halo_dirty) ) deallocate(self%halo_dirty)
+
+    nullify( self%vspace,             &
+             self%write_field_method, &
+             self%checkpoint_method,  &
+             self%restart_method )
+
+  end subroutine field_final
+
+
+
+  !> Finalizer for a scalar <code>field_type</code> instance.
+  subroutine field_destructor_scalar(self)
+
+    implicit none
+
+    type(field_type), intent(inout)    :: self
+
+    call self%field_final()
 
   end subroutine field_destructor_scalar
 
-  !> Destroy a 1d array of <code>field_type</code> instances.
+  !> Finalizer for a 1d array of <code>field_type</code> instances.
   subroutine field_destructor_array1d(self)
 
-    use log_mod,         only : log_event, &
-                                LOG_LEVEL_ERROR
     implicit none
+
     type(field_type), intent(inout)    :: self(:)
     integer(i_def) :: i
-    integer(i_def) :: rc
 
     do i=lbound(self,1), ubound(self,1)
-       nullify(self(i)%vspace)
-       if(allocated(self(i)%data)) then
-          call ESMF_ArrayDestroy(self(i)%esmf_array, noGarbage=.true., rc=rc)
-          if (rc /= ESMF_SUCCESS ) &
-               call log_event( "ESMF failed to destroy a 1d array of fields.", &
-               LOG_LEVEL_ERROR )
-          deallocate(self(i)%data)
-       end if
-       if(allocated(self(i)%halo_dirty)) then
-          deallocate(self(i)%halo_dirty)
-       end if
+      call self(i)%field_final()
     end do
-    
+
   end subroutine field_destructor_array1d
 
-  !> Destroy a 2d array of <code>field_type</code> instances.
+  !> Finalizer for a 2d array of <code>field_type</code> instances.
   subroutine field_destructor_array2d(self)
 
-    use log_mod,         only : log_event, &
-                                LOG_LEVEL_ERROR
     implicit none
+
     type(field_type), intent(inout)    :: self(:,:)
     integer(i_def) :: i,j
-    integer(i_def) :: rc
 
     do i=lbound(self,1), ubound(self,1)
       do j=lbound(self,2), ubound(self,2)
-        nullify(self(i,j)%vspace)
-        if(allocated(self(i,j)%data)) then
-          call ESMF_ArrayDestroy(self(i,j)%esmf_array, noGarbage=.TRUE., rc=rc)
-          if (rc /= ESMF_SUCCESS ) &
-            call log_event( "ESMF failed to destroy a 2d array of fields.", &
-                            LOG_LEVEL_ERROR )
-          deallocate(self(i,j)%data)
-        end if
-        if(allocated(self(i,j)%halo_dirty)) then
-          deallocate(self(i,j)%halo_dirty)
-        end if
+        call self(i,j)%field_final()
       end do
     end do
 
@@ -370,7 +367,7 @@ contains
                                 LOG_LEVEL_ERROR
     implicit none
     class(field_type), target, intent(in)  :: self
-    class(field_type), target, intent(out)  :: dest
+    class(field_type), target, intent(out) :: dest
 
     integer(i_halo_index), allocatable :: global_dof_id(:)
     integer(i_def) :: rc
@@ -384,6 +381,8 @@ contains
     dest%write_field_method => self%write_field_method
     dest%checkpoint_method => self%checkpoint_method
     dest%restart_method => self%restart_method
+
+
 
     allocate(global_dof_id(self%vspace%get_last_dof_halo()))
     call self%vspace%get_global_dof_id(global_dof_id)
@@ -424,6 +423,9 @@ contains
     mesh=>dest%vspace%get_mesh()
     allocate(dest%halo_dirty(mesh%get_halo_depth()))
     dest%halo_dirty(:) = 1
+
+    nullify(data_ptr)
+    nullify(mesh)
 
   end subroutine copy_field_properties
 
@@ -787,6 +789,8 @@ contains
       self%halo_dirty(1:depth) = 0
     end if
 
+    nullify( mesh )
+
   end subroutine halo_exchange
 
   !! Start a halo exchange operation on the field
@@ -820,6 +824,8 @@ contains
       if (rc /= ESMF_SUCCESS) call log_event( &
          'ESMF failed to start the halo exchange.', &
          LOG_LEVEL_ERROR )
+
+      nullify( mesh )
     end if
 
   end subroutine halo_exchange_start
@@ -859,6 +865,8 @@ contains
       ! Halo exchange is complete so set the halo dirty flag to say it
       ! is clean (or more accurately - not dirty)
       self%halo_dirty(1:depth) = 0
+
+      nullify( mesh )
     end if
 
   end subroutine halo_exchange_finish
@@ -1001,6 +1009,7 @@ contains
     dirtiness = .false.
     if(self%halo_dirty(depth) == 1)dirtiness = .true.
 
+    nullify( mesh )
   end function is_dirty
 
   ! Sets a halo depth to be flagged as dirty
@@ -1034,7 +1043,7 @@ contains
                       LOG_LEVEL_ERROR )    
 
     self%halo_dirty(1:depth) = 0
-
+    nullify( mesh )
   end subroutine set_clean
 
 end module field_mod

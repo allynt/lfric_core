@@ -47,7 +47,8 @@ module rk_transport_mod
 
   use sample_poly_flux_kernel_mod,       only: sample_poly_flux_init, &
                                                sample_poly_flux_final
-  use sample_poly_adv_kernel_mod,        only: sample_poly_adv_init
+  use sample_poly_adv_kernel_mod,        only: sample_poly_adv_init,  &
+                                               sample_poly_adv_final
 
   ! Derived Types
   use field_mod,                         only: field_type
@@ -164,6 +165,9 @@ contains
     ! Store initial values for computing errors
     rho0   = rho
     theta0 = theta
+
+    nullify( mm_wt, mesh, u_fs, rho_fs, theta_fs )
+
     if ( subroutine_timers ) call timer('rk_transport_alg')
 
   end subroutine rk_transport_init
@@ -271,6 +275,7 @@ contains
       end select
     end do
 
+    nullify( mm_w3_inv, mt_lumped_inv, chi )
 
   end subroutine rk_transport_step
 
@@ -318,13 +323,17 @@ contains
     ! Compute L2 error for rho
                  X_innerproduct_Y(l2_rho_scalar, drho, l2_rho) )
 
-    call sample_poly_flux_final()
-
     ! Write out L2 errors
     write( log_scratch_space, '(A, E15.8)' ) "L2 theta = ", sqrt(l2_theta_scalar)
     call log_event( log_scratch_space, LOG_LEVEL_info )
     write( log_scratch_space, '(A, E15.8)' ) "L2 rho   = ", sqrt(l2_rho_scalar)
     call log_event( log_scratch_space, LOG_LEVEL_info )
+
+    call sample_poly_flux_final()
+    call sample_poly_adv_final()
+
+    nullify( mm_wt, mm_w3, rho_fs, theta_fs )
+
     if ( subroutine_timers ) call timer('rk_transport_alg')
 
   end subroutine rk_transport_final

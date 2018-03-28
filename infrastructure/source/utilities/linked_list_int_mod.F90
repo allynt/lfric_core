@@ -21,6 +21,10 @@ module linked_list_int_mod
     private
     contains
     ! Nothing in here - it's all in the base class
+    procedure, public :: clear
+
+    final :: linked_list_int_destructor
+
   end type linked_list_int_type
 
   interface linked_list_int_type
@@ -37,5 +41,15 @@ type(linked_list_int_type) function int_constructor(id)
 
 end function int_constructor
 
+subroutine clear( self )
+  implicit none
+  class(linked_list_int_type), intent(inout) :: self
+end subroutine clear
+
+subroutine linked_list_int_destructor(self)
+  implicit none
+  type(linked_list_int_type), intent(inout) :: self
+  call self%clear()
+end subroutine linked_list_int_destructor
 
 end module linked_list_int_mod

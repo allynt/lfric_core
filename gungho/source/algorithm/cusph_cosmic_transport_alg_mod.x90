@@ -98,6 +98,8 @@ contains
     call invoke( setval_X(u_n, u), &
                  setval_X(u_np1, u) )
 
+    nullify(w2_fs, w3_fs, chi)
+
   end subroutine cusph_cosmic_transport_init
 
   !> @brief An algorithm for testing the COSMIC transport scheme.
@@ -140,6 +142,8 @@ contains
                                       cell_orientation, y_direction, detj_at_w2)
 
     call invoke( setval_X(rho, rho_np1) )
+
+    nullify(chi, cell_orientation, detj_at_w2)
 
   end subroutine cusph_cosmic_transport_step
 

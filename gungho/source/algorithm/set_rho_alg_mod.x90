@@ -51,6 +51,8 @@ contains
     time = real(timestep,r_def)*dt
     call invoke( set_rho_kernel_type ( rho, chi, time, qr ) )
 
+    nullify( chi )
+
   end subroutine set_rho_alg
 
 end module set_rho_alg_mod

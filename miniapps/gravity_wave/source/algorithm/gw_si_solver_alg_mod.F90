@@ -6,9 +6,9 @@
 !>@brief Routines for solving the semi-implicit equation set for the linear
 !>       gravity waves
 
-! Note: PSyclone 1.5.0 fails to correctly parse "use, intrinsic :: ieee_arithmetic" 
+! Note: PSyclone 1.5.0 fails to correctly parse "use, intrinsic :: ieee_arithmetic"
 !       so this algorithm is not using PSyclone built-ins or other invokes.
-!       However, commented PSyclone invokes are left as placeholders for when 
+!       However, commented PSyclone invokes are left as placeholders for when
 !       the support becomes available.
 module gw_si_solver_alg_mod
 
@@ -32,7 +32,6 @@ module gw_si_solver_alg_mod
                                      LOG_LEVEL_DEBUG,                          &
                                      LOG_LEVEL_TRACE,                          &
                                      lOG_LEVEL_INFO
-  use operator_mod,            only: operator_type
   use mixed_solver_config_mod, only: si_maximum_iterations,                    &
                                      si_tolerance,                             &
                                      si_preconditioner,                        &
@@ -51,7 +50,7 @@ module gw_si_solver_alg_mod
   use timestepping_config_mod, only: dt
   use derived_config_mod,      only: bundle_size
   use field_indices_mod,       only: igw_u, igw_p, igw_b
-  use output_config_mod,       only: subroutine_timers 
+  use output_config_mod,       only: subroutine_timers
   use timer_mod,               only: timer
   implicit none
 
@@ -63,12 +62,13 @@ module gw_si_solver_alg_mod
 
   public  :: gw_si_solver_alg
   public  :: gw_si_solver_init
+  public  :: gw_si_solver_final
   private :: gmres
   private :: bundle_preconditioner
   private :: jacobi
- 
+
 contains
-  !>@brief Setup for the semi-implicit solver, extracts mass matrix diagonals and 
+  !>@brief Setup for the semi-implicit solver, extracts mass matrix diagonals and
   !!         sets up terms for the Newton-Krylov method if needed
   !>@param[in] x0 The state array to used to clone field bundles
   subroutine gw_si_solver_init(x0)
@@ -80,7 +80,7 @@ contains
             gravity_wave_constants_b_space_wtheta
     use mm_diagonal_kernel_mod,     only: mm_diagonal_kernel_type
     use runtime_constants_mod,      only: get_mass_matrix, &
-                                          get_mass_matrix_diagonal, &  
+                                          get_mass_matrix_diagonal, &
                                           w0_id, w2_id, w3_id, wt_id
     use gw_pressure_solver_alg_mod, only: gw_pressure_solver_init
 
@@ -101,23 +101,23 @@ contains
               w          (bundle_size), &
               mm_diagonal(bundle_size), &
               v          (bundle_size,gcrk) )
- 
+
 
     mm_diagonal(igw_u) = get_mass_matrix_diagonal(w2_id)
     mm_diagonal(igw_p) = get_mass_matrix_diagonal(w3_id)
     select case(b_space)
-      case(gravity_wave_constants_b_space_w0)  
+      case(gravity_wave_constants_b_space_w0)
         mm_diagonal(igw_b) = get_mass_matrix_diagonal(w0_id)
-      case(gravity_wave_constants_b_space_w3)  
+      case(gravity_wave_constants_b_space_w3)
         mm_diagonal(igw_b) = get_mass_matrix_diagonal(w3_id)
-      case(gravity_wave_constants_b_space_wtheta)  
+      case(gravity_wave_constants_b_space_wtheta)
         mm_diagonal(igw_b) = get_mass_matrix_diagonal(wt_id)
-    end select   
+    end select
     call clone_bundle(x0, dx,       bundle_size)
     call clone_bundle(x0, Ax,       bundle_size)
     call clone_bundle(x0, s,        bundle_size)
     call clone_bundle(x0, w,        bundle_size)
-    call clone_bundle(x0, residual, bundle_size)   
+    call clone_bundle(x0, residual, bundle_size)
     do iter = 1,gcrk
       call clone_bundle(x0, v(:,iter), bundle_size)
     end do
@@ -126,9 +126,25 @@ contains
 
   end subroutine gw_si_solver_init
 
+  !-------------------------------------------------------------------------------
+  !> @brief Reclaims memory for private variables in module scope
+  subroutine gw_si_solver_final()
+
+    implicit none
+
+    if (allocated( dx ))          deallocate( dx )
+    if (allocated( Ax ))          deallocate( Ax )
+    if (allocated( residual ))    deallocate( residual )
+    if (allocated( s ))           deallocate( s )
+    if (allocated( w ))           deallocate( w )
+    if (allocated( mm_diagonal )) deallocate( mm_diagonal )
+    if (allocated( v ))           deallocate( v )
+
+  end subroutine gw_si_solver_final
+
 !=============================================================================!
   !> Control routine for the type of gravity wave solver to use
-  !>@param[inout] x0 State to increment 
+  !>@param[inout] x0 State to increment
   !>@param[in]    rhs0 Fixed rhs to solve for
   subroutine gw_si_solver_alg(x0, rhs0)
 
@@ -136,7 +152,7 @@ contains
 
     type(field_type),             intent(inout) :: x0(bundle_size)
     type(field_type),             intent(in)    :: rhs0(bundle_size)
-  
+
     if ( subroutine_timers ) call timer('gw_si_solver_alg')
 
     call rhs0(igw_u)%log_minmax(LOG_LEVEL_INFO,'max/min r_u = ')
@@ -152,16 +168,16 @@ contains
         call log_event( 'Invalid option for gravity wave mixed solver', LOG_LEVEL_ERROR )
     end select
     if ( subroutine_timers ) call timer('gw_si_solver_alg')
- 
+
   end subroutine gw_si_solver_alg
 
 !=============================================================================!
   !>@brief Jacobi solver adapted for solving the semi-implicit equations
-  !>@param[inout] x0 State to increment 
+  !>@param[inout] x0 State to increment
   !>@param[in]    rhs0 Fixed rhs to solve for
   !>@param[in]    n Maximum number of iterations to perform
   subroutine jacobi(x0, rhs0, n)
-    
+
     implicit none
 
     type(field_type),             intent(inout) :: x0(bundle_size)
@@ -176,9 +192,9 @@ contains
 
     call set_bundle_scalar(0.0_r_def, dx, bundle_size)
     do k = 1,n
-      call gw_lhs_alg(Ax, dx) 
+      call gw_lhs_alg(Ax, dx)
       call minus_bundle( rhs0, Ax, residual, bundle_size )
-     
+
       ! Compute error
       err = bundle_inner_product(residual, residual, bundle_size)
       write( log_scratch_space, '(A,I2,2E12.4)' ) &
@@ -187,9 +203,9 @@ contains
       if ( sqrt(err)/sqrt(err0) < 1.0e-4_r_def ) exit
 
       call bundle_preconditioner(s, residual, si_preconditioner, mm_diagonal, bundle_size )
-      call bundle_ax( omega, s, dx, bundle_size )     
+      call bundle_ax( omega, s, dx, bundle_size )
     end do
-    call bundle_axpy(1.0_r_def, dx, x0, x0, bundle_size)  
+    call bundle_axpy(1.0_r_def, dx, x0, x0, bundle_size)
 
   end subroutine jacobi
 
@@ -197,7 +213,7 @@ contains
   !>@brief GMRES solver adapted for solving the semi-implicit equations
   !>@details Standard GMRES algortihm from "Iterative methods for sparse linear
   !! systems" by Y Saad, SIAM 2003
-  !>@param[inout] x0 State to increment 
+  !>@param[inout] x0 State to increment
   !>@param[in]    rhs0 Fixed rhs to solve for
   subroutine gmres(x0, rhs0)
 
@@ -242,7 +258,7 @@ contains
 
     call bundle_preconditioner(s, residual, si_preconditioner, mm_diagonal, bundle_size )
 
-    beta = sqrt(bundle_inner_product(s, s, bundle_size)) 
+    beta = sqrt(bundle_inner_product(s, s, bundle_size))
 
     call bundle_ax( 1.0_r_def/beta, s, v(:,1), bundle_size )
 
@@ -256,12 +272,12 @@ contains
 
         call bundle_preconditioner(w, v(:,j), si_postconditioner, mm_diagonal, bundle_size)
 
-        call gw_lhs_alg(s, w) 
+        call gw_lhs_alg(s, w)
         call bundle_preconditioner(w, s, si_preconditioner, mm_diagonal, bundle_size )
         do k = 1, j
           h(k,j) =  bundle_inner_product( v(:,k), w, bundle_size )
           call bundle_axpy( -h(k,j), v(:,k), w, w, bundle_size )
-        end do        
+        end do
         h(j+1,j) = sqrt( bundle_inner_product( w, w, bundle_size ))
         if( j < gcrk ) then
           call bundle_ax(1.0_r_def/h(j+1,j), w, v(:,j+1), bundle_size)
@@ -337,7 +353,7 @@ contains
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
     ! Add increments to field
-    call bundle_axpy(1.0_r_def, dx, x0, x0, bundle_size)  
+    call bundle_axpy(1.0_r_def, dx, x0, x0, bundle_size)
 
   end subroutine gmres
 
