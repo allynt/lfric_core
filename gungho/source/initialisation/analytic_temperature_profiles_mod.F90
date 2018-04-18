@@ -14,16 +14,17 @@ use log_mod,                      only : log_event,                &
                                          log_scratch_space,        &
                                          LOG_LEVEL_ERROR
 use coord_transform_mod,          only : xyz2llr, central_angle
-use idealised_config_mod,         only : idealised_test_cold_bubble_x, &
-                                         idealised_test_cold_bubble_y, &
-                                         idealised_test_gaussian_hill, &
-                                         idealised_test_cosine_hill,   &
-                                         idealised_test_slotted_cylinder, &
-                                         idealised_test_gravity_wave, &
-                                         idealised_test_warm_bubble, &
-                                         idealised_test_warm_bubble_3d, &
-                                         idealised_test_solid_body_rotation, &
-                                         idealised_test_deep_baroclinic_wave, &
+use idealised_config_mod,         only : idealised_test_cold_bubble_x,           &
+                                         idealised_test_cold_bubble_y,           &
+                                         idealised_test_gaussian_hill,           &
+                                         idealised_test_cosine_hill,             &
+                                         idealised_test_slotted_cylinder,        &
+                                         idealised_test_gravity_wave,            &
+                                         idealised_test_warm_bubble,             &
+                                         idealised_test_warm_bubble_3d,          &
+                                         idealised_test_solid_body_rotation,     &
+                                         idealised_test_solid_body_rotation_alt, &
+                                         idealised_test_deep_baroclinic_wave,    &
                                          idealised_test_dry_cbl
 use initial_density_config_mod,    only : r1, x1, y1, r2, x2, y2,     &
                                           tracer_max, tracer_background
@@ -35,6 +36,7 @@ use reference_profile_mod,         only : reference_profile
 use generate_global_gw_fields_mod, only : generate_global_gw_pert
 use initial_wind_config_mod,       only : u0, sbr_angle_lat
 use deep_baroclinic_wave_mod,      only : deep_baroclinic_wave
+use formulation_config_mod,        only : shallow
 
 implicit none
 
@@ -67,6 +69,7 @@ function analytic_temperature(chi, choice) result(temperature)
   real(kind=r_def)             :: h1, h2
   real(kind=r_def)             :: pressure, density
   real(kind=r_def)             :: s, u00, f_sb, t0
+  real(kind=r_def)             :: r_on_a
   real(kind=r_def)             :: u, v, w 
  
   if ( geometry == base_mesh_geometry_spherical ) then
@@ -179,15 +182,39 @@ function analytic_temperature(chi, choice) result(temperature)
     temperature = h1 + h2
 
   case ( idealised_test_solid_body_rotation ) 
-    t0 = 280_r_def
-    s = (radius/scaled_radius) &
-        *cos(lat)*cos(sbr_angle_lat*pi) &
-        + sin(long)*sin(lat)*sin(sbr_angle_lat*pi)
-    u00 = u0*(u0 + 2.0_r_def*scaled_omega*scaled_radius)/(t0*Rd)
-    f_sb = 0.5_r_def*u00*s**2
-    temperature = t0 * exp( gravity*(radius-scaled_radius)/( cp * t0 ) ) &
-                * exp(-kappa*f_sb)  
+    t0   = 280.0_r_def
+    s    = (radius / scaled_radius) *                                          &
+           ( cos(lat) * cos(sbr_angle_lat * pi) +                              &
+             sin(lat) * sin(sbr_angle_lat * pi) * sin(long) )
+    u00  = u0 * (u0 + 2.0_r_def * scaled_omega * scaled_radius) / (t0 * Rd)
+    f_sb = 0.5_r_def * u00*s**2
+    temperature = t0 * exp(gravity * (radius - scaled_radius) / ( cp * t0 ) )  &
+                     * exp(-kappa * f_sb)  
 
+  case ( idealised_test_solid_body_rotation_alt ) 
+    ! See Staniforth & White (2007) (rotated pole version of example of
+    ! Section 5.3 with m = 1, A = 0, n therefore arbitrary, Phi0 = 0).    
+    ! In shallow geometry the r/a factor is replaced by 1, see Section 6 of 
+    ! Staniforth & White (2007).
+    t0 = 280_r_def
+    if (shallow) then
+      r_on_a = 1.0_r_def
+    else
+      r_on_a = radius / scaled_radius
+    end if
+    s    = r_on_a * ( cos(lat) * cos(sbr_angle_lat * pi) +                     &
+                      sin(lat) * sin(sbr_angle_lat * pi) * sin(long) )
+    u00  = u0 * (u0 + 2.0_r_def * scaled_omega * scaled_radius) / (t0 * Rd)
+    ! f_sb is the Q of (69) of Staniforth & White (2007)
+    f_sb = 0.5_r_def * u00*s**2
+    ! The first exponential factor is the integral on the RHS of the first 
+    ! equation of (69), the factor r_on_a in the denominator makes the same
+    ! form work for both deep and shallow atmospheres.
+    ! kappa = R / cp has been used
+    ! Note: temperature is potential temperature
+    temperature = t0 * exp(  gravity * (radius - scaled_radius)                &
+                           / (cp * t0 * r_on_a) )                              &
+                     * exp(-kappa * f_sb) 
   case( idealised_test_deep_baroclinic_wave )
     call deep_baroclinic_wave(long, lat, radius-scaled_radius, &
                               pressure, temperature, density, &

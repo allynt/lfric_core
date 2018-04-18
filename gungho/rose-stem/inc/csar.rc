@@ -73,6 +73,27 @@
                                              },
                                          checkkgo=False)'
                               ],
+                'csar-sbr-alt':['run_application(gungho, sbr_deep,
+                                         resolutions=[("C12",600.0)],
+                                         env={"nrun":36,
+                                              "directives":{"default":{"mpi_parts":6,
+                                                                       "threads":1,
+                                                                       "wallclock":"01:00:00"}
+                                                           }
+                                             },
+                                         checkkgo=False,
+                                         plotstr="slices.py diagDynamo $NODAL_DATA_DIR w3projection_u1:w3projection_u2:w3projection_u3 T000000:T000036 180 0 15 $PLOT_DIR")',
+                                 'run_application(gungho, sbr_shallow,
+                                         resolutions=[("C12",600.0)],
+                                         env={"nrun":36,
+                                              "directives":{"default":{"mpi_parts":6,
+                                                                       "threads":1,
+                                                                       "wallclock":"01:00:00"}
+                                                           }
+                                             },
+                                         checkkgo=False,
+                                         plotstr="slices.py diagDynamo $NODAL_DATA_DIR w3projection_u1:w3projection_u2:w3projection_u3 T000000:T000036 180 0 15 $PLOT_DIR")'
+                             ],
                 'csar-baroclinic':['run_application(gungho, baroclinic,
                                       resolutions=[("C24",1800.0),
                                                    ("C48",1800.0),

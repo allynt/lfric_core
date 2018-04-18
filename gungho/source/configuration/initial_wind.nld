@@ -1,6 +1,7 @@
 namelist initial_wind
   profile        : enumeration[none,
                                solid_body_rotation,
+                               solid_body_rotation_alt, ! Deep and shallow solid-body rotation
                                constant_uv,
                                constant_shear_uv,
                                dcmip301,

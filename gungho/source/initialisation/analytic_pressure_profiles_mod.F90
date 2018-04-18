@@ -14,23 +14,24 @@ use log_mod,                    only : log_event,                &
                                        log_scratch_space,        &
                                        LOG_LEVEL_ERROR
 use coord_transform_mod,        only : xyz2llr, central_angle
-use idealised_config_mod,       only : idealised_test_cold_bubble_x,        &
-                                       idealised_test_cold_bubble_y,        &
-                                       idealised_test_warm_bubble,          &
-                                       idealised_test_warm_bubble_3d,       &
-                                       idealised_test_gaussian_hill,        &
-                                       idealised_test_cosine_hill,          &
-                                       idealised_test_slotted_cylinder,     &
-                                       idealised_test_constant_field,       &
-                                       idealised_test_cosine_stripe,        &
-                                       idealised_test_vortex_field,         &
-                                       idealised_test_gravity_wave,         &
-                                       idealised_test_solid_body_rotation,  &
-                                       idealised_test_deep_baroclinic_wave, &
-                                       idealised_test_isentropic,           &
-                                       idealised_test_isot_atm,             &
-                                       idealised_test_isot_mild_atm,        &
-                                       idealised_test_isot_cold_atm,        &
+use idealised_config_mod,       only : idealised_test_cold_bubble_x,           &
+                                       idealised_test_cold_bubble_y,           &
+                                       idealised_test_warm_bubble,             &
+                                       idealised_test_warm_bubble_3d,          &
+                                       idealised_test_gaussian_hill,           &
+                                       idealised_test_cosine_hill,             &
+                                       idealised_test_slotted_cylinder,        &
+                                       idealised_test_constant_field,          &
+                                       idealised_test_cosine_stripe,           &
+                                       idealised_test_vortex_field,            &
+                                       idealised_test_gravity_wave,            &
+                                       idealised_test_solid_body_rotation,     &
+                                       idealised_test_solid_body_rotation_alt, &
+                                       idealised_test_deep_baroclinic_wave,    &
+                                       idealised_test_isentropic,              &
+                                       idealised_test_isot_atm,                &
+                                       idealised_test_isot_mild_atm,           &
+                                       idealised_test_isot_cold_atm,           &
                                        idealised_test_const_lapse_rate
 use initial_density_config_mod, only : r1, x1, y1, r2, x2, y2,     &
                                        tracer_max, tracer_background
@@ -227,7 +228,8 @@ contains
     case (idealised_test_vortex_field)
       pressure = vortex_field(lat,long,radius,time)
   
-    case (idealised_test_solid_body_rotation)
+    case (idealised_test_solid_body_rotation,                                  &
+          idealised_test_solid_body_rotation_alt)
       t0 = 280.0_r_def
       temperature = analytic_temperature(chi, choice)
       pressure = t0/temperature

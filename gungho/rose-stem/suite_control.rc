@@ -8,7 +8,7 @@
                                                               'agnesi_orog_cartesian', 'agnesi_orog_cartesian_long',
                                                               'dcmip301', 'robert', 'robert10m', 'robert5m', 'dcmip200',
                                                               'warm3dbubble', 'warm3dbubble_small',
-                                                              'robert-moist', 'sbr',
+                                                              'robert-moist', 'sbr', 'sbr_deep', 'sbr_shallow',
                                                               'sbr_spinupwinds', 'sbr_spinupalpha',
                                                               'straka_x', 'straka_y', 'straka_y_ugrid',
                                                               'straka_200m', 'straka_100m', 'straka_50m', 'straka_25m', 
