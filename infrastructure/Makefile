@@ -53,7 +53,7 @@ test-suite: launch-test-suite
 
 include build/lfric.mk
 
-export FFLAGS  := $(FFLAGS) $(OPENMP_ARG)
+export FFLAGS  := $(FFLAGS) $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
 export LDFLAGS := $(LDFLAGS) $(OPENMP_ARG)
 
 ##############################################################################

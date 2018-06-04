@@ -44,7 +44,7 @@ default: build unit-tests
 
 include $(ROOT_DIR)/infrastructure/build/lfric.mk
 
-export FFLAGS += $(OPENMP_ARG)
+export FFLAGS += $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
 export LDFLAGS += $(OPENMP_ARG)
 
 ##############################################################################

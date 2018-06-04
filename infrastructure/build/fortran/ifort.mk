@@ -23,8 +23,12 @@ OPENMP_ARG            = -qopenmp
 # Option for checking code meets Fortran standard - currently 2008
 STANDARDS_CHECK_ARG       = -stand f08
 FORTRAN_RUNTIME       = 
+# Options to apply to LFRic code but not other code such as UM code.
+# -qoverride-limits mandatory due to Intel compiler bug ref #1486
+# This will be removed by #1490
+LFRIC_INTEL_FIX_ARG         = -qoverride-limits
 
-FFLAGS_COMPILER           =
+FFLAGS_COMPILER           = 
 FFLAGS_NO_OPTIMISATION    = -O0
 FFLAGS_SAFE_OPTIMISATION  = -O2 -fp-model strict
 FFLAGS_RISKY_OPTIMISATION = -O3 -xhost
