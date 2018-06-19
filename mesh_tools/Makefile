@@ -46,6 +46,8 @@ include $(ROOT_DIR)/infrastructure/build/lfric.mk
 
 export FFLAGS += $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
 export LDFLAGS += $(OPENMP_ARG)
+ANY_UNIT_TESTS := $(shell find ./unit-test -name *test.pf)
+ANY_INTEGRATION_TESTS := $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)
 
 ##############################################################################
 
@@ -104,8 +106,13 @@ unit-tests: export BIN_DIR     ?= $(PROJECT_DIR)/test
 unit-tests: export PROGRAMS     = mesh_tools_unit_tests
 unit-tests: export EXTERNAL_STATIC_LIBRARIES += pfunit
 unit-tests: export FFLAGS      += $(FFLAGS_DEBUG) $(FFLAGS_NO_OPTIMISATION) $(FFLAGS_INIT)
-unit-tests: run-unit-tests
+ifeq ($(strip $(ANY_UNIT_TESTS)),)
+unit-tests:
+	$(Q)echo No unit-tests to process.
+else
+unit-tests:run-unit-tests
 	$(Q)echo > /dev/null
+endif
 
 .PHONY: generate-unit-tests
 generate-unit-tests: extract-unit-tests

@@ -1,3 +1,7 @@
+{%- set projectName = 'mesh_tools' %}
+{%- set projectDir  = 'mesh_tools' %}
+{%- set miniappFlag = False %}
+
 {%- set groups = {'developer': ['check_compilers(fast-debug, publish=True)'],
                   'nightly'  : ['check_compilers(full-debug, publish=True)',
                                 'publish_commit']} %}

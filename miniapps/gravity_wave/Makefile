@@ -33,6 +33,8 @@ include $(ROOT_DIR)/infrastructure/build/fortran/$(FORTRAN_COMPILER).mk
 
 export FFLAGS  := $(FFLAGS)  $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
 export LDFLAGS := $(LDFLAGS) $(OPENMP_ARG)
+ANY_UNIT_TESTS := $(shell find ./unit-test -name *test.pf)
+ANY_INTEGRATION_TESTS := $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)
 
 ##############################################################################
 
@@ -199,8 +201,13 @@ unit-tests: export PROGRAMS     = $(PROJECT_NAME)_unit_tests
 unit-tests: export IGNORE_DEPENDENCIES       += pfunit_mod
 unit-tests: export EXTERNAL_STATIC_LIBRARIES += pfunit
 unit-tests: export FFLAGS      += $(FFLAGS_DEBUG) $(FFLAGS_NO_OPTIMISATION) $(FFLAGS_INIT)
+ifeq ($(strip $(ANY_UNIT_TESTS)),)
+unit-tests:
+	$(Q)echo No unit-tests to process.
+else
 unit-tests:run-unit-tests
 	$(Q)echo > /dev/null
+endif
 
 .PHONY: generate-unit-tests
 generate-unit-tests: extract-unit-tests
@@ -230,8 +237,13 @@ integration-tests: export PROJECT      = $(PROJECT_NAME)
 integration-tests: export SOURCE_DIR   = integration-test
 integration-tests: export WORKING_DIR := $(WORKING_DIR)
 integration-tests: export BIN_DIR      = $(PROJECT_DIR)/test
+ifeq ($(strip $(ANY_INTEGRATION_TESTS)),)
+integration-tests:
+	$(Q)echo No integration-tests to process.
+else
 integration-tests: $(addprefix integration-test-run/,$(basename $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)))
 	$(Q)echo > /dev/null
+endif
 
 .PHONY: generate-integration-tests
 generate-integration-tests: extract-integration-tests

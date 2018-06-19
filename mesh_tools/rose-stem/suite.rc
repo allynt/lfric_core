@@ -1,5 +1,4 @@
 #!jinja2
-{%- set projectName = 'mesh_tools' %}
 
 {# Include suite control #}
 %include suite_control.rc
@@ -25,6 +24,12 @@
 {%-   endif %}
 {%- else %}
 {%-   set groupsToRun = ['developer'] %}
+{%- endif %}
+
+{%- if miniappFlag == True %}
+{%-   set appPathFragment = 'miniapps/' %}
+{%- else  %}
+{%-   set appPathFragment = '' %}
 {%- endif %}
 
 [cylc]
@@ -140,6 +145,7 @@
                rsync -avz $SOURCE_DIRECTORY/ $HOST:$RELATIVE_SOURCE_DIRECTORY/
                unset TMP_SOURCE_DIR
                unset TMP_TARGET_DIR
+               sleep 5
                """
     [[[environment]]]
       SOURCE_DIRECTORY = $SOURCE_ROOT
@@ -261,21 +267,33 @@
 {%-     if 'unit_test_with_' + label in scheduledTasks %}
   [[unit_test_with_{{label}}]]
     inherit = {{family}}, TARGET
-    pre-script = """
-                 {{'\n'|commandList( TARGET_BASE_SETUP,
-                                     compiler_setup[compiler],
-                                     TARGET_BUILD_SETUP,
-                                     TARGET_REVEAL_SETUP)}}
-                 """
-    script      = rose task-run --app-key=compile
+    pre-script  = """
+                  {{'\n'|commandList( TARGET_BASE_SETUP,
+                                      compiler_setup[compiler],
+                                      TARGET_BUILD_SETUP,
+                                      TARGET_REVEAL_SETUP)}}
+                  """
+    script      = """
+                  UNIT_TESTS=''
+                  if [[ -d $SOURCE_DIRECTORY/unit-test ]] ; then
+                    UNIT_TESTS=`find $SOURCE_DIRECTORY/unit-test -name *test.pf`
+                  fi
+                  if [[ "${UNIT_TESTS}" != "" ]] ; then
+                    rose task-run --app-key=compile
+                  else
+                    echo 'No unit-tests to process'
+                  fi
+                  """
     post-script = """
                   {{'\n'|commandList( deleteDirectory('$WORKING_DIR') )}}
                   """
     [[[environment]]]
+      SOURCE_DIRECTORY     = $SOURCE_ROOT/{{appPathFragment}}{{projectName}}
+      WORKING_DIR          = {{TARGET_BUILD_ROOT}}/{{label}}/unit-test
       TARGET               = unit-tests
       PROFILE              = {{build}}
       MAKE_THREADS         = 6
-      WORKING_DIR          = {{TARGET_BUILD_ROOT}}/{{label}}/unit-test
+
 
     [[[directives]]]
 {%-       for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}

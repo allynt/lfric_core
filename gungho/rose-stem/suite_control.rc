@@ -1,5 +1,6 @@
 {%- set projectName = 'gungho' %}
 {%- set projectDir  = 'gungho' %}
+{%- set miniappFlag = False %}
 
 {%- set application_configurations = { 'gungho'           : [ 'runge-kutta', 'semi-implicit',
                                                               'transport-rk', 'transport-biperiodic',
