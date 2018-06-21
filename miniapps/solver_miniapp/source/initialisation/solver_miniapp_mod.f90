@@ -28,8 +28,8 @@ contains
   !>
   subroutine load_configuration( filename )
 
-    use gungho_configuration_mod, only : read_configuration, &
-                                         ensure_configuration
+    use solver_miniapp_configuration_mod, only : read_configuration, &
+                                                 ensure_configuration
 
     implicit none
 

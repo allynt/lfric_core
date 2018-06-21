@@ -1,0 +1,26 @@
+#!jinja2
+{%- set projectName = 'solver_miniapp' %}
+{%- set projectDir  = 'solver_miniapp' %}
+{%- set miniappFlag = True %}
+
+{%- set application_configurations = { 'solver_miniapp' : ['cg','bicgstab','gmres','default'] } %}
+
+{%- set canned_configurations  = [] %}
+
+{%- set groups = {
+'developer': [
+    'run_application( solver_miniapp, cg,       resolutions=[["C24", 600.0 ]],
+                      run_with_compilers='~TARGET_SOLVER_COMPILER~' )',
+    'run_application( solver_miniapp, bicgstab, resolutions=[["C24", 600.0 ]],
+                      run_with_compilers='~TARGET_SOLVER_COMPILER~' )',
+    'run_application( solver_miniapp, gmres,    resolutions=[["C24", 600.0 ]],
+                      run_with_compilers='~TARGET_GMRES_COMPILER~' )',
+    'godliness',
+    'cleanliness'],
+'nightly': [
+    'cleanliness'] } %}
+
+#########################################################################################
+
+{# Include any local miniapp include files here #}
+%include inc/MyMiniappIncludeFile.rc
