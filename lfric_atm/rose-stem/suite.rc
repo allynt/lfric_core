@@ -860,6 +860,10 @@
 {%-                   do rose_suite_gui_headers.append('plot_output') %}
     [[PLOT_OUTPUT]]
         inherit = PUBLISH, TARGET
+        [[[directives]]]
+{%-                   for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%-                   endfor %}
 {%-                 endif %}
 
     [[plot_{{configuration_label_res}}]]
