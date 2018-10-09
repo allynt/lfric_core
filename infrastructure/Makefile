@@ -53,7 +53,7 @@ test-suite: launch-test-suite
 
 include build/lfric.mk
 
-export FFLAGS  := $(FFLAGS) $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
+export FFLAGS  := $(FFLAGS) $(OPENMP_ARG)
 export LDFLAGS := $(LDFLAGS) $(OPENMP_ARG)
 ANY_UNIT_TESTS := $(shell find ./unit-test -name *test.pf)
 ANY_INTEGRATION_TESTS := $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)

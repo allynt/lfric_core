@@ -21,7 +21,7 @@ LFRIC_TARGET_PLATFORM ?= generic-x86
 export OPTIMISATION_PATH ?= $(wildcard optimisation/$(LFRIC_TARGET_PLATFORM))
 
 export PROJECT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-ROOT_DIR ?= ../
+export ROOT_DIR ?= ../
 
 .PHONY: default
 default: build
@@ -67,8 +67,7 @@ build: generate-psykal extract-gungho extract-um-physics
 	$(Q)$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/analyse.mk
 	$(Q)$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk \
 	                             BIN_DIR=$(BIN_DIR) \
-                                     PROGRAMS="$(PROGRAMS)" \
-                                     COMPILE_OPTIONS=$(abspath $(PROJECT_DIR)/build/compile_options.mk)
+                                     PROGRAMS="$(PROGRAMS)"
 
 .PHONY: generate-psykal
 generate-psykal: extract-gungho

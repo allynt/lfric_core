@@ -18,7 +18,7 @@ LFRIC_TARGET_PLATFORM ?= generic-x86
 export OPTIMISATION_PATH ?= $(wildcard optimisation/$(LFRIC_TARGET_PLATFORM))
 
 export PROJECT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-ROOT_DIR ?= ../..
+export ROOT_DIR ?= ../..
 
 .PHONY: default
 default: build unit-tests integration-tests

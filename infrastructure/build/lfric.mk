@@ -8,13 +8,14 @@
 # LFRic build system. Include it at the end of the make file as it contains
 # targets which you do not want to become the default target.
 #
-# Macros provided by including this file...
+# Variables provided by including this file...
 #
 # LFRIC_BUILD: Path to the build system
+# COMPILE_OPTIONS: File of target-specific compile options used in compile.mk
 #
 # Macros expected by the build system are as follows...
 #
-# ROOT: Absolute path to the project directory
+# ROOT_DIR: Absolute path to the project directory
 # OPTIMISATION_PATH: Where PSyclone optimisation scripts may be found.
 # WORKING_DIR: Path to scratch space in which intermediate files will be
 #              placed. This should be somewhere with good "many small
@@ -113,6 +114,14 @@ CXX_COMPILER := $(firstword $(subst -, ,$(notdir $(CXX))))
 ifndef CRAY_ENVIRONMENT
   include $(LFRIC_BUILD)/cxx/$(CXX_COMPILER).mk
   export CXX_RUNTIME_LIBRARY
+endif
+
+# The compile options file overrides compile options based on file-name pattern matching.
+# Use the miniapp-specific file if it exists. Otherwise use the infrastructure file.
+ifeq (,$(wildcard $(PROJECT_DIR)/build/compile_options.mk))
+  export COMPILE_OPTIONS := $(abspath $(ROOT_DIR)/infrastructure/build/compile_options.mk)
+else
+  export COMPILE_OPTIONS := $(abspath $(PROJECT_DIR)/build/compile_options.mk)
 endif
 
 # Set up verbose logging...

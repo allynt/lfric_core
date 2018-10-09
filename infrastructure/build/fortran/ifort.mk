@@ -23,10 +23,6 @@ OPENMP_ARG            = -qopenmp
 # Option for checking code meets Fortran standard - currently 2008
 STANDARDS_CHECK_ARG       = -stand f08
 FORTRAN_RUNTIME       = 
-# Options to apply to LFRic code but not other code such as UM code.
-# -qoverride-limits mandatory due to Intel compiler bug ref #1486
-# This will be removed by #1490
-LFRIC_INTEL_FIX_ARG         = -qoverride-limits
 
 FFLAGS_COMPILER           =
 FFLAGS_NO_OPTIMISATION    = -O0
@@ -36,6 +32,16 @@ FFLAGS_DEBUG              = -g -traceback
 FFLAGS_WARNINGS           = -warn all -warn errors
 FFLAGS_INIT               = -ftrapuv
 FFLAGS_RUNTIME            = -check all -fpe0
+
+#########################################################################
+# Application and file-specific options referenced in build/compile_options.mk files 
+# 
+# These variables need explanatory comments and need to be exported
+#
+# -qoverride-limits applied to PSy-layer code due to Intel compiler bug ref #1486
+# When the Intel bug is fixed, this option will be removed by #1490
+export FFLAGS_INTEL_FIX_ARG         = -qoverride-limits
+########################################################################
 
 # The "-assume realloc-lhs" switch causes Intel Fortran prior to v17 to
 # actually implement the Fortran2003 standard. At version 17 it becomes the

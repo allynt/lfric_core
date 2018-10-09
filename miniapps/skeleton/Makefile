@@ -18,7 +18,7 @@ LFRIC_TARGET_PLATFORM ?= generic-x86
 export OPTIMISATION_PATH ?= $(wildcard optimisation/$(LFRIC_TARGET_PLATFORM))
 
 export PROJECT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-ROOT_DIR ?= ../..
+export ROOT_DIR ?= ../..
 
 .PHONY: default
 default: build unit-tests integration-tests
@@ -31,7 +31,7 @@ documentation doc docs: document-uml document-latex document-api
 include $(ROOT_DIR)/infrastructure/build/lfric.mk
 include $(ROOT_DIR)/infrastructure/build/fortran/$(FORTRAN_COMPILER).mk
 
-export FFLAGS  := $(FFLAGS)  $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
+export FFLAGS  := $(FFLAGS)  $(OPENMP_ARG)
 export LDFLAGS := $(LDFLAGS) $(OPENMP_ARG)
 ANY_UNIT_TESTS := $(shell find ./unit-test -name *test.pf)
 ANY_INTEGRATION_TESTS := $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)
@@ -39,7 +39,7 @@ ANY_INTEGRATION_TESTS := $(shell find integration-test -name '*.[Ff]90' -exec eg
 ##############################################################################
 
 .PHONY: test-suite
-test-suite: SUITE_BASE_NAME   = $(notdir $(realpath $(shell pwd)/../..))-$(PROJECT_NAME)
+test-suite: SUITE_BASE_NAME = $(notdir $(realpath $(shell pwd)/../..))-$(PROJECT_NAME)
 test-suite: SUITE_CONFIG = rose-stem
 test-suite: launch-test-suite
 	$(Q)echo > /dev/null

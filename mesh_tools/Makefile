@@ -36,7 +36,7 @@ export IGNORE_DEPENDENCIES = netcdf MPI yaxt pfunit_mod planet_constants_mod xio
 export EXTERNAL_DYNAMIC_LIBRARIES = netcdff netcdf hdf5 yaxt yaxt_c
 
 PROJECT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-ROOT_DIR    ?= ../
+export ROOT_DIR    ?= ../
 
 .PHONY: default
 default: build unit-tests
@@ -44,7 +44,7 @@ default: build unit-tests
 
 include $(ROOT_DIR)/infrastructure/build/lfric.mk
 
-export FFLAGS += $(OPENMP_ARG) $(LFRIC_INTEL_FIX_ARG)
+export FFLAGS += $(OPENMP_ARG)
 export LDFLAGS += $(OPENMP_ARG)
 ANY_UNIT_TESTS := $(shell find ./unit-test -name *test.pf)
 ANY_INTEGRATION_TESTS := $(shell find integration-test -name '*.[Ff]90' -exec egrep -l "^\s*program" {} \;)
