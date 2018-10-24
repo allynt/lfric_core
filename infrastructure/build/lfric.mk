@@ -88,7 +88,7 @@ endif
 
 # Set flag to perform a fresh rose stem suite
 ifdef PURGE_SUITES
-  CLEAN_OPT :='--new' 
+  CLEAN_OPT :='--new'
 endif
 
 include $(LFRIC_BUILD)/fortran/$(FORTRAN_COMPILER).mk
