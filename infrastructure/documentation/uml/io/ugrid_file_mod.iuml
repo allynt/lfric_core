@@ -14,5 +14,5 @@ interface ugrid_file_mod::ugrid_file_type{
 }
 
 
-interface ugrid_file_mod::ugrid_file_type -left-|> file_mod::file_type
+ugrid_file_mod::ugrid_file_type -left-|> file_mod::file_type
 

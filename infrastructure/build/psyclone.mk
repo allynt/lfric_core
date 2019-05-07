@@ -20,7 +20,7 @@ PSY_SOURCE := $(patsubst $(SOURCE_DIR)/%.x90,$(WORKING_DIR)/%_psy.f90,$(filter-o
 KERNEL_SOURCE := $(patsubst ./%,$(WORKING_DIR)/%,$(shell find $(SOURCE_DIR) -path '*/kernel/*' -a -name '*.[Ff]90' -print))
 MACRO_ARGS := $(addprefix -D,$(PRE_PROCESS_MACROS))
 
-DIRECTORIES := $(patsubst $(SOURCE_DIR)/%,$(WORKING_DIR)/%,($(shell find $(SOURCE_DIR) -type d -print)))
+DIRECTORIES := $(patsubst $(SOURCE_DIR)/%,$(WORKING_DIR)/%,$(shell find $(SOURCE_DIR) -type d -print))
 
 .PHONY: jump
 jump: $(PSY_SOURCE) $(ALGORITHM_ONLY_SOURCE)
