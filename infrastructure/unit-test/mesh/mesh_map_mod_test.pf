@@ -10,7 +10,6 @@ module mesh_map_mod_test
 
   use constants_mod,        only: r_def, i_def, str_max_filename, str_def
   use extrusion_mod,        only: uniform_extrusion_type
-  use extrusion_config_mod, only: method_uniform
   use global_mesh_mod,      only: global_mesh_type
   use global_mesh_map_mod,  only: global_mesh_map_type
   use global_mesh_map_collection_mod,  only: global_mesh_map_collection_type
@@ -154,13 +153,6 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : geometry_spherical, &
-                                          partitioner_cubedsphere
-    use finite_element_config_mod, only : cellshape_quadrilateral
-    use feign_config_mod,          only : feign_base_mesh_config, &
-                                          feign_planet_config,    &
-                                          feign_extrusion_config
-
     implicit none
 
     class( mesh_map_test_type ), intent( inout ) :: this
@@ -185,21 +177,6 @@ contains
     call xt_initialize(this%getMpiCommunicator())
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
-
-    call feign_base_mesh_config                     &
-             ( filename='foo',                      &
-               prime_mesh_name=mesh_name,           &
-               geometry=geometry_spherical,         &
-               partitioner=partitioner_cubedsphere, &
-               fplane=.false., f_lat_deg=0.0_r_def )
-
-    call feign_extrusion_config( domain_top=domain_top, &
-                                 method=method_uniform, &
-                                 number_of_layers=nlayers )
-
-    call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
-                              rd=rd, cp=cp, p_zero=p_zero,                 &
-                              scaling_factor=scaling )
 
     partitioner_ptr => partitioner_cubedsphere_serial
 
@@ -265,15 +242,12 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use configuration_mod,        only: final_configuration
-
     implicit none
 
     class( mesh_map_test_type ), intent( inout ) :: this
 
     call mesh_collection%clear()
     call global_mesh_collection%clear()
-    call final_configuration()
 
     ! Finalise YAXT
     call xt_finalize()

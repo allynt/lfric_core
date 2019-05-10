@@ -7,13 +7,11 @@
 !>
 module mesh_constructor_helper_functions_mod
 
-use base_mesh_config_mod,   only : geometry, &
-                                   geometry_spherical
 use domain_size_config_mod, only : planar_domain_min_x, &
                                    planar_domain_max_x, &
                                    planar_domain_min_y, &
                                    planar_domain_max_y
-use constants_mod,          only : i_def, i_native, r_def, pi
+use constants_mod,          only : i_def, i_native, r_def, pi, l_def
 use log_mod,                only : log_event, log_scratch_space, &
                                    LOG_LEVEL_DEBUG
 
@@ -26,7 +24,6 @@ private
 public :: mesh_extruder,           &
           mesh_connectivity,       &
           set_domain_size,         &
-          set_base_z,              &
           set_dz
 
 ! Declare type definitions used in this module
@@ -55,6 +52,8 @@ contains
   !>                                 cell.
   !> @param[in]  vert_on_cell_2d     List of vertices on each 2D cell.
   !> @param[in]  vertex_coords_2d    Local 2d cell connectivity.
+  !> @param[in]  is_spherical     True: vertex_coords_2d is in lat,lon coords
+  !>                                 False: vertex_coords_2d is in x,y coords
   !> @param[in]  nverts_per_2d_cell  Number of vertices per cell of the 2D
   !>                                 layer.
   !> @param[in]  nedges_per_2d_cell  Number of edges per cell of the 2D layer.
@@ -66,11 +65,6 @@ contains
   !> @param[in]  dz                  Array of vertical grid spacing
   !> @param[in]  reference_element   Shape of cells in the mesh.
   !>
-  !> @todo This should be accepting a mesh_type object rather than a pile of
-  !>       primitive types. Unfortunately that gets you into a pickle with
-  !>       cyclic dependencies. This may be fixed with submodules or better
-  !>       problem decomposition.
-  !>
   subroutine mesh_extruder( cell_next,          &
                             vert_on_cell,       &
                             vertex_coords,      &
@@ -79,6 +73,7 @@ contains
                             cell_next_2d,       &
                             vert_on_cell_2d,    &
                             vertex_coords_2d,   &
+                            is_spherical,       &
                             nverts_per_2d_cell, &
                             nedges_per_2d_cell, &
                             nverts_2d,          &
@@ -109,6 +104,7 @@ contains
     integer(i_def), intent(in)  :: vert_on_cell_2d(nverts_per_2d_cell, &
                                                    ncells_2d)
     real(r_def),    intent(in)  :: vertex_coords_2d( 3, nverts_2d )
+    logical(l_def), intent(in)  :: is_spherical
     real(r_def),    intent(in)  :: dz( nlayers )
     integer(i_def), intent(out) :: cell_next( nfaces, ncells_3d )
     integer(i_def), intent(out) :: vert_on_cell( nverts, ncells_3d )
@@ -178,8 +174,6 @@ contains
 
     ! The assumption is that the global mesh coords are provided in
     ! [longitude, latitude, radius] (long/lat in rads).
-    ! Note that vertex_coords_2d(3,1:n_uniq_verts) are already populated
-    ! by set_base_z.
 
     ! Perform vertical extrusion for vertices
     do j=1, nverts_2d
@@ -195,7 +189,7 @@ contains
       end do
     end do
 
-    if ( geometry == geometry_spherical ) then
+    if ( is_spherical ) then
 
       ! Convert (long,lat,r) -> (x,y,z)
       ! long,lat in radians
@@ -486,9 +480,8 @@ contains
   !> @param[in]  nverts        No. of vertices in 3d mesh
   !>
   subroutine set_domain_size( domain_size, domain_top, &
-                              vertex_coords, nverts )
-
-    use planet_config_mod,     only : scaled_radius
+                              vertex_coords, nverts, &
+                              is_spherical, scaled_radius )
 
     implicit none
 
@@ -496,8 +489,10 @@ contains
     real(r_def),            intent(in)  :: domain_top
     integer(i_def),         intent(in)  :: nverts
     real(r_def),            intent(in)  :: vertex_coords(3,nverts)
+    logical(l_def),         intent(in)  :: is_spherical
+    real(r_def),            intent(in)  :: scaled_radius
 
-    if ( geometry == geometry_spherical ) then
+    if ( is_spherical ) then
       domain_size%minimum%x   =  0.0_r_def
       domain_size%maximum%x   =  2.0_r_def*PI
       domain_size%minimum%y   = -0.5_r_def*PI
@@ -520,38 +515,6 @@ contains
 
     return
   end subroutine set_domain_size
-
-  !=============================================================================
-  !> @brief Helper function which assigns the values of base surace height to a
-  !> field of surface vertex coordinates (Called from the mesh constructor).
-  !> @param[in,out] vertex_coords_2d Local 2d surface coordinates (lat-lon-z)
-  !> @param[in]     nverts_2d        No. of vertices in a 2d layer
-  subroutine set_base_z(vertex_coords_2d, nverts_2d)
-
-    use planet_config_mod,     only : scaled_radius
-
-    implicit none
-
-    integer(i_def), intent(in)     :: nverts_2d
-    real(r_def),    intent(inout)  :: vertex_coords_2d( 3, nverts_2d )
-
-    ! The height of the lowest z-level
-    real(r_def) :: base_z
-
-    ! Set base surface height
-    if( geometry == geometry_spherical )then
-      !> @todo We shouldn't be using earth_radius here - it should be
-      !!       some form of scaled planet radius - but that is a much
-      !!       bigger change for a different ticket.
-      base_z = scaled_radius
-    else
-      base_z = 0.0_r_def
-    end if
-
-    vertex_coords_2d(3,:) = base_z
-
-    return
-  end subroutine set_base_z
 
   !============================================================================
   !> @brief Helper function that calculates and stores depth of layers in 

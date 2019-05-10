@@ -237,7 +237,7 @@ contains
   end function global_mesh_constructor
 
   !===========================================================================
-  !> @brief Constructs a small example mesh for unit testing purposese.
+  !> @brief Constructs a small example mesh for unit testing purposes.
   !>
   !> @return 2D global mesh object based on a 9-cell global mesh. 3x3 cell
   !>         arrangement of quadrilateral cells.
@@ -255,7 +255,9 @@ contains
 
     call self%set_id(global_mesh_id_counter)
 
-    self%mesh_class = 'plane'
+    ! The feigner in the mesh unit test sets geometry to spherical,
+    ! so make the global mesh used in the mesh unit tests consistent
+    self%mesh_class = 'sphere'
 
     ! Returns global_mesh_object of size 3x3 quad reference cell.
     ! As per reference cell, direction of numbering is anti-clockwise

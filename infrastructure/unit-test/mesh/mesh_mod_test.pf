@@ -159,39 +159,17 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : geometry_spherical, &
-                                          partitioner_cubedsphere
-    use extrusion_config_mod,      only : method_uniform
-    use finite_element_config_mod, only : cellshape_quadrilateral
-    use feign_config_mod,          only : feign_base_mesh_config, &
-                                          feign_extrusion_config, &
-                                          feign_planet_config
-
     implicit none
 
     class( mesh_test_type ), intent( inout ) :: this
 
     integer(i_def) :: global_mesh_id
+    real(r_def)    :: scaled_radius
 
     ! Initialise YAXT
     call xt_initialize(this%getMpiCommunicator())
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
-
-    call feign_base_mesh_config                     &
-             ( filename='foo',                      &
-               prime_mesh_name=mesh_name,           &
-               geometry=geometry_spherical,         &
-               partitioner=partitioner_cubedsphere, &
-               fplane=.false., f_lat_deg=0.0_r_def )
-
-    call feign_extrusion_config( domain_top=domain_top, &
-                                 method=method_uniform, &
-                                 number_of_layers=nlayers )
-
-    call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
-                              rd=rd, cp=cp, p_zero=p_zero,                 &
-                              scaling_factor=scaling )
 
     global_mesh_collection = global_mesh_collection_type()
     global_mesh_id = global_mesh_collection%add_unit_test_global_mesh()
@@ -199,21 +177,19 @@ contains
     this%global_mesh => global_mesh_collection%get_global_mesh(global_mesh_id)
     this%partition   =  partition_type()
 
-    this%extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
+    scaled_radius = radius/scaling
+    this%extrusion = uniform_extrusion_type( scaled_radius, domain_top, nlayers )
 
   end subroutine setUp
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine tearDown( this )
 
-    use configuration_mod,        only: final_configuration
-
     implicit none
 
     class( mesh_test_type ), intent( inout ) :: this
 
     call global_mesh_collection%clear()
-    call final_configuration()
 
     ! Finalise YAXT
     call xt_finalize()

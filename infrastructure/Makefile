@@ -129,6 +129,10 @@ generate-unit-tests: ALWAYS
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
                   SOURCE_DIR=source \
                   WORKING_DIR=$(WORKING_DIR)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/configuration.mk \
+	          SOURCE_DIR=source \
+	          WORKING_DIR=$(WORKING_DIR) \
+                  META_FILE_DIR=$(META_FILE_DIR)
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
                   SOURCE_DIR=source \
                   WORKING_DIR=$(WORKING_DIR)

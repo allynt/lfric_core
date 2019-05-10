@@ -14,11 +14,8 @@
 !>
 module mesh_mod
 
-  use base_mesh_config_mod,  only : geometry, &
-                                    geometry_spherical
   use constants_mod,         only : i_def, i_native, r_def, l_def, pi, imdi
   use extrusion_mod,         only : extrusion_type
-  use extrusion_config_mod,  only : method_uniform
   use global_mesh_mod,       only : global_mesh_type
   use global_mesh_collection_mod, only : global_mesh_collection
   use global_mesh_map_mod,   only : global_mesh_map_type
@@ -35,7 +32,6 @@ module mesh_mod
                                     mesh_extruder,           &
                                     mesh_connectivity,       &
                                     set_domain_size,         &
-                                    set_base_z,              &
                                     set_dz
   use mesh_map_mod,          only : mesh_map_type
   use mesh_map_collection_mod, only : mesh_map_collection_type
@@ -73,6 +69,10 @@ module mesh_mod
 
     !> Top of atmosphere above surface
     real(r_def) :: domain_top
+
+    !> Base surface height
+    !  (0.0 for planar meshes, scaled_radius for cubedsphere)
+    real(r_def) :: domain_bottom
 
     !> Non-dimensional vertical coordinate eta[0,1], eta(0:nlayers)
     real(r_def), allocatable :: eta(:)
@@ -369,6 +369,10 @@ contains
     ! Surface Coordinates in [long, lat, radius] (Units: Radians/metres)
     real(r_def), allocatable :: vertex_coords_2d(:,:)
 
+    ! is_spherical = True: vertex_coords_2d is in lat,lon coords,
+    !                  False: vertex_coords_2d is in x,y coords   
+    logical(l_def) :: is_spherical
+
     call extrusion%get_reference_element( global_mesh, &
                                           self%reference_element )
 
@@ -389,6 +393,7 @@ contains
     self%ncells               = self%ncells_2d * self%nlayers
     self%ncells_with_ghost    = self%ncells_2d_with_ghost * self%nlayers
     self%domain_top           = extrusion%get_atmosphere_top()
+    self%domain_bottom        = extrusion%get_atmosphere_bottom()
     self%ncolours             = -1     ! Initialise ncolours to error status
     self%ncells_global_mesh   = global_mesh%get_ncells()
 
@@ -435,74 +440,56 @@ contains
     allocate( self%cell_lid_gid_map(self%ncells_2d_with_ghost) )
 
     allocate( vert_on_cell_2d_gid (self%nverts_per_2d_cell, self%ncells_2d_with_ghost) )
-    if ( geometry == geometry_spherical .and. &
-         partition%get_total_ranks() == 1 ) then
 
-      ! Note: For a single partition, the global ids should be the same
-      !       as the local cell ids, so we can simply extract "map" and
-      !       cell_next_2d arrays.
-      allocate( cell_next_2d(nedges_per_2d_cell, self%ncells_2d_with_ghost) )
+    ! Note: Multiple partition, the global ids lid-gid map is required
+    !       and cell_next_2d arrays need to be constructed with local
+    !       cell ids.
+    allocate( cell_next_2d_gid(nedges_per_2d_cell, self%ncells_2d_with_ghost) )
 
-      cell_next_2d        = global_mesh%get_all_cells_next()
-      vert_on_cell_2d_gid = global_mesh%get_vert_on_all_cells()
-      edge_on_cell_2d_gid = global_mesh%get_edge_on_all_cells()
+    do i=1, self%ncells_2d_with_ghost
 
-      do i=1, self%ncells_2d_with_ghost
-         self%cell_lid_gid_map(i) = partition%get_gid_from_lid(i)
-      end do
+      cell_gid = partition%get_gid_from_lid(i)
+      self%cell_lid_gid_map(i) = cell_gid
 
-    else
-      ! Note: Multiple partition, the global ids lid-gid map is required
-      !       and cell_next_2d arrays need to be constructed with local
-      !       cell ids.
-      allocate( cell_next_2d_gid(nedges_per_2d_cell, self%ncells_2d_with_ghost) )
+      call global_mesh%get_vert_on_cell (cell_gid, vert_on_cell_2d_gid(:,i))
+      call global_mesh%get_edge_on_cell (cell_gid, edge_on_cell_2d_gid(:,i))
+      call global_mesh%get_cell_next    (cell_gid, cell_next_2d_gid(:,i))
 
-      do i=1, self%ncells_2d_with_ghost
+    end do
 
-        cell_gid = partition%get_gid_from_lid(i)
-        self%cell_lid_gid_map(i) = cell_gid
+    !--------------------------------------------------------------------------
+    ! Now get a list of all unique entities in partition (cells/vertices/edges)
+    !--------------------------------------------------------------------------
+    ! A. Generate cell_next for partition, in local ids
+    allocate( cell_next_2d (nedges_per_2d_cell, self%ncells_2d_with_ghost) )
 
-        call global_mesh%get_vert_on_cell (cell_gid, vert_on_cell_2d_gid(:,i))
-        call global_mesh%get_edge_on_cell (cell_gid, edge_on_cell_2d_gid(:,i))
-        call global_mesh%get_cell_next    (cell_gid, cell_next_2d_gid(:,i))
+    ! Set default to 0, For missing cells, i.e. at the edge of a partition
+    ! there is no cell_next. So default to zero if a cell_next is not found
+    cell_next_2d(:,:) = 0
 
-      end do
+    do i=1, self%ncells_2d_with_ghost
+      do j=1, nedges_per_2d_cell
+        ! For a 2D cell in the partition, get the each global id of its
+        ! adjacent cell.
+        cell_gid = cell_next_2d_gid(j,i)
 
-      !--------------------------------------------------------------------------
-      ! Now get a list of all unique entities in partition (cells/vertices/edges)
-      !--------------------------------------------------------------------------
-      ! A. Generate cell_next for partition, in local ids
-      allocate( cell_next_2d (nedges_per_2d_cell, self%ncells_2d_with_ghost) )
+        do counter=1, self%ncells_2d_with_ghost
+          ! Loop over all cells in the partition, getting the cell
+          ! global id.
+          tmp_int = partition%get_gid_from_lid(counter)
 
-      ! Set default to 0, For missing cells, i.e. at the edge of a partition
-      ! there is no cell_next. So default to zero if a cell_next is not found
-      cell_next_2d(:,:) = 0
-
-      do i=1, self%ncells_2d_with_ghost
-        do j=1, nedges_per_2d_cell
-          ! For a 2D cell in the partition, get the each global id of its
-          ! adjacent cell.
-          cell_gid = cell_next_2d_gid(j,i)
-
-          do counter=1, self%ncells_2d_with_ghost
-            ! Loop over all cells in the partition, getting the cell
-            ! global id.
-            tmp_int = partition%get_gid_from_lid(counter)
-
-            ! Set the adjacent cell id to the local id if
-            ! it's global appears in the partition
-            if (tmp_int == cell_gid) then
-              cell_next_2d(j,i) = counter
-              exit
-            end if
-          end do
-
+          ! Set the adjacent cell id to the local id if
+          ! it's global appears in the partition
+          if (tmp_int == cell_gid) then
+            cell_next_2d(j,i) = counter
+            exit
+          end if
         end do
+
       end do
+    end do
 
-      deallocate( cell_next_2d_gid )
-
-    end if
+    deallocate( cell_next_2d_gid )
 
     !--------------------------------------------------------------------------
     ! B. Get global ids of vertices in partition
@@ -612,8 +599,11 @@ contains
       call global_mesh%get_vert_coords(vert_gid,vertex_coords_2d(:,i))
     end do
 
+    is_spherical = .false.
+    if ( trim(global_mesh%get_mesh_class()) == "sphere" ) is_spherical = .true.
+
     ! Set base surface height
-    call set_base_z(vertex_coords_2d, n_uniq_verts)
+    vertex_coords_2d(3,:) = self%domain_bottom
 
     deallocate( vert_lid_gid_map )
 
@@ -634,6 +624,7 @@ contains
                         cell_next_2d,                                 &
                         vert_on_cell_2d,                              &
                         vertex_coords_2d,                             &
+                        is_spherical,                                 &
                         self%nverts_per_2d_cell,                      &
                         nedges_per_2d_cell,                           &
                         self%nverts_2d,                               &
@@ -660,7 +651,8 @@ contains
                             self%reference_element )
 
     call set_domain_size( self%domain_size, self%domain_top, &
-                          self%vertex_coords, self%nverts )
+                          self%vertex_coords, self%nverts, &
+                          is_spherical, self%domain_bottom )
 
     deallocate (vert_on_cell_2d)
     deallocate (edge_on_cell_2d)
