@@ -31,7 +31,7 @@ module umprintmgr
 ! parameterisation of storage/buffering ammounts
   INTEGER, PARAMETER            :: maxLineLen=1024
 ! Declare newline character
-  CHARACTER(LEN=1)              :: newline
+  CHARACTER(LEN=1), PARAMETER   :: newline=NEW_LINE('a')
 ! ========================
 ! A buffer that clients
 ! can use for list

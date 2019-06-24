@@ -348,8 +348,8 @@ contains
     ! UM modules
     !---------------------------------------
     ! structures holding diagnostic arrays - not used
-    use bl_diags_mod, only: BL_diag
-    use sf_diags_mod, only: sf_diag
+    use bl_diags_mod, only: BL_diag, dealloc_bl_imp
+    use sf_diags_mod, only: sf_diag, dealloc_sf_expl, dealloc_sf_imp
     ! other modules containing stuff passed to BL
     use atm_fields_bounds_mod, only: tdims, udims, vdims, udims_s, vdims_s, &
          pdims
@@ -364,7 +364,7 @@ contains
     use ni_bl_ctl_mod, only: ni_bl_ctl
     use ni_imp_ctl_mod, only: ni_imp_ctl
     use nlsizes_namelist_mod, only: row_length, rows, land_field,&
-         sm_levels, ntiles, model_levels, bl_levels, tr_vars
+         sm_levels, ntiles, model_levels, bl_levels, tr_vars, n_cca_lev
     use planet_constants_mod, only: p_zero, kappa, planet_radius
     use timestep_mod, only: timestep
     use turb_diff_ctl_mod, only: visc_m, visc_h, max_diff, delta_smag
@@ -456,12 +456,11 @@ contains
     ! switches and model parameters/dimensions/time etc
     integer(i_um) :: cycleno, error_code
     integer(i_um) :: val_year, val_day_number, val_hour, val_minute, val_second
-    integer(i_um) :: co2_dim_len, co2_dim_row, rhc_row_length, &
-                     rhc_rows, cloud_levels, n_cca_levels
+    integer(i_um) :: co2_dim_len, co2_dim_row
     integer(i_um) :: asteps_since_triffid
     integer(i_um), parameter :: nscmdpkgs=15
     logical,       parameter :: l_scmdiags(nscmdpkgs)=.false.
-    logical :: l_scrn, l_aero_classic, l_spec_z0, l_plsp, &
+    logical :: l_aero_classic, l_spec_z0, &
                l_extra_call, l_calc_at_p, l_jules_call
 
     ! profile fields from level 1 upwards
@@ -509,9 +508,9 @@ contains
          zhpar_shcu, flandfac, fseafac, rhokm_land, rhokm_ssi, cdr10m,       &
          tstar_land, tstar_ssi, dtstar_sea, t1_sd, q1_sd, wstar, wthvs,      &
          xx_cos_theta_latitude, ice_fract, ls_rain, ls_snow, conv_rain_copy, &
-         conv_snow_copy, cca0_2d, qcl_inv_top, co2_emits, co2flux,           &
-         tscrndcl_ssi, tstbtrans, sum_eng_fluxes, sum_moist_flux, drydep2,   &
-         olr, surf_ht_flux_land, zlcl_mixed, theta_star_surf, qv_star_surf,  &
+         conv_snow_copy, qcl_inv_top, co2_emits, co2flux, tscrndcl_ssi,      &
+         tstbtrans, sum_eng_fluxes, sum_moist_flux, drydep2, olr,            &
+         surf_ht_flux_land, zlcl_mixed, theta_star_surf, qv_star_surf,       &
          snowmelt, tstar_sice, u_0_p, v_0_p, w_max, deep_flag, past_precip,  &
          past_conv_ht, zlcl_uv, ql_ad, cin_undilute, cape_undilute,          &
          entrain_coef, qsat_lcl, delthvu, dtstar_sice, ustar_in, g_ccp,      &
@@ -526,13 +525,13 @@ contains
                                                  nbdsc, ntdsc
     ! single level fields
     logical, dimension(row_length,rows) :: land_sea_mask, cumulus,       &
-                                           l_shallow, l_pc2_diag_sh_pts, &
+                                           l_shallow,                    &
                                            no_cumulus, l_congestus,      &
                                            l_congestus2
     ! fields on ice categories
     real(r_um), dimension(row_length,rows,nice_use) ::                    &
          ice_fract_cat_use, k_sice, co2, ti, tstar_sice_cat, radnet_sice, &
-         radnet_sea, fqw_ice, ftl_ice, di_ncat, ice_fract_ncat
+         fqw_ice, ftl_ice, di_ncat, ice_fract_ncat
     ! field on land points and soil levels
     real(r_um), dimension(land_field,sm_levels) :: soil_layer_moisture, &
          smvccl_levs, smvcwt_levs, smvcst_levs, sthf, sthu, ext
@@ -601,7 +600,7 @@ contains
     ! single level fields
     real(r_um), dimension(row_length,rows) ::                          &
         it_lcca,it_cca_2d, it_cclwp,                                   &
-        it_cca0_2d, it_cclwp0, it_conv_rain, it_conv_snow,             &
+        it_cclwp0, it_conv_rain, it_conv_snow,                         &
         it_precip_dp, it_precip_sh, it_precip_md, it_cape_out,         &
         it_dp_cfl_limited, it_md_cfl_limited,                          &
         ind_cape_reduced, cape_ts_used, it_ind_deep, it_ind_shall,     &
@@ -615,15 +614,6 @@ contains
     type(scm_convss_dg_type), allocatable :: scm_convss_dg(:,:)
 
     !-----------------------------------------------------------------------
-    ! variables allocated in atmos_physics2 under stashflags
-    allocate(cd10m_n(1, 1))
-    allocate(cd10m_n_u(1, 1))
-    allocate(cd10m_n_v(1, 1))
-    allocate(cdr10m_n(1, 1))
-    allocate(cdr10m_n_u(1, 1))
-    allocate(cdr10m_n_v(1, 1))
-
-    !-----------------------------------------------------------------------
     ! Initialisation of variables and arrays
     ! These will need to be configured/passed in by LFRic, but for
     ! the initial implementation these will be set here...
@@ -633,11 +623,6 @@ contains
     ! model dimensions
     co2_dim_len=1
     co2_dim_row=1
-    rhc_row_length=1
-    rhc_rows=1
-    cloud_levels=nlayers
-    n_cca_levels=nlayers
-
     ! surface ancils
     land_sea_mask=.false.
     frac=0.0
@@ -646,9 +631,7 @@ contains
     ice_fract_cat_use=0.0
     ice_fract_ncat=0.0
     ! diagnostic flags
-    l_scrn=.false.
     error_code=0
-    l_plsp=.false.
     ! other logicals
     l_aero_classic=.false.
     l_extra_call=.false.
@@ -875,7 +858,7 @@ contains
           , g_ccp, h_ccp                                                &
     !
     !     IN surface fluxes
-          , fb_surf, ustarGBM                                           &
+          , fb_surf, u_s                                                &
     !     SCM Diagnostics (dummy values in full UM)
           , nSCMDpkgs,L_SCMDiags                                        &
 
@@ -894,10 +877,8 @@ contains
          CycleNo, l_jules_call,                                         &
     !     IN time stepping information
          val_year, val_day_number, val_hour, val_minute, val_second,    &
-    !     IN model dimensions.
-         land_field, ntiles, bl_levels,                                 &
     !     IN switches
-         L_scrn, L_aero_classic,                                        &
+         L_aero_classic,                                                &
     !     IN data fields.
          p_rho_levels, p_theta_levels, rho_wet_rsq,rho_wet,rho_dry, u_p, v_p,&
          u_px, v_px, u_0_px, v_0_px,                                    &
@@ -927,7 +908,7 @@ contains
          nSCMDpkgs, L_SCMDiags, BL_diag, sf_diag,                       &
     !     INOUT data
          gs,z0msea,w_copy,etadot_copy,tstar_sea,tstar_sice_cat,zh,dzh,  &
-         cumulus, ntml,ntpar,l_shallow,error_code,                      &
+         cumulus, ntml,ntpar,l_shallow,                                 &
     !     INOUT additional variables for JULES
          g_leaf_acc,npp_ft_acc,resp_w_ft_acc,resp_s_acc,                &
     !     INOUT variables for TKE based turbulence schemes
@@ -936,33 +917,34 @@ contains
         bq_gb, bt_gb, dtrdz_charney_grid,rdz_charney_grid,              &
         dtrdz_u, dtrdz_v, rdz_u, rdz_v, k_blend_tq, k_blend_uv,         &
       ! INOUT variables from Jules needed elsewhere
-        flandfac,fseafac,rhokm_land,rhokm_ssi,cdr10m,cdr10m_n,cd10m_n,  &
-        fqw, ftl, rib_gb, vshr, z0m_eff_gb, z0h_eff_gb, r_b_dust,       &
+        flandfac,fseafac,rhokm_land,rhokm_ssi,cdr10m,                   &
+        fqw, ftl, rib_gb, vshr, z0m_eff_gb, r_b_dust,                   &
         rho_aresist,aresist,resist_b, rhokm,rhokh,                      &
-      ! INOUT diagnostics required for soil moisture nudging scheme :
-        wt_ext,                                                         &
       ! INOUT variables required in IMP_SOLVER
-        alpha1_sea, alpha1_sice, ashtf_sea, ashtf, uStarGBM,            &
+        alpha1_sea, alpha1_sice, ashtf_prime_sea, ashtf_prime, u_s,     &
       ! INOUT additional variables for JULES
-        ftl_tile,radnet_sea,radnet_sice,rib_tile,rho_aresist_tile,      &
-        aresist_tile,resist_b_tile,alpha1,ashtf_tile,fqw_tile,epot_tile,&
-        fqw_ice,ftl_ice,fraca,resfs,resft,rhokh_tile,rhokh_sice,rhokh_sea,&
-        z0hssi,z0h_tile,z0m_gb,z0mssi,z0m_tile,chr1p5m,chr1p5m_sice,smc,&
-        gpp,npp,resp_p,g_leaf,gpp_ft,npp_ft,resp_p_ft,resp_s,resp_s_tot,&
-        resp_w_ft,gc,canhc_tile,wt_ext_tile,flake,tile_index,tile_pts,  &
-        tile_frac,fsmc,vshr_land,vshr_ssi,tstar_land,tstar_ssi,dtstar_tile,&
-        dtstar_sea,dtstar_sice,hcons,emis_tile,emis_soil,t1_sd,q1_sd,fb_surf,&
+        ftl_tile,radnet_sice,rho_aresist_surft,                         &
+        aresist_surft, resist_b_surft, alpha1, ashtf_prime_surft,       &
+        fqw_tile,epot_tile,                                             &
+        fqw_ice,ftl_ice,fraca,resfs,resft,rhokh_surft,rhokh_sice,rhokh_sea, &
+        z0hssi,z0h_surft,z0mssi,z0m_surft,chr1p5m,chr1p5m_sice,smc_soilt, &
+        npp_gb, resp_s_gb_um, resp_s_tot_soilt,                         &
+        resp_w_pft, gc_surft, canhc_surft, wt_ext_surft, flake,         &
+        surft_index, surft_pts,                                         &
+        tile_frac, tstar_land, tstar_ssi, dtstar_tile,                  &
+        dtstar_sea, dtstar_sice, hcons_soilt, emis_surft, emis_soil,    &
+        t1_sd, q1_sd, fb_surf,                                          &
       ! OUT variables for message passing
         tau_fd_x, tau_fd_y, rhogamu, rhogamv, f_ngstress,               &
       ! OUT diagnostics (done after implicit solver)
-        zht, zhnl, shallowc,cu_over_orog,bl_type_1,bl_type_2,bl_type_3, &
+        zhnl, shallowc,cu_over_orog,bl_type_1,bl_type_2,bl_type_3,      &
         bl_type_4,bl_type_5,bl_type_6, bl_type_7, bl_w_var,             &
       ! OUT variables required for mineral dust scheme
         dust_flux,dust_emiss_frac, u_s_t_tile,u_s_t_dry_tile,           &
-        u_s_std_tile, kent, we_lim, t_frac, zrzi,                       &
+        u_s_std_surft, kent, we_lim, t_frac, zrzi,                      &
         kent_dsc, we_lim_dsc, t_frac_dsc, zrzi_dsc, zhsc,               &
       ! OUT fields
-        nbdsc,ntdsc,wstar,wthvs,uw0,vw0,taux_p,tauy_p,rhcpt, rib_ssi    &
+        nbdsc,ntdsc,wstar,wthvs,uw0,vw0,taux_p,tauy_p,rhcpt             &
      )
 
     !-----------------------------------------------------------------------
@@ -1132,11 +1114,11 @@ contains
 
         ! Initialise convection work arrays holding information from each
         ! iteration (sub-step)
-        it_cca(1,1,:n_cca_levels)  = 0.0_r_um
-        it_cca0(1,1,:n_cca_levels) = 0.0_r_um
-        it_cca0_dp(1,1,:n_cca_levels) = 0.0_r_um
-        it_cca0_sh(1,1,:n_cca_levels) = 0.0_r_um
-        it_cca0_md(1,1,:n_cca_levels) = 0.0_r_um
+        it_cca(1,1,:n_cca_lev)  = 0.0_r_um
+        it_cca0(1,1,:n_cca_lev) = 0.0_r_um
+        it_cca0_dp(1,1,:n_cca_lev) = 0.0_r_um
+        it_cca0_sh(1,1,:n_cca_lev) = 0.0_r_um
+        it_cca0_md(1,1,:n_cca_lev) = 0.0_r_um
       
         it_ccw(1,1,:)  = 0.0_r_um
         it_ccw0(1,1,:) = 0.0_r_um
@@ -1156,7 +1138,6 @@ contains
 
         it_ccb0(1,1)   = 0
         it_cct0(1,1)   = 0
-        it_cca0_2d(1,1)= 0.0_r_um
         it_cclwp0(1,1) = 0.0_r_um
 
         it_conv_rain(1,1) = 0.0_r_um
@@ -1190,7 +1171,7 @@ contains
           , it_conv_rain, it_conv_snow, it_conv_rain_3d, it_conv_snow_3d      &
           , it_cca0_dp, it_cca0_md, it_cca0_sh                                &
           , it_cca0,  it_ccb0, it_cct0, it_cclwp0, it_ccw0, it_lcbase0        &
-          , it_cca0_2d, it_lctop,  it_lcca                                    &
+          , it_lctop,  it_lcca                                                &
           , it_cca,   it_ccb,  it_cct,  it_cclwp,  it_ccw,  it_lcbase         &
           , it_cca_2d, freeze_lev, it_dp_cfl_limited, it_md_cfl_limited       &
           , it_mid_level, it_kterm_deep, it_kterm_shall                       &
@@ -1207,10 +1188,10 @@ contains
           , p_rho_minus_one, p_theta_levels                                   &
           , z_theta, z_rho, timestep_conv                                     &
           , t1_sd, q1_sd, ntml, ntpar                                         &
-          , conv_type, l_shallow, l_pc2_diag_sh_pts                           &
+          , conv_type, l_shallow                                              &
           , l_congestus, l_mid, cumulus                                       &
           , wstar, wthvs, delthvu, ql_ad, qsat_lcl, ftl, fqw                  &
-          , l_tracer, ntra_fld, ntra_lev, n_cca_levels, l_mcr_qrain           &
+          , l_tracer, ntra_fld, ntra_lev, n_cca_lev, l_mcr_qrain              &
           , l_mcr_qgraup, l_mcr_qcf2, l_calc_dxek , l_q_interact              &
           , it_up_flux_half, it_up_flux,      it_dwn_flux                     &
           , it_entrain_up,   it_detrain_up, it_entrain_dwn,  it_detrain_dwn   &
@@ -1478,14 +1459,8 @@ contains
     conv_snow_copy(1,1) = conv_snow(map_2d(1))
 
     CALL NI_imp_ctl (                                                   &
-    ! IN model dimensions.
-            rhc_row_length, rhc_rows, land_field                        &
-          , ntiles, bl_levels                                           &
-          , cloud_levels, n_cca_levels                                  &
     ! IN Model switches
-          , CycleNo                                                     &
-    ! IN model Parameters
-          , tr_vars                                                     &
+            CycleNo                                                     &
     ! IN trig arrays
           , xx_cos_theta_latitude                                       &
     ! IN data fields.
@@ -1495,49 +1470,44 @@ contains
     ! IN ancillary fields and fields needed to be kept from tstep to tstep
           , sil_orog_land, ho2r2_orog                                   &
           , ice_fract, di_ncat, ice_fract_ncat, k_sice, u_0, v_0, land_index&
-          , cca_3d, lcbase, ccb0, cct0                                   &
+          , cca, lcbase, ccb0, cct0                                     &
           , ls_rain, ls_snow, conv_rain_copy, conv_snow_copy            &
-          , L_scrn, L_plsp                                              &
     ! IN variables required from BDY_LAYR
-          , alpha1_sea, alpha1_sice, ashtf_sea, ashtf, bq_gb, bt_gb     &
+          , alpha1_sea, alpha1_sice, ashtf_prime_sea, ashtf_prime, bq_gb, bt_gb&
           , dtrdz_charney_grid, rdz_charney_grid, dtrdz_u, dtrdz_v      &
-          , rdz_u, rdz_v, cdr10m_u, cdr10m_v, cdr10m_n_u, cdr10m_n_v    &
-          , cd10m_n_u, cd10m_n_v, z_theta                               &
-          , k_blend_tq, k_blend_uv, uStarGBM, rhokm, rhokm_u, rhokm_v   &
+          , rdz_u, rdz_v, cdr10m_u, cdr10m_v, z_theta                   &
+          , k_blend_tq, k_blend_uv, u_s, rhokm, rhokm_u, rhokm_v        &
     ! IN diagnostics (started or from) BDY_LAYR
-          , rib_gb,zlcl,zht,zhnl,dzh,qcl_inv_top,zh                     &
+          , rib_gb,zlcl, zhnl, dzh, qcl_inv_top, zh                     &
           , bl_type_1,bl_type_2,bl_type_3,bl_type_4,bl_type_5,bl_type_6 &
-          , bl_type_7, z0m_gb, z0m_eff_gb, z0h_eff_gb                   &
-          , ntml, cumulus, l_pc2_diag_sh_pts                            &
+          , bl_type_7, z0m_eff_gb, ntml, cumulus                        &
     ! IN data required for tracer mixing :
           , rho_aresist,aresist,r_b_dust                                &
           , kent, we_lim, t_frac, zrzi                                  &
           , kent_dsc, we_lim_dsc, t_frac_dsc, zrzi_dsc                  &
           , zhsc,z_rho,dust_flux,dust_emiss_frac                        &
-          , u_s_t_tile,u_s_t_dry_tile,u_s_std_tile                      &
+          , u_s_t_tile,u_s_t_dry_tile,u_s_std_surft                     &
      ! IN additional variables for JULES. Now includes lai_ft, canht_ft.
-          , tile_pts,tile_index,tile_frac,canopy                        &
-          , alpha1,fraca,rhokh_tile,smc,chr1p5m,resfs,z0hssi,z0mssi     &
-          , canhc_tile,flake,wt_ext_tile,lw_down,lai_ft,canht_ft        &
-          , sw_tile,ashtf_tile,gc,aresist_tile                          &
-          , resft,rhokh_sice,rhokh_sea,z0h_tile,z0m_tile                &
+          , surft_pts,surft_index,tile_frac,canopy                      &
+          , alpha1,fraca,rhokh_surft,smc_soilt,chr1p5m,resfs,z0hssi,z0mssi &
+          , canhc_surft,flake,wt_ext_surft,lw_down,lai_ft,canht_ft      &
+          , sw_tile,ashtf_prime_surft,gc_surft,aresist_surft            &
+          , resft,rhokh_sice,rhokh_sea,z0h_surft,z0m_surft              &
           , chr1p5m_sice                                                &
-          , fland, flandg, flandg_u,flandg_v,vshr_land,vshr_ssi         &
-          , emis_tile, t_soil, snow_tile, rib_ssi, sstfrz               &
+          , fland, flandg, flandg_u,flandg_v                            &
+          , emis_surft, t_soil, snow_tile, sstfrz                       &
     ! IN JULES variables for STASH
-          , gs,gpp,npp,resp_p,gpp_ft,npp_ft,resp_p_ft,resp_s            &
-          , resp_s_tot,cs                                               &
-          , rib_tile,fsmc,catch,g_leaf                                  &
+          , gs, npp_gb, resp_s_gb_um                                    &
+          , resp_s_tot_soilt,cs                                         &
+          , catch                                                       &
           , co2_emits, co2flux                                          &
-    !IN additional variables for soil moisture nudging scheme
-          , wt_ext,                                                     &
     ! INOUT diagnostic info
-           STASHwork3, STASHwork9                                       &
+          , STASHwork3, STASHwork9                                      &
     ! SCM Diagnostics (dummy in full UM) & bl diags
           , nSCMDpkgs, L_SCMDiags, bl_diag, sf_diag                     &
     ! INOUT (Note ti and ti_gb are IN only if l_sice_multilayers=T)
           , TScrnDcl_SSI, TScrnDcl_TILE, tStbTrans                      &
-          , cca0,ccw0,cca0_2d,fqw,ftl,taux,tauy, rhokh                  &
+          , cca0, fqw, ftl, taux, tauy, rhokh                           &
           , fqw_ice,ftl_ice,dtstar_tile,dtstar_sea,dtstar_sice,ti       &
           , area_cloud_fraction, bulk_cloud_fraction                    &
           , t_latest, q_latest, qcl_latest, qcf_latest                  &
@@ -1545,15 +1515,15 @@ contains
           , R_u, R_v, R_w, cloud_fraction_liquid, cloud_fraction_frozen &
           , sum_eng_fluxes,sum_moist_flux, rhcpt                        &
     ! INOUT tracer fields
-          , aerosol, free_tracers,  resist_b,  resist_b_tile            &
+          , aerosol, free_tracers,  resist_b,  resist_b_surft           &
           , dust_div1,dust_div2,dust_div3,dust_div4,dust_div5,dust_div6 &
           , drydep2, so2, dms, so4_aitken, so4_accu, so4_diss, nh3      &
           , soot_new, soot_aged, soot_cld, bmass_new, bmass_aged        &
-          , bmass_cld, ocff_new, ocff_aged, ocff_cld, nitr_acc, nitr_diss&
+          , bmass_cld, ocff_new, ocff_aged, ocff_cld, nitr_acc, nitr_diss &
           , co2, ozone_tracer                                           &
     ! INOUT additional variables for JULES
           , tstar_tile,fqw_tile,epot_tile,ftl_tile                      &
-          , radnet_sea,radnet_sice,olr,tstar_sice_cat,tstar_ssi         &
+          , radnet_sice,olr,tstar_sice_cat,tstar_ssi                    &
           , tstar_sea,taux_land,taux_ssi,tauy_land,tauy_ssi,Error_code  &
     ! OUT fields
           , surf_ht_flux_land, zlcl_mixed                               &
@@ -1566,17 +1536,9 @@ contains
             )
 
     ! deallocate diagnostics deallocated in atmos_physics2
-    deallocate(bl_diag%q_incr)
-    deallocate(bl_diag%qcl_incr)
-    deallocate(bl_diag%qcf_incr)
-    deallocate(cd10m_n)
-    deallocate(cd10m_n_u)
-    deallocate(cd10m_n_v)
-    deallocate(cdr10m_n)
-    deallocate(cdr10m_n_u)
-    deallocate(cdr10m_n_v)
-    deallocate(sf_diag%t1p5m_surft)
-    deallocate(sf_diag%q1p5m_surft)
+    CALL dealloc_bl_imp(bl_diag)
+    CALL dealloc_sf_imp(sf_diag)
+    CALL dealloc_sf_expl(sf_diag)
 
     !-----------------------------------------------------------------------
     ! update main model prognostics
