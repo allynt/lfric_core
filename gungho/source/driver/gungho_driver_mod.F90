@@ -32,7 +32,7 @@ module gungho_driver_mod
                                   only : create_physics_prognostics
   use init_gungho_prognostics_alg_mod, &
                                   only : init_gungho_prognostics_alg
-  use map_fd_to_prognostics_mod,  only : map_fd_to_prognostics
+  use map_fd_to_prognostics_alg_mod,  only : map_fd_to_prognostics
   use moist_dyn_factors_alg_mod,  only : moist_dyn_factors_alg
   use initial_cloud_alg_mod,      only : initial_cloud_alg
   use init_jules_alg_mod,         only : init_jules_alg

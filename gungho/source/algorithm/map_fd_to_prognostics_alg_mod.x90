@@ -5,7 +5,7 @@
 !-----------------------------------------------------------------------------
 
 !>@brief Set prognostic fields from FD start dump
-module map_fd_to_prognostics_mod
+module map_fd_to_prognostics_alg_mod
   use constants_mod,                   only: r_def
   use log_mod,                         only: log_event,         &
                                              log_scratch_space, &
@@ -214,4 +214,4 @@ contains
 
   end subroutine hydrostatic_balance
 
-end module map_fd_to_prognostics_mod
+end module map_fd_to_prognostics_alg_mod
