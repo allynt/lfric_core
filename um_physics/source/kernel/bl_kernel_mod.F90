@@ -861,7 +861,7 @@ contains
         qgraup_conv, cf_liquid_conv, cf_frozen_conv, bulk_cf_conv,         &
         u_conv,  v_conv, dq_add, ccw_3d,                                   &
         dthbydt, dqbydt, dqclbydt, dqcfbydt, dcflbydt, dcffbydt, dbcfbydt, &
-        dubydt_p, dvbydt_p, rho_dry_theta
+        dubydt_p, dvbydt_p, rho_dry_theta, conv_prog_flx
 
     real(r_um), dimension(row_length,rows,nlayers) ::                      &
         it_ccw, it_ccw0, it_conv_rain_3d, it_conv_snow_3d, it_cca,         &
@@ -1671,8 +1671,8 @@ contains
           , it_mb1, it_mb2, it_cg_term, n_cumulus                             &
           , uw0, vw0, w_max                                                   &
           , zlcl, zlcl_uv, zhpar, entrain_coef                                &
-          , conv_prog_precip, deep_flag, past_precip, past_conv_ht            &
-          , it_cape_out, n_deep, n_congestus, n_shallow                       &
+          , conv_prog_precip, conv_prog_flx, deep_flag, past_precip           &
+          , past_conv_ht, it_cape_out, n_deep, n_congestus, n_shallow         &
           , n_mid, r_rho_levels(1,1,1), r_theta_levels(1,1,1)                 &
           , rho_wet, rho_wet_tq, rho_dry, rho_dry_theta, delta_smag           &
           , exner_rho_levels, exner_rho_minus_one, exner_theta_levels         &

@@ -25,14 +25,15 @@ module conv_kernel_mod
   !>
   type, public, extends(kernel_type) :: conv_kernel_type
     private
-    type(arg_type) :: meta_args(7) = (/                &
-         arg_type(GH_FIELD, GH_WRITE, WTHETA),         &
-         arg_type(GH_FIELD, GH_WRITE, WTHETA),         &
-         arg_type(GH_FIELD, GH_READ,  WTHETA),         &
-         arg_type(GH_FIELD, GH_READ,  WTHETA),         &
-         arg_type(GH_FIELD, GH_READ,  WTHETA),         &
-         arg_type(GH_FIELD, GH_READ,  W3),             &
-         arg_type(GH_FIELD, GH_WRITE, ANY_SPACE_1)     &
+    type(arg_type) :: meta_args(8) = (/                &
+         arg_type(GH_FIELD, GH_WRITE, WTHETA),         & ! dt_conv
+         arg_type(GH_FIELD, GH_WRITE, WTHETA),         & ! dq_conv
+         arg_type(GH_FIELD, GH_READ,  WTHETA),         & ! theta_star
+         arg_type(GH_FIELD, GH_READ,  WTHETA),         & ! m_v
+         arg_type(GH_FIELD, GH_READ,  WTHETA),         & ! m_cl
+         arg_type(GH_FIELD, GH_READ,  WTHETA),         & ! exner_in_wth
+         arg_type(GH_FIELD, GH_READ,  W3),             & ! exner_in_wth
+         arg_type(GH_FIELD, GH_WRITE, ANY_SPACE_1)     & ! conv_rain
         /)
     integer :: iterates_over = CELLS
   contains
@@ -51,7 +52,8 @@ contains
   !! @param[out] dt_conv      Convection temperature increment
   !! @param[out] dmv_conv     Convection vapour increment
   !! @param[in]  theta_star   Potential temperature predictor after advection
-  !! @param[in]  m_v          Vapour mixing ration after advection
+  !! @param[in]  m_v          Vapour mixing ratio after advection
+  !! @param[in]  m_cl         Cloud liquid mixing ratio after advection
   !! @param[in]  exner_in_wth Exner pressure field in wth space
   !! @param[in]  exner_in_w3  Exner pressure field in density space
   !! @param[out] conv_rain_2d Convective rain from twod fields
@@ -69,6 +71,7 @@ subroutine conv_code(nlayers,      &
                        dmv_conv,     &
                        theta_star,   &
                        m_v,          &
+                       m_cl,         &
                        exner_in_wth, &
                        exner_in_w3,  &
                        conv_rain_2d, &
@@ -102,7 +105,7 @@ subroutine conv_code(nlayers,      &
     real(kind=r_def), dimension(undf_wth), intent(out)  :: dt_conv, dmv_conv
 
     real(kind=r_def), dimension(undf_wth), intent(in)   :: theta_star, &
-                                                           m_v,        &
+                                                           m_v, m_cl,  &
                                                            exner_in_wth
 
     real(kind=r_def), dimension(undf_w3),  intent(in)   :: exner_in_w3
@@ -113,8 +116,8 @@ subroutine conv_code(nlayers,      &
     integer(kind=i_def) :: k
 
     real(r_um), dimension(row_length,rows,nlayers) :: theta_conv, q_conv, &
-         theta_inc, q_inc, qcl_inc, cf_liquid_inc, p_theta_levels
-    real(r_um), dimension(row_length,rows,nlayers+1) :: p_rho_levels
+         theta_inc, q_inc, qcl_inc, cf_liquid_inc, p_theta_levels, qcl_conv
+    real(r_um), dimension(row_length,rows,0:nlayers) :: p_rho_minus_one
     real(r_um), dimension(row_length,rows) ::  conv_rain, p_star
 
     !-----------------------------------------------------------------------
@@ -123,14 +126,17 @@ subroutine conv_code(nlayers,      &
     do k = 1, nlayers
       theta_conv(1,1,k) = theta_star(map_wth(1) + k)
       q_conv(1,1,k) = m_v(map_wth(1) + k)
-      p_rho_levels(1,1,k) = p_zero*(exner_in_w3(map_w3(1) + k-1))**(1.0_r_def/kappa)
+      qcl_conv(1,1,k) = m_cl(map_wth(1) + k)
       p_theta_levels(1,1,k) = p_zero*(exner_in_wth(map_wth(1) + k))**(1.0_r_def/kappa)
     end do
-    ! Over-write p_rho_levels at lowest level with surface pressure
-    p_rho_levels(1,1,1) = p_zero*(exner_in_wth(map_wth(1)))**(1.0_r_def/kappa)
-    p_star(1,1) = p_rho_levels(1,1,1)
-    ! Initialised p_rho_levels at top of atmosphere
-    p_rho_levels(1,1,nlayers+1) = 0.0_r_um
+    ! Set p_rho_minus_one at lowest level with surface pressure
+    p_rho_minus_one(1,1,0) = p_zero*(exner_in_wth(map_wth(1)))**(1.0_r_def/kappa)
+    do k = 1, nlayers - 1
+      ! Pressure on rho levels, without level 1
+      p_rho_minus_one(1,1,k) = p_zero*(exner_in_w3(map_w3(1) + k))**(1.0_r_def/kappa)
+    end do
+    ! Initialised p_rho_minus_one at top of atmosphere
+    p_rho_minus_one(1,1,nlayers) = 0.0_r_um
     ! Initialise increments and output fields to zero
     theta_inc(:,:,:) = 0.0_r_um
     q_inc(:,:,:) = 0.0_r_um
@@ -141,8 +147,9 @@ subroutine conv_code(nlayers,      &
     !-----------------------------------------------------------------------
     ! Call the convection scheme
     !-----------------------------------------------------------------------
-    call llcs_control(theta_conv, q_conv, p_star, p_rho_levels, &
-         p_theta_levels, theta_inc, q_inc, qcl_inc, cf_liquid_inc, conv_rain)
+    call llcs_control(row_length, rows, theta_conv, q_conv, qcl_conv, &
+                      p_rho_minus_one, p_theta_levels, theta_inc,     &
+                      q_inc, qcl_inc, cf_liquid_inc, conv_rain)
 
     !-----------------------------------------------------------------------
     ! Update fields to pass out

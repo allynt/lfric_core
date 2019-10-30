@@ -61,7 +61,7 @@ contains
          a_ent_shr_nml, alpha_cd, puns, pstb, nl_bl_levels, kprof_cu,      &
          non_local_bl, flux_bc_opt, i_bl_vn_9c, sharp_sea_mes_land,        &
          lem_conven, to_sharp_across_1km, off, on, DynDiag_Ribased,        &
-         grey_zone_cu
+         blend_allpoints, ng_stress
     use c_z0h_z0m, only: z0h_z0m, z0h_z0m_classic
     use cloud_inputs_mod, only: i_cld_vn, forced_cu, i_rhcpt, i_cld_area,  &
          rhcrit, ice_fraction_method,falliceshear_method, cff_spread_rate, &
@@ -83,7 +83,9 @@ contains
          ccw_dp_knob,ccw_md_knob,ccw_sh_knob,                              &
          cnv_cold_pools,dil_plume_water_load,l_cloud_deep, mid_cmt_opt,    &
          plume_water_load, rad_cloud_decay_opt, cape_bottom, cape_top,     &
-         cape_min, i_convection_vn_6a, i_cv_llcs
+         cape_min, i_convection_vn_6a, i_cv_llcs, midtrig_opt,             &
+         llcs_cloud_precip, llcs_opt_all_rain, llcs_rhcrit, llcs_timescale
+    use cv_param_mod, only: mtrig_ntmlplus2
     use cv_stash_flg_mod, only: set_convection_output_flags
     use cv_set_dependent_switches_mod, only: cv_set_dependent_switches
 
@@ -105,7 +107,7 @@ contains
     use jules_surface_types_mod, only: nnpft, npft, nnvg, ntype, brd_leaf, &
         ndl_leaf, c3_grass, c4_grass, shrub, urban, lake, soil, ice
     use jules_radiation_mod, only: i_sea_alb_method,                       &
-        l_dolr_land_black, l_embedded_snow, l_mask_snow_orog,              &
+        l_embedded_snow, l_mask_snow_orog,                                 &
         l_spec_alb_bs, l_spec_albedo, l_spec_sea_alb, fixed_sea_albedo
     use nvegparm, only:                                                    &
         albsnc_nvg, albsnf_nvgu, albsnf_nvg, albsnf_nvgl, catch_nvg,       &
@@ -119,7 +121,8 @@ contains
         lma, neff, nl0, nmass, nr, nr_nl, ns_nl, nsw, omega, omegal,       &
         omegau, omnir, omnirl, omniru, orient, q10_leaf, r_grow, rootd_ft, &
         sigl, tleaf_of, tlow, tupp, vint, vsl
-    use jules_vegetation_mod, only: can_rad_mod, ilayers, l_vegcan_soilfx
+    use jules_vegetation_mod, only: can_rad_mod, ilayers, l_vegcan_soilfx, &
+         photo_model, photo_collatz
     use g_wave_input_mod, only: ussp_launch_factor,                        &
                                 wavelstar, l_add_cgw, cgw_scale_factor
     use dust_parameters_mod, only: i_dust, i_dust_off,                     &
@@ -229,7 +232,6 @@ contains
     ! Set up JULES radiation values (GL7 config: jules_radiation)
     i_sea_alb_method=4
     fixed_sea_albedo=0.06_r_um
-    l_dolr_land_black=.false.
     l_embedded_snow=.true.
     l_mask_snow_orog=.true.
     l_spec_alb_bs=.true.
@@ -328,7 +330,9 @@ contains
     z0h_z0m_classic=(/ 0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1 /)
 
     ! Set up JULES vegetation values
-    l_vegcan_soilfx   = .true.
+    l_vegcan_soilfx = .true.
+    ilayers         = 10
+    photo_model     = photo_collatz
 
     ! Set up additional JULES values (GL7 config)
     if (can_rad_mod == 6) then
@@ -392,6 +396,11 @@ contains
 
     if ( l_param_conv ) then
 
+      ! Options needed by all convection schemes
+      mparwtr  = 1.5000e-3_r_um
+      qlmin    = 3.0000e-4_r_um
+      fac_qsat = 0.500_r_um
+
       ! Convection scheme
       select case (cv_scheme)
         case(cv_scheme_gregory_rowntree)
@@ -426,7 +435,6 @@ contains
           ent_fac_md   = 0.90_r_um
           ent_opt_dp = 3
           ent_opt_md = 0
-          fac_qsat = 0.500_r_um
           fdet_opt      = 0
           iconv_mid     = 1
           iconv_shallow = 1
@@ -444,10 +452,9 @@ contains
           mdet_opt_dp = 1
           mid_cmt_opt = 0
           mid_cnv_pmin = 10000.00_r_um
-          mparwtr      = 1.5000e-3_r_um
+          midtrig_opt = mtrig_ntmlplus2
           n_conv_calls = int( number_of_convection_substeps,i_um)
           plume_water_load = 0
-          qlmin  = 3.0000e-4_r_um
           qstice = 3.5000e-3_r_um
           r_det  = 0.8000_r_um
           rad_cloud_decay_opt = 0
@@ -463,8 +470,11 @@ contains
           ! Flags set to calculate all diagnostics i.e. as a SCM
           call set_convection_output_flags( )
         case(cv_scheme_lambert_lewis)
-          i_convection_vn = i_cv_llcs
-          non_local_bl    = off            ! Only valid for this option
+          i_convection_vn   = i_cv_llcs
+          non_local_bl      = off
+          llcs_cloud_precip = llcs_opt_all_rain 
+          llcs_rhcrit       = 0.8_r_um
+          llcs_timescale    = 3600.0_r_um
         case default
           write( log_scratch_space, '(A,I5)' )  &
           'Invalid convection scheme option, stopping', cv_scheme
@@ -587,14 +597,16 @@ contains
           l_subfilter_horiz = .true.
           l_subfilter_vert  = .true.
           blending_option   = off
-        case( method_2d_smag )
-          l_subfilter_horiz = .true.
-          l_subfilter_vert  = .false.
+          non_local_bl      = off
+          ng_stress         = off
+        case( method_2d_smag ) 
+          l_subfilter_horiz = .true. 
+          l_subfilter_vert  = .false. 
           blending_option   = off
         case( method_blending )
           l_subfilter_horiz = .true.
           l_subfilter_vert  = .true.
-          blending_option   = grey_zone_cu
+          blending_option   = blend_allpoints
       end select
 
       mix_factor = real(mix_factor_in, r_um)
