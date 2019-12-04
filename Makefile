@@ -17,6 +17,7 @@
 #
 OPERATE_ON ?= infrastructure mesh_tools gungho lfric_atm \
               miniapps/skeleton                          \
+              miniapps/diagnostics_infrastructure        \
               miniapps/gravity_wave                      \
               miniapps/solver_miniapp                    \
               miniapps/io_dev                            \

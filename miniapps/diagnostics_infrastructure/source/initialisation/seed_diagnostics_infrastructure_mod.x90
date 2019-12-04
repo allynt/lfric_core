@@ -1,0 +1,49 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2019 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!>@brief Barebones algorithm to help the development of miniapps
+module seed_diagnostics_infrastructure_mod
+
+    use psykal_lite_set_target_data_point_mod, only : invoke_set_target_data_point_kernel
+    use field_mod, only : field_type
+    use constants_mod, only : r_def, i_def
+    use diagnostics_infra_config_mod, only : seed_red, seed_green, seed_blue
+    implicit none
+contains
+    subroutine seed_diagnostics_infrastructure (red, green, blue)
+
+        implicit none
+        ! Prognostic fields
+        type(field_type), intent(inout) :: red, green, blue
+
+        real(kind = r_def) :: max
+        integer(kind = i_def) :: i
+
+
+        max = 255
+
+        ! Seed the data, spread over all faces
+
+        ! see link for c3 seed data and a tool to help derive cell numbers. This data now coms from the config data
+        ! - diagnostics_infra:seed_[red|green|blue]
+        !   ! note that this is now an array even if only a single value is provided.
+        !
+        ! https://metoffice.sharepoint.com/:x:/r/sites/scienceweatheritteam/Individual%20Folders
+        ! /LFRic_Inputs_Project/dofmap%20seeding%20C3%20for%20diagnostics%20miniapp.xlsx?
+        ! d=we44efdd746ac416f86ec8b161d7ea9c0&csf=1&e=4bFiJg
+
+        do i=1, size(seed_red)
+            call invoke_set_target_data_point_kernel(red, seed_red(i), 1, max) !bottom layer
+        end do
+        do i=1, size(seed_green)
+            call invoke_set_target_data_point_kernel(green, seed_green(i), 2, max) !middle layer
+        end do
+        do i=1, size(seed_blue)
+            call invoke_set_target_data_point_kernel(blue, seed_blue(i), 3, max) !top layer
+        end do
+
+    end subroutine seed_diagnostics_infrastructure
+end module seed_diagnostics_infrastructure_mod

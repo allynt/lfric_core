@@ -1,0 +1,13 @@
+#!jinja2
+%include inc/common_macros.rc
+%include inc/common_miniapp_macros.rc
+%include suite_control.rc
+%include inc/common_suite.rc
+[visualization]
+  use node color for edges = True
+  [[node attributes]]
+    root = "style=filled", "fontcolor=white"
+    prep =  "color=#00a778"
+    stop =  "color=#bf9c00"
+    model = "color=#0074cd"
+    post =  "color=#af3936"

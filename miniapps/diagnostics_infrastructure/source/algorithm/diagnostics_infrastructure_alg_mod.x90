@@ -1,0 +1,75 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2019 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!>@brief Barebones algorithm to help the development of miniapps
+module diagnostics_infrastructure_alg_mod
+
+    use log_mod, only : log_event, &
+            LOG_LEVEL_INFO
+    use field_mod, only : field_type
+    use spread_kernel_mod, only : spread_kernel_type
+    use rgb_to_hex_kernel_mod, only : rgb_to_hex_kernel_type
+    use psykal_lite_integer_maths_mod, only: invoke_integer_inc_X_plus_Y
+
+    implicit none
+
+    private
+
+    public :: diagnostics_infrastructure_alg
+
+contains
+
+    !> @details An algorithm for developing miniapps
+    !> @param[inout] red  A prognostic field object
+    !> @param[inout] green  A prognostic field object
+    !> @param[inout] blue  A prognostic field object
+    !> @param[inout] hex  A diagnostic field object
+    subroutine diagnostics_infrastructure_alg(red, green, blue, hex)
+
+        implicit none
+
+        ! Prognostic fields
+        type(field_type), intent(inout) :: red, green, blue
+
+        ! Diagnostic fields
+        type(field_type), intent(inout) :: hex
+
+        ! local fields
+
+        type(field_type) :: red_var, green_var, blue_var
+
+        ! setup
+        call log_event("diagnostics_infrastructure: Initialising variance fields", LOG_LEVEL_INFO)
+
+        call red%copy_field_properties(red_var, 'red_var')
+        call green%copy_field_properties(green_var, 'green_var')
+        call blue%copy_field_properties(blue_var, 'blue_var')
+
+        ! Process
+        call log_event("diagnostics_infrastructure: Running algorithm", LOG_LEVEL_INFO)
+
+        call invoke(spread_kernel_type(red, 1, red_var), &
+                    spread_kernel_type(green, 1, green_var), &
+                    spread_kernel_type(blue, 1, blue_var))
+
+        ! apply the variances to the field - use a custom kernel to handle integer maths
+        ! (std kernel was erroring due to adding near 0 values)
+
+        call log_event("diagnostics_infrastructure: Combining Variance with original", LOG_LEVEL_INFO)
+        call invoke_integer_inc_X_plus_Y(red, red_var)
+        call invoke_integer_inc_X_plus_Y(green, green_var)
+        call invoke_integer_inc_X_plus_Y(blue, blue_var)
+
+        ! post-process for diagnostic field
+        call log_event("diagnostics_infrastructure: calculating hex", LOG_LEVEL_INFO)
+        call invoke(rgb_to_hex_kernel_type(hex, red, green, blue))
+
+
+        call log_event("diagnostics_infrastructure: finished algorithm", LOG_LEVEL_INFO)
+
+    end subroutine diagnostics_infrastructure_alg
+
+end module diagnostics_infrastructure_alg_mod
