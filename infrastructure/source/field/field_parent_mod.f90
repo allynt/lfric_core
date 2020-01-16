@@ -13,7 +13,7 @@
 
 module field_parent_mod
 
-  use constants_mod,               only: i_def, l_def, str_def
+  use constants_mod,               only: i_def, l_def, str_def, r_def, real_type
   use fs_continuity_mod,           only: WCHI
   use function_space_mod,          only: function_space_type
   use halo_routing_collection_mod, only: halo_routing_collection
@@ -133,9 +133,12 @@ contains
     ! chi fields are never halo exchanged - so don't need a routing table
     if ( vector_space%which() /= WCHI ) then
       self%halo_routing => &
-        halo_routing_collection%get_halo_routing( vector_space%get_mesh_id(), &
+        halo_routing_collection%get_halo_routing( &
+                                             vector_space%get_mesh_id(), &
                                              vector_space%get_element_order(), &
-                                             vector_space%which() )
+                                             vector_space%which(), &
+                                             real_type, &
+                                             r_def )
     end if
     ! Set the name of the field if given, otherwise default to 'none'
     if (present(name)) then

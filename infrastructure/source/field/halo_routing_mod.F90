@@ -5,7 +5,7 @@
 !-----------------------------------------------------------------------------
 !
 !> @brief Holds and manages information about how to route halo exchange
-!>        communicatoins of a particular type of field
+!>        communications of a particular type of field
 !>
 !> @details Holds information that can be attached to a number of different
 !>          fields that describes how to perform halo exchanges. This
@@ -14,7 +14,7 @@
 module halo_routing_mod
 
   use constants_mod,         only: i_def, i_native, i_halo_index, &
-                                   r_def, real_type
+                                   r_def
   use function_space_mod,    only: function_space_type
   use function_space_collection_mod, &
                              only: function_space_collection_type, &
@@ -37,7 +37,11 @@ module halo_routing_mod
     integer(i_def) :: element_order
     !> Enumerated value representing the continutity of the function space
     !> that this information is valid for
-    integer(i_native) :: lfric_fs
+    integer(i_def) :: lfric_fs
+    !> Description of the type of data in the field to be halo swapped
+    integer(i_def) :: fortran_type
+    !> Description of the kind of data in the field to be halo swapped
+    integer(i_def) :: fortran_kind
     !> YAXT redistribution map
     type(xt_redist), allocatable :: redist(:)
   contains
@@ -48,6 +52,12 @@ module halo_routing_mod
     !> Gets the function space continuity type for which the halo_routing
     !> object is valid
     procedure, public :: get_lfric_fs
+    !> Gets the fortran type of the data for which the halo_routing
+    !> object is valid
+    procedure, public :: get_fortran_type
+    !> Gets the fortran kind of the data for which the halo_routing
+    !> object is valid
+    procedure, public :: get_fortran_kind
     !> Gets a YAXT redistribution map for halo swapping
     procedure, public :: get_redist
   end type halo_routing_type
@@ -66,14 +76,25 @@ contains
 !>                           will be valid
 !> @param [in] lfric_fs The function space continuity type for which this
 !>                      information will be valid
+!> @param [in] fortran_type The Fortran type of the data for which this
+!>                      information will be valid
+!> @param [in] fortran_kind The Fortran kind of the data for which this
+!>                      information will be valid
 !> @return The new halo_routing object
-function halo_routing_constructor( mesh_id, element_order, lfric_fs )  result(self)
+function halo_routing_constructor( mesh_id, &
+                                   element_order, &
+                                   lfric_fs, &
+                                   fortran_type, &
+                                   fortran_kind ) &
+                     result(self)
 
   implicit none
 
   integer(i_def), intent(in) :: mesh_id
   integer(i_def), intent(in) :: element_order
   integer(i_def), intent(in) :: lfric_fs
+  integer(i_def), intent(in) :: fortran_type
+  integer(i_def), intent(in) :: fortran_kind
 
   type(halo_routing_type) :: self
 
@@ -86,6 +107,8 @@ function halo_routing_constructor( mesh_id, element_order, lfric_fs )  result(se
   self%mesh_id = mesh_id
   self%element_order = element_order
   self%lfric_fs = lfric_fs
+  self%fortran_type = fortran_type
+  self%fortran_kind = fortran_kind
 
   function_space => function_space_collection%get_fs( mesh_id, &
                                                       element_order, &
@@ -115,7 +138,7 @@ function halo_routing_constructor( mesh_id, element_order, lfric_fs )  result(se
     self%redist(idepth) = generate_redistribution_map( &
                      global_dof_id(1:function_space%get_last_dof_owned()), &
                      global_dof_id( halo_start:halo_finish ), &
-                     get_mpi_datatype( real_type, r_def ) )
+                     get_mpi_datatype( fortran_type, fortran_kind ) )
   end do
 end function halo_routing_constructor
 
@@ -148,6 +171,26 @@ function get_lfric_fs(self) result (lfric_fs)
   lfric_fs = self%lfric_fs
   return
 end function get_lfric_fs
+
+!> Gets the Fortran type of the data for which this object is valid
+!> @return The Fortran type of the data that this information is valid for
+function get_fortran_type(self) result (fortran_type)
+  implicit none
+  class(halo_routing_type), intent(in) :: self
+  integer(i_def) :: fortran_type
+  fortran_type = self%fortran_type
+  return
+end function get_fortran_type
+
+!> Gets the Fortran kind of the data for which this object is valid
+!> @return The Fortran kind of the data that this information is valid for
+function get_fortran_kind(self) result (fortran_kind)
+  implicit none
+  class(halo_routing_type), intent(in) :: self
+  integer(i_def) :: fortran_kind
+  fortran_kind = self%fortran_kind
+  return
+end function get_fortran_kind
 
 !> Gets a YAXT redistribution map for halo swapping
 !> @param [in] depth The depth of halo exchange that the redistribution map

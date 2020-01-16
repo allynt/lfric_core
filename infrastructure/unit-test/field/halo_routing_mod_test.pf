@@ -9,7 +9,7 @@
 !-------------------------------------------------------------------------------
 module halo_routing_mod_test
 
-  use constants_mod,                  only : i_def
+  use constants_mod,                  only : i_def, r_def, real_type
   use halo_routing_mod,               only : halo_routing_type
   use fs_continuity_mod,              only : W3
   use function_space_collection_mod,  only : function_space_collection_type, &
@@ -89,9 +89,13 @@ contains
 
     integer(i_def) :: result
 
-    ! Create a halo_routing object with a particular mesh_id, element_order
-    ! and lfric_fs
-    halo_routing = halo_routing_type( this%mesh_id, 0, W3 )
+    ! Create a halo_routing object with a particular mesh_id, element_order,
+    ! lfric_fs, type and kind
+    halo_routing = halo_routing_type( this%mesh_id, &
+                                      0, &
+                                      W3, &
+                                      real_type, &
+                                      r_def )
 
     ! Test the getters on the halo_routing object return the correct values
     result = halo_routing%get_mesh_id()
@@ -102,6 +106,12 @@ contains
 
     result = halo_routing%get_lfric_fs()
     @assertEqual( W3, result )
+
+    result = halo_routing%get_fortran_type()
+    @assertEqual( real_type, result )
+
+    result = halo_routing%get_fortran_kind()
+    @assertEqual( r_def, result )
 
   end subroutine test_halo_routing
 

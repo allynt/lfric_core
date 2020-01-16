@@ -9,7 +9,7 @@
 !-------------------------------------------------------------------------------
 module halo_routing_collection_mod_test
 
-  use constants_mod,                  only : i_def
+  use constants_mod,                  only : i_def, r_def, real_type
   use halo_routing_collection_mod,    only : halo_routing_collection_type, &
                                              halo_routing_collection
   use halo_routing_mod,               only : halo_routing_type
@@ -95,9 +95,21 @@ contains
     ! 1. Asking for two different halo_routing objects returns two different
     !    pointers.
     ! 2, Asking for the same halo_routing twice returns the same pointer twice.
-    halo_routing1 => halo_routing_collection%get_halo_routing(this%mesh_id,0,W3)
-    halo_routing2 => halo_routing_collection%get_halo_routing(this%mesh_id,1,W2)
-    halo_routing3 => halo_routing_collection%get_halo_routing(this%mesh_id,0,W3)
+    halo_routing1 => halo_routing_collection%get_halo_routing(this%mesh_id, &
+                                                              0, &
+                                                              W3,&
+                                                              real_type, &
+                                                              r_def)
+    halo_routing2 => halo_routing_collection%get_halo_routing(this%mesh_id, &
+                                                              1, &
+                                                              W2,&
+                                                              real_type, &
+                                                              r_def)
+    halo_routing3 => halo_routing_collection%get_halo_routing(this%mesh_id, &
+                                                              0, &
+                                                              W3,&
+                                                              real_type, &
+                                                              r_def)
     @assertFalse(associated(halo_routing1, halo_routing2))
     @assertTrue(associated(halo_routing1, halo_routing3))
 
