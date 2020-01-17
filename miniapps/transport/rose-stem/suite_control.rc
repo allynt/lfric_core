@@ -1,16 +1,16 @@
-#!jinja2
-{%- set projectName = 'transport' -%}
-{%- set projectDir  = 'transport' -%}
-{%- set miniappFlag = True -%}
-{%- set fix_enums   = False -%}
+{%- set projectName = 'transport' %}
+{%- set projectDir  = 'transport' %}
+{%- set miniappFlag = True %}
+{%- set fix_enums   = False %}
 
 {# Set the  compiler debug profile for runs in this suite #}
 {# Options are ['fast-debug'|'full-debug'|'production'], omission defaults to 'fast-debug' #}
-{%- set run_application_profile = '' -%}
+{%- set run_application_profile = '' %}
 
-{%- set appDiagStemName = 'diagTransport' -%}
-{%- set rdef_precision = "64" -%}
-{%- set mesh_rdef_precision = "64" -%}
+{%- set appDiagStemName = 'diagTransport' %}
+{%- set rdef_default    = "64" %}
+{%- set mesh_rdef       = "64" %}
+{%- set mesh_build      = "fast-debug" %}
 
 {%- set application_configurations = { 'transport' : ['cosine_hill_45deg',
                                                       'transport-biperiodic',
@@ -45,12 +45,12 @@
                           "directives":{"default":{"mpi_parts":12,"threads":1,"wallclock":"00:40:00"} } },
                      plotstr="slices.py ' + appDiagStemName + ' $NODAL_DATA_DIR density T000000:T000036 45 -1000 -1000 $PLOT_DIR" )',
     'check_compilers("transport", "cosine_hill_45deg", "fast-debug",
-                     resolution=("C32", 4050.0))'],
+                     resolution=("C32", 4050.0))' ],
 'nightly': [
-    'run_application( "transport", "divergence_cosmic",
+    'run_application( "transport", "divergence_cosmic", precisions=["32","64"],
                       resolutions=[("C32",1.0)],
                       plotstr="slices.py ' + appDiagStemName + ' $NODAL_DATA_DIR density T000000:T000050:T000100:T000150:T000200:T000250 -1 -91 0 $PLOT_DIR" )',
-    'run_application( "transport", "biperiodic-cosmic",
+    'run_application( "transport", "biperiodic-cosmic", precisions=["32","64"],
                       resolutions=[("BiP200x200-5x5",1.0)],
                       plotstr="biperiodic-cosmic_plot.py ' + appDiagStemName + ' $NODAL_DATA_DIR 200 200 density T000000:T000500 $PLOT_DIR" )',
     'run_application( "transport", "equator_cosine_hill",
@@ -60,14 +60,7 @@
                                                     "threads":1,
                                                     "wallclock":"00:05:00"} } },
                       plotstr="slices.py ' + appDiagStemName + ' $NODAL_DATA_DIR density T000000:T000064:T000128:T000192:T000256 -1 -91 0 $PLOT_DIR" )'],
-'nightly_precision_tests': [
-    'run_application( "transport", "divergence_cosmic",
-                      resolutions=[("C32",1.0)],
-                      plotstr="slices.py ' + appDiagStemName + ' $NODAL_DATA_DIR density T000000:T000050:T000100:T000150:T000200:T000250 -1 -91 0 $PLOT_DIR" )',
-    'run_application( "transport", "biperiodic-cosmic",
-                      resolutions=[("BiP200x200-5x5",1.0)],
-                      plotstr="biperiodic-cosmic_plot.py ' + appDiagStemName + ' $NODAL_DATA_DIR 200 200 density T000000:T000500 $PLOT_DIR" )' ]
-} 
+}
 %}
 
 

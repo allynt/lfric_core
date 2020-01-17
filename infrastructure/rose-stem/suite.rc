@@ -8,6 +8,8 @@
 {%- set hosts_dictionary = {} -%}
 {%- set build_profiles = ['fast-debug', 'full-debug', 'production'] -%}
 {%- set rose_suite_gui_headers = [] -%}
+{%- set rdef_build_precisions = []  -%}
+
 {%- set compiler_setup = {} -%}
 {%- for compiler, setup in TARGET_COMPILER_SETUP|batch(2) -%}
 {%-     do compiler_setup.update({compiler : [setup]}) -%}
@@ -34,7 +36,6 @@
 {%- if MIRROR_UPLOAD_URL and MIRROR_UPLOAD_URL|list|last != '/' %}
 {%-   set MIRROR_UPLOAD_URL = MIRROR_UPLOAD_URL + '/' %}
 {%- endif %}
-
 
 [cylc]
   UTC mode = True
@@ -219,12 +220,13 @@
 
 {%- for compiler in compiler_setup.keys() -%}
 {%-   for build in build_profiles %}
-{%-     set label = compiler | lower + '_' + build | lower %}
-{%-     set family = label | upper %}
+{%-     for precision in rdef_build_precisions %}
+{%-       set label = compiler | lower + '_' + precision + '-bit_' + build | lower %}
+{%-       set family = label | upper %}
 
-{%-     if 'export_source' in scheduledTasks %}
-{%-       if family not in rose_suite_gui_headers %}
-{%-         do rose_suite_gui_headers.append(family) %}
+{%-       if 'export_source' in scheduledTasks %}
+{%-         if family not in rose_suite_gui_headers %}
+{%-           do rose_suite_gui_headers.append(family) %}
   [[{{family}}]]
     [[[environment]]]
       SOURCE_DIRECTORY      = $SOURCE_ROOT/{{projectName}}
@@ -233,10 +235,10 @@
       COMPILER              = {{compiler}}
       {#- We can't define WORKING_DIR here as it may contain    #}
       {#- target specific variables not existing on the local machine #}
+{%-         endif %}
 {%-       endif %}
-{%-     endif %}
 
-{%-     if 'unit_test_with_' + label in scheduledTasks %}
+{%-       if 'unit_test_with_' + label in scheduledTasks %}
   [[unit_test_with_{{label}}]]
     inherit = {{family}}, TARGET
     pre-script  = """
@@ -265,19 +267,21 @@
       TARGET           = unit-tests
       PROFILE          = {{build}}
       MAKE_THREADS     = 4
-      WORKING_DIR      = {{TARGET_BUILD_ROOT}}/{{label}}/unit-test
-      RDEF_PRECISION   = {{rdef_precision}}
-{%- if fix_enums %}
+      RDEF_PRECISION   = {{precision}}
+{%-         if fix_enums %}
       FIX_ENUMS        = 1
-{%- endif %}
+{%-         endif %}
 
     [[[directives]]]
-{%-       for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
+{%-         for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-       endfor %}
-{%-     endif %}
+{%-         endfor %}
+{%-       endif %}
 
-{%-     if 'integration_test_with_' + label in scheduledTasks %}
+
+
+{# INTEGRATION TESTS #}
+{%-       if 'integration_test_with_' + label in scheduledTasks %}
   [[integration_test_with_{{label}}]]
     inherit = {{family}}, TARGET
     pre-script  = """
@@ -306,15 +310,17 @@
       TARGET           = integration-tests
       PROFILE          = {{build}}
       MAKE_THREADS     = 1
-      RDEF_PRECISION   = {{rdef_precision}}
-{%- if fix_enums %}
+      RDEF_PRECISION   = {{precision}}
+{%-         if fix_enums %}
       FIX_ENUMS        = 1
-{%- endif %}
+{%-         endif %}
 
     [[[directives]]]
-{%-       for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
+{%-         for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-       endfor %}
-{%-     endif %}
-{%-   endfor %}
-{%- endfor %}
+{%-         endfor %}
+{%-       endif %}   {# integration_tests #}
+
+{%-     endfor %}  {# rdef_precision #}
+{%-   endfor %}  {# build #}
+{%- endfor %}  {# compiler #}

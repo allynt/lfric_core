@@ -113,7 +113,6 @@ contains
     call theta%copy_field_properties(dbcf_pc2_inc)
 
     call invoke( name="update_from_pc2_initiation",              &
-                                                                 !
                  pc2_initiation_kernel_type ( mr(imr_v),         &
                                               mr(imr_cl),        &
                                               mr(imr_ci),        &
@@ -121,7 +120,7 @@ contains
                                               ice_fraction,      &
                                               bulk_fraction,     &
                                               theta,             &
-                                              exner_wth,      &
+                                              exner_wth,         &
                                               exner_w3,          &
                       ! Next 4 are start of timestep qv, qcl, theta
                       ! and exner to find RHt at start of timestep

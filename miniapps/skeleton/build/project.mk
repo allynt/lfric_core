@@ -4,6 +4,7 @@
 # under which the code may be used.
 ##############################################################################
 
-$(info Transport miniapp project specials)
+# This file is for any project specific build settings to be applied
+# via the Makefile.
 
-export PRE_PROCESS_MACROS += RDEF_PRECISION=$(RDEF_PRECISION)
+$(info Skeleton miniapp project specials)

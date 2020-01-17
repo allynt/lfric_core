@@ -253,6 +253,9 @@ api-documentation: ALWAYS
 launch-test-suite: SUITE_GROUP ?= developer
 launch-test-suite: TEST_SUITE_TARGETS ?= $(error Please set the TEST_SUITE_TARGETS environment variable.)
 launch-test-suite: SUITE_NAME = $(SUITE_BASE_NAME)-$$target-$(SUITE_GROUP)
+ifdef VERBOSE
+launch-test-suite: VERBOSE_ARG = --define-suite=VERBOSE=$(VERBOSE)
+endif
 launch-test-suite:
 	$(Q)umask 022; for target in $(TEST_SUITE_TARGETS) ; do \
 	echo Launching $(PROJECT_NAME) test suite against $$target with $(SUITE_GROUP) group ; \
@@ -261,6 +264,7 @@ launch-test-suite:
 	          --opt-conf-key=$$target --no-gcontrol \
 	          $(CLEAN_OPT) $(QUIET_ARG) \
 	          --define-suite=RDEF_PRECISION=$(RDEF_PRECISION) \
+                  $(VERBOSE_ARG) \
 	          --group=$(SUITE_GROUP) ; \
 	done
 

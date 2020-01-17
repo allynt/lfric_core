@@ -167,7 +167,8 @@ contains
 
   integer(i_def) :: timestep
 
-  call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+  write(log_scratch_space,'(A,I0,A)') 'Running '//program_name//' ...'
+  call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
   !--------------------------------------------------------------------------
   ! Model step

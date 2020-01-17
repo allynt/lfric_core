@@ -16,7 +16,8 @@ module gungho_driver_mod
   use io_config_mod,              only : write_diag, &
                                          diagnostic_frequency, &
                                          nodal_output_on_w3
-  use log_mod,                    only : log_event, &
+  use log_mod,                    only : log_event,         &
+                                         log_scratch_space, &
                                          LOG_LEVEL_ALWAYS
   use mpi_mod,                    only : initialise_comm, finalise_comm
   use gungho_mod,                 only : program_name
@@ -115,7 +116,8 @@ contains
 
     integer(i_def) :: timestep
 
-    call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+    write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
+    call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
     do timestep = timestep_start, timestep_end
 

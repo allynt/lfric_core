@@ -1,16 +1,16 @@
-#!jinja2
-{%- set projectName = 'solver_miniapp' -%}
-{%- set projectDir  = 'solver_miniapp' -%}
-{%- set miniappFlag = True -%}
-{%- set fix_enums   = False -%}
+{%- set projectName = 'solver_miniapp' %}
+{%- set projectDir  = 'solver_miniapp' %}
+{%- set miniappFlag = True %}
+{%- set fix_enums   = False %}
 
 {# Set the  compiler debug profile for runs in this suite #}
 {# Options are ['fast-debug'|'full-debug'|'production'], omission defaults to 'fast-debug' #}
-{%- set run_application_profile = '' -%}
+{%- set run_application_profile = '' %}
 
-{%- set appDiagStemName = 'diagSolverApi' -%}
-{%- set rdef_precision = "64" -%}
-{%- set mesh_rdef_precision = "64" -%}
+{%- set appDiagStemName = 'diagSolverApi' %}
+{%- set rdef_default    = "64" %}
+{%- set mesh_rdef       = "64" %}
+{%- set mesh_build      = "fast-debug" %}
 
 {%- set application_configurations = { 'solver_miniapp' : ['cg','bicgstab','gmres','jacobi','default'] } %}
 
@@ -30,11 +30,8 @@
                      resolutions=[["C24", 600.0]],
                      run_with_compilers='~TARGET_SOLVER_COMPILER~')',
     'run_application("solver_miniapp", "gmres", resolutions=[["C24", 600.0]],
-                     run_with_compilers='~TARGET_GMRES_COMPILER~')'],
+                     run_with_compilers='~TARGET_GMRES_COMPILER~')' ],
 'nightly': [
-    'null_task_graph()'] } %}
+    'null_task_graph()' ] } %}
 
 #########################################################################################
-
-{# Include any local miniapp include files here #}
-%include inc/MyMiniappIncludeFile.rc

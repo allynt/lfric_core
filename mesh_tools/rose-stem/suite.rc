@@ -4,14 +4,17 @@
 %include inc/suite_macros.rc
 %include suite_control.rc
 
-{%- set build_profiles = ['fast-debug', 'full-debug', 'production'] -%}
-{%- set hosts_dictionary = {} -%}
-{%- set rose_suite_gui_headers = [] -%}
-{%- set publish_destination = '$CYLC_SUITE_SHARE_DIR/publish-mesh_tools-' + TARGET_OPT -%}
-{%- set compiler_setup = {} -%}
-{%- for compiler, setup in TARGET_COMPILER_SETUP|batch(2) -%}
-{%-   do compiler_setup.update({compiler : [setup]}) -%}
-{%- endfor -%}
+{# SETUP SOME JINJA2 VARIABLES #}
+{%- set build_profiles = ['fast-debug', 'full-debug', 'production'] %}
+{%- set hosts_dictionary = {} %}
+{%- set rose_suite_gui_headers = [] %}
+{%- set rdef_build_precisions = []  %}
+
+{%- set publish_destination = '$CYLC_SUITE_SHARE_DIR/publish-mesh_tools-' + TARGET_OPT %}
+{%- set compiler_setup = {} %}
+{%- for compiler, setup in TARGET_COMPILER_SETUP|batch(2) %}
+{%-   do compiler_setup.update({compiler : [setup]}) %}
+{%- endfor %}
 
 
 {#- #########################################################################}
@@ -53,7 +56,7 @@
       limit = {{TARGET_THROTTLE}}
       members = root
     [[dependencies]]
-{%- set scheduledTasks = schedule() | deduplicate_schedule()%}
+{%- set scheduledTasks = schedule() | deduplicate_schedule() %}
       {{scheduledTasks}}
 
 [runtime]
@@ -187,12 +190,13 @@
 
 {%- for compiler in compiler_setup.keys() -%}
 {%-   for build in build_profiles %}
-{%-     set label = compiler | lower + '_' + build | lower %}
-{%-     set family = label | upper %}
+{%-     for precision in rdef_build_precisions %}
+{%-       set label = compiler | lower + '_' + precision + '-bit_' + build | lower %}
+{%-       set family = label | upper %}
 
-{%-     if 'export_source' in scheduledTasks %}
-{%-       if family not in rose_suite_gui_headers %}
-{%-         do rose_suite_gui_headers.append(family) %}
+{%-       if 'export_source' in scheduledTasks %}
+{%-         if family not in rose_suite_gui_headers %}
+{%-           do rose_suite_gui_headers.append(family) %}
 
   [[{{family}}]]
     [[[environment]]]
@@ -203,10 +207,10 @@
       TARGET_OPT            = {{TARGET_OPT}}
       {#- We can't define WORKING_DIR here as it may contain    #}
       {#- target specific variables not existing on the local machine #}
+{%-         endif %}
 {%-       endif %}
-{%-     endif %}
 
-{%-     if 'compile_' + projectName + '_with_' + label in scheduledTasks %}
+{%-       if 'compile_' + projectName + '_with_' + label in scheduledTasks %}
   [[compile_{{projectName}}_with_{{label}}]]
     inherit = {{family}}, TARGET
     pre-script = """
@@ -231,18 +235,18 @@
       PROFILE               = {{build}}
       TARGET                = build
       MAKE_THREADS          = 4
-      RDEF_PRECISION        = {{mesh_rdef_precision}}
-{%- if fix_enums %}
+      RDEF_PRECISION        = {{precision}}
+{%-         if fix_enums %}
       FIX_ENUMS             = 1
-{%- endif %}
+{%-         endif %}
 
     [[[directives]]]
-{%-       for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
+{%-         for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-       endfor %}
-{%-     endif %} {#- if 'compile_'+ projectName + '_with_' + label in scheduledTasks #}
+{%-         endfor %}
+{%-       endif %} {#- if 'compile_'+ projectName + '_with_' + label in scheduledTasks #}
 
-{%-     if 'publish_' + label + '_compile' in scheduledTasks %}
+{%-       if 'publish_' + label + '_compile' in scheduledTasks %}
   [[publish_{{label}}_compile]]
       inherit = PUBLISH, {{family}}, LOCAL
       pre-script = """
@@ -255,9 +259,9 @@
           DIR_FILE=lfric.mesher.{{compiler}}.log
       [[[job]]]
           execution retry delays = PT5S, 10*PT1M
-{%-     endif %} {#- if 'publish_' + label + '_compile' in scheduledTasks #}
+{%-       endif %} {#- if 'publish_' + label + '_compile' in scheduledTasks #}
 
-{%-     if 'unit_test_with_' + label in scheduledTasks %}
+{%-       if 'unit_test_with_' + label in scheduledTasks %}
   [[unit_test_with_{{label}}]]
     inherit = {{family}}, TARGET
     pre-script  = """
@@ -286,20 +290,19 @@
       TARGET           = unit-tests
       PROFILE          = {{build}}
       MAKE_THREADS     = 6
-      RDEF_PRECISION   = {{mesh_rdef_precision}}
-{%- if fix_enums %}
+      RDEF_PRECISION   = {{precision}}
+{%-         if fix_enums %}
       FIX_ENUMS        = 1
-{%- endif %}
-
+{%-         endif %}
     [[[directives]]]
-{%-       for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
+{%-         for DIRECTIVE in TARGET_BUILD_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-       endfor %}
+{%-         endfor %}
 
-{%-     endif %} {#- 'unit_test_with_' + label in scheduledTasks #}
+{%-       endif %} {#- 'unit_test_with_' + label in scheduledTasks #}
 
-{%-     for mesh in mesh_types %}
-{%-       if 'generate_' + mesh + '_' + label in scheduledTasks %}
+{%-       for mesh in mesh_types %}
+{%-         if 'generate_' + mesh + '_' + label in scheduledTasks %}
   [[{{mesh|upper}}_{{label|upper}}]]
     inherit = {{family}}, TARGET
 
@@ -308,25 +311,25 @@
     pre-script = """
                  mkdir -p $DESTINATION_DIRECTORY/meshes
                  {{'\n'| command_list( TARGET_BASE_SETUP,
-                                      compiler_setup[compiler],
-                                      TARGET_RUN_SETUP,
-                                      TARGET_REVEAL_SETUP )}}
+                                       compiler_setup[compiler],
+                                       TARGET_RUN_SETUP,
+                                       TARGET_REVEAL_SETUP )}}
                  """
     script = "rose task-run --app-key=mesh --opt-conf-key={{mesh}}"
     [[[environment]]]
       OUTPUT_FILE = $DESTINATION_DIRECTORY/meshes/{{mesh}}.nc
 
     [[[directives]]]
-{%-         for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
+{%-           for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-         endfor %}
-{%-       endif %} {#- 'generate_' + mesh + '_' + label in scheduledTasks #}
+{%-           endfor %}
+{%-         endif %} {#- 'generate_' + mesh + '_' + label in scheduledTasks #}
 
-{%-       if 'summarise_' + mesh + '_' + label in scheduledTasks %}
-{%- set command_key = '' %}
-{%- if TARGET_OPT == 'meto-xc40' %}
-{%-   set command_key = '--command-key=aprun' %}
-{%- endif %}
+{%-         if 'summarise_' + mesh + '_' + label in scheduledTasks %}
+{%-           set command_key = '' %}
+{%-           if TARGET_OPT == 'meto-xc40' %}
+{%-             set command_key = '--command-key=aprun' %}
+{%-           endif %}
 
   [[summarise_{{mesh}}_{{label}}]]
     inherit = {{mesh|upper}}_{{label|upper}}
@@ -349,15 +352,15 @@
 
     [[[directives]]]
 
-{%- if TARGET_OPT == 'meto-xc40' %}
+{%-           if TARGET_OPT == 'meto-xc40' %}
       -l select=1
       -l walltime=00:05:00
       -q=normal
-{%- else %}
-{%-         for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
+{%-           else %}
+{%-             for DIRECTIVE in TARGET_RUN_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-         endfor %}
-{%- endif %}
+{%-             endfor %}
+{%-           endif %}
 
   [[check_summary_{{mesh}}_{{label}}]]
     inherit = {{mesh|upper}}_{{label|upper}}
@@ -378,14 +381,13 @@
       SUMMARY_FILE = $DESTINATION_DIRECTORY/summary_{{mesh}}_ugrid.txt
 
     [[[directives]]]
-{%-         for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+{%-           for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-         endfor %}
+{%-           endfor %}
 
-{%-       endif %} {#- 'summarise_' + mesh + '_' + label in scheduledTasks #}
+{%-         endif %} {#- 'summarise_' + mesh + '_' + label in scheduledTasks #}
 
-{%-       if 'check_mesh_' + mesh + '_' + label in scheduledTasks %}
-
+{%-         if 'check_mesh_' + mesh + '_' + label in scheduledTasks %}
   [[check_mesh_{{mesh}}_{{label}}]]
     inherit = {{mesh|upper}}_{{label|upper}}
     pre-script = """
@@ -404,12 +406,14 @@
       MESH_FILE  = {{mesh}}.nc
 
     [[[directives]]]
-{%-         for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+{%-           for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
       {{DIRECTIVE}}
-{%-         endfor %}
-{%-       endif %} {#- 'check_mesh_' + mesh + '_' + label in scheduledTasks #}
-{%-     endfor %} {#- mesh in mesh_type #}
-{%-   endfor %}
-{%- endfor %}
+{%-           endfor %}
+{%-         endif %} {#- 'check_mesh_' + mesh + '_' + label in scheduledTasks #}
+{%-       endfor %} {#- mesh in mesh_type #}
+
+{%-     endfor %}  {# precision #}
+{%-   endfor %}  {# build #}
+{%- endfor %}  {# compiler #}
 
 {{null_tasks()}}

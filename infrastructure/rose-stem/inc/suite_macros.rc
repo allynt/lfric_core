@@ -1,19 +1,24 @@
-{#- ######################################################################## #}
-{#- MACROS                                                                   #}
-{#- ######################################################################## #}
+{#- #########################################################################}
+{#- MACROS                                                                  #}
+{#- #########################################################################}
 
-{%- macro check_compilers( build, publish=False ) %}
+{%- macro check_compilers( build, precisions=[rdef_default], publish=False ) %}
 [[[R1]]]
   graph = """
 {%-   for compiler in compiler_setup.keys() %}
-{%-     set label = compiler | lower + '_' + build | lower%}
-{%-     if compiler in TARGET_PERFORM_UNIT_TESTS %}
+{%-     for precision in precisions %}
+{%-       if precision not in rdef_build_precisions %}
+{%-          do rdef_build_precisions.append(precision) -%}
+{%-       endif %}
+{%-       set label = compiler | lower + '_' + precision + '-bit_'+ build | lower%}
+{%-       if compiler in TARGET_PERFORM_UNIT_TESTS %}
     export_source => unit_test_with_{{label}}
-{%-     endif %}
-{%-     if compiler in TARGET_PERFORM_INTEGRATION_TESTS %}
+{%-       endif %}
+{%-       if compiler in TARGET_PERFORM_INTEGRATION_TESTS %}
     export_source => integration_test_with_{{label}}
-{%-     endif %}
-{%-   endfor %}
+{%-       endif %}
+{%-     endfor %} {# precisions #}
+{%-   endfor %} {# compiler #}
           """
 {%- endmacro %}
 
@@ -21,7 +26,6 @@
 
 {#- #########################################################################}
 {%- macro build_system() %}
-{%-   set label =  TARGET_TECHNICAL_COMPILER | lower + '_fast-debug' %}
 [[[R1]]]
   graph = """
     export_source => unit_test_build_tools

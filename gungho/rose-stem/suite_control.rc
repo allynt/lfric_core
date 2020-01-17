@@ -1,38 +1,40 @@
-{%- set projectName = 'gungho' -%}
-{%- set projectDir  = 'gungho' -%}
-{%- set miniappFlag = False -%}
-{%- set fix_enums   = False -%}
+{%- set projectName = 'gungho' %}
+{%- set projectDir  = 'gungho' %}
+{%- set miniappFlag = False %}
+{%- set fix_enums   = False %}
+
 {# Set the  compiler debug profile for runs in this suite #}
 {# Options are ['fast-debug'|'full-debug'|'production'], omission defaults to 'fast-debug' #}
-{%- set run_application_profile = '' -%}
+{%- set run_application_profile = '' %}
 
-{%- set appDiagStemName = 'diagGungho' -%}
-{%- set rdef_precision = "64" -%}
-{%- set mesh_rdef_precision = "64" %}
+{%- set appDiagStemName = 'diagGungho' %}
+{%- set rdef_default    = "64" %}
+{%- set mesh_rdef       = "64" %}
+{%- set mesh_build      = "fast-debug" %}
 
-{%- set application_configurations = { 'gungho'           : [ 'runge-kutta', 'semi-implicit',
-                                                              'transport-rk', 'transport-rk-bip',
-                                                              'biperiodic_p0_gw', 'biperiodic_p1_gw',
-                                                              'biperiodic_p0_gw_fem',
-                                                              'agnesi_orog_cartesian', 'agnesi_orog_cartesian_long',
-                                                              'dcmip301', 'robert', 'robert10m', 'robert5m', 'dcmip200',
-                                                              'warm3dbubble', 'warm3dbubble_small',
-                                                              'robert-moist', 'robert-moist-smag', 'sbr', 'sbr_deep', 'sbr_shallow',
-                                                              'sbr_spinupwinds', 'sbr_spinupalpha','sbr-cosmic',
-                                                              'straka_x', 'straka_y', 'straka_y_ugrid', 'straka_x-cosmic',
-                                                              'straka_200m', 'straka_100m', 'straka_50m', 'straka_25m', 
-                                                              'hs', 'hs_short', 'gh_profile',
-                                                              'northpole_cosine_hill', 'equator_cosine_hill', 'corner_cosine_hill',
-                                                              'baroclinic', 'static_isentropic_x', 'static_isentropic_y',
-                                                              'static_isothermal_x', 'static_isothermal_y', 'static_isothermal_x_long',
-                                                              'agnesi_hyd_cart', 'agnesi_nhyd_cart', 'schar3d_cart_8s',
-                                                              'schar_cart_8s', 'schar_cart_8s_inconsistent', 'schar_cart_40s', 'bell_3d_cart',
-                                                              'baroclinic48', 'baroclinic96', 'default' ] } %}
+{%- set application_configurations = { 'gungho' : [ 'runge-kutta', 'semi-implicit',
+                                                    'transport-rk', 'transport-rk-bip',
+                                                    'biperiodic_p0_gw', 'biperiodic_p1_gw',
+                                                    'biperiodic_p0_gw_fem',
+                                                    'agnesi_orog_cartesian', 'agnesi_orog_cartesian_long',
+                                                    'dcmip301', 'robert', 'robert10m', 'robert5m', 'dcmip200',
+                                                    'warm3dbubble', 'warm3dbubble_small',
+                                                    'robert-moist', 'robert-moist-smag', 'sbr', 'sbr_deep', 'sbr_shallow',
+                                                    'sbr_spinupwinds', 'sbr_spinupalpha','sbr-cosmic',
+                                                    'straka_x', 'straka_y', 'straka_y_ugrid', 'straka_x-cosmic',
+                                                    'straka_200m', 'straka_100m', 'straka_50m', 'straka_25m',
+                                                    'hs', 'hs_short', 'gh_profile',
+                                                    'northpole_cosine_hill', 'equator_cosine_hill', 'corner_cosine_hill',
+                                                    'baroclinic', 'static_isentropic_x', 'static_isentropic_y',
+                                                    'static_isothermal_x', 'static_isothermal_y', 'static_isothermal_x_long',
+                                                    'agnesi_hyd_cart', 'agnesi_nhyd_cart', 'schar3d_cart_8s',
+                                                    'schar_cart_8s', 'schar_cart_8s_inconsistent', 'schar_cart_40s', 'bell_3d_cart',
+                                                    'baroclinic48', 'baroclinic96', 'default' ] } %}
 
 {%- set canned_configurations  = ['gungho'] %}
 
 {%- set groups = {
-'developer': [
+  'developer': [
     'validate_rose_meta_graph("gungho")',
     'check_style_graph()',
     'api_documentation_graph(publish=True)',
@@ -41,7 +43,7 @@
                      resolutions=[("BiP40x4-100x100",3.0)] )',
     'run_application("gungho", "baroclinic",
                      resolutions=[("C24",3600.0)],
-                     support_meshes=["C12","C6","C3"], 
+                     support_meshes=["C12","C6","C3"],
                      env={"crun":1, "nrun":240,
                           "directives":{"default":{"mpi_parts":6,"threads":4,"wallclock":"01:00:00"} } },
                      plotstr="baroclinic.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR dcmip u1:u2:u3:surface_pressure_temperature")',
@@ -107,9 +109,9 @@
                      resolutions=[("BiP50x4-20x20",2.5)],
                      env={"crun":3, "nrun":144},
                      plotstr="robert_plot.py ' + appDiagStemName + ' $NODAL_DATA_DIR 50 4 theta:w3projection_xi2 T000000:T000288:T000432 $PLOT_DIR")',
-    'run_application( "gungho", "robert-moist",           resolutions=[("BiP50x4-20x20",2.0)], env={"crun":3, "nrun":100}, 
+    'run_application( "gungho", "robert-moist",           resolutions=[("BiP50x4-20x20",2.0)], env={"crun":3, "nrun":100},
                       plotstr="robert_plot.py ' + appDiagStemName + ' $NODAL_DATA_DIR 50 4 theta:w3projection_xi2:m_v T000000:T000100:T000200:T000300 $PLOT_DIR")',
-    'run_application( "gungho", "robert-moist-smag",      resolutions=[("BiP50x4-20x20",2.0)], env={"crun":3, "nrun":100}, 
+    'run_application( "gungho", "robert-moist-smag",      resolutions=[("BiP50x4-20x20",2.0)], env={"crun":3, "nrun":100},
                       plotstr="robert_plot.py ' + appDiagStemName + ' $NODAL_DATA_DIR 50 4 theta:w3projection_xi2:m_v:w3projection_u1:w3projection_u2:w3projection_u3 T000000:T000100:T000200:T000300 $PLOT_DIR")',
     'run_application("gungho", "sbr-cosmic",
                      resolutions=[("C24",1800.0)], env={"nrun":60},
@@ -179,7 +181,7 @@
                            plotstr="cartesian_mountain_adv_plot.py $NODAL_DATA_DIR 300 4 theta:rho 1 T000100:T000200:T000300:T000400:T000500:T000600 lines $PLOT_DIR")',
     'run_application("gungho", "dcmip200",
                      resolutions=[("C24",600.0)],
-		     support_meshes=["C12","C6","C3"],
+                     support_meshes=["C12","C6","C3"],
                      env={"crun":1, "nrun":864,
                           "directives":{"default":{"mpi_parts":6,
                                                    "threads":3,
@@ -206,7 +208,7 @@
                              publish=True )',
             'run_application("gungho", "baroclinic48",
                              resolutions=[("C48",1800.0),],
-		             support_meshes=["C24","C12","C6"],	
+                             support_meshes=["C24","C12","C6"],
                              checkkgo=False,
                              env={"crun":10,
                                   "nrun":{"default":48,},
@@ -218,7 +220,7 @@
                              publish=True )',
             'run_application("gungho", "baroclinic96",
                              resolutions=[("C96",900.0),],
-		             support_meshes=["C48","C24","C12"],	
+                             support_meshes=["C48","C24","C12"],
                              checkkgo=False,
                              env={"crun":10,
                                   "nrun":{"default":96,},

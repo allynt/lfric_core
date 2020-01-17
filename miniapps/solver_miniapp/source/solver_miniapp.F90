@@ -11,7 +11,7 @@
 
 program solver_miniapp
 
-  use constants_mod,                    only : i_def
+  use constants_mod,                    only : i_def, PRECISION_REAL
   use convert_to_upper_mod,             only : convert_to_upper
   use cli_mod,                          only : get_initial_filename
   use create_mesh_mod,                  only : init_mesh
@@ -100,10 +100,16 @@ program solver_miniapp
 
   call log_set_level( log_level )
 
-  write(log_scratch_space,'(A)')                            &
-    'Runtime message logging severity set to log level: '// &
-    convert_to_upper(key_from_run_log_level(run_log_level))
+  write(log_scratch_space,'(A)')                              &
+      'Runtime message logging severity set to log level: '// &
+      convert_to_upper(key_from_run_log_level(run_log_level))
   call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
+  write(log_scratch_space,'(A)')                        &
+      'Application built with '//trim(PRECISION_REAL)// &
+      '-bit real numbers'
+  call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
 
   !-----------------------------------------------------------------------------
   ! model init
@@ -126,13 +132,11 @@ program solver_miniapp
   ! Create and initialise prognostic fields
   call init_solver_miniapp(mesh_id, twod_mesh_id, chi, fv_1)
 
-  call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
-
   ! Call an algorithm
   call solver_miniapp_alg(fv_1)
 
   ! Write out output file
-  call log_event("solver miniapp: writing diagnostic output", LOG_LEVEL_INFO)
+  call log_event(program_name//": writing diagnostic output", LOG_LEVEL_INFO)
 
   ! pull the fields from the vector
   call fv_1%export_field( field_1, 1 )
@@ -148,7 +152,9 @@ program solver_miniapp
   call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
   ! Write checksums to file
-  call checksum_alg('solver_miniapp', field_1, 'solver_field_1',field_2, 'solver_field_2')
+  call checksum_alg(program_name, field_1, 'solver_field_1',field_2, 'solver_field_2')
+
+  call log_event( program_name//': Miniapp completed', LOG_LEVEL_INFO )
 
   !-----------------------------------------------------------------------------
   ! Driver layer finalise

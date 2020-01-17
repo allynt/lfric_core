@@ -8,7 +8,8 @@
 module gungho_model_mod
 
 
-  use constants_mod,              only : i_def, i_native
+  use constants_mod,              only : i_def, i_native, &
+                                         PRECISION_REAL
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
@@ -174,9 +175,14 @@ module gungho_model_mod
 
     call log_set_level( log_level )
 
-    write(log_scratch_space,'(A)')                             &
-       'Runtime message logging severity set to log level: '// &
-       convert_to_upper(key_from_run_log_level(run_log_level))
+    write(log_scratch_space,'(A)')                              &
+        'Runtime message logging severity set to log level: '// &
+        convert_to_upper(key_from_run_log_level(run_log_level))
+    call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
+    write(log_scratch_space,'(A)')                        &
+        'Application built with '//trim(PRECISION_REAL)// &
+        '-bit real numbers'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
     call set_derived_config( .true. )

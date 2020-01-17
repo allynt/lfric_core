@@ -1,16 +1,16 @@
-#!jinja2
-{%- set projectName = 'diagnostics_infrastructure' -%}
-{%- set projectDir  = 'diagnostics_infrastructure' -%}
-{%- set miniappFlag = True -%}
-{%- set fix_enums   = False -%}
+{%- set projectName = 'diagnostics_infrastructure' %}
+{%- set projectDir  = 'diagnostics_infrastructure' %}
+{%- set miniappFlag = True %}
+{%- set fix_enums   = False %}
 
 {# Set the  compiler debug profile for runs in this suite #}
 {# Options are ['fast-debug'|'full-debug'|'production'], omission defaults to 'fast-debug' #}
-{%- set run_application_profile = '' -%}
+{%- set run_application_profile = '' %}
 
-{%- set appDiagStemName = 'diagDiagnostics_Infrastructure' -%}
-{%- set rdef_precision = "64" -%}
-{%- set mesh_rdef_precision = "64" -%}
+{%- set appDiagStemName = 'diagDiagnostics_Infrastructure' %}
+{%- set rdef_default    = "64" %}
+{%- set mesh_rdef       = "64" %}
+{%- set mesh_build      = "fast-debug" %}
 
 {%- set application_configurations = { 'diagnostics_infrastructure' : ['default'] } %}
 

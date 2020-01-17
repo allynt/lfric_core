@@ -1,16 +1,16 @@
-#!jinja2
-{%- set projectName = 'gravity_wave' -%}
-{%- set projectDir  = 'gravity_wave' -%}
-{%- set miniappFlag = True -%}
-{%- set fix_enums   = False -%}
+{%- set projectName = 'gravity_wave' %}
+{%- set projectDir  = 'gravity_wave' %}
+{%- set miniappFlag = True %}
+{%- set fix_enums = False %}
 
 {# Set the  compiler debug profile for runs in this suite #}
 {# Options are ['fast-debug'|'full-debug'|'production'], omission defaults to 'fast-debug' #}
-{%- set run_application_profile = '' -%}
+{%- set run_application_profile = '' %}
 
-{%- set appDiagStemName = 'diagGravityWave' -%}
-{%- set rdef_precision = "64" -%}
-{%- set mesh_rdef_precision = "64" -%}
+{%- set appDiagStemName = 'diagGravityWave' %}
+{%- set rdef_default    = "64" %}
+{%- set mesh_rdef       = "64" %}
+{%- set mesh_build      = "fast-debug" %}
 
 {%- set application_configurations = { 'gravity_wave' : ['multigrid_on',
                                                          'multigrid_off',
@@ -29,8 +29,8 @@
     'check_compilers("gravity_wave", "default", "fast-debug",
                      resolution=("C24",100.0), publish=True)',
     'check_compilers("gravity_wave", "default", "full-debug",
-                     resolution=("C24",100.0), publish=True)'],
+                     resolution=("C24",100.0), publish=True)' ],
 'nightly': [
-    'null_task_graph()'] } %}
+    'null_task_graph()' ] } %}
 
 #########################################################################################

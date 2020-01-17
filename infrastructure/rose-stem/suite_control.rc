@@ -1,13 +1,16 @@
-{%- set projectName = 'infrastructure' -%}
-{%- set projectDir  = 'infrastructure' -%}
-{%- set miniappFlag = False -%}
-{%- set fix_enums   = False -%}
+{%- set projectName = 'infrastructure' %}
+{%- set projectDir  = 'infrastructure' %}
+{%- set miniappFlag = False %}
+{%- set fix_enums   = False %}
 
 {# Set the  compiler debug profile for runs in this suite #}
 {# Options are ['fast-debug'|'full-debug'|'production'], omission defaults to 'fast-debug' #}
-{%- set run_application_profile = '' -%}
+{%- set run_application_profile = '' %}
 
-{%- set rdef_precision = "64" -%}
+{%- set rdef_default  = "64" %}
+{%- set mesh_rdef     = "64" %}
+{%- set mesh_build    = "fast-debug" %}
+{%- set mesh_compiler = "intel" %}
 
 {%- set groups = {'developer': ['check_compilers("fast-debug", publish=True)',
                                 'api_documentation_graph(publish=True)',

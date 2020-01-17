@@ -21,7 +21,8 @@ module constants_mod
             c_def, c_native, str_short, str_def, str_long, str_max_filename, &
             LARGE_REAL_POSITIVE, LARGE_REAL_NEGATIVE, cache_block, EPS, PI,  &
             degrees_to_radians, radians_to_degrees, RMDI, IMDI, CMDI, EMDI,  &
-            EIMDI, real_type, integer_type, logical_type, r_ncdf
+            EIMDI, real_type, integer_type, logical_type, r_ncdf,            &
+            PRECISION_REAL
 
   ! Define default application-defined kinds for all intrinsic data types
 
@@ -30,13 +31,16 @@ module constants_mod
   real               :: r_val              !< A native real used to compute kind of native real.
   double precision   :: dp_val             !< A native double-precision used to compute kind of native dp.
 
-  !< Default real kind for application.
+  ! Default real kind for application.
 #if (RDEF_PRECISION == 32)
-  integer, parameter :: r_def = real32
+  integer,      parameter :: r_def = real32
+  character(3), parameter :: PRECISION_REAL = '32'
 #elif (RDEF_PRECISION == 128)
-  integer, parameter :: r_def = real128
+  integer,      parameter :: r_def = real128
+  character(3), parameter :: PRECISION_REAL = '128'
 #else
-  integer, parameter :: r_def = real64
+  integer,      parameter :: r_def = real64
+  character(3), parameter :: PRECISION_REAL = '64'
 #endif
 
   integer, parameter :: real_type    = 1 !< A parameter used to indicate a real data typa

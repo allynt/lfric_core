@@ -10,7 +10,7 @@
 module io_dev_driver_mod
 
 use configuration_mod,          only: final_configuration
-use constants_mod,              only: i_def, i_native
+use constants_mod,              only: i_def, i_native, PRECISION_REAL
 use convert_to_upper_mod,       only: convert_to_upper
 use create_fem_mod,             only: init_fem
 use create_mesh_mod,            only: init_mesh
@@ -131,9 +131,14 @@ contains
 
   call log_set_level( log_level )
 
-  write(log_scratch_space,'(A)')                            &
-    'Runtime message logging severity set to log level: '// &
-    convert_to_upper(key_from_run_log_level(run_log_level))
+  write(log_scratch_space,'(A)')                              &
+      'Runtime message logging severity set to log level: '// &
+      convert_to_upper(key_from_run_log_level(run_log_level))
+  call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
+  write(log_scratch_space,'(A)')                        &
+      'Application built with '//trim(PRECISION_REAL)// &
+      '-bit real numbers'
   call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
   call set_derived_config( .true. )
@@ -195,7 +200,8 @@ contains
 
   implicit none
 
-  call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+  write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
+  call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
   !-----------------------------------------------------------------------------
   ! Model step

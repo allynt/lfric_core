@@ -254,6 +254,11 @@ contains
     integer(i_def) :: timestep
 
     call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
+    call log_event( program_name//': Miniapp will run with default precision set as:', LOG_LEVEL_INFO )
+    write(log_scratch_space, '(I1)') kind(1.0_r_def)
+    call log_event( program_name//':        r_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
+    write(log_scratch_space, '(I1)') kind(1_i_def)
+    call log_event( program_name//':        i_def kind = '//log_scratch_space , LOG_LEVEL_INFO )
 
     !--------------------------------------------------------------------------
     ! Model step

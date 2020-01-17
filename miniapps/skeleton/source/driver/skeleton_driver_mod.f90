@@ -12,7 +12,7 @@ module skeleton_driver_mod
   use checksum_alg_mod,           only : checksum_alg
   use cli_mod,                    only : get_initial_filename
   use configuration_mod,          only : final_configuration
-  use constants_mod,              only : i_def, i_native
+  use constants_mod,              only : i_def, i_native, PRECISION_REAL
   use convert_to_upper_mod,       only : convert_to_upper
   use create_mesh_mod,            only : init_mesh
   use create_fem_mod,             only : init_fem
@@ -53,6 +53,10 @@ module skeleton_driver_mod
   private
   public initialise, run, finalise
 
+  character(len=*), public, parameter   :: xios_ctx  = program_name
+  character(len=*), public, parameter   :: xios_id   = "lfric_client"
+
+
   ! Prognostic fields
   type( field_type ) :: field_1
 
@@ -79,9 +83,6 @@ contains
     implicit none
 
     character(:), intent(in), allocatable :: filename
-
-    character(len=*), parameter   :: xios_id   = "lfric_client"
-    character(len=*), parameter   :: xios_ctx  = "skeleton"
 
     integer(i_def) :: total_ranks, local_rank
     integer(i_def) :: comm = -999
@@ -128,9 +129,14 @@ contains
 
     call log_set_level( log_level )
 
-    write(log_scratch_space,'(A)')                            &
-      'Runtime message logging severity set to log level: '// &
-      convert_to_upper(key_from_run_log_level(run_log_level))
+    write(log_scratch_space,'(A)')                              &
+        'Runtime message logging severity set to log level: '// &
+        convert_to_upper(key_from_run_log_level(run_log_level))
+    call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
+    write(log_scratch_space,'(A)')                        &
+        'Application built with '//trim(PRECISION_REAL)// &
+        '-bit real numbers'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
     call set_derived_config( .true. )
@@ -194,14 +200,12 @@ contains
 
     implicit none
 
-    call log_event( 'Running '//program_name//' ...', LOG_LEVEL_ALWAYS )
-
     ! Call an algorithm
     call skeleton_alg(field_1)
 
 
     ! Write out output file
-    call log_event("skeleton: Writing diagnostic output", LOG_LEVEL_INFO)
+    call log_event(program_name//": Writing diagnostic output", LOG_LEVEL_INFO)
 
     if (write_diag ) then
       ! Calculation and output of diagnostics
@@ -225,7 +229,9 @@ contains
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Write checksums to file
-    call checksum_alg('skeleton', field_1, 'skeleton_field_1')
+    call checksum_alg(program_name, field_1, 'skeleton_field_1')
+
+    call log_event( program_name//': Miniapp completed', LOG_LEVEL_INFO )
 
     !-------------------------------------------------------------------------
     ! Driver layer finalise
