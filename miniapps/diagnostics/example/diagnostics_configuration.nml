@@ -1,0 +1,68 @@
+&base_mesh
+f_lat_deg=45.0,
+filename='mesh_C3.nc',
+fplane=.false.,
+geometry='spherical',
+partitioner='cubedsphere',
+prime_mesh_name='dynamics',
+/
+
+&planet
+  gravity        = 9.80665
+  radius         = 6371229.0
+  omega          = 7.292116E-5
+  rd             = 287.05
+  cp             = 1005.0
+  p_zero         = 100000.0
+  scaling_factor = 1.0
+/
+
+&extrusion
+domain_top=1000.0,
+method='uniform',
+number_of_layers=3,
+/
+
+&finite_element
+cellshape='quadrilateral',
+coordinate_order=2,
+element_order=0,
+rehabilitate=.true.,
+vorticity_in_w1=.false.,
+/
+&partitioning
+auto=.true.,
+/
+
+&files
+  diag_stem_name            = 'diagDiagnostics'
+  checkpoint_stem_name      = 'restartDiagnostics'
+/
+
+&io
+  use_xios_io               = .true.
+  write_diag                = .true.
+  write_dump                = .false.
+  diagnostic_frequency      = 1
+  nodal_output_on_w3        = .false.
+  subroutine_timers         = .false.
+  subroutine_counters       = .false.
+  checkpoint_read           = .false.
+  checkpoint_write          = .false.
+/
+
+&logging
+  run_log_level='info'
+/
+
+&time
+ timestep_start             = 1
+ timestep_end               = 5
+/
+
+&diagnostics_miniapp
+  blending_percentage       = 1.0
+  seed_red                  = 1
+  seed_green                = 50
+  seed_blue                 = 20
+/

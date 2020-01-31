@@ -1,0 +1,96 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2019 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!> @brief Initialisation functionality for the diagnostics miniapp
+
+!> @details Handles init of prognostic fields and through the call to
+!>          runtime_contants the coordinate fields and fem operators
+
+module init_diagnostics_mod
+
+    use constants_mod, only : i_def, str_short
+    use field_mod, only : field_type, write_interface
+    use field_collection_mod, only : field_collection_type
+    use finite_element_config_mod, only : element_order
+    use fs_continuity_mod, only : W3
+    use function_space_collection_mod, only : function_space_collection
+    use io_config_mod, only : write_diag, &
+            use_xios_io
+    use io_mod, only : xios_write_field_face
+    use log_mod, only : log_event, &
+            LOG_LEVEL_INFO, &
+            LOG_LEVEL_ERROR
+    use runtime_constants_mod, only : create_runtime_constants
+
+    implicit none
+
+
+contains
+
+    subroutine init_diagnostics(mesh_id, twod_mesh_id, chi, &
+            depository, prognostic_fields, diagnostic_fields)
+
+        implicit none
+
+        integer(i_def), intent(in) :: mesh_id
+        integer(i_def), intent(in) :: twod_mesh_id
+
+        type(field_collection_type), intent(out) :: depository
+        type(field_collection_type), intent(out) :: prognostic_fields
+        type(field_collection_type), intent(out) :: diagnostic_fields
+        ! Coordinate field
+        type(field_type), intent(inout) :: chi(:)
+        type (field_type), allocatable :: new_field
+        type (field_type), pointer :: tmp_field
+
+        procedure(write_interface), pointer :: tmp_ptr
+
+        character(len=*), dimension(3), parameter :: prog_field_list = (/"red  ", "green", "blue "/)
+        character(len=*), dimension(1), parameter :: diag_field_list = (/"hex"/)
+        integer(i_def) :: i
+
+        allocate(new_field)
+
+        ! Create the depository, prognostics and diagnostics field collections.
+        depository = field_collection_type(name = 'depository')
+        prognostic_fields = field_collection_type(name = "prognostics")
+        diagnostic_fields = field_collection_type(name = "diagnostics")
+
+        call log_event('diagnostics: Initialising miniapp ...', LOG_LEVEL_INFO)
+
+        tmp_ptr => xios_write_field_face
+        do i = 1, size(prog_field_list)
+            call new_field%initialise(vector_space = &
+                    function_space_collection%get_fs(mesh_id, element_order, W3), &
+                    name = trim(prog_field_list(i)))
+            call depository%add_field(new_field)
+            tmp_field => depository%get_field(trim(prog_field_list(i)))
+            call prognostic_fields%add_reference_to_field(tmp_field)
+            call invoke(setval_c(tmp_field, 0.0_r_def))
+            if (write_diag .and. use_xios_io) then
+                call tmp_field%set_write_behaviour(tmp_ptr)
+            end if
+        end do
+        do i = 1, size(diag_field_list)
+            call new_field%initialise(vector_space = &
+                    function_space_collection%get_fs(mesh_id, element_order, W3), &
+                    name = trim(diag_field_list(i)))
+            call depository%add_field(new_field)
+            tmp_field => depository%get_field(trim(diag_field_list(i)))
+            call diagnostic_fields%add_reference_to_field(tmp_field)
+            call invoke(setval_c(tmp_field, 0.0_r_def))
+            if (write_diag .and. use_xios_io) then
+                call tmp_field%set_write_behaviour(tmp_ptr)
+            end if
+        end do
+
+        call create_runtime_constants(mesh_id, twod_mesh_id, chi)
+
+        call log_event('diagnostics: Miniapp initialised', LOG_LEVEL_INFO)
+
+    end subroutine init_diagnostics
+
+end module init_diagnostics_mod

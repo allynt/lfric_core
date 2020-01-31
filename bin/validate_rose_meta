@@ -36,7 +36,7 @@ default_project_names=( gungho          \
                         lfric_atm       \
                         mesh_tools      \
                         skeleton        \
-                        diagnostics_infrastructure \
+                        diagnostics     \
                         gravity_wave    \
                         io_dev          \
                         solver_miniapp  \
@@ -47,7 +47,7 @@ default_app_names=( gungho:gungho                  \
                     lfric_atm:lfric_atm            \
                     mesh_tools:mesh                \
                     skeleton:skeleton              \
-                    diagnostics_infrastructure:diagnostics_infrastructure \
+                    diagnostics:diagnostics        \
                     gravity_wave:gravity_wave      \
                     io_dev:io_dev                  \
                     solver_miniapp:solver_miniapp  \
@@ -87,7 +87,7 @@ project_folder_location=(                  \
   [lfric_atm]=lfric_atm                    \
   [mesh_tools]=mesh_tools                  \
   [skeleton]=miniapps/skeleton             \
-  [diagnostics_infrastructure]=miniapps/diagnostics_infrastructure \
+  [diagnostics]=miniapps/diagnostics \
   [gravity_wave]=miniapps/gravity_wave     \
   [io_dev]=miniapps/io_dev                 \
   [solver_miniapp]=miniapps/solver_miniapp \
@@ -100,7 +100,7 @@ project_primary_app=(             \
   [lfric_atm]=lfric_atm           \
   [mesh_tools]=mesh               \
   [skeleton]=skeleton             \
-  [diagnostics_infrastructure]=diagnostics_infrastructure \
+  [diagnostics]=diagnostics \
   [gravity_wave]=gravity_wave     \
   [io_dev]=io_dev                 \
   [solver_miniapp]=solver_miniapp \
