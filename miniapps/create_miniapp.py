@@ -14,6 +14,7 @@ from __future__ import print_function
 import argparse
 import re
 import os
+from shutil import copyfile
 
 skeleton_word = "skeleton"
 
@@ -61,18 +62,22 @@ def run(miniapp_name, miniapp_dir):
         for each_file in files:
             # Create new files (replacing name in text where required)
             file_out = replace_keep_case(skeleton_word, miniapp_var, each_file)
+            oldfile = "{}/{}".format(root, each_file)
             newfile = "{}/{}/{}".format(miniapp_root, newpath, file_out)
-            f_in = open("{}/{}".format(root, each_file))
-            f_out = open(newfile, "w")
-            for line in f_in.readlines():
-                f_out.write(replace_keep_case(skeleton_word,
-                                              miniapp_var, line))
-            # Close the files
-            f_out.close()
-            f_in.close()
+            if re.search(r"\.nc", each_file):
+              copyfile(oldfile, newfile)
+            else:
+              f_in = open(oldfile)
+              f_out = open(newfile, "w")
+              for line in f_in.readlines():
+                  f_out.write(replace_keep_case(skeleton_word,
+                                                miniapp_var, line))
+              # Close the files
+              f_out.close()
+              f_in.close()
 
     print("""
-Successfull created the new miniapp: {}
+Successfully created the new miniapp: {}
 Please now look at the miniapp documentation and populate it with
 some functionality.
 
