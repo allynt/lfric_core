@@ -105,6 +105,7 @@ subroutine initialise_xios(xios_ctx, mpi_comm, clock, &
 
   ! Local variables
   type(xios_date)                      :: xios_start_date
+  type(xios_duration)                  :: xios_since_timestep_zero
   type(xios_duration)                  :: xios_timestep
   type(xios_duration)                  :: o_freq, cp_freq, dump_freq
   type(xios_duration)                  :: av_freq
@@ -258,11 +259,15 @@ subroutine initialise_xios(xios_ctx, mpi_comm, clock, &
 
   !!!!!!!!!!!!!!!!!!!! Setup calendar and finalise context !!!!!!!!!!!!!!!!!!!!
 
+  ! Set the current date by adding the run length so far to the run start date
+  ! obtained from the iodef file
   call xios_get_start_date(xios_start_date)
-  xios_start_date%second = xios_start_date%second &
-                           + clock%seconds_from_steps(clock%get_first_step())
+  xios_since_timestep_zero%second = &
+                        clock%seconds_from_steps(clock%get_first_step() - 1)
+  xios_start_date = xios_start_date + xios_since_timestep_zero
   call xios_set_start_date(xios_start_date)
 
+  ! Set the XIOS time-step from the model clock
   xios_timestep%second = clock%get_seconds_per_step()
   call xios_set_timestep(xios_timestep)
 
