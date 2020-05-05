@@ -86,6 +86,9 @@ module gungho_model_mod
                                          xios_update_calendar
   use yaxt,                       only : xt_initialize, xt_finalize
 
+  use linked_list_mod,            only : linked_list_type
+  use gungho_setup_io_mod,        only : init_gungho_files
+
 #ifdef UM_PHYSICS
   use jules_control_init_mod,     only : jules_control_init
   use jules_physics_init_mod,     only : jules_physics_init
@@ -151,6 +154,8 @@ module gungho_model_mod
     integer(i_native) :: log_level
 
     type(field_type)  :: surface_altitude
+
+    type(linked_list_type) :: files_list
 
     !-------------------------------------------------------------------------
     ! Initialise aspects of the infrastructure
@@ -239,12 +244,15 @@ module gungho_model_mod
     ! domain and context
     if ( use_xios_io ) then
 
+      call init_gungho_files(files_list, clock)
+
       call initialise_xios( xios_ctx,     &
                             communicator, &
                             clock,        &
                             mesh_id,      &
                             twod_mesh_id, &
-                            chi )
+                            chi,          &
+                            files_list )
 
       if (clock%is_initialisation()) then
         ! Make sure XIOS calendar is set to timestep 1 as it starts there

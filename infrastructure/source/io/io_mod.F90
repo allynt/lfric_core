@@ -21,40 +21,19 @@ module io_mod
                                            l_def, radians_to_degrees
   use coord_transform_mod,           only: xyz2llr
   use field_mod,                     only: field_type, field_proxy_type
-  use files_config_mod,              only: ancil_directory,       &
-                                           checkpoint_stem_name,  &
-                                           land_area_ancil_path,  &
-                                           orography_ancil_path,  &
-                                           soil_ancil_path,       &
-                                           start_dump_filename,   &
-                                           start_dump_directory
   use finite_element_config_mod,     only: element_order
+  use file_mod,                      only: xios_file_type
   use function_space_mod,            only: function_space_type, BASIS
   use function_space_collection_mod, only: function_space_collection
   use fs_continuity_mod,             only: W0, W1, W2, W3, Wtheta, W2H, &
                                            name_from_functionspace
-  use initialization_config_mod,     only: init_option,               &
-                                           init_option_fd_start_dump, &
-                                           ancil_option,              &
-                                           ancil_option_aquaplanet,   &
-                                           ancil_option_basic_gagl
-  use integer_field_mod,             only: integer_field_type
-  use orography_config_mod,          only: orog_init_option,          &
-                                           orog_init_option_ancil
-  use io_config_mod,                 only: diagnostic_frequency, &
-                                           checkpoint_write,     &
-                                           checkpoint_read,      &
-                                           write_dump
-  use log_mod,                       only: log_event,         &
-                                           log_set_level,     &
-                                           log_scratch_space, &
-                                           LOG_LEVEL_INFO
+  use linked_list_mod,               only: linked_list_type, &
+                                           linked_list_item_type
+  use log_mod,                       only: log_event, LOG_LEVEL_INFO
   use mesh_mod,                      only: mesh_type
-  use mesh_collection_mod,           only: mesh_collection
   use mpi_mod,                       only: get_comm_size, get_comm_rank, all_gather
   use psykal_lite_mod,               only: invoke_nodal_coordinates_kernel
   use psykal_builtin_light_mod,      only: invoke_pointwise_convert_xyz2llr
-  use runtime_constants_mod,         only: get_coordinates
   use xios
 
   implicit none
@@ -87,45 +66,28 @@ contains
 !!  @param[in]      twod_mesh_id  2D Mesh id
 !!  @param[in]      chi           Coordinate field
 !-------------------------------------------------------------------------------
-subroutine initialise_xios(xios_ctx, mpi_comm, clock, &
-                           mesh_id, twod_mesh_id,  chi)
-
-  use fs_continuity_mod, only : name_from_functionspace
+subroutine initialise_xios( xios_ctx, mpi_comm, clock, mesh_id, twod_mesh_id, &
+                            chi, files_list )
 
   implicit none
 
   ! Arguments
-  character(len=*),   intent(in)       :: xios_ctx
-  integer(i_def),     intent(in)       :: mpi_comm
-  type(clock_type),   intent(in)       :: clock
-  integer(i_def),     intent(in)       :: mesh_id
-  integer(i_def),     intent(in)       :: twod_mesh_id
-  type(field_type),   intent(in)       :: chi(:)
-
+  character(len=*),                 intent(in) :: xios_ctx
+  integer(i_def),                   intent(in) :: mpi_comm
+  type(clock_type),                 intent(in) :: clock
+  integer(i_def),                   intent(in) :: mesh_id
+  integer(i_def),                   intent(in) :: twod_mesh_id
+  type(field_type),                 intent(in) :: chi(:)
+  type(linked_list_type), optional, intent(in) :: files_list
 
   ! Local variables
-  type(xios_date)                      :: xios_start_date
-  type(xios_duration)                  :: xios_since_timestep_zero
-  type(xios_duration)                  :: xios_timestep
-  type(xios_duration)                  :: o_freq, cp_freq, dump_freq
-  type(xios_duration)                  :: av_freq
-  type(xios_context)                   :: xios_ctx_hdl
-  type(xios_file)                      :: cpfile_hdl, rsfile_hdl,   &
-                                          ofile_hdl, dumpfile_hdl,  &
-                                          ancil_file_hdl, orog_file_hdl
-  type(xios_fieldgroup)                :: cpfieldgroup_hdl, &
-                                          fdfieldgroup_hdl
-  character(len=str_max_filename)      :: checkpoint_write_fname
-  character(len=str_max_filename)      :: checkpoint_read_fname
-  character(len=str_max_filename)      :: dump_fname
-  character(len=str_max_filename)      :: ancil_fname
-  character(len=str_def)               :: domain_name, domain_fs_name
-  integer(i_native), parameter         :: domain_function_spaces(5) &
-                                                  = (/W0, W1, W2, W3, Wtheta/)
-
-  integer(i_native) :: fs_index
+  type(xios_context)  :: xios_ctx_hdl
+  type(xios_date)     :: xios_start_date
+  type(xios_duration) :: xios_timestep, xios_since_timestep_zero
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Setup context !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  call log_event("Initialising XIOS model context", LOG_LEVEL_INFO)
 
   call xios_context_initialize(xios_ctx, mpi_comm)
   call xios_get_handle(xios_ctx, xios_ctx_hdl)
@@ -135,127 +97,11 @@ subroutine initialise_xios(xios_ctx, mpi_comm, clock, &
 
   call setup_xios_domains(mesh_id, twod_mesh_id, chi)
 
-  !!!!!!!!!!!!! Setup diagnostic output context information !!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!! Setup files context information !!!!!!!!!!!!!!!!!!
 
-  ! Set diagnostic output (configured in timesteps) frequency in seconds
-  o_freq%second =  diagnostic_frequency * clock%get_seconds_per_step()
-
-  call xios_get_handle("lfric_diag",ofile_hdl)
-  call xios_set_attr(ofile_hdl, output_freq=o_freq)
-
-  ! Set diagnostic output (configured in timesteps) frequency in seconds
-  if (xios_is_valid_file("lfric_averages")) then
-    av_freq%second = clock%seconds_from_steps(clock%get_last_step())
-
-    call xios_get_handle("lfric_averages",ofile_hdl)
-    call xios_set_attr(ofile_hdl, output_freq=av_freq)
+  if ( present(files_list) ) then
+    call setup_xios_files(files_list, clock)
   end if
-
- !!!!!!!!!!!!! Setup dump context information !!!!!!!!!!!!!!!!!!
-
-  if ( write_dump ) then
-
-    ! Enable the fd field group
-    call xios_get_handle("physics_fd_fields",fdfieldgroup_hdl)
-    call xios_set_attr(fdfieldgroup_hdl, enabled=.true.)
-
-    ! Create dump filename from base name and end timestep
-    write(dump_fname,'(A,A,I6.6)') &
-       trim(start_dump_directory)//'/'//trim(start_dump_filename),"_", clock%get_last_step()
-
-
-    ! Set dump frequency (end timestep) in seconds
-    dump_freq%second = clock%seconds_from_steps(clock%get_last_step())
-
-    call xios_get_handle("lfric_fd_dump",dumpfile_hdl)
-    call xios_set_attr(dumpfile_hdl,name=dump_fname, enabled=.true.)
-    call xios_set_attr(dumpfile_hdl, output_freq=dump_freq)
-
-  end if
-
-  if( init_option == init_option_fd_start_dump .or. &
-      ancil_option == ancil_option_aquaplanet ) then
-
-    ! Enable the fd field group
-    call xios_get_handle("physics_fd_fields",fdfieldgroup_hdl)
-    call xios_set_attr(fdfieldgroup_hdl, enabled=.true.)
-
-    ! Create dump filename from stem
-    write(dump_fname,'(A)') trim(start_dump_directory)//'/'//trim(start_dump_filename)
-    ! Set dump filename
-    call xios_get_handle("read_lfric_fd_dump",dumpfile_hdl)
-    call xios_set_attr(dumpfile_hdl,name=dump_fname, enabled=.true.)
-
-  end if
-
-  if( ancil_option == ancil_option_basic_gagl ) then
-    ! Set land area ancil filename from namelist
-    write(ancil_fname,'(A)') trim(ancil_directory)//'/'//trim(land_area_ancil_path)
-    call xios_get_handle("land_area_ancil",ancil_file_hdl)
-    call xios_set_attr(ancil_file_hdl,name=ancil_fname, enabled=.true.)
-
-    ! Set soil ancil filename from namelist
-    write(ancil_fname,'(A)') trim(ancil_directory)//'/'//trim(soil_ancil_path)
-    call xios_get_handle("soil_ancil",ancil_file_hdl)
-    call xios_set_attr(ancil_file_hdl,name=ancil_fname, enabled=.true.)
-  end if
-
-  if( ( orog_init_option == orog_init_option_ancil ) .or. &
-    ( ancil_option == ancil_option_basic_gagl ) ) then
-    ! Assign ancil filename from namelist
-    write(ancil_fname,'(A)') trim(ancil_directory)//'/'//trim(orography_ancil_path)
-    ! Set orography ancil filename
-    call xios_get_handle("orography_ancil",orog_file_hdl)
-    call xios_set_attr(orog_file_hdl,name=ancil_fname, enabled=.true.)
-
-  end if
-
-  !!!!!!!!!!!!! Setup checkpoint context information !!!!!!!!!!!!!!!!!!
-
-  ! Enable the checkpoint field group
-
-  if ( checkpoint_write .or. checkpoint_read ) then
-
-    call xios_get_handle("checkpoint_fields",cpfieldgroup_hdl)
-    call xios_set_attr(cpfieldgroup_hdl, enabled=.true.)
-
-  end if
-
-  ! Checkpoint writing
-  if ( checkpoint_write ) then
-
-    ! Get the checkpoint file definition handle, set its filename and frequency
-    ! and enable/disable as required
-
-    ! Create checkpoint filename from stem and end timestep
-    write(checkpoint_write_fname,'(A,A,I6.6)') &
-                              trim(checkpoint_stem_name),"_", clock%get_last_step()
-
-    ! Set checkpoint frequency (end timestep) in seconds
-    cp_freq%second = clock%seconds_from_steps(clock%get_last_step())
-
-    call xios_get_handle("lfric_checkpoint_write",cpfile_hdl)
-    call xios_set_attr(cpfile_hdl,name=checkpoint_write_fname, enabled=.true.)
-    call xios_set_attr(cpfile_hdl, output_freq=cp_freq)
-
-  end if
-
-  ! Checkpoint reading
-  if ( checkpoint_read ) then
-
-    ! Get the checkpoint file definition handle, set its filename
-    ! and enable/disable as required
-
-    ! Create checkpoint filename from stem and (start - 1) timestep
-    write(checkpoint_read_fname,'(A,A,I6.6)') &
-                            trim(checkpoint_stem_name),"_", (clock%get_first_step() - 1)
-
-    call xios_get_handle("lfric_checkpoint_read",rsfile_hdl)
-    call xios_set_attr(rsfile_hdl, name=checkpoint_read_fname, enabled=.true.)
-
-
-  end if
-
 
   !!!!!!!!!!!!!!!!!!!! Setup calendar and finalise context !!!!!!!!!!!!!!!!!!!!
 
@@ -341,6 +187,71 @@ subroutine setup_xios_domains(mesh_id, twod_mesh_id, chi)
   call checkpoint_domain_init(W3, domain_name,  twod_mesh_id, chi, .true., snow_order)
 
 end subroutine setup_xios_domains
+
+!-------------------------------------------------------------------------------
+!>  @brief    Sets up XIOS file context information from list of file objects
+!!
+!!  @param[in] files_list List of file objects
+!!  @param[in] clock      Clock object
+!-------------------------------------------------------------------------------
+subroutine setup_xios_files(files_list, clock)
+
+  implicit none
+
+  type(linked_list_type), intent(in) :: files_list
+  type(clock_type),       intent(in) :: clock
+
+  type(xios_file)       :: file_hdl
+  type(xios_duration)   :: file_freq
+  type(xios_fieldgroup) :: field_group_hdl
+  character(str_def)    :: field_group_id
+
+  type(linked_list_item_type), pointer :: loop  => null()
+  type(xios_file_type),        pointer :: file  => null()
+
+  ! start at the head of the time_axis linked list
+  loop => files_list%get_head()
+  do
+    ! If list is empty or we're at the end of list, return a null pointer
+    if ( .not. associated(loop) ) then
+      nullify(file)
+      exit
+    end if
+
+    ! tmp_ptr is a dummy pointer used to 'cast' to the xios_file_type so that
+    ! we can get at the information in the payload
+    select type( tmp_ptr => loop%payload )
+      type is (xios_file_type)
+        file => tmp_ptr
+
+        ! Get file handle from XIOS and set attributes
+        call xios_get_handle( file%get_xios_id(), file_hdl )
+        call xios_set_attr( file_hdl, name=file%get_path() )
+
+        ! Set XIOS duration object second value equal to file output frequency
+        if ( .not. file%get_output_freq() == -999 ) then
+          file_freq%second = file%get_output_freq() * clock%get_seconds_per_step()
+          call xios_set_attr( file_hdl, output_freq=file_freq )
+        end if
+
+        call xios_set_attr( file_hdl, enabled=.true. )
+
+        ! If there is an associated field group, enable it
+        field_group_id = file%get_field_group()
+
+        if ( .not. field_group_id == "unset" ) then
+          call xios_get_handle( field_group_id, field_group_hdl )
+          call xios_set_attr( field_group_hdl, enabled=.true. )
+        end if
+
+    end select
+    loop => loop%next
+  end do
+
+  nullify(loop)
+  nullify(file)
+
+end subroutine setup_xios_files
 
 !-------------------------------------------------------------------------------
 !>  @brief    Performs XIOS diagnostic domain initialisation
@@ -857,25 +768,24 @@ subroutine checkpoint_domain_init(fs_id, domain_name, mesh_id, chi, &
   implicit none
 
   ! Arguments
-  integer(i_def),   intent(in)         :: fs_id
-  character(len=*), intent(in)         :: domain_name
-  integer(i_def),   intent(in)         :: mesh_id
-  type(field_type), intent(in)         :: chi(3)
-  logical(l_def),   intent(in)         :: use_index
-
-  integer(i_def),   optional, intent(in)  :: k_order
+  integer(i_def),           intent(in) :: fs_id
+  character(len=*),         intent(in) :: domain_name
+  integer(i_def),           intent(in) :: mesh_id
+  type(field_type),         intent(in) :: chi(3)
+  logical(l_def),           intent(in) :: use_index
+  integer(i_def), optional, intent(in) :: k_order
 
   ! Local variables
   integer(i_def)    :: i
   integer(i_def)    :: k_ord
 
   ! Checkpoint domain
-  integer(i_def)                      :: ibegin_checkpoint
-  real(dp_xios),allocatable           :: checkpoint_lon(:)
-  real(dp_xios),allocatable           :: checkpoint_lat(:)
-  real(dp_xios),allocatable           :: bnd_checkpoint_lon(:,:)
-  real(dp_xios),allocatable           :: bnd_checkpoint_lat(:,:)
-  integer(i_halo_index),allocatable   :: domain_index(:)
+  integer(i_def)                     :: ibegin_checkpoint
+  real(dp_xios), allocatable         :: checkpoint_lon(:)
+  real(dp_xios), allocatable         :: checkpoint_lat(:)
+  real(dp_xios), allocatable         :: bnd_checkpoint_lon(:,:)
+  real(dp_xios), allocatable         :: bnd_checkpoint_lat(:,:)
+  integer(i_halo_index), allocatable :: domain_index(:)
 
 
   ! Variables needed to compute output domain coordinates in lat-long

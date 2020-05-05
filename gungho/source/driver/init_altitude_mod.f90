@@ -26,7 +26,6 @@ module init_altitude_mod
                                              log_scratch_space, &
                                              LOG_LEVEL_INFO,  &
                                              LOG_LEVEL_ERROR
-  use xios,                           only : xios_is_valid_file
 
   implicit none
 
