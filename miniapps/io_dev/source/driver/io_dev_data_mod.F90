@@ -15,9 +15,7 @@ module io_dev_data_mod
 
   ! Infrastructure
   use clock_mod,                        only : clock_type
-  use constants_mod,                    only : i_def, l_def
-  use field_mod,                        only : field_type
-  use field_parent_mod,                 only : write_interface
+  use constants_mod,                    only : i_def
   use field_collection_mod,             only : field_collection_type
   use log_mod,                          only : log_event,      &
                                                LOG_LEVEL_INFO, &
@@ -25,13 +23,16 @@ module io_dev_data_mod
   ! Configuration
   use io_config_mod,                    only : checkpoint_read,  &
                                                checkpoint_write, &
+                                               write_diag,       &
                                                write_dump
+  use initialization_config_mod,        only : init_option,      &
+                                               init_option_fd_start_dump
   ! I/O methods
   use read_methods_mod,                 only : read_state
   use write_methods_mod,                only : write_state
   ! IO_Dev driver modules
   use io_dev_init_mod,                  only : create_io_dev_fields, &
-                                               init_io_dev_fields
+                                               io_dev_init_fields
 
 
   implicit none
@@ -45,18 +46,12 @@ module io_dev_data_mod
     private
 
     !> Stores all the fields used by the model - the remaining collections store
-    !> pointers to the data in the depository.
-    type( field_collection_type ), public :: depository
+    !> pointers to the data in the core_fields.
+    type( field_collection_type ), public :: core_fields
 
-    !> @name Collections controlling input/output of fields
-    !> @{
+    !> Field collection holding fields for dumps
+    type( field_collection_type ), public :: dump_fields
 
-    !> Field collection holding fields to be read into
-    type( field_collection_type ), public   :: input_fields
-    !> Field collection holding fields to be written
-    type( field_collection_type ), public   :: output_fields
-
-    !> @}
 
   end type io_dev_data_type
 
@@ -83,12 +78,11 @@ contains
     ! Clock will be integrated with future I/O testing functionality
     class( clock_type ),      intent(in)    :: clock
 
-    ! Create real fields for input and output
-    call create_io_dev_fields( mesh_id,                 &
-                               twod_mesh_id,            &
-                               model_data%depository,   &
-                               model_data%input_fields, &
-                               model_data%output_fields )
+    ! Create model data fields
+    call create_io_dev_fields( mesh_id,                &
+                               twod_mesh_id,           &
+                               model_data%core_fields, &
+                               model_data%dump_fields )
 
   end subroutine create_model_data
 
@@ -103,15 +97,19 @@ contains
     ! Clock will be integrated with future I/O testing functionality
     class( clock_type ),      intent(in)    :: clock
 
-    ! Initialise all the model fields here.
+    ! Initialise all the model fields here analytically - setting data value
+    ! equal to dof value.
+    call io_dev_init_fields( model_data%core_fields )
 
-    ! Call to read routines depending on model configuration - read from ugrid
-    ! file, restart, dump etc.
+    !---------------------------------------------------------------
+    ! Now we make separate init calls based on model configuration
+    !---------------------------------------------------------------
 
-    !call read_state( model_data%input_fields )
-
-    call init_io_dev_fields( model_data%input_fields, &
-                             model_data%output_fields )
+    ! If fields need to be read from dump file, read them
+    select case( init_option )
+      case ( init_option_fd_start_dump )
+        call read_state( model_data%dump_fields, prefix='input_' )
+    end select
 
 
   end subroutine initialise_model_data
@@ -128,16 +126,18 @@ contains
     ! Clock will be integrated with future I/O testing functionality
     class( clock_type ),      intent(in)            :: clock
 
-
     !===================== Write fields to dump ======================!
-    ! Functionality to be added
+    if ( write_dump ) then
+      call write_state( model_data%dump_fields, prefix='output_' )
+    end if
 
     !=================== Write fields to checkpoint files ====================!
     ! Functionality to be added
 
     !=================== Write fields to diagnostic files ====================!
-    call write_state( model_data%output_fields )
-
+    if ( write_diag ) then
+      call write_state( model_data%core_fields )
+    end if
 
   end subroutine output_model_data
 
@@ -150,9 +150,8 @@ contains
       type(io_dev_data_type), intent(inout) :: model_data
 
       ! Clear all the fields in each field collection
-      call model_data%depository%clear()
-      call model_data%input_fields%clear()
-      call model_data%output_fields%clear()
+      call model_data%core_fields%clear()
+      call model_data%dump_fields%clear()
 
       call log_event( 'finalise_model_data: all fields have been cleared', &
                        LOG_LEVEL_INFO )

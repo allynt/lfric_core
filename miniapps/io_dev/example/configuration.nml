@@ -1,5 +1,5 @@
 &base_mesh
-  filename        = 'mesh_C3.nc'
+  filename        = 'mesh_C12.nc'
   prime_mesh_name = 'dynamics'
   geometry        = 'spherical'
   partitioner     = 'cubedsphere'
@@ -14,9 +14,15 @@
   number_of_layers = 3
 /
 
+&initialization
+ init_option = 'analytic'
+/
+
 &files
-  diag_stem_name            = 'diagIoDev'
+  diag_stem_name            = 'diagIODev'
   checkpoint_stem_name      = 'restartIoDev'
+  start_dump_filename       = 'IODev_dump'
+  start_dump_directory      = './'
 /
 
 &finite_element
@@ -28,8 +34,8 @@
 
 &io
   use_xios_io               = .true.
-  write_diag                = .true.
-  write_dump                = .false.
+  write_diag                = .false.
+  write_dump                = .true.
   diagnostic_frequency      = 1
   nodal_output_on_w3        = .false.
   subroutine_timers         = .false.

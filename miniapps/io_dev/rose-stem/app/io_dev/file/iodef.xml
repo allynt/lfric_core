@@ -2,11 +2,9 @@
 <simulation>
 
   <!-- In this version we have ONE context  -->
-
-
   <context id = "io_dev">
 
-   <calendar type = "Gregorian" start_date = "2016-01-01 15:00:00" />
+    <calendar type = "Gregorian" start_date = "2016-01-01 15:00:00" />
 
    <axis_definition>
     <axis id="vert_axis_half_levels" name="half_levels"/>
@@ -14,7 +12,7 @@
     <axis id="multi_data_axis" name="multi_data_axis" n_glo="5"/>
    </axis_definition>
 
-   <domain_definition>
+    <domain_definition>
       <domain id="node" name="Mesh2d_node" nvertex="1"/>
       <domain id="face_half_levels" name="Mesh2d_half_levels" nvertex="4"/>
       <domain id="face_full_levels" name="Mesh2d_full_levels" nvertex="4"/>
@@ -30,68 +28,70 @@
       <domain id="checkpoint_sice" name="checkpoint_sice" nvertex="1"/>
       <domain id="checkpoint_soil" name="checkpoint_soil" nvertex="1"/>
       <domain id="checkpoint_snow" name="checkpoint_snow" nvertex="1"/>
- </domain_definition>
+    </domain_definition>
 
+    <grid_definition>
+     <grid id="node_grid">
+       <domain domain_ref="node"/>
+       <axis axis_ref="vert_axis_full_levels"/>
+     </grid>
+     <grid id="half_level_face_grid">
+       <domain domain_ref="face_half_levels"/>
+       <axis axis_ref="vert_axis_half_levels"/>
+     </grid>
+     <grid id="full_level_face_grid">
+       <domain domain_ref="face_full_levels"/>
+       <axis axis_ref="vert_axis_full_levels"/>
+     </grid>
+     <grid id="half_level_edge_grid">
+       <domain domain_ref="edge_half_levels"/>
+       <axis axis_ref="vert_axis_half_levels"/>
+     </grid>
+    </grid_definition>
 
-   <grid_definition>
-    <grid id="node_grid">
-      <domain domain_ref="node"/>
-      <axis axis_ref="vert_axis_full_levels"/>
-    </grid>
-    <grid id="half_level_face_grid">
-      <domain domain_ref="face_half_levels"/>
-      <axis axis_ref="vert_axis_half_levels"/>
-    </grid>
-    <grid id="full_level_face_grid">
-      <domain domain_ref="face_full_levels"/>
-      <axis axis_ref="vert_axis_full_levels"/>
-    </grid>
-    <grid id="half_level_edge_grid">
-      <domain domain_ref="edge_half_levels"/>
-      <axis axis_ref="vert_axis_half_levels"/>
-    </grid>
-   </grid_definition>
+    <field_definition prec="8" >
 
-   <field_definition prec="8" >
-
-     <!-- Core field group -->
-     <field_group id="core_fields" freq_op="1ts" operation="instant" enabled=".TRUE.">
-        <field id="node_field" name="node_field" long_name="Field on W0 function space" unit="1" grid_ref="node_grid" />
-        <field id="face_field" name="face_field" long_name="Field on W3 function space" unit="1" grid_ref="half_level_face_grid" />
-        <field id="single_face_field" name="single_face_field" long_name="Two dimensional field on W3 function space" unit="1" domain_ref="face_half_levels" />
+      <!-- Core field group -->
+      <field_group id="core_fields" freq_op="1ts" operation="instant" enabled=".TRUE.">
+        <field id="W0_field" name="W0_field" long_name="Field on W0 function space" unit="1" grid_ref="node_grid" />
+        <field id="W2H_field" name="W2H_field" long_name="Field on W2-horizontal function space" unit="1" grid_ref="half_level_edge_grid" />
+        <field id="W2V_field" name="W2V_field" long_name="Field on W2-vertical function space" unit="1" grid_ref="full_level_face_grid" />
+        <field id="W3_field" name="W3_field" long_name="Field on W3 function space" unit="1" grid_ref="half_level_face_grid" />
+        <field id="W3_2D_field" name="W3_2D_field" long_name="Two dimensional field on W3 function space" unit="1" domain_ref="face_half_levels" />
         <field id="multi_data_field" name="multi_data_field" long_name="Multi_data (ndata=5) field on W3, 2D function space" unit="1" domain_ref="face_half_levels" axis_ref="multi_data_axis"/>
-     </field_group>
+      </field_group>
 
-     <!-- Checkpoint group -->
-     <field_group id="checkpoint_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
-        <field id="checkpoint_node_field" name="checkpoint_node_field" long_name="Field on W0 function space" unit="1" domain_ref="checkpoint_W0" />
-        <field id="checkpoint_face_field" name="checkpoint_face_field" long_name="Field on W3 function space" unit="1" domain_ref="checkpoint_W3" />
-        <field id="checkpoint_single_face_field" name="checkpoint_single_face_field" long_name="Two dimensional field on W3 function space" unit="1" domain_ref="checkpoint_W3_2D" />
-     </field_group>
+      <!-- Checkpoint group -->
+      <field_group id="checkpoint_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
+        <field id="checkpoint_W0_field" name="checkpoint_W0_field" long_name="Field on W0 function space" unit="1" domain_ref="checkpoint_W0" />
+        <field id="checkpoint_W3_field" name="checkpoint_W3_field" long_name="Field on W3 function space" unit="1" domain_ref="checkpoint_W3" />
+        <field id="checkpoint_W3_2D_field" name="checkpoint_W3_2D_field" long_name="Two dimensional field on W3 function space" unit="1" domain_ref="checkpoint_W3_2D" />
+      </field_group>
 
-     <!-- Restart group -->
-     <field_group id="restart_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
-        <field id="restart_node_field" name="restart_node_field" long_name="Field on W0 function space" unit="1" domain_ref="checkpoint_W0" />
-        <field id="restart_face_field" name="restart_face_field" long_name="Field on W3 function space" unit="1" domain_ref="checkpoint_W3" />
-        <field id="restart_single_face_field" name="restart_single_face_field" long_name="Two dimensional field on W3 function space" unit="1" domain_ref="checkpoint_W3_2D" />
-     </field_group>
+      <!-- Restart group -->
+      <field_group id="restart_fields" freq_op="1ts" operation="once"  enabled=".FALSE." >
+        <field id="restart_W0_field" name="restart_W0_field" long_name="Field on W0 function space" unit="1" domain_ref="checkpoint_W0" />
+        <field id="restart_W3_field" name="restart_W3_field" long_name="Field on W3 function space" unit="1" domain_ref="checkpoint_W3" />
+        <field id="restart_W3_2D_field" name="restart_W3_2D_field" long_name="Two dimensional field on W3 function space" unit="1" domain_ref="checkpoint_W3_2D" />
+      </field_group>
 
-   </field_definition>
+    </field_definition>
 
-   <file_definition
+    <file_definition
       type="one_file"
       par_access="collective"
       time_counter="none">
 
-      <!-- File definition input fields -->
-      <file id="io_dev_input_C3" name="io_dev_input_C3" mode="read" output_freq="1ts" convention="UGRID" cyclic="true" enabled=".FALSE.">
-        <field id="input_face_field" name="face_field" long_name="Field on W3 function space" unit="1" operation="once" grid_ref="half_level_face_grid" />
-        <field id="input_single_face_field" name="single_face_field" long_name="Two dimensional field on W3 function space" unit="1" operation="once" domain_ref="face_half_levels" />
+      <!-- File definition input dump fields -->
+      <file id="io_dev_dump_in" name="io_dev_dump_in" mode="read" output_freq="1ts" convention="UGRID" cyclic="true" enabled=".FALSE.">
+        <field id="input_W3_field" name="W3_field" long_name="Field on W3 function space" unit="1" operation="once" grid_ref="half_level_face_grid" />
+        <field id="input_W3_2D_field" name="W3_2D_field" long_name="Two dimensional field on W3 function space" unit="1" operation="once" domain_ref="face_half_levels" />
        </file>
 
-      <!-- File definition for output fields -->
-      <file id="io_dev_output" name="io_dev_output" mode="write" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
-        <field_group group_ref="core_fields" />
+      <!-- File definition for output dump fields -->
+      <file id="io_dev_dump_out" name="io_dev_dump_out" mode="write" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+        <field id="output_W3_field" name="W3_field" long_name="Field on W3 function space" unit="1" operation="once" grid_ref="half_level_face_grid" />
+        <field id="output_W3_2D_field" name="W3_2D_field" long_name="Two dimensional field on W3 function space" unit="1" operation="once" domain_ref="face_half_levels" />
       </file>
 
       <!-- File definition for input_multi-data fields -->
@@ -107,6 +107,11 @@
       <!-- File definition for checkpoint read -->
       <file id="io_dev_checkpoint_read" name="io_dev_checkpoint" mode="read" output_freq="1ts" cyclic="true" enabled=".FALSE.">
         <field_group group_ref="restart_fields" />
+      </file>
+
+      <!-- File definition for output dump fields -->
+      <file id="io_dev_diag" name="io_dev_diag" mode="write" output_freq="1ts" convention="UGRID" enabled=".TRUE.">
+        <field_group group_ref="core_fields" />
       </file>
 
     </file_definition>

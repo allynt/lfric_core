@@ -32,7 +32,8 @@
 {%- set mesh_build      = "fast-debug" %}
 {%- set MAXRUNAHEAD     = 1 %}
 
-{%- set application_configurations = { 'io_dev' : ['default'] } %}
+{%- set application_configurations = { 'io_dev' : ['read_write',
+                                                   'default'] } %}
 
 {%- set canned_configurations = ['io_dev'] %}
 
@@ -41,17 +42,20 @@
     'validate_rose_meta_graph("io_dev",appName="io_dev")',
     'check_style_graph()',
     'api_documentation_graph(publish=True)',
-    'run_application("io_dev", "default", resolutions=[("C12",1800)],
-                     env={"nrun":4,
+    'run_application("io_dev", "default", resolutions=[("C12", 1800)],
+                     env={"crun":1, "nrun":1,})',
+    'run_application("io_dev", "read_write",
+                     resolutions=[("C12", 1800)],
+                     env={"crun":1, "nrun":1,
                           "directives":{"default":{"mpi_parts":6,
                                                    "threads":1,
                                                    "xios_nodes":1,
                                                    "wallclock":"00:05:00"}}},
                      checkkgo=False, publish=True)',
     'check_compilers("io_dev", "default", "fast-debug",
-                     resolution=("C12",1800))',
+                     resolution=("C12", 1800))',
     'check_compilers("io_dev", "default", "full-debug",
-                     resolution=("C12",1800))' ],
+                     resolution=("C12", 1800))' ],
 'nightly': [
     'null_task_graph()' ] } %}
 

@@ -17,6 +17,7 @@ module io_dev_model_mod
                                          global_mesh_collection_type
   use init_clock_mod,             only : initialise_clock
   use io_mod,                     only : initialise_xios
+  use linked_list_mod,            only : linked_list_type
   use log_mod,                    only : log_event,          &
                                          log_set_level,      &
                                          log_scratch_space,  &
@@ -38,6 +39,7 @@ module io_dev_model_mod
   ! IO_Dev driver modules
   use io_dev_mod,                 only : load_configuration
   use io_dev_data_mod,            only : io_dev_data_type
+  use io_dev_init_files_mod,      only : init_io_dev_files
   ! GungHo driver modules
   use create_fem_mod,             only : init_fem, final_fem
   use create_mesh_mod,            only : init_mesh, final_mesh
@@ -56,7 +58,7 @@ module io_dev_model_mod
   !> @brief Initialises the infrastructure components of the model
   !> @param[in]     filename     The name of the configuration namelist file
   !> @param[in]     program_name An identifier given to the model run
-  !> @param[in,out] communicator The MPI communicator for use within the model
+  !> @param[in]     communicator The MPI communicator for use within the model
   !>                              (not XIOS' communicator)
   !> @param[in,out] mesh_id      The identifier given to the current 3d mesh
   !> @param[in,out] twod_mesh_id The identifier given to the current 2d mesh
@@ -93,6 +95,7 @@ module io_dev_model_mod
     character(*), parameter :: xios_context_id = 'io_dev'
     integer(i_def)          :: total_ranks, local_rank
     integer(i_native)       :: log_level
+    type(linked_list_type)  :: files_list
 
     ! Save the model's part of the split communicator for later use
     call store_comm( communicator )
@@ -147,12 +150,15 @@ module io_dev_model_mod
     call init_fem( mesh_id, chi )
 
     ! Set up XIOS domain and context
+    call init_io_dev_files( files_list, clock )
+
     call initialise_xios( xios_context_id, &
                           communicator,    &
                           clock,           &
                           mesh_id,         &
                           twod_mesh_id,    &
-                          chi )
+                          chi,             &
+                          files_list )
 
 
   end subroutine initialise_infrastructure
