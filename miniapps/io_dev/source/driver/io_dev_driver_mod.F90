@@ -12,7 +12,8 @@ module io_dev_driver_mod
 
   ! Infrastructure
   use clock_mod,                  only: clock_type
-  use constants_mod,              only: i_def, i_native, imdi, i_timestep
+  use constants_mod,              only: i_def, i_native, imdi,     &
+                                        i_timestep
   use field_mod,                  only: field_type
   use log_mod,                    only: log_event,                 &
                                         log_scratch_space,         &
@@ -77,7 +78,7 @@ module io_dev_driver_mod
                             clock )
 
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, clock )
+    call initialise_model_data( model_data, chi, clock )
 
 
   end subroutine initialise

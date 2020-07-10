@@ -10,32 +10,33 @@
 module io_dev_init_mod
 
   ! Infrastructure
-  use constants_mod,                  only : i_def, str_def
-  use field_mod,                      only : field_type, field_proxy_type
-  use field_parent_mod,               only : field_parent_type, read_interface, write_interface
-  use field_collection_mod,           only : field_collection_type, field_collection_iterator_type
+  use constants_mod,                  only : i_def
+  use field_mod,                      only : field_type
+  use field_parent_mod,               only : read_interface, write_interface
+  use field_collection_mod,           only : field_collection_type
   use function_space_collection_mod,  only : function_space_collection
-  use fs_continuity_mod,              only : W0, W2H, W2V, Wtheta, W3
+  use fs_continuity_mod,              only : W0, W2H, W2V, W3
   use log_mod,                        only : log_event, &
                                              LOG_LEVEL_INFO
   use pure_abstract_field_mod,        only : pure_abstract_field_type
   ! Configuration
   use finite_element_config_mod,      only : element_order
-  use initialization_config_mod,      only : init_option, init_option_fd_start_dump
+  use initialization_config_mod,      only : init_option,                     &
+                                             init_option_fd_start_dump
   ! I/O methods
-  use read_methods_mod,               only : read_field_face, &
-                                             read_field_single_face, &
+  use read_methods_mod,               only : read_field_edge,                 &
+                                             read_field_face,                 &
+                                             read_field_single_face,          &
                                              read_state
-  use write_methods_mod,              only : write_field_node, &
-                                             write_field_edge, &
-                                             write_field_face, &
+  use write_methods_mod,              only : write_field_node,                &
+                                             write_field_edge,                &
+                                             write_field_face,                &
                                              write_field_single_face
 
   implicit none
 
   private
-  public :: create_io_dev_fields, &
-            io_dev_init_fields
+  public :: create_io_dev_fields
 
   contains
 
@@ -88,11 +89,13 @@ module io_dev_init_mod
     call W0_field%set_write_behaviour( tmp_write_ptr )
     call core_fields%add_field( W0_field )
 
-    ! W2H (edge) fields
+    ! W2 (edge) fields
     call W2H_field%initialise( vector_space = &
                    function_space_collection%get_fs(mesh_id, element_order, W2H), &
                    name = 'W2H_field' )
+    tmp_read_ptr  => read_field_edge
     tmp_write_ptr => write_field_edge
+    call W2H_field%set_read_behaviour( tmp_read_ptr )
     call W2H_field%set_write_behaviour( tmp_write_ptr )
     call core_fields%add_field( W2H_field )
 
@@ -105,28 +108,30 @@ module io_dev_init_mod
 
     ! W3 (face) field
     call W3_field%initialise( vector_space = &
-                   function_space_collection%get_fs(mesh_id, element_order, W3), &
-                   name = 'W3_field' )
-    tmp_write_ptr => write_field_face
+                  function_space_collection%get_fs(mesh_id, element_order, W3), &
+                  name = 'W3_field' )
     tmp_read_ptr  => read_field_face
-    call W3_field%set_write_behaviour( tmp_write_ptr )
+    tmp_write_ptr => write_field_face
     call W3_field%set_read_behaviour( tmp_read_ptr )
+    call W3_field%set_write_behaviour( tmp_write_ptr )
     call core_fields%add_field( W3_field )
 
     ! W3_2D (single_face) field
     call W3_2D_field%initialise( vector_space = &
                    function_space_collection%get_fs(twod_mesh_id, element_order, W3), &
                    name = 'W3_2D_field' )
-    tmp_write_ptr => write_field_single_face
     tmp_read_ptr  => read_field_single_face
-    call W3_2D_field%set_write_behaviour( tmp_write_ptr )
+    tmp_write_ptr => write_field_single_face
     call W3_2D_field%set_read_behaviour( tmp_read_ptr )
+    call W3_2D_field%set_write_behaviour( tmp_write_ptr )
     call core_fields%add_field( W3_2D_field )
 
     call multi_data_field%initialise( vector_space = &
                    function_space_collection%get_fs(twod_mesh_id, element_order, W3, ndata=5), &
                    name = 'multi_data_field' )
+    tmp_read_ptr  => read_field_single_face
     tmp_write_ptr => write_field_single_face
+    call multi_data_field%set_read_behaviour( tmp_read_ptr )
     call multi_data_field%set_write_behaviour( tmp_write_ptr )
     call core_fields%add_field( multi_data_field )
 
@@ -135,6 +140,9 @@ module io_dev_init_mod
     !----------------------------------------------------------------------------
     ! Add fields to dump_fields collection - fields for which read and write
     ! routines will be tested
+
+    tmp_field_ptr => core_fields%get_field( 'W2H_field' )
+    call dump_fields%add_reference_to_field( tmp_field_ptr )
 
     tmp_field_ptr => core_fields%get_field( 'W3_field' )
     call dump_fields%add_reference_to_field( tmp_field_ptr )
@@ -152,43 +160,5 @@ module io_dev_init_mod
     call log_event( 'IO_Dev: fields created', LOG_LEVEL_INFO )
 
   end subroutine create_io_dev_fields
-
-  !> @details Initialises model fields by making data values equal to dof values
-  !> @param[in,out] core_fields The core field collection
-  subroutine io_dev_init_fields( core_fields )
-
-    implicit none
-
-    ! Arguments
-    type(field_collection_type), intent(inout) :: core_fields
-
-    ! Local variables
-    type(field_collection_iterator_type) :: iter
-    type(field_proxy_type) :: core_proxy
-    integer(i_def) :: dof_index
-
-    ! Pointers
-    class(field_parent_type), pointer :: fld => null()
-
-    ! Cycle through dump_fields collection
-    iter = core_fields%get_iterator()
-    do
-      if ( .not.iter%has_next() ) exit
-      fld => iter%next()
-
-      select type(fld)
-        type is (field_type)
-        ! Initialise field to default value (dof ID)
-        core_proxy = fld%get_proxy()
-        do dof_index = 1, core_proxy%vspace%get_last_dof_owned()
-          core_proxy%data( dof_index ) = dof_index
-        end do
-      end select
-
-    end do
-
-    nullify(fld)
-
-  end subroutine io_dev_init_fields
 
 end module io_dev_init_mod

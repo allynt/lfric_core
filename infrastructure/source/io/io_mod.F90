@@ -305,7 +305,8 @@ subroutine diagnostic_domain_init(mesh_id, chi)
 
   ! domain index to ensure processor decomposition independent
   ! read for the face domain
-  integer(i_def),allocatable :: domain_index(:)
+  integer(i_def),allocatable :: W2_domain_index(:)
+  integer(i_def),allocatable :: W3_domain_index(:)
 
   ! Variables needed to compute output domain coordinates in lat-long
 
@@ -317,6 +318,7 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   ! Variables for mesh information
   type(mesh_type), pointer :: local_mesh => null()
   integer(i_def)           :: num_face_local
+  integer(i_def)           :: num_edge_local
   integer(i_def)           :: nodes_per_face
   integer(i_def)           :: nodes_per_edge
 
@@ -573,14 +575,14 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   ! face full level domain setup
 
   ! Allocate domain_index for faces
-  allocate(domain_index(num_face_local))
+  allocate(W3_domain_index(num_face_local))
 
   ! Populate domain_index for this rank
-  call proxy_coord_output(1)%vspace%get_global_cell_dof_id_2d(domain_index)
+  call proxy_coord_output(1)%vspace%get_global_cell_dof_id_2d(W3_domain_index)
 
   ! Pass local portion of domain_index
   call xios_set_domain_attr("face_half_levels", &
-                            i_index=int(domain_index(1:(local_undf(1)/nhalf_levels))))
+                            i_index=int(W3_domain_index(1:(local_undf(1)/nhalf_levels))))
 
   call xios_set_axis_attr("vert_axis_half_levels", n_glo=nhalf_levels,       &
                           value=fractional_levels_half_faces)
@@ -637,7 +639,7 @@ subroutine diagnostic_domain_init(mesh_id, chi)
 
   ! Pass local portion of domain_index
   call xios_set_domain_attr("face_full_levels", &
-                            i_index=int(domain_index(1:(local_undf(1)/nfull_levels))))
+                            i_index=int(W3_domain_index(1:(local_undf(1)/nfull_levels))))
 
 
   ! Clean up things ready to reuse for edge domain setup
@@ -720,6 +722,12 @@ subroutine diagnostic_domain_init(mesh_id, chi)
     ibegin_edges = sum(all_undfs(1:get_comm_rank()))
   end if
 
+  ! Allocate domain_index for edges
+  num_edge_local = local_mesh%get_num_edges_owned_2d()
+  allocate(W2_domain_index(num_edge_local))
+
+  ! Populate domain_index for this rank
+  call proxy_coord_output(1)%vspace%get_global_edge_dof_id_2d(W2_domain_index)
 
   call xios_set_domain_attr("edge_half_levels", ni_glo=global_undf,          &
                             ibegin=ibegin_edges,                             &
@@ -730,6 +738,10 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   call xios_set_domain_attr("edge_half_levels", bounds_lon_1d=bnd_edges_lon, &
                             bounds_lat_1d=bnd_edges_lat)
 
+  ! Pass local portion of domain_index to XIOS
+  call xios_set_domain_attr("edge_half_levels", &
+                      i_index=int(W2_domain_index(1:(local_undf(1)/nhalf_levels))))
+
 
   ! Clean up things that are not needed after domain setup
   deallocate(local_undf, all_undfs)
@@ -737,7 +749,8 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   deallocate(faces_lat, faces_lon, bnd_faces_lat, bnd_faces_lon)
   deallocate(bnd_edges_lat, bnd_edges_lon)
   deallocate(nodes_lat_full, nodes_lon_full)
-  deallocate(domain_index)
+  deallocate(W2_domain_index)
+  deallocate(W3_domain_index)
   fractional_levels_half_faces => null()
   fractional_levels_full_faces => null()
   fractional_levels_half_edges => null()

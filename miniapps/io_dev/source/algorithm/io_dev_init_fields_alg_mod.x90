@@ -1,19 +1,18 @@
 !-----------------------------------------------------------------------------
-! Copyright (c) 2017,  Met Office, on behalf of HMSO and Queen's Printer
-! For further details please refer to the file LICENCE.original which you
-! should have received as part of this distribution.
+! (C) Crown copyright 2020 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
 !-----------------------------------------------------------------------------
 
-!>@brief Initialisation of a test field for the IO Mini App
+!>@brief Initialises IO_Dev fields to the default analytic value - the product
+!>       of the x, y and z coordinate fields for any given function space
 module io_dev_init_fields_alg_mod
 
-  use log_mod,                         only: log_event,         &
-                                             log_scratch_space, &
-                                             LOG_LEVEL_INFO,    &
-                                             LOG_LEVEL_TRACE,   &
-                                             LOG_LEVEL_ERROR
-
-  use field_mod,                       only: field_type
+  use field_mod,                       only : field_type
+  use field_parent_mod,                only : field_parent_type
+  use field_collection_mod,            only : field_collection_type, &
+                                              field_collection_iterator_type
+  use io_dev_init_kernel_mod,          only : io_dev_init_kernel_type
 
   implicit none
 
@@ -21,29 +20,34 @@ module io_dev_init_fields_alg_mod
   public :: io_dev_init_fields_alg
 
 contains
-  !> @details An algorithm for initialising some test fields
-  !> @param[inout] density - example of a W3 field
-  !> @param[inout] theta - example of a Wtheta field
-  !> @param[inout] wind - example of a W2 field
-  subroutine io_dev_init_fields_alg(density, theta, wind)
+  !> @details An algorithm for initialising IO_Dev fields analytically
+  !> @param[inout] core_fields The core model field collection
+  !> @param[in]    chi         A size 3 array of fields holding the mesh
+  !>                           coordinates
+subroutine io_dev_init_fields_alg(core_fields, chi)
 
     implicit none
 
-    ! Test fields
-    type( field_type ),   intent(inout) :: density
-    type( field_type ),   intent(inout) :: theta
-    type( field_type ),   intent(inout) :: wind
+    type(field_collection_type), intent(inout) :: core_fields
+    type(field_type),            intent(in)    :: chi(3)
 
+    type(field_collection_iterator_type) :: iter
 
-    call log_event( "io_dev: Initialising test fields", LOG_LEVEL_INFO )
-    ! Set the density field values to 1.0
-    call invoke( setval_c( density, 1.0_r_def ) )
-    ! Set the theta field values to 2.0
-    call invoke( setval_c( theta, 2.0_r_def ) )
-    ! Set the wind field values to 3.0
-    call invoke( setval_c( wind, 3.0_r_def ) )
+    class(field_parent_type), pointer :: fld => null()
 
-    call log_event( "io_dev: Initialised test fields", LOG_LEVEL_INFO )
+    iter = core_fields%get_iterator()
+    do
+      if ( .not.iter%has_next() ) exit
+      fld => iter%next()
+      select type(fld)
+        type is (field_type)
+
+        ! Initialise fields to default analytic value (product of x, y and z
+        ! coordinates)
+        call invoke ( io_dev_init_kernel_type(fld, chi) )
+
+      end select
+    end do
 
   end subroutine io_dev_init_fields_alg
 

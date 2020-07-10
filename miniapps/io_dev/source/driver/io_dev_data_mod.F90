@@ -16,23 +16,21 @@ module io_dev_data_mod
   ! Infrastructure
   use clock_mod,                        only : clock_type
   use constants_mod,                    only : i_def
+  use field_mod,                        only : field_type
   use field_collection_mod,             only : field_collection_type
-  use log_mod,                          only : log_event,      &
-                                               LOG_LEVEL_INFO, &
-                                               LOG_LEVEL_ERROR
+  use log_mod,                          only : log_event,                 &
+                                               LOG_LEVEL_INFO
   ! Configuration
-  use io_config_mod,                    only : checkpoint_read,  &
-                                               checkpoint_write, &
-                                               write_diag,       &
+  use io_config_mod,                    only : write_diag,                &
                                                write_dump
-  use initialization_config_mod,        only : init_option,      &
+  use initialization_config_mod,        only : init_option,               &
                                                init_option_fd_start_dump
   ! I/O methods
   use read_methods_mod,                 only : read_state
   use write_methods_mod,                only : write_state
-  ! IO_Dev driver modules
-  use io_dev_init_mod,                  only : create_io_dev_fields, &
-                                               io_dev_init_fields
+  ! IO_Dev modules
+  use io_dev_init_mod,                  only : create_io_dev_fields
+  use io_dev_init_fields_alg_mod,       only : io_dev_init_fields_alg
 
 
   implicit none
@@ -88,18 +86,21 @@ contains
 
   !> @brief Initialises the working data set dependent of namelist configuration
   !> @param[inout] model_data The working data set for a model run
+  !> @param[in]    chi        A size 3 array of fields holding the mesh
+  !>                          coordinates
   !> @param[in]    clock      The model clock object
-  subroutine initialise_model_data( model_data, clock )
+  subroutine initialise_model_data( model_data, chi, clock )
 
     implicit none
 
     type( io_dev_data_type ), intent(inout) :: model_data
+    type( field_type ),       intent(in)    :: chi(3)
     ! Clock will be integrated with future I/O testing functionality
     class( clock_type ),      intent(in)    :: clock
 
     ! Initialise all the model fields here analytically - setting data value
-    ! equal to dof value.
-    call io_dev_init_fields( model_data%core_fields )
+    ! equal to product of x, y and z coordinates
+    call io_dev_init_fields_alg( model_data%core_fields, chi )
 
     !---------------------------------------------------------------
     ! Now we make separate init calls based on model configuration

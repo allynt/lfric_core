@@ -38,7 +38,6 @@ module io_dev_model_mod
   use io_config_mod,              only : use_xios_io
   ! IO_Dev driver modules
   use io_dev_mod,                 only : load_configuration
-  use io_dev_data_mod,            only : io_dev_data_type
   use io_dev_init_files_mod,      only : init_io_dev_files
   ! GungHo driver modules
   use create_fem_mod,             only : init_fem, final_fem

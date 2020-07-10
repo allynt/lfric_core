@@ -50,7 +50,7 @@ module io_dev_init_files_mod
 
     ! Setup diagnostic output file
     if ( write_diag ) then
-      call tmp_file%init_xios_file( "io_dev_diag", freq=diagnostic_frequency )
+      call tmp_file%init_xios_file("io_dev_diag", freq=diagnostic_frequency)
       call files_list%insert_item(tmp_file)
     end if
 
@@ -58,48 +58,48 @@ module io_dev_init_files_mod
     if ( write_dump ) then
       ! Create dump filename from base name and end timestep
       write(dump_fname,'(A,A,I6.6)') &
-         trim( start_dump_directory )//'/'//trim( start_dump_filename ), "_", &
+         trim(start_dump_directory)//'/'//trim(start_dump_filename),"_", &
          clock%get_last_step()
 
       ! Setup dump file for end timestep
       call tmp_file%init_xios_file( "io_dev_dump_out", dump_fname, &
                                     clock%get_last_step() )
-      call files_list%insert_item( tmp_file )
+      call files_list%insert_item(tmp_file)
     end if
 
     ! Setup dump-reading context information
-    if ( init_option == init_option_fd_start_dump ) then
+    if( init_option == init_option_fd_start_dump ) then
       ! Create dump filename from stem
-      write( dump_fname,'(A)' ) trim( start_dump_directory ) //'/'// &
-                                trim( start_dump_filename )
+      write(dump_fname,'(A)') trim(start_dump_directory)//'/'// &
+                              trim(start_dump_filename)
 
       ! Setup dump file
       call tmp_file%init_xios_file( "io_dev_dump_in", path=dump_fname )
-      call files_list%insert_item( tmp_file)
+      call files_list%insert_item(tmp_file)
     end if
 
     ! Setup checkpoint writing context information
     if ( checkpoint_write ) then
       ! Create checkpoint filename from stem and end timestep
-      write( checkpoint_write_fname,'(A,A,I6.6)' ) &
-                           trim( checkpoint_stem_name ), "_", clock%get_last_step()
+      write(checkpoint_write_fname,'(A,A,I6.6)') &
+                           trim(checkpoint_stem_name),"_", clock%get_last_step()
 
       call tmp_file%init_xios_file( "io_dev_checkpoint_write", &
                                     checkpoint_write_fname, clock%get_last_step(), &
                                     field_group_id="checkpoint_fields" )
-      call files_list%insert_item( tmp_file )
+      call files_list%insert_item(tmp_file)
     end if
 
     ! Setup checkpoint reading context information
     if ( checkpoint_read ) then
       ! Create checkpoint filename from stem and (start - 1) timestep
-      write( checkpoint_read_fname,'(A,A,I6.6)' ) &
-                   trim( checkpoint_stem_name ), "_", ( clock%get_first_step() - 1 )
+      write(checkpoint_read_fname,'(A,A,I6.6)') &
+                   trim(checkpoint_stem_name),"_", (clock%get_first_step() - 1)
 
       call tmp_file%init_xios_file( "io_dev_checkpoint_read", &
                                     checkpoint_read_fname, clock%get_first_step() - 1, &
                                     field_group_id="checkpoint_fields" )
-      call files_list%insert_item( tmp_file )
+      call files_list%insert_item(tmp_file)
     end if
 
   end subroutine init_io_dev_files
