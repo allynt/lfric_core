@@ -24,8 +24,9 @@ use log_mod,               only: log_event, log_scratch_space                  &
                                , LOG_LEVEL_DEBUG, LOG_LEVEL_ERROR              &
                                , LOG_LEVEL_INFO
 use reference_element_mod, only: reference_element_type
-use fs_continuity_mod,     only: W0, W1, W2, W3, Wtheta, &
-                                 W2broken, W2trace,      &
+use fs_continuity_mod,     only: W0, W1, W2, W3, Wtheta,    &
+                                 W2broken, W2trace,         &
+                                 W2Htrace, W2Vtrace,        &
                                  W2V, W2H, Wchi
 use function_space_constructor_helper_functions_mod, &
                            only: ndof_setup, basis_setup, &
@@ -41,7 +42,7 @@ implicit none
 
 private
 
-public :: W0, W1, W2, W2broken, W2trace, W3, Wtheta, W2V, W2H, Wchi
+public :: W0, W1, W2, W2broken, W2trace, W2Vtrace, W2Htrace, W3, Wtheta, W2V, W2H, Wchi
 
 integer(i_def), public, parameter :: BASIS      = 100
 integer(i_def), public, parameter :: DIFF_BASIS = 101
@@ -466,7 +467,7 @@ subroutine init_function_space( self )
     self%dim_space      = 3  ! Vector field
     self%dim_space_diff = 1  ! Scalar field
 
-  case (W2trace, W3)
+  case (W2trace, W2Vtrace, W2Htrace, W3)
     self%dim_space      = 1  ! Scalar field
     self%dim_space_diff = 3  ! Vector field
 
@@ -883,6 +884,7 @@ end function evaluate_diff_basis
 subroutine compute_basis_function(self, basis, ndf, qp_h, qp_v, x_qp, z_qp)
 
   implicit none
+
 
   class(function_space_type), intent(in) :: self
 

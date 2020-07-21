@@ -16,7 +16,8 @@ module function_space_collection_mod
 
   use constants_mod,      only: i_def, l_def
   use function_space_mod, only: function_space_type
-  use fs_continuity_mod,  only: W0, W1, W2, W2V, W2H, W2broken, W2trace, W3, &
+  use fs_continuity_mod,  only: W0, W1, W2, W2V, W2H, W2broken, W2trace, &
+                                W2Htrace, W2Vtrace, W3, &
                                 Wtheta, Wchi, name_from_functionspace
   use log_mod,            only: log_event, log_scratch_space, &
                                 LOG_LEVEL_ERROR, LOG_LEVEL_INFO, LOG_LEVEL_TRACE
@@ -111,7 +112,8 @@ function get_fs(self, &
 
   select case (lfric_fs)
 
-  case (W0, W1, W2, W2V, W2H, W2broken, W2trace, W3, WTHETA, WCHI)
+  case (W0, W1, W2, W2V, W2H, W2broken, W2trace, W2Htrace, W2Vtrace, &
+        W3, WTHETA, WCHI)
   case default
     write(log_scratch_space, '(A,I0,A)')                   &
         'Function space type continuity type (', lfric_fs, &

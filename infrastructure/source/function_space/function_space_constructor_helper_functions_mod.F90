@@ -11,6 +11,7 @@ module function_space_constructor_helper_functions_mod
   use mesh_mod,              only: mesh_type
   use fs_continuity_mod,     only: W0, W1, W2, W2V, W2H,   &
                                    W2broken, W2trace,      &
+                                   W2Vtrace, W2Htrace,     &
                                    W3, Wtheta, Wchi
   use reference_element_mod, only: reference_element_type, &
                                    V,                      &
@@ -389,6 +390,32 @@ contains
       ndof_face = (k+1)*(k+1)
       ndof_cell = 6*ndof_face
 
+   case (W2Vtrace)
+      ! This function space is the result of taking the trace
+      ! of a W2V Hdiv space (or equivalently taking only the
+      ! vertical components of the trace of the W2 space).
+      ! The result is a scalar-valued space
+      ! with functions defined only on cell horizontal faces.
+      !
+      ! This space is discontinuous across edges/vertices.
+      !
+      ! NOTE: Not correct for simplices
+      ndof_face = (k+1)*(k+1)
+      ndof_cell = 2*ndof_face
+
+    case (W2Htrace)
+      ! This function space is the result of taking the trace
+      ! of a W2H Hdiv space (or equivalently taking only the
+      ! horizontal components of the trace of the W2 space).
+      ! The result is a scalar-valued space
+      ! with functions defined only on cell vertical faces.
+      !
+      ! This space is discontinuous across edges/vertices.
+      !
+      ! NOTE: Not correct for simplices
+      ndof_face = (k+1)*(k+1)
+      ndof_cell = 4*ndof_face
+
     case (W3)
       ! Order of this function space is same as base order
       ! This function space is discontinuous so all dofs are
@@ -427,10 +454,10 @@ contains
       ndof_glob = ncells*nlayers*ndof_vol + nface_g*ndof_face                    &
                   + nedge_g*ndof_edge     + nvert_g*ndof_vert
 
-    case (WTHETA, W2V)
+    case (WTHETA, W2V, W2Vtrace)
       ndof_glob = ncells*nlayers*ndof_vol + ncells*(nlayers+1)*ndof_face
 
-    case (W2H)
+    case (W2H, W2Htrace)
       ndof_glob = ncells*nlayers*ndof_vol + nedges_per_level*nlayers*ndof_face   &
                 + nedge_g*ndof_edge       + nvert_g*ndof_vert
     end select
@@ -617,7 +644,7 @@ contains
 
     ! Allocate arrays to allow on the fly evaluation of basis functions
     select case (gungho_fs)
-    case (W1, W2, W2H, W2V, W2broken, W2trace)
+    case (W1, W2, W2H, W2V, W2broken, W2trace, W2Vtrace, W2Htrace)
       allocate( unit_vec(3, ndof_cell) )
     end select
 
@@ -1233,6 +1260,70 @@ contains
       basis_index(2,:) = ly(1:ndof_cell)
       basis_index(3,:) = lz(1:ndof_cell)
 
+    case (W2Vtrace)
+      !---------------------------------------------------------------------------
+      ! Section for test/trial functions of W2Vtrace space
+      !---------------------------------------------------------------------------
+      poly_order = k + 1
+
+      do idx = 1, ndof_cell
+        do i = 1, 3
+          unit_vec(i, idx) = 0.0_r_def
+        end do
+      end do
+
+      idx = 1
+      ! dofs on faces
+      do i = number_faces - 1, number_faces
+        do j1 = 1, k+1
+          do j2 = 1, k+1
+            j(1) = j1
+            j(2) = j2
+            j(3) = face_idx(i)
+            lx(idx) = j(j2l_face(i,1))
+            ly(idx) = j(j2l_face(i,2))
+            lz(idx) = j(j2l_face(i,3))
+            call reference_element%get_normal_to_face( i, unit_vec(:,idx) )
+            if (i == number_faces - 1) dof_on_vert_boundary(idx,1) = 0
+            if (i == number_faces)     dof_on_vert_boundary(idx,2) = 0
+            ! Label top and bottom face degrees of freedom
+            entity_dofs(idx) = reference_element%get_face_entity(i)
+            idx = idx + 1
+          end do
+        end do
+      end do
+
+      do i = 1, ndof_cell
+
+        nodal_coords(1,i) = abs(unit_vec(1,i))*x1(lx(i))                         &
+                          + (1.0_r_def - abs(unit_vec(1,i)))*x2(lx(i))
+
+        nodal_coords(2,i) = abs(unit_vec(2,i))*x1(ly(i))                         &
+                          + (1.0_r_def - abs(unit_vec(2,i)))*x2(ly(i))
+
+        nodal_coords(3,i) = abs(unit_vec(3,i))*x1(lz(i))                         &
+                          + (1.0_r_def - abs(unit_vec(3,i)))*x2(lz(i))
+
+        basis_order(1,i)  = poly_order - int(1.0_r_def - abs(unit_vec(1,i)), i_def)
+        basis_order(2,i)  = poly_order - int(1.0_r_def - abs(unit_vec(2,i)), i_def)
+        basis_order(3,i)  = poly_order - int(1.0_r_def - abs(unit_vec(3,i)), i_def)
+
+        basis_x(:,1,i)    = abs(unit_vec(1,i))*x1(:)                             &
+                          + (1.0_r_def - abs(unit_vec(1,i)))*x2(:)
+
+        basis_x(:,2,i)    = abs(unit_vec(2,i))*x1(:)                             &
+                          + (1.0_r_def - abs(unit_vec(2,i)))*x2(:)
+
+        basis_x(:,3,i)    = abs(unit_vec(3,i))*x1(:)                             &
+                          + (1.0_r_def - abs(unit_vec(3,i)))*x2(:)
+
+        basis_vector(:,i) = unit_vec(:,i)
+
+      end do
+
+      basis_index(1,:) = lx(1:ndof_cell)
+      basis_index(2,:) = ly(1:ndof_cell)
+      basis_index(3,:) = lz(1:ndof_cell)
 
 
     case (W2H)
@@ -1331,6 +1422,69 @@ contains
       basis_index(2,:) = ly(1:ndof_cell)
       basis_index(3,:) = lz(1:ndof_cell)
 
+
+    case (W2Htrace)
+      !---------------------------------------------------------------------------
+      ! Section for test/trial functions of W2Htrace space
+      !---------------------------------------------------------------------------
+      poly_order = k + 1
+
+      do idx = 1, ndof_cell
+        do i = 1, 3
+          unit_vec(i,idx) = 0.0_r_def
+        end do
+      end do
+
+      idx = 1
+      !============================================
+      ! dofs on faces
+      !============================================
+      do i = 1, number_faces - 2
+        do j1 = 1, k+1
+          do j2 = 1, k+1
+            j(1) = j1
+            j(2) = j2
+            j(3) = face_idx(i)
+            lx(idx) = j(j2l_face(i,1))
+            ly(idx) = j(j2l_face(i,2))
+            lz(idx) = j(j2l_face(i,3))
+            call reference_element%get_normal_to_face( i, unit_vec(:,idx) )
+            ! Label horizontal face degrees of freedom
+            entity_dofs(idx) = reference_element%get_face_entity(i)
+            idx = idx + 1
+          end do
+        end do
+      end do
+
+      do i = 1, ndof_cell
+        nodal_coords(1,i) = abs(unit_vec(1,i))*x1(lx(i))                         &
+                          + (1.0_r_def - abs(unit_vec(1,i)))*x2(lx(i))
+
+        nodal_coords(2,i) = abs(unit_vec(2,i))*x1(ly(i))                         &
+                          + (1.0_r_def - abs(unit_vec(2,i)))*x2(ly(i))
+
+        nodal_coords(3,i) = abs(unit_vec(3,i))*x1(lz(i))                         &
+                          + (1.0_r_def - abs(unit_vec(3,i)))*x2(lz(i))
+
+        basis_order(1,i)  = poly_order - int(1.0_r_def - abs(unit_vec(1,i)), i_def)
+        basis_order(2,i)  = poly_order - int(1.0_r_def - abs(unit_vec(2,i)), i_def)
+        basis_order(3,i)  = poly_order - int(1.0_r_def - abs(unit_vec(3,i)), i_def)
+
+        basis_x(:,1,i)    = abs(unit_vec(1,i))*x1(:)                             &
+                          + (1.0_r_def - abs(unit_vec(1,i)))*x2(:)
+
+        basis_x(:,2,i)    = abs(unit_vec(2,i))*x1(:)                             &
+                          + (1.0_r_def - abs(unit_vec(2,i)))*x2(:)
+        basis_x(:,3,i)    = abs(unit_vec(3,i))*x1(:)                             &
+                          + (1.0_r_def - abs(unit_vec(3,i)))*x2(:)
+
+        basis_vector(:,i) = unit_vec(:,i)
+      end do
+
+      basis_index(1,:) = lx(1:ndof_cell)
+      basis_index(2,:) = ly(1:ndof_cell)
+      basis_index(3,:) = lz(1:ndof_cell)
+
       case(WCHI)
       !---------------------------------------------------------------------------
       ! Section for test/trial functions of DG spaces
@@ -1378,7 +1532,7 @@ contains
 
     ! Allocate arrays to allow on the fly evaluation of basis functions
     select case (gungho_fs)
-    case (W1, W2, W2H, W2V, W2broken, W2trace)
+    case (W1, W2, W2H, W2V, W2broken, W2trace, W2Vtrace, W2Htrace)
       deallocate( unit_vec )
     end select
 
@@ -1620,9 +1774,9 @@ contains
       select_entity => select_entity_all
     case(WTHETA)
       select_entity => select_entity_theta
-    case(W2H)
+    case(W2H, W2Htrace)
       select_entity => select_entity_w2h
-    case(W2V)
+    case(W2V, W2Vtrace)
       select_entity => select_entity_w2v
     end select
 
