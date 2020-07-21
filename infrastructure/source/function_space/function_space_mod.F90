@@ -15,8 +15,7 @@
 module function_space_mod
 
 
-use constants_mod,         only: i_def, i_native, i_halo_index, &
-                                 l_def, r_def, dp_xios, real_type
+use constants_mod,         only: i_def, i_native, i_halo_index, l_def, r_def
 use mesh_mod,              only: mesh_type
 use master_dofmap_mod,     only: master_dofmap_type
 use stencil_dofmap_mod,    only: stencil_dofmap_type, STENCIL_POINT,           &
@@ -123,7 +122,7 @@ type, extends(linked_list_data_type), public :: function_space_type
 
   !> An array to hold an ordered, unique list of levels for output
   !> of fields on this function space
-  real(dp_xios), allocatable  :: fractional_levels(:)
+  real(r_def),   allocatable  :: fractional_levels(:)
 
   !> @}
   !> @name Arrays needed for on the fly basis evaluations
@@ -165,6 +164,7 @@ type, extends(linked_list_data_type), public :: function_space_type
 
   !> Flag holds whether fields on this function space will be readonly
   logical(l_def) :: readonly
+
 contains
 
   !> @brief Gets the total number of unique degrees of freedom for this space,
@@ -684,7 +684,7 @@ function get_levels(self) result(levels)
 
   implicit none
   class(function_space_type), target, intent(in) :: self
-  double precision, pointer                      :: levels(:)
+  real(r_def), pointer                           :: levels(:)
 
   levels => self%fractional_levels
   return
@@ -738,6 +738,7 @@ end function which
 ! Gets the size of the function space
 !-----------------------------------------------------------------------------
 function get_dim_space(self) result(dim)
+
   implicit none
   class(function_space_type), intent(in) :: self
   integer(i_def) :: dim
@@ -751,6 +752,7 @@ end function get_dim_space
 ! Gets the size of the diferential function space
 !-----------------------------------------------------------------------------
 function get_dim_space_diff(self) result(dim)
+
   implicit none
   class(function_space_type), intent(in) :: self
   integer(i_def) :: dim
@@ -1165,7 +1167,6 @@ end function get_last_dof_halo_any
 ! Gets the index within the dofmap of the last dof in the deepest halo
 !-----------------------------------------------------------------------------
 function get_last_dof_halo_deepest(self) result (last_dof_halo)
-
   implicit none
   class(function_space_type) :: self
 

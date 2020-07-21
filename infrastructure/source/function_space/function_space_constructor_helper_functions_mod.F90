@@ -7,7 +7,7 @@
 !>
 module function_space_constructor_helper_functions_mod
 
-  use constants_mod,         only: i_def, i_halo_index, r_def, dp_xios, IMDI
+  use constants_mod,         only: i_def, i_halo_index, r_def, IMDI
   use mesh_mod,              only: mesh_type
   use fs_continuity_mod,     only: W0, W1, W2, W2V, W2H,   &
                                    W2broken, W2trace,      &
@@ -2084,12 +2084,12 @@ contains
 
     implicit none
 
-    type(mesh_type), intent(in) :: mesh
-    integer(i_def),  intent(in) :: nlayers
-    integer(i_def),  intent(in) :: fs
-    real(dp_xios),   intent(out), allocatable :: levels(:)
+    type(mesh_type), intent(in)               :: mesh
+    integer(i_def),  intent(in)               :: nlayers
+    integer(i_def),  intent(in)               :: fs
+    real(r_def),     intent(out), allocatable :: levels(:)
 
-    class(reference_element_type), pointer :: reference_element => null()
+    class(reference_element_type), pointer    :: reference_element => null()
 
     real(r_def), allocatable :: vert_coords(:,:)
     real(r_def), allocatable :: edge_coords(:,:)
@@ -2098,7 +2098,7 @@ contains
     ! Variable to hold the number of levels we found
     integer(i_def)   :: idx
     ! working array to hold fractional levels
-    real(dp_xios), allocatable :: tmp_levs(:)
+    real(r_def), allocatable :: tmp_levs(:)
 
     type(select_data_entity_type) :: select_data_entity_all,   &
                                      select_data_entity_theta, &
@@ -2235,11 +2235,11 @@ contains
 
     implicit none
 
-    integer(i_def),     intent(in)               :: nlayers
-    real(r_def),   intent(in)               :: coords_array(:,:)
-    integer(i_def),     intent(in)               :: entity_array(:)
-    real(dp_xios), intent(out), allocatable :: tmp_levs(:)
-    integer(i_def),     intent(out)              :: idx
+    integer(i_def),  intent(in)               :: nlayers
+    real(r_def),     intent(in)               :: coords_array(:,:)
+    integer(i_def),  intent(in)               :: entity_array(:)
+    real(r_def),     intent(out), allocatable :: tmp_levs(:)
+    integer(i_def),  intent(out)              :: idx
 
     ! Local variables for computation
     real(r_def) :: l

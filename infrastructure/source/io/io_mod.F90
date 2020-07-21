@@ -332,6 +332,9 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   integer(i_def), allocatable   :: local_undf(:), all_undfs(:)
   integer(i_def)                :: local_annexed_dof
 
+  ! Targetable array for storing kind-converted real(r_def) levels information
+  real(dp_xios), allocatable, target  :: dp_levels(:)
+
   ! Factor to convert coords from radians to degrees if needed
   ! set as 1.0 for planar mesh
   real(r_def)                :: r2d
@@ -389,7 +392,8 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   local_annexed_dof  = proxy_coord_output(1)%vspace%get_last_dof_annexed()
 
   ! Get the unique fractional levels to set up vertical output domain
-  fractional_levels_nodes => proxy_coord_output(1)%vspace%get_levels()
+  dp_levels = real( proxy_coord_output(1)%vspace%get_levels(), kind=dp_xios )
+  fractional_levels_nodes => dp_levels
 
   nfull_levels = size(fractional_levels_nodes)
 
@@ -525,7 +529,8 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   local_undf(1)  = proxy_coord_output(1)%vspace%get_last_dof_owned()
 
   ! Get the unique fractional levels to set up half levels vertical output domain
-  fractional_levels_half_faces => proxy_coord_output(1)%vspace%get_levels()
+  dp_levels = real( proxy_coord_output(1)%vspace%get_levels(), kind=dp_xios )
+  fractional_levels_half_faces => dp_levels
 
   nhalf_levels = size(fractional_levels_half_faces)
 
@@ -624,7 +629,8 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   local_undf(1)  = proxy_coord_output(1)%vspace%get_last_dof_owned()
 
   ! Get the unique fractional levels to set up full levels vertical output domain
-  fractional_levels_full_faces => proxy_coord_output(1)%vspace%get_levels()
+  dp_levels = real( proxy_coord_output(1)%vspace%get_levels(), kind=dp_xios )
+  fractional_levels_full_faces => dp_levels
 
   nfull_levels = size(fractional_levels_full_faces)
 
@@ -640,7 +646,6 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   ! Pass local portion of domain_index
   call xios_set_domain_attr("face_full_levels", &
                             i_index=int(W3_domain_index(1:(local_undf(1)/nfull_levels))))
-
 
   ! Clean up things ready to reuse for edge domain setup
   deallocate(local_undf, all_undfs)
@@ -684,7 +689,8 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   local_undf(1)  = proxy_coord_output(1)%vspace%get_last_dof_owned()
 
   ! Get the unique fractional levels to set up half levels vertical output domain
-  fractional_levels_half_edges => proxy_coord_output(1)%vspace%get_levels()
+  dp_levels = real( proxy_coord_output(1)%vspace%get_levels(), kind=dp_xios )
+  fractional_levels_half_edges => dp_levels
 
   nhalf_levels = size(fractional_levels_half_edges)
 
@@ -754,6 +760,7 @@ subroutine diagnostic_domain_init(mesh_id, chi)
   fractional_levels_half_faces => null()
   fractional_levels_full_faces => null()
   fractional_levels_half_edges => null()
+  deallocate(dp_levels)
   output_field_fs => null()
   w2h_fs => null()
 
