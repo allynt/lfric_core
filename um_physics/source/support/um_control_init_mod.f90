@@ -13,7 +13,7 @@ module um_control_init_mod
   use timestepping_config_mod, only : dt, outer_iterations
 
   ! Other modules used
-  use constants_mod,           only : i_um, r_um, rmdi
+  use constants_mod,           only : i_um, r_um, rmdi, i_def
   use conversions_mod,         only : pi_over_180
 
   implicit none
@@ -31,7 +31,8 @@ contains
   !>          of LFRic (but cannot be made a parameter because it is required
   !>          to be variable in the UM and therefore declared as such in the
   !>          UM modules which contains it).
-  subroutine um_control_init()
+  !> @param[in] mesh_id        Mesh_id
+  subroutine um_control_init(mesh_id)
 
     ! UM modules containing things that need setting
     use atm_fields_bounds_mod, only: atm_fields_bounds_init
@@ -46,7 +47,15 @@ contains
     use timestep_mod, only: timestep
     use trignometric_mod, only: cos_theta_latitude
 
+    use mesh_mod,                      only: mesh_type
+    use mesh_collection_mod,           only: mesh_collection
+
     implicit none
+
+    integer(i_def),   intent(in)    :: mesh_id
+
+    ! Local variables
+    type(mesh_type), pointer        :: mesh => null()
 
     ! ----------------------------------------------------------------
     ! Model dimensions - contained in UM module nlsizes_namelist_mod
@@ -112,6 +121,10 @@ contains
     allocate(r_theta_levels(row_length,rows,0:number_of_layers), source=rmdi)
     allocate(r_rho_levels(row_length,rows,number_of_layers), source=rmdi)
     allocate(eta_theta_levels(0:number_of_layers), source=rmdi)
+
+    ! get pointer to local mesh
+    mesh => mesh_collection%get_mesh( mesh_id )
+    call mesh%get_eta(eta_theta_levels)
 
     ! The following are used in the calculation of grid-box size in
     ! UM parametrizations.

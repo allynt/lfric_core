@@ -98,8 +98,7 @@ contains
     use nlsizes_namelist_mod,       only: row_length, rows, model_levels, &
                                           global_row_length
 
-    use level_heights_mod,          only: r_rho_levels, r_theta_levels,   &
-                                          eta_theta_levels
+    use level_heights_mod,          only: r_rho_levels, r_theta_levels
 
     use planet_constants_mod,       only: p_zero, kappa, planet_radius
     use timestep_mod,               only: timestep
@@ -210,10 +209,6 @@ contains
 
     totalppn(1,1) = real(totalppn_2d(map_2d(1)), r_um)
     sin_theta_latitude(1,1) = real(sin( latitude(map_2d(1)) ) ,r_um)
-
-    ! As per atmos_physics 1 code
-    eta_theta_levels(:) = (r_theta_levels(1,1,:)-r_theta_levels(1,1,0)) &
-                          /(r_theta_levels(1,1,nlayers)-planet_radius)
 
     ! call USSP code from UM
     call gw_ussp(nlayers, rows,row_length,                                   &

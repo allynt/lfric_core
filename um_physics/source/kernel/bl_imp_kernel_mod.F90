@@ -385,7 +385,7 @@ contains
 
     ! spatially varying fields used from modules
     use fluxes, only: sw_sicat
-    use level_heights_mod, only: r_theta_levels, r_rho_levels, eta_theta_levels
+    use level_heights_mod, only: r_theta_levels, r_rho_levels
     use prognostics, only: nsnow_surft
 
     ! subroutines used
@@ -931,9 +931,6 @@ contains
     qcf(1,1,0) = m_ci_n(map_wth(1) + 0)
     ! surface height
     r_theta_levels(1,1,0) = height_wth(map_wth(1) + 0) + planet_radius
-    ! eta space, 0-1 scaled height
-    eta_theta_levels(:) = (r_theta_levels(1,1,:)-r_theta_levels(1,1,0))  &
-                        /(r_theta_levels(1,1,nlayers)-planet_radius)
     ! height of levels above surface
     z_rho = r_rho_levels-r_theta_levels(1,1,0)
     z_theta(1,1,:) = r_theta_levels(1,1,1:nlayers)-r_theta_levels(1,1,0)

@@ -39,7 +39,8 @@ module slow_physics_alg_mod
                                        spectral_gwd_um,    &
                                        surface,            &
                                        surface_jules,      &
-                                       cloud, cloud_um
+                                       cloud, cloud_um,    &
+                                       methane_oxidation
 
   ! PsyKAl PSYClone kernels
   use held_suarez_fv_kernel_mod,      only: held_suarez_fv_kernel_type
@@ -83,6 +84,7 @@ module slow_physics_alg_mod
   use orographic_drag_alg_mod,   only: orographic_drag_alg_step
   use bl_exp_alg_mod,            only: bl_exp_alg_step
   use pc2_checks_alg_mod,        only: pc2_checks_alg_step
+  use methox_alg_mod,            only: methox_alg
 
   use aerosol_config_mod,        only: c_aerosol,                              &
                                        c_aerosol_glomap_mode_climatology
@@ -169,7 +171,7 @@ contains
     !               but done here for the time being)
     type( field_type ) :: dtheta_hs, dtheta_rad, dtheta_mphys
     type( field_type ) :: du_hs
-    type( field_type ) :: dmr_mphys(nummr)
+    type( field_type ) :: dmr_mphys(nummr), dmv_methox
     type( field_type ) :: du_tot_spectral_gwd, dtheta_spectral_gwd
     type( field_type ) :: du_tot_orographic_drag, dtheta_orographic_drag
     type( field_type ) :: tile_lw_albedo
@@ -199,6 +201,7 @@ contains
     logical :: radiation_done ! Flag to indicate that radiation has been calculated
     logical :: spectral_gwd_done ! Flag to indicate that spectral gravity wave drag has been calculated
     logical :: orographic_drag_done ! Flag to indicate that orographic drag has been calculated
+    logical :: methox_done ! Flag to indicate methane oxidation has been calculated
 
     ! Fields required by PC2
     type( field_type ), pointer :: liquid_fraction => null()
@@ -245,6 +248,7 @@ contains
     radiation_done=.false.
     spectral_gwd_done=.false.
     orographic_drag_done=.false.
+    methox_done = .false.
 
     ! Some unpacking
     u_physics => derived_fields%get_field('u_physics')
@@ -408,6 +412,12 @@ contains
       orographic_drag_done=.true.
     end if
 
+    ! Call methane oxidation code
+    if (methane_oxidation) then
+      call methox_alg(dmv_methox, mr_n, clock)
+      methox_done = .true.
+    end if
+
     if (boundary_layer == boundary_layer_um ) then
       ! Algorithm that calls the UM explicit Boundary Layer scheme
       call log_event( 'slow_physics: Running explicit Boundary layer', LOG_LEVEL_INFO )
@@ -470,6 +480,10 @@ contains
     if (orographic_drag_done) then
       call invoke(inc_X_plus_Y(dtheta, dtheta_orographic_drag), &
                   inc_X_plus_Y(du, du_tot_orographic_drag))
+    end if
+
+    if (methox_done) then
+      call invoke(inc_X_plus_Y(mr(imr_v), dmv_methox))
     end if
 
 #ifdef UM_PHYSICS
