@@ -6,7 +6,11 @@
 !> @brief Computes the cell integrated axial angular momentum.
 !>
 !> @details The kernel computes the  cell integrated axial angular momentum:
-!> \f[ \int ( \rho * \hat{z} . [r \times { u + \Omega \times r } ] ) dV \f]
+!> \f[ \int ( \rho  [u + \Omega r \cos(\phi) ] r \cos(\phi) ) dV \f]
+!> where \phi is the latitude and u is the zonal velocity.
+!> From vector components this can be calculated from
+!> \f[ \int ( \rho * \hat{z} . [\textbf{r} \times { \textbf{v} + \Omega \times \textbf{r} } ] ) dV \f]
+!> where \textbf{v} is now the velocity vector and \hat{z} is aligned with the pole.
 !>
 module compute_total_aam_kernel_mod
 
@@ -18,7 +22,7 @@ module compute_total_aam_kernel_mod
   use constants_mod,     only : r_def
   use fs_continuity_mod, only : W2, W3
   use kernel_mod,        only : kernel_type
-  use planet_config_mod, only : scaled_omega, scaled_radius
+  use planet_config_mod, only : scaled_omega
 
   implicit none
 
@@ -44,7 +48,7 @@ module compute_total_aam_kernel_mod
     integer :: iterates_over = CELLS
     integer :: gh_shape = GH_QUADRATURE_XYoZ
   contains
-    procedure, nopass ::compute_total_aam_code
+    procedure, nopass :: compute_total_aam_code
   end type
 
   !---------------------------------------------------------------------------
@@ -79,13 +83,13 @@ contains
 !! @param[in] nqp_v Number of quadrature points in the vertical
 !! @param[in] wqp_h Horizontal quadrature weights
 !! @param[in] wqp_v Vertical quadrature weights
-subroutine compute_total_aam_code(                                                   &
-                                  nlayers,                                           &
-                                  aam, u, rho, chi_1, chi_2, chi_3,                  &
-                                  ndf_w3, undf_w3, map_w3, w3_basis,                 &
-                                  ndf_w2, undf_w2, map_w2, w2_basis,                 &
+subroutine compute_total_aam_code(                                                        &
+                                  nlayers,                                                &
+                                  aam, u, rho, chi_1, chi_2, chi_3,                       &
+                                  ndf_w3, undf_w3, map_w3, w3_basis,                      &
+                                  ndf_w2, undf_w2, map_w2, w2_basis,                      &
                                   ndf_chi, undf_chi, map_chi, chi_basis, chi_diff_basis,  &
-                                  nqp_h, nqp_v, wqp_h, wqp_v                         &
+                                  nqp_h, nqp_v, wqp_h, wqp_v                              &
                                  )
 
   use coordinate_jacobian_mod, only: coordinate_jacobian
@@ -98,35 +102,35 @@ subroutine compute_total_aam_code(                                              
   integer,                     intent(in)    :: nlayers, nqp_h, nqp_v
   integer,                     intent(in)    :: ndf_chi, ndf_w2, ndf_w3
   integer,                     intent(in)    :: undf_chi, undf_w2, undf_w3
-  integer, dimension(ndf_chi), intent(in)   :: map_chi
+  integer, dimension(ndf_chi), intent(in)    :: map_chi
   integer, dimension(ndf_w2),  intent(in)    :: map_w2
   integer, dimension(ndf_w3),  intent(in)    :: map_w3
 
-  real(kind=r_def), dimension(1,ndf_w3,nqp_h,nqp_v), intent(in) :: w3_basis
-  real(kind=r_def), dimension(3,ndf_w2,nqp_h,nqp_v), intent(in) :: w2_basis
+  real(kind=r_def), dimension(1,ndf_w3,nqp_h,nqp_v),  intent(in) :: w3_basis
+  real(kind=r_def), dimension(3,ndf_w2,nqp_h,nqp_v),  intent(in) :: w2_basis
   real(kind=r_def), dimension(1,ndf_chi,nqp_h,nqp_v), intent(in) :: chi_basis
   real(kind=r_def), dimension(3,ndf_chi,nqp_h,nqp_v), intent(in) :: chi_diff_basis
 
-  real(kind=r_def), dimension(undf_w3), intent(out)   :: aam
-  real(kind=r_def), dimension(undf_w2), intent(in)    :: u
-  real(kind=r_def), dimension(undf_w3), intent(in)    :: rho
+  real(kind=r_def), dimension(undf_w3),  intent(out)   :: aam
+  real(kind=r_def), dimension(undf_w2),  intent(in)    :: u
+  real(kind=r_def), dimension(undf_w3),  intent(in)    :: rho
   real(kind=r_def), dimension(undf_chi), intent(in)    :: chi_1, chi_2, chi_3
 
-  real(kind=r_def), dimension(nqp_h), intent(in)      ::  wqp_h
-  real(kind=r_def), dimension(nqp_v), intent(in)      ::  wqp_v
+  real(kind=r_def), dimension(nqp_h),    intent(in)    ::  wqp_h
+  real(kind=r_def), dimension(nqp_v),    intent(in)    ::  wqp_v
 
   !Internal variables
   integer               :: df, k, loc
   integer               :: qp1, qp2
 
-  real(kind=r_def), dimension(ndf_chi)          :: chi_1_e, chi_2_e, chi_3_e
+  real(kind=r_def), dimension(ndf_chi)         :: chi_1_e, chi_2_e, chi_3_e
   real(kind=r_def), dimension(nqp_h,nqp_v)     :: dj
   real(kind=r_def), dimension(3,3,nqp_h,nqp_v) :: jac
   real(kind=r_def), dimension(ndf_w3)          :: rho_e, aam_e
   real(kind=r_def), dimension(ndf_w2)          :: u_e
 
-  real(kind=r_def) :: u_at_quad(3), scaled_omega_vec(3), r_vec(3), &
-                      am(3), x_vec(3), u_vec(3), j_u(3)
+  real(kind=r_def) :: u_at_quad(3), scaled_omega_vec(3), llr_vec(3), &
+                      am(3), x_vec(3), u_vec(3), j_u(3), r_vec(3), spherical_z_hat(3)
   real(kind=r_def) :: rho_at_quad
   real(kind=r_def), parameter :: z_hat(3) = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
 
@@ -156,10 +160,16 @@ subroutine compute_total_aam_code(                                              
           x_vec(2) = x_vec(2) + chi_2_e(df)*chi_basis(1,df,qp1,qp2)
           x_vec(3) = x_vec(3) + chi_3_e(df)*chi_basis(1,df,qp1,qp2)
         end do
-        call xyz2llr(x_vec(1),x_vec(2),x_vec(3),r_vec(1),r_vec(2),r_vec(3))
+        ! compute latitude, longitude and radius values
+        call xyz2llr(x_vec(1),x_vec(2),x_vec(3),llr_vec(1),llr_vec(2),llr_vec(3))
+        ! get position vector with spherical components
+        r_vec(:) = cart2sphere_vector(x_vec, x_vec)
+        spherical_z_hat(:) = cart2sphere_vector(x_vec, z_hat)
+
+        ! get Omega vector
         scaled_omega_vec(1) = 0.0_r_def
-        scaled_omega_vec(2) = 2.0_r_def*scaled_omega*cos(r_vec(2))
-        scaled_omega_vec(3) = 2.0_r_def*scaled_omega*sin(r_vec(2))
+        scaled_omega_vec(2) = scaled_omega*cos(llr_vec(2))
+        scaled_omega_vec(3) = scaled_omega*sin(llr_vec(2))
 
         rho_at_quad = 0.0_r_def
         do df = 1, ndf_w3
@@ -172,14 +182,19 @@ subroutine compute_total_aam_code(                                              
                        + u_e(df)*w2_basis(:,df,qp1,qp2)
         end do
 
+        ! integral is
+        ! rho * cross(r, u + cross(Omega, r)) dV
+        ! transforming to reference element this gives
+        ! rho' * cross(r, J*u/dj + cross(Omega, r)) * dj * dV
         j_u = matmul(jac(:,:,qp1,qp2),u_at_quad)
         u_vec(:) = cart2sphere_vector(x_vec,j_u) &
                  + cross_product(scaled_omega_vec,r_vec)*dj(qp1,qp2)
 
         am(:) = cross_product(r_vec,u_vec)
+
         do df = 1, ndf_w3
           aam_e(df) = aam_e(df) &
-                      + wqp_h(qp1)*wqp_v(qp2)*rho_at_quad*dot_product(z_hat,am)/scaled_radius**2
+                      + wqp_h(qp1)*wqp_v(qp2)*rho_at_quad*dot_product(spherical_z_hat,am)
         end do
       end do
     end do

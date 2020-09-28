@@ -4,7 +4,7 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> Test the vorticity rhs computation
+!> Test the kernel for computing total axial angular momentum per cell.
 !>
 module compute_total_aam_kernel_mod_test
 
@@ -22,6 +22,7 @@ module compute_total_aam_kernel_mod_test
   use get_unit_test_q3x3x3_quadrature_mod, only : get_gaussian_q3x3x3_quadrature_weights_xy, &
                                                   get_gaussian_q3x3x3_quadrature_weights_z
   use get_unit_test_3x3x3_chi_mod,         only : get_w0_3x3x3_field
+  use reference_element_mod,               only : N, S
   use pFUnit_Mod
   use yaxt,                                only : xt_initialize, xt_finalize
   use mpi_mod,                             only : store_comm, clear_comm
@@ -40,8 +41,6 @@ module compute_total_aam_kernel_mod_test
     procedure test_all
   end type compute_total_aam_kernel_test_type
 
-  integer(i_def), parameter :: element_order = 0
-
   real(r_def), parameter :: gravity  = 10.0_r_def
   real(r_def), parameter :: radius   = 6000000_r_def
   real(r_def), parameter :: omega    = 8.0E-5_r_def
@@ -49,15 +48,15 @@ module compute_total_aam_kernel_mod_test
   real(r_def), parameter :: rd       = 300.0_r_def
   real(r_def), parameter :: cp       = 1000.0_r_def
   real(r_def), parameter :: scaling  = 1.0_r_def
+  real(r_def), parameter :: lat_c    = 0.0_r_def
 
 contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine setUp( this )
 
-    use base_mesh_config_mod,      only : geometry_planar, &
+    use base_mesh_config_mod,      only : geometry_spherical, &
                                           partitioner_planar
-    use finite_element_config_mod, only : cellshape_quadrilateral
     use feign_config_mod,          only : feign_base_mesh_config, &
                                           feign_planet_config
     implicit none
@@ -66,14 +65,14 @@ contains
 
     ! Initialise YAXT
     call xt_initialize(this%getMpiCommunicator())
-    !Store the MPI communicator for later use
+    ! Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename='foo',                 &
-                                 prime_mesh_name='unit_test',    &
-                                 geometry=geometry_planar,       &
+    call feign_base_mesh_config( filename='foo',                    &
+                                 prime_mesh_name='unit_test',       &
+                                 geometry=geometry_spherical,       &
                                  partitioner=partitioner_planar, &
-                                 fplane=.false., f_lat_deg=0.0_r_def )
+                                 fplane=.false., f_lat_deg=lat_c )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega, &
                               rd=rd, cp=cp, p_zero=p_zero,                 &
@@ -109,32 +108,33 @@ contains
 
     class(compute_total_aam_kernel_test_type), intent(inout) :: this
 
-    real(r_def), parameter :: answer = 0.0_r_def
+    real(r_def), parameter :: wind   = 100.0_r_def
+    real(r_def), parameter :: rho0   = 1.5_r_def
     real(r_def), parameter :: tol    = 1.0e-6_r_def
     real(r_def), parameter :: dx     = 4.0_r_def, &
                               dy     = 3.0_r_def, &
                               dz     = 2.0_r_def
 
-    integer(i_def) :: nlayers, ncells, ncell_3d, cell, icell
+    integer(i_def) :: nlayers, ncells, cell
     integer(i_def) :: ndf_w0, undf_w0, ndf_w2, undf_w2, ndf_w3, undf_w3
     integer(i_def) :: dim_space, dim_space_diff
     integer(i_def) :: nqp_h, nqp_v
 
-    integer(i_def) :: i, j, k
+    real(r_def)    :: answer
 
     integer(i_def), allocatable :: map_w0(:,:)
     integer(i_def), allocatable :: map_w2(:,:)
     integer(i_def), allocatable :: map_w3(:,:)
-    real(r_def), allocatable :: diff_basis_w0(:,:,:,:)
-    real(r_def), allocatable :: basis_w0(:,:,:,:)
-    real(r_def), allocatable :: basis_w2(:,:,:,:)
-    real(r_def), allocatable :: basis_w3(:,:,:,:)
-    real(r_def), allocatable :: wh(:), wv(:)
+    real(r_def), allocatable    :: diff_basis_w0(:,:,:,:)
+    real(r_def), allocatable    :: basis_w0(:,:,:,:)
+    real(r_def), allocatable    :: basis_w2(:,:,:,:)
+    real(r_def), allocatable    :: basis_w3(:,:,:,:)
+    real(r_def), allocatable    :: wh(:), wv(:)
 
-    real(r_def), allocatable :: chi1(:), chi2(:), chi3(:)
-    real(r_def), allocatable :: aam(:)
-    real(r_def), allocatable :: u(:)
-    real(r_def), allocatable :: rho(:)
+    real(r_def), allocatable    :: chi1(:), chi2(:), chi3(:)
+    real(r_def), allocatable    :: aam(:)
+    real(r_def), allocatable    :: u(:)
+    real(r_def), allocatable    :: rho(:)
 
     nlayers=3
     call get_w0_m3x3_q3x3x3_size( ndf_w0, undf_w0, ncells, &
@@ -171,11 +171,35 @@ contains
     allocate(u(undf_w2))
     allocate(rho(undf_w3))
     allocate(aam(undf_w3))
+
+    ! Transform to the surface of the sphere.
+    ! Chi is our global coordinate.
+    ! Take cell to lat = 0, lon = 0 by changing x -> x + radius
+    ! Thus chi1 is the local vertical coordinate and chi2 points zonally
+    chi1(:) = chi1(:) + radius
+
     u(:) = 0.0_r_def
-    rho(:) = 1.5_r_def
+    rho(:) = rho0
     aam(:) = 0.0_r_def
 
+    ! Consider a single cell on our sphere. Here are the numberings of the faces.
+    !                              FRONT        BACK
+    !                            o-------o    o------o
+    !    chi3                   /   6   /|   /|      |
+    !    |  chi2               o-------o |  o |   4  |
+    !    | /                   |       |3|  |1|      |
+    !    -----> chi1           |   2   | o  | o------o
+    !                          |       |/   |/  5   /
+    ! <-- to centre of Earth   o-------o    o------o
+
+    ! Our test will be zonal (axial) flow of 100 m/s.
+    ! For our setup, the zonal direction coincides with chi2.
+    ! From diagram above, this corresponds to faces 2 and 4 of the element.
+    ! We will only do the test for the first cell.
     cell = 1
+    u(map_w2(2,cell)) = -wind * dx * dz
+    u(map_w2(4,cell)) = -wind * dx * dz
+
     call compute_total_aam_code(                                           &
                                 nlayers,                                   &
                                 aam,                                       &
@@ -192,8 +216,13 @@ contains
                                 map_w0(:,cell), basis_w0, diff_basis_w0,   &
                                 nqp_h, nqp_v, wh, wv                       &
                                 )
-
-    @assertEqual(answer, aam(map_w3(1, cell)), tol)
+    ! We are evaluating
+    ! \int rho * dot(hat{z}, cross(r, v + cross(Omega, r))) dV
+    ! Doing this integral and a Taylor expansion (assuming cell is small compared to r) gives:
+    ! rho * (wind + Omega * radius * cos(phi)) * radius * cos(phi) * dx * dy * dz
+    ! We use this as our approximate answer to test the kernel.
+    answer = rho0 * (wind + omega * radius * cos(lat_c)) * radius * cos(lat_c) * dx * dy * dz
+    @assertEqual(answer, aam(map_w3(1, 1)), tol*answer)
 
     deallocate(map_w0)
     deallocate(map_w2)
