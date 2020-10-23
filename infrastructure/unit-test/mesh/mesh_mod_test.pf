@@ -740,9 +740,9 @@ contains
     type(global_mesh_type), pointer :: target_global_mesh_ptr => null()
     type(global_mesh_type)          :: global_mesh
 
-    type(mesh_type), pointer :: source_mesh => null()
-    type(mesh_type), pointer :: target_mesh => null()
-
+    type(mesh_type), pointer :: source_mesh_ptr => null()
+    type(mesh_type), pointer :: target_mesh_ptr => null()
+    type(mesh_type), target  :: mesh
 
     type(mesh_map_type), pointer :: mesh_map => null()
     type(partition_type)         :: partition
@@ -790,37 +790,37 @@ contains
 
     ! Generate the local meshes
     partition = partition_type(source_global_mesh_ptr, partitioner_ptr,1,1,1,0,1)
-    source_mesh_id = mesh_collection%add_new_mesh( source_global_mesh_ptr, &
-                                                   partition,              &
-                                                   extrusion )
+    mesh = mesh_type( source_global_mesh_ptr, partition, extrusion )
+    source_mesh_id = mesh_collection%add_new_mesh( mesh )
+    call mesh%clear()
 
     partition = partition_type(target_global_mesh_ptr, partitioner_ptr,1,1,1,0,1)
-    target_mesh_id = mesh_collection%add_new_mesh( target_global_mesh_ptr, &
-                                                   partition,              &
-                                                   extrusion )
+    mesh = mesh_type( target_global_mesh_ptr, partition, extrusion )
+    target_mesh_id = mesh_collection%add_new_mesh( mesh )
+    call mesh%clear()
 
-    source_mesh => mesh_collection%get_mesh(source_mesh_id)
-    target_mesh => mesh_collection%get_mesh(target_mesh_id)
+    source_mesh_ptr => mesh_collection%get_mesh(source_mesh_id)
+    target_mesh_ptr => mesh_collection%get_mesh(target_mesh_id)
 
 
 
-    call source_mesh % add_mesh_map(target_mesh)
-    call target_mesh % add_mesh_map(source_mesh)
+    call source_mesh_ptr % add_mesh_map(target_mesh_ptr)
+    call target_mesh_ptr % add_mesh_map(source_mesh_ptr)
 
     ! Test coarse to fine
-    mesh_map    => source_mesh%get_mesh_map(target_mesh)
+    mesh_map    => source_mesh_ptr%get_mesh_map(target_mesh_ptr)
     mesh_map_id = (10000*source_mesh_id) + target_mesh_id
     @assertEqual (mesh_map%get_id(), mesh_map_id)
 
     !-------------------------------------------------------------------
     ! Test get_source_id
     test_integer = mesh_map%get_source_id()
-    @assertEqual ( source_mesh%get_id(), test_integer )
+    @assertEqual ( source_mesh_ptr%get_id(), test_integer )
 
     !-------------------------------------------------------------------
     ! Test get_target_id
     test_integer = mesh_map%get_target_id()
-    @assertEqual ( target_mesh%get_id(), test_integer )
+    @assertEqual ( target_mesh_ptr%get_id(), test_integer )
 
     !-------------------------------------------------------------------
     ! Test get_cell_factor
@@ -846,18 +846,18 @@ contains
 
     ! Test fine to coarse
     !-------------------------------------------------------------------
-    mesh_map    => target_mesh%get_mesh_map(source_mesh)
+    mesh_map    => target_mesh_ptr%get_mesh_map(source_mesh_ptr)
     mesh_map_id = (10000*target_mesh_id) + source_mesh_id
     @assertEqual (mesh_map%get_id(), mesh_map_id)
 
     ! Test get_source_id
     test_integer = mesh_map%get_source_id()
-    @assertEqual ( target_mesh%get_id(), test_integer )
+    @assertEqual ( target_mesh_ptr%get_id(), test_integer )
 
     !-------------------------------------------------------------------
     ! Test get_target_id
     test_integer = mesh_map%get_target_id()
-    @assertEqual ( source_mesh%get_id(), test_integer )
+    @assertEqual ( source_mesh_ptr%get_id(), test_integer )
 
     !-------------------------------------------------------------------
     ! Test get_cell_factor

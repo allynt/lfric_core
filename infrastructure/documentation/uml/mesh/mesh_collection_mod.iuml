@@ -13,7 +13,7 @@ class mesh_collection_mod::mesh_collection_type {
   +<<destroy>> mesh_collection_destructor()
   +clear()
 
-  +add_new_mesh(<<in>>global_mesh: global_mesh, <<in>>partition: partition_type, <<in>>extrusion: extruson_type, <<in,optional>>mesh_name: string ) : mesh_id<<integer>>
+  +add_new_mesh(<<in>>mesh: mesh_type ) : mesh_id<<integer>>
   +add_unit_test_mesh( <<in>>mesh_cfg: integer ) : mesh_id<<integer>>
 
   +n_meshes(): integer

@@ -9,11 +9,7 @@
 module analytic_orography_field_cartesian_mod_test
 
   use constants_mod,              only : i_def, r_def, str_def, str_max_filename
-  use global_mesh_collection_mod, only : global_mesh_collection_type, &
-                                         global_mesh_collection
   use global_mesh_mod,            only : global_mesh_type
-  use mesh_collection_mod,        only : mesh_collection_type, &
-                                         mesh_collection
   use analytic_orography_mod,     only : orography_profile
   use yaxt,                       only : xt_initialize, xt_finalize
   use mpi_mod,                    only : store_comm, clear_comm
@@ -80,10 +76,6 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    ! Create top level collections
-    global_mesh_collection = global_mesh_collection_type()
-    mesh_collection = mesh_collection_type()
-
     ! Set mesh configuration
     call feign_base_mesh_config(                               &
                          filename        = filename,           &
@@ -144,8 +136,6 @@ contains
     class(analytic_orography_field_cartesian_test_type), intent(inout) :: this
 
     deallocate( orography_profile )
-    call global_mesh_collection%clear()
-    call mesh_collection%clear()
     call final_configuration()
 
     ! Finalise YAXT
@@ -173,12 +163,10 @@ contains
     ! Arguments
     class(analytic_orography_field_cartesian_test_type), intent(inout)  :: this
     ! Mesh, partition and domain size types
-    integer(i_def)                            :: global_mesh_id
-    integer(i_def)                            :: mesh_id
     type(ugrid_mesh_data_type)                :: ugrid_mesh_data
     type(global_mesh_type),           pointer :: global_mesh_ptr => null()
-    type(global_mesh_type)                    :: global_mesh
-    type(mesh_type),                  pointer :: mesh => null()
+    type(global_mesh_type),           target  :: global_mesh
+    type(mesh_type)                           :: mesh
     type(domain_size_type)                    :: domain_size
     type(partition_type)                      :: partition
     procedure(partitioner_interface), pointer :: partitioner_ptr => null()
@@ -196,9 +184,7 @@ contains
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
     global_mesh = global_mesh_type( ugrid_mesh_data, npanels )
     call ugrid_mesh_data%clear()
-    global_mesh_id = global_mesh%get_id()
-    call global_mesh_collection%add_new_global_mesh( global_mesh )
-    global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
+    global_mesh_ptr => global_mesh
 
     ! Assign partitioner
     partitioner_ptr => partitioner_planar
@@ -212,10 +198,7 @@ contains
 
     extrusion = uniform_extrusion_type( domain_bottom, domain_top, nlayers )
     ! Construct a mesh which is uniform in vertical for purpose of the test
-    mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr, &
-                                            partition,       &
-                                            extrusion )
-    mesh => mesh_collection%get_mesh( mesh_id )
+    mesh = mesh_type( global_mesh_ptr, partition, extrusion )
 
     ! Get domain size required for the biperiodic coordinate transform
     domain_size = mesh%get_domain_size()
@@ -230,7 +213,7 @@ contains
 
     ! Test assigning orography for selected number of points
     i = 159
-    call global_mesh_ptr%get_vert_coords(i,vertex_coords_2d(:,1))
+    call global_mesh%get_vert_coords(i,vertex_coords_2d(:,1))
     ! Create horizontal chi_1 and chi_2 fields from mesh coordinates
     chi_1 = vertex_coords_2d(1,1)
     chi_2 = vertex_coords_2d(2,1)

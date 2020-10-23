@@ -163,10 +163,9 @@ contains
     type(global_mesh_type)          :: global_mesh
     type(partition_type)            :: partition
     type(uniform_extrusion_type)    :: extrusion
+    type(mesh_type)                 :: mesh
 
     integer(i_def)         :: mesh_id
-
-    integer(i_def)         :: mesh_B_id
 
     integer(i_def)         :: ncells
     integer(i_def)         :: i,j
@@ -215,9 +214,8 @@ contains
                                   local_rank, total_ranks )
       extrusion =uniform_extrusion_type( radius, domain_top, nlayers )
 
-      mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr, &
-                                              partition,       &
-                                              extrusion )
+      mesh = mesh_type( global_mesh_ptr, partition, extrusion )
+      mesh_id = mesh_collection%add_new_mesh( mesh )
 
       ncells = partition%get_num_cells_in_layer()
 

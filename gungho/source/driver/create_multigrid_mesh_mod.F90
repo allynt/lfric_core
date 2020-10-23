@@ -59,6 +59,7 @@ type(partition_type) :: partition
 class(extrusion_type), allocatable :: extrusion
 type(uniform_extrusion_type)       :: extrusion_sl
 type(ugrid_mesh_data_type) :: ugrid_mesh_data
+type(mesh_type) :: mesh
 
 character(str_def) :: mesh_name
 
@@ -105,9 +106,9 @@ do i=2, multigrid_chain_nitems
                                xproc, yproc, max_stencil_depth, &
                                local_rank, total_ranks )
 
-  mesh_ids(i) = mesh_collection % add_new_mesh( global_mesh_ptr, &
-                                                partition,       &
-                                                extrusion )
+  mesh = mesh_type( global_mesh_ptr, partition, extrusion )
+  mesh_ids(i) = mesh_collection % add_new_mesh( mesh )
+  call mesh%clear()
 
 end do
 
@@ -121,9 +122,9 @@ do i=2, multigrid_chain_nitems
                                xproc, yproc, max_stencil_depth, &
                                local_rank, total_ranks )
 
-  twod_mesh_ids(i) = mesh_collection % add_new_mesh( global_mesh_ptr, &
-                                                     partition,       &
-                                                     extrusion_sl )
+  mesh = mesh_type( global_mesh_ptr, partition, extrusion_sl )
+  twod_mesh_ids(i) = mesh_collection % add_new_mesh( mesh )
+  call mesh%clear()
 
 end do
 

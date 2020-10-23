@@ -92,6 +92,7 @@ contains
     type(partition_type)            :: coarse_partition
     type(partition_type)            :: fine_partition
     type(uniform_extrusion_type)    :: extrusion
+    type(mesh_type), target         :: mesh
 
     integer(i_def)         :: coarse_global_mesh_id
     integer(i_def)         :: fine_global_mesh_id
@@ -150,15 +151,13 @@ contains
 
     extrusion = uniform_extrusion_type( radius, domain_top, nlayers )
 
-    coarse_mesh_id   = mesh_collection%add_new_mesh(           &
-                                       coarse_global_mesh_ptr, &
-                                       coarse_partition,       &
-                                       extrusion )
+    mesh = mesh_type( coarse_global_mesh_ptr, coarse_partition, extrusion )
+    coarse_mesh_id = mesh_collection%add_new_mesh( mesh )
+    call mesh%clear()
 
-    fine_mesh_id     = mesh_collection%add_new_mesh(         &
-                                       fine_global_mesh_ptr, &
-                                       fine_partition,       &
-                                       extrusion )
+    mesh = mesh_type( fine_global_mesh_ptr, fine_partition, extrusion )
+    fine_mesh_id =  mesh_collection%add_new_mesh( mesh )
+    call mesh%clear()
 
     this%coarse_mesh => mesh_collection%get_mesh( coarse_mesh_id )
     this%fine_mesh   => mesh_collection%get_mesh( fine_mesh_id   )

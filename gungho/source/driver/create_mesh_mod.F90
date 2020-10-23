@@ -98,6 +98,10 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, &
   class(extrusion_type),         allocatable :: double_level_extrusion
   type(partition_type)                       :: partition
   type(uniform_extrusion_type)               :: extrusion_sl
+  type(mesh_type)                            :: prime_mesh
+  type(mesh_type)                            :: twod_mesh
+  type(mesh_type)                            :: shifted_mesh
+  type(mesh_type)                            :: double_level_mesh
 
   ! max_stencil_depth is the maximum depth (of cells outside the cell over
   ! which the stencil is based) of the stencil to be used on fields with
@@ -314,9 +318,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, &
 
   ! Generate the mesh
   call log_event( "Creating prime mesh", LOG_LEVEL_INFO )
-  prime_mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr,  &
-                                                partition,        &
-                                                extrusion )
+  prime_mesh = mesh_type( global_mesh_ptr, partition, extrusion )
+  prime_mesh_id = mesh_collection%add_new_mesh( prime_mesh )
 
   write(log_scratch_space,'(A,I0,A)') &
       "Prime mesh created (id:", prime_mesh_id, ")"
@@ -326,9 +329,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, &
   ! probably only works for cartesian domains, as atmos_bottom hard-wired
   ! to 0 currently...
   extrusion_sl = uniform_extrusion_type( 0.0_r_def, 1.0_r_def, 1_i_def )
-  twod_mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr,         &
-                                               partition,               &
-                                               extrusion_sl )
+  twod_mesh = mesh_type( global_mesh_ptr, partition, extrusion_sl )
+  twod_mesh_id = mesh_collection%add_new_mesh( twod_mesh )
 
   if (l_multigrid) then
     ! Done this way as e do not currently have multiple global
@@ -347,10 +349,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, &
     allocate(shifted_extrusion, source=create_shifted_extrusion(extrusion) )
 
     call log_event( "Creating shifted mesh", LOG_LEVEL_INFO )
-
-    shifted_mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr,  &
-                                                    partition,        &
-                                                    shifted_extrusion )
+    shifted_mesh = mesh_type( global_mesh_ptr, partition, shifted_extrusion )
+    shifted_mesh_id = mesh_collection%add_new_mesh( shifted_mesh )
 
     deallocate(shifted_extrusion)
   end if
@@ -360,9 +360,8 @@ subroutine init_mesh( local_rank, total_ranks, prime_mesh_id, twod_mesh_id, &
 
     call log_event( "Creating double level mesh", LOG_LEVEL_INFO )
 
-    double_level_mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr,  &
-                                                         partition,        &
-                                                         double_level_extrusion )
+    double_level_mesh = mesh_type( global_mesh_ptr, partition, double_level_extrusion )
+    double_level_mesh_id = mesh_collection%add_new_mesh( double_level_mesh )
 
     deallocate(double_level_extrusion)
   end if

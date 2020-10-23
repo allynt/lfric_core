@@ -11,11 +11,7 @@ module mesh_colouring_mod_test
   use constants_mod,              only : i_def, imdi, r_def, &
                                          str_def, str_max_filename
   use extrusion_mod,              only : uniform_extrusion_type
-  use global_mesh_collection_mod, only: global_mesh_collection_type            &
-                                      , global_mesh_collection
-  use global_mesh_mod,            only: global_mesh_type
-  use mesh_collection_mod,        only: mesh_collection_type,                  &
-                                        mesh_collection
+  use global_mesh_mod,            only : global_mesh_type
   use yaxt,                       only : xt_initialize, xt_finalize
   use mpi_mod,                    only : store_comm, clear_comm
   use ugrid_mesh_data_mod,        only : ugrid_mesh_data_type
@@ -58,10 +54,6 @@ subroutine setUp(this)
   !Store the MPI communicator for later use
   call store_comm(this%getMpiCommunicator())
 
-  ! Create top level collections
-  global_mesh_collection = global_mesh_collection_type()
-  mesh_collection = mesh_collection_type()
-
   this%total_ranks = 1
   this%local_rank = 0
   this%xproc = 1
@@ -78,9 +70,6 @@ subroutine tearDown(this)
   class(compute_colours_test_type), intent(inout) :: this
 
   integer  :: rc
-
-  call global_mesh_collection%clear()
-  call mesh_collection%clear()
 
   ! Finalise YAXT
   call xt_finalize()
@@ -107,7 +96,7 @@ subroutine test_compute_colours_cubedsphere(this)
   type(partition_type)             :: partition
   type(ugrid_mesh_data_type)       :: ugrid_mesh_data
   type(global_mesh_type), pointer  :: global_mesh_ptr => null()
-  type(global_mesh_type)           :: global_mesh
+  type(global_mesh_type), target   :: global_mesh
   type(uniform_extrusion_type)     :: extrusion
   procedure(partitioner_interface), pointer  :: partitioner_ptr => null()
 
@@ -116,25 +105,19 @@ subroutine test_compute_colours_cubedsphere(this)
   integer(kind=i_def), pointer :: num_cell_per_colour(:) => null()
   integer(kind=i_def), pointer :: cells_in_colour(:,:)   => null()
 
-  integer(i_def)           :: npanels
-  integer(i_def)           :: global_mesh_id
-  integer(i_def)           :: mesh_id
-  type(mesh_type), pointer :: mesh => null()
-  integer(i_def)           :: err
+  integer(i_def)   :: npanels
+  type(mesh_type)  :: mesh
+  integer(i_def)   :: err
   character( 200 ) :: message
 
   npanels = 6
   filename = "data/mesh_C4.nc"
-
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
   global_mesh = global_mesh_type( ugrid_mesh_data, npanels )
   call ugrid_mesh_data%clear()
-  global_mesh_id = global_mesh%get_id()
-  call global_mesh_collection%add_new_global_mesh( global_mesh )
-  global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
+  global_mesh_ptr => global_mesh
 
   partitioner_ptr => partitioner_cubedsphere_serial
-
   partition = partition_type( global_mesh_ptr, &
                             partitioner_ptr, &
                             this%xproc, &
@@ -142,15 +125,13 @@ subroutine test_compute_colours_cubedsphere(this)
                             1, &
                             this%local_rank, &
                             this%total_ranks)
+
   extrusion = uniform_extrusion_type( 100.0_r_def,   &
                                       10000.0_r_def, &
                                       this%num_layers )
-  ! Construct a mesh which is  uniform in vertical for purpose of the test
-  mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr, &
-                                          partition,       &
-                                          extrusion )
-  mesh => mesh_collection%get_mesh( mesh_id )
 
+  ! Construct a mesh which is  uniform in vertical for purpose of the test
+  mesh = mesh_type( global_mesh_ptr, partition, extrusion )
   @assertTrue(mesh%is_coloured(), "Mesh uncoloured")
 
   num_cells = partition%get_num_cells_in_layer()
@@ -207,7 +188,7 @@ subroutine test_compute_colours_biperiodic(this)
   type(uniform_extrusion_type)     :: extrusion
   type(ugrid_mesh_data_type)       :: ugrid_mesh_data
   type(global_mesh_type), pointer  :: global_mesh_ptr => null()
-  type(global_mesh_type)           :: global_mesh
+  type(global_mesh_type), target   :: global_mesh
   procedure(partitioner_interface), pointer  :: partitioner_ptr => null()
 
   integer(i_def)                   :: num_cells
@@ -215,24 +196,18 @@ subroutine test_compute_colours_biperiodic(this)
   integer(kind=i_def), pointer :: num_cell_per_colour(:) => null()
   integer(kind=i_def), pointer :: cells_in_colour(:,:)   => null()
 
-  integer(i_def)           :: npanels
-  integer(i_def)           :: global_mesh_id
-  integer(i_def)           :: mesh_id
-  type(mesh_type), pointer :: mesh => null()
-  integer(i_def)           :: err
+  integer(i_def)  :: npanels
+  type(mesh_type) :: mesh
+  integer(i_def)  :: err
 
   npanels = 1
   filename = "data/mesh_BiP8x8-6000x2000.nc"
-
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
   global_mesh = global_mesh_type( ugrid_mesh_data, npanels )
   call ugrid_mesh_data%clear()
-  global_mesh_id = global_mesh%get_id()
-  call global_mesh_collection%add_new_global_mesh( global_mesh )
-  global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
+  global_mesh_ptr => global_mesh
 
   partitioner_ptr => partitioner_planar
-
   partition = partition_type(global_mesh_ptr, &
                             partitioner_ptr, &
                             this%xproc, &
@@ -240,16 +215,13 @@ subroutine test_compute_colours_biperiodic(this)
                             1, &
                             this%local_rank, &
                             this%total_ranks)
+
   extrusion = uniform_extrusion_type( 100.00_r_def,  &
                                       10000.0_r_def, &
                                       this%num_layers )
 
   ! Construct a mesh which is  uniform in vertical for purpose of the test
-  mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr, &
-                                          partition,   &
-                                          extrusion  )
-  mesh => mesh_collection%get_mesh( mesh_id )
-
+  mesh = mesh_type( global_mesh_ptr, partition, extrusion )
   @assertTrue(mesh%is_coloured(), "Mesh uncoloured")
 
   num_cells = partition%get_num_cells_in_layer()
@@ -307,7 +279,7 @@ subroutine test_compute_colours_generic(this)
   type(uniform_extrusion_type)     :: extrusion
   type(ugrid_mesh_data_type)       :: ugrid_mesh_data
   type(global_mesh_type), pointer  :: global_mesh_ptr => null()
-  type(global_mesh_type)           :: global_mesh
+  type(global_mesh_type), target   :: global_mesh
   procedure(partitioner_interface), pointer  :: partitioner_ptr => null()
 
   integer(i_def)                   :: num_cells
@@ -315,11 +287,9 @@ subroutine test_compute_colours_generic(this)
   integer(kind=i_def), pointer :: num_cell_per_colour(:) => null()
   integer(kind=i_def), pointer :: cells_in_colour(:,:)   => null()
 
-  integer(i_def)           :: npanels
-  integer(i_def)           :: global_mesh_id
-  integer(i_def)           :: mesh_id
-  type(mesh_type), pointer :: mesh => null()
-  integer(i_def)           :: err
+  integer(i_def)  :: npanels
+  type(mesh_type) :: mesh
+  integer(i_def)  :: err
 
   ! Force colour generator to use generic colour routine by not saying
   ! it's a cubed sphere
@@ -328,12 +298,9 @@ subroutine test_compute_colours_generic(this)
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
   global_mesh = global_mesh_type( ugrid_mesh_data, npanels )
   call ugrid_mesh_data%clear()
-  global_mesh_id = global_mesh%get_id()
-  call global_mesh_collection%add_new_global_mesh( global_mesh )
-  global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
+  global_mesh_ptr => global_mesh
 
   partitioner_ptr => partitioner_cubedsphere_serial
-
   partition = partition_type( global_mesh_ptr, &
                             partitioner_ptr, &
                             this%xproc, &
@@ -341,16 +308,13 @@ subroutine test_compute_colours_generic(this)
                             1, &
                             this%local_rank, &
                             this%total_ranks)
+
   extrusion = uniform_extrusion_type( 100.0_r_def,   &
                                       10000.0_r_def, &
                                       this%num_layers )
 
   ! Construct a mesh which is  uniform in vertical for purpose of the test
-  mesh_id = mesh_collection%add_new_mesh( global_mesh_ptr, &
-                                          partition,   &
-                                          extrusion )
-  mesh => mesh_collection%get_mesh( mesh_id )
-
+  mesh = mesh_type( global_mesh_ptr, partition, extrusion )
   @assertTrue(mesh%is_coloured(), "Mesh uncoloured")
 
   num_cells = partition%get_num_cells_in_layer()

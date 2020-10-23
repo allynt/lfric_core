@@ -79,34 +79,15 @@ end function mesh_collection_constructor
 
 
 !===========================================================================
-!> @brief Creates a mesh object and adds it to the mesh collection
-!> @param [in] global_mesh   Global mesh object on which the partition is
-!>                           applied
-!> @param [in] partition     Partition object to base 3D-Mesh on
-!> @param [in] extrusion     Mechanism by which extrusion will be performed.
-!> @param [in] mesh_name     Name to assign to partitioned mesh. Global
-!>                           mesh name will be used if this argument is absent.
-!> @return                   A unique identifier for the created mesh
-function add_new_mesh( self,        &
-                       global_mesh, &
-                       partition,   &
-                       extrusion,   &
-                       mesh_name ) result( mesh_id )
-
-  use extrusion_mod,   only : extrusion_type
-  use global_mesh_mod, only : global_mesh_type
-  use partition_mod,   only : partition_type
+!> @brief Adds a mesh to the mesh collection
+!> @param [in] mesh   Mesh object which will be copied into the collection
+!> @return A unique identifier for the created mesh
+function add_new_mesh( self, mesh ) result( mesh_id )
 
   implicit none
 
-  class(mesh_collection_type),  intent(inout)       :: self
-  type(global_mesh_type),       intent(in), pointer :: global_mesh
-  type(partition_type),         intent(in)          :: partition
-  class(extrusion_type),        intent(in)          :: extrusion
-  character(str_def), optional, intent(in)          :: mesh_name
-
-  ! Local variables
-  type(mesh_type) :: mesh
+  class(mesh_collection_type),  intent(inout) :: self
+  type(mesh_type),              intent(in)    :: mesh
 
   integer(i_def) :: mesh_id
   integer(i_def) :: i
@@ -115,11 +96,7 @@ function add_new_mesh( self,        &
 
   mesh_id  = imdi
 
-  if (present(mesh_name)) then
-    name = trim(mesh_name)
-  else
-    name = global_mesh%get_mesh_name()
-  end if
+  name = mesh%get_mesh_name()
 
   if (implement_consolidated_multigrid) then
 
@@ -135,8 +112,6 @@ function add_new_mesh( self,        &
       end do
     end if
   end if
-
-  mesh = mesh_type( global_mesh, partition, extrusion, mesh_name=name )
 
   mesh_id = mesh%get_id()
 
