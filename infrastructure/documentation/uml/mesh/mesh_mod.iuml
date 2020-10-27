@@ -115,8 +115,6 @@ class mesh_mod::mesh_type {
   +get_mesh_map( <<in>>target_mesh: mesh_type <<pointer>> ) : mesh_map_type <<pointer>>
   +add_mesh_map( <<in>>target_mesh: mesh_type <<pointer>> )
   +get_adjacent_face() : integer <<pointer>>
-  +get_total_ranks() : integer
-  +get_local_rank() : integer
   +get_ncolours() : integer
   +get_colours( <<out>>ncolours: integer, <<out>>ncells_per_colour: integer[:] <<pointer>>, <<out>>colour_map: integer[::] <<pointer>> )
   +get_colour_map() : integer <<pointer>>

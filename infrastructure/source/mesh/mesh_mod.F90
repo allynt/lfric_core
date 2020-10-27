@@ -36,6 +36,7 @@ module mesh_mod
                                     set_dz
   use mesh_map_mod,          only : mesh_map_type
   use mesh_map_collection_mod, only : mesh_map_collection_type
+  use mpi_mod,               only : get_comm_rank, get_comm_size
   use partition_mod,         only : partition_type
   use reference_element_mod, only : reference_element_type
 
@@ -265,11 +266,6 @@ module mesh_mod
     procedure, public :: get_mesh_map
     procedure, public :: add_mesh_map
     procedure, public :: get_adjacent_face
-
-    ! Get total_ranks and local_rank from partition
-
-    procedure, public :: get_total_ranks
-    procedure, public :: get_local_rank
 
     ! Get information about colouring of mesh
     procedure, public :: get_ncolours
@@ -708,7 +704,7 @@ contains
           self%vertex_ownership(j,i) = partition%get_cell_owner( &
                                                      self%vert_cell_owner(j,i) )
         else
-          self%vertex_ownership(j,i) = partition%get_total_ranks() + 1
+          self%vertex_ownership(j,i) = get_comm_size() + 1
         end if
       end do
 
@@ -722,7 +718,7 @@ contains
           self%edge_ownership(j,i) = partition%get_cell_owner( &
                                                      self%edge_cell_owner(j,i) )
         else
-          self%edge_ownership(j,i) = partition%get_total_ranks() + 1
+          self%edge_ownership(j,i) = get_comm_size() + 1
         end if
       end do
     end do
@@ -1515,7 +1511,7 @@ contains
 
     owned = .false.
     if ( self%vertex_ownership( vertex_index, cell_lid ) == &
-         self%partition%get_local_rank() ) owned = .true.
+         get_comm_rank() ) owned = .true.
 
   end function is_vertex_owned
 
@@ -1540,7 +1536,7 @@ contains
 
     owned = .false.
     if ( self%edge_ownership( edge_index, cell_lid ) == &
-         self%partition%get_local_rank() ) owned = .true.
+         get_comm_rank() ) owned = .true.
 
   end function is_edge_owned
 
@@ -1561,7 +1557,7 @@ contains
 
     owned = .false.
     if ( self%partition%get_cell_owner(cell_lid) == &
-         self%partition%get_local_rank())    owned = .true.
+         get_comm_rank())    owned = .true.
 
   end function is_cell_owned
 
@@ -1998,34 +1994,6 @@ contains
     cell_gid = self%partition%get_gid_from_lid(cell_lid)
 
   end function get_gid_from_lid
-
-  !> @details Gets the total ranks from the partition
-  !> @return              The total ranks
-  !============================================================================
-  function get_total_ranks( self ) result ( total_ranks )
-
-    implicit none
-
-    class(mesh_type), intent(in) :: self
-    integer(i_def)               :: total_ranks
-
-    total_ranks = self%partition%get_total_ranks()
-
-  end function get_total_ranks
-
-  !> @details fets the local rank from the partition
-  !> @return              The local rank
-  !============================================================================
-  function get_local_rank( self ) result ( local_rank )
-
-    implicit none
-
-    class(mesh_type), intent(in) :: self
-    integer(i_def)               :: local_rank
-
-    local_rank = self%partition%get_local_rank()
-
-  end function get_local_rank
 
 
   !> @details Returns count of colours used in colouring mesh.

@@ -14,6 +14,7 @@ module minmax_tseries_mod
   use files_config_mod,                  only: diag_stem_name
   use mesh_mod,                          only: mesh_type
   use mesh_collection_mod,               only: mesh_collection
+  use mpi_mod,                           only: get_comm_rank
   use runtime_constants_mod,             only: get_coordinates
   use fs_continuity_mod,                 only: W1, W2
 
@@ -42,7 +43,7 @@ contains
     type(mesh_type), pointer           :: mesh => null()
 
     mesh => mesh_collection%get_mesh( mesh_id )
-    if ( mesh%get_local_rank() == 0 ) then
+    if ( get_comm_rank() == 0 ) then
 
       unitno = claim_io_unit()
       fname = trim(diag_stem_name) // "_" // &
@@ -109,7 +110,7 @@ contains
      n_p(i) = nodal_output(i)%get_proxy()
    end do
 
-   if ( mesh%get_local_rank() == 0 ) then
+   if ( get_comm_rank() == 0 ) then
      do i=1,3
        write(unitno,'(2e16.8)') n_p(i)%get_max(), n_p(i)%get_min()
      enddo
@@ -130,7 +131,7 @@ contains
 
     mesh => mesh_collection%get_mesh( mesh_id )
 
-    if ( mesh%get_local_rank() == 0 ) then
+    if ( get_comm_rank() == 0 ) then
       close(unitno)
       call release_io_unit( unitno )
     end if

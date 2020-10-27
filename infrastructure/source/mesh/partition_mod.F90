@@ -40,10 +40,6 @@ module partition_mod
 
   type, public :: partition_type
     private
-  ! The number of the MPI rank
-    integer(i_def)              :: local_rank
-  ! Total number of MPI ranks in this execution
-    integer(i_def)              :: total_ranks
   ! A List of global cell ids known to this partition ordered with inner cells
   ! first followed by the edge cells and finally the halo cells ordered by
   ! depth of halo
@@ -91,8 +87,6 @@ module partition_mod
     procedure, public :: get_last_halo_cell
     procedure, public :: get_num_cells_ghost
     procedure, public :: get_num_panels_global_mesh
-    procedure, public :: get_local_rank
-    procedure, public :: get_total_ranks
     procedure, public :: get_cell_owner
     procedure, public :: get_gid_from_lid
     procedure, public :: get_lid_from_gid
@@ -213,8 +207,6 @@ contains
 
   type(xt_redist) :: redist
 
-  self%local_rank = local_rank
-  self%total_ranks = total_ranks
   self%halo_depth = max_stencil_depth + 1
   allocate( self%num_halo(self%halo_depth) )
   allocate( self%last_halo_cell(self%halo_depth) )
@@ -304,8 +296,6 @@ contains
     ! Returns partition object from global_mesh of size 3x3 quad reference cell
     ! (see global_mesh_mod for data) which only has one partition.
 
-    self%local_rank        = 0
-    self%total_ranks       = 1
     self%halo_depth        = 3
     self%inner_depth       = 1
     self%global_num_cells  = 9
@@ -381,8 +371,6 @@ contains
     class(partition_type), intent(out)   :: dest
     class(partition_type), intent(in)    :: source
 
-    dest%local_rank = source%local_rank
-    dest%total_ranks = source%total_ranks
     dest%halo_depth = source%halo_depth
 
     allocate( dest%num_halo(dest%halo_depth) )
@@ -1388,41 +1376,6 @@ contains
     number_of_panels = self%npanels
 
   end function get_num_panels_global_mesh
-
-  !---------------------------------------------------------------------------
-  !> @brief Gets the local rank number.
-  !>
-  !> @return Number of the local MPI rank.
-  !>
-  function get_local_rank( self ) result ( local_rank )
-
-    implicit none
-
-    class(partition_type), intent(in) :: self
-
-    integer(i_def) :: local_rank
-
-    local_rank = self%local_rank
-
-  end function get_local_rank
-
-
-  !---------------------------------------------------------------------------
-  !> @brief Gets the total number of ranks.
-  !>
-  !> @return Total number of MPI ranks.
-  !>
-  function get_total_ranks( self ) result ( total_ranks )
-
-    implicit none
-
-    class(partition_type), intent(in) :: self
-
-    integer(i_def) :: total_ranks
-
-    total_ranks = self%total_ranks
-
-  end function get_total_ranks
 
   !---------------------------------------------------------------------------
   !> @brief Gets the owner of a cell on the local partition.
