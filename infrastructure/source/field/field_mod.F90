@@ -145,6 +145,7 @@ module field_mod
 !> the pure abstract field class
 
   type, extends(pure_abstract_field_type), public :: field_pointer_type
+    private
     !> A pointer to a field
     type(field_type), pointer, public :: field_ptr
   contains
@@ -269,7 +270,7 @@ contains
                                        advection_flag=advection_flag)
 
     ! Create space for holding field data
-    allocate( self%data(self%vspace%get_last_dof_halo()) )
+    allocate( self%data(vector_space%get_last_dof_halo()) )
 
   end subroutine field_initialiser
 
@@ -329,10 +330,15 @@ contains
     class(field_type), target, intent(out) :: dest
     character(*), optional, intent(in)     :: name
 
+    type(function_space_type), pointer :: function_space => null()
+
+    ! Get function space from parent
+    function_space => self%get_function_space()
+
     if (present(name)) then
-      call dest%initialise(self%vspace, name, self%is_advected())
+      call dest%initialise(function_space, name, self%is_advected())
     else
-      call dest%initialise( self%vspace, self%get_name(), self%is_advected() )
+      call dest%initialise(function_space, self%get_name(), self%is_advected())
     end if
 
     dest%write_method => self%write_method
@@ -361,7 +367,7 @@ contains
     write(log_scratch_space,'(A,A)')&
               '"field2=field1" syntax no longer supported. '// &
               'Use "call field1%copy_field(field2)". Field: ', &
-              source%name
+              source%get_name()
     call log_event(log_scratch_space,LOG_LEVEL_INFO )
     allocate(dest%data(1))   ! allocate the same memory twice, to force
     allocate(dest%data(2))   ! an error and generate a stack trace
@@ -383,8 +389,7 @@ contains
       deallocate(self%data)
     end if
 
-    nullify( self%vspace,                   &
-             self%write_method,             &
+    nullify( self%write_method,             &
              self%read_method,              &
              self%checkpoint_write_method,  &
              self%checkpoint_read_method )
@@ -579,10 +584,14 @@ contains
     integer(i_def),              intent(in) :: dump_level
     character( * ),              intent(in) :: label
 
-    integer(i_def)          :: cell
-    integer(i_def)          :: layer
-    integer(i_def)          :: df
-    integer(i_def), pointer :: map(:) => null()
+    type(function_space_type), pointer :: function_space => null()
+    integer(i_def)                     :: cell
+    integer(i_def)                     :: layer
+    integer(i_def)                     :: df
+    integer(i_def),            pointer :: map(:) => null()
+
+    ! Get function space from parent
+    function_space => self%get_function_space()
 
     ! If we are not going to write the field to the log then do
     ! not write the field to the scratch space.
@@ -591,10 +600,10 @@ contains
     write( log_scratch_space, '( A, A)' ) trim( label ), " =["
     call log_event( log_scratch_space, dump_level )
 
-    do cell=1,self%vspace%get_ncell()
-      map => self%vspace%get_cell_dofmap( cell )
-      do df=1,self%vspace%get_ndf()
-        do layer=0,self%vspace%get_nlayers()-1
+    do cell=1,function_space%get_ncell()
+      map => function_space%get_cell_dofmap( cell )
+      do df=1,function_space%get_ndf()
+        do layer=0,function_space%get_nlayers()-1
           write( log_scratch_space, '( I6, I6, I6, E16.8 )' ) &
               cell, df, layer+1, self%data( map( df ) + layer )
           call log_event( log_scratch_space, dump_level )
@@ -622,11 +631,15 @@ contains
     integer(i_def),              intent(in) :: log_level
     character( * ),              intent(in) :: label
 
+    type(function_space_type), pointer :: function_space => null()
     integer(i_def) :: df
+
+    ! Get function space from parent
+    function_space => self%get_function_space()
 
     call log_event( label, log_level )
 
-    do df=1,self%vspace%get_undf()
+    do df=1,function_space%get_undf()
       write( log_scratch_space, '( I6, E16.8 )' ) df,self%data( df )
       call log_event( log_scratch_space, log_level )
     end do
@@ -648,14 +661,18 @@ contains
     class( field_type ), target, intent(in) :: self
     integer(i_def),              intent(in) :: log_level
     character( * ),              intent(in) :: label
+    type(function_space_type),      pointer :: function_space => null()
     integer(i_def)                          :: undf
     type(scalar_type)                       :: fmin, fmax
+
+    ! Get function space from parent
+    function_space => self%get_function_space()
 
     ! If we aren't going to log the min and max then we don't need to
     ! do any further work here.
     if ( log_level < application_log_level() ) return
 
-    undf = self%vspace%get_last_dof_owned()
+    undf = function_space%get_last_dof_owned()
     fmin = scalar_type( minval( self%data(1:undf) ) )
     fmax = scalar_type( maxval( self%data(1:undf) ) )
 
@@ -681,14 +698,18 @@ contains
     class( field_type ), target, intent(in) :: self
     integer(i_def),              intent(in) :: log_level
     character( * ),              intent(in) :: label
+    type(function_space_type),      pointer :: function_space => null()
     integer(i_def)                          :: undf
     type(scalar_type)                       :: fmax
+
+    ! Get function space from parent
+    function_space => self%get_function_space()
 
     ! If we aren't going to log the abs max then we don't need to
     ! do any further work here.
     if ( log_level < application_log_level() ) return
 
-    undf = self%vspace%get_last_dof_owned()
+    undf = function_space%get_last_dof_owned()
     fmax = scalar_type( maxval( abs(self%data(1:undf)) ) )
 
     write( log_scratch_space, '( A, A, E16.8 )' ) &
@@ -710,11 +731,15 @@ contains
     implicit none
 
     class( field_type ), target, intent(in) :: self
+    type(function_space_type),      pointer :: function_space => null()
     real(r_def) , intent(out)               :: fmin, fmax
     integer(i_def)                          :: undf
     type(scalar_type)                       :: fmin1, fmax1
 
-    undf = self%vspace%get_last_dof_owned()
+    ! Get function space from parent
+    function_space => self%get_function_space()
+
+    undf = function_space%get_last_dof_owned()
     fmin1 = scalar_type( minval( self%data(1:undf) ) )
     fmax1 = scalar_type( maxval( self%data(1:undf) ) )
 

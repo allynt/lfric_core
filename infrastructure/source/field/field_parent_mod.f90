@@ -27,6 +27,7 @@ module field_parent_mod
   !> Abstract field type that is the parent of any field type in the field
   !> object hierarchy
   type, extends(pure_abstract_field_type), public, abstract :: field_parent_type
+    private
     !> A pointer to the function space on which the field lives
     type( function_space_type ), pointer :: vspace => null( )
     !> Holds information about how to halo exchange a field
@@ -79,6 +80,7 @@ module field_parent_mod
 
   !> Abstract field proxy type that is the patrent of any field proxy
   type, public, abstract :: field_parent_proxy_type
+    private
     !> An unused allocatable integer that prevents an intenal compiler error
     !> with the Gnu Fortran compiler. Adding an allocatable forces the compiler
     !> to accept that the object has a finaliser. It gets confused without it.
@@ -239,6 +241,7 @@ contains
 
     class(field_parent_type), intent(inout)    :: self
 
+    nullify( self%vspace )
     if ( allocated(self%halo_dirty) ) deallocate(self%halo_dirty)
 
   end subroutine field_parent_final
