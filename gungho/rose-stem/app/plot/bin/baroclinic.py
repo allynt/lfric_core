@@ -89,7 +89,8 @@ def make_figures(filein, plotpath, fields, vertical_spacing):
             for cfield in combined_fields:
 
                 cube = read_ugrid_data(filein, cfield)
-                levels_name = cube.dim_coords[0].name()
+                # Vertical levels will be last entry in dimension coords
+                levels_name = cube.dim_coords[-1].name()
                 # Set some levels for contours:
                 levels = None
                 if cfield == 'air_potential_temperature' or cfield == 'theta':

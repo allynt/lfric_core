@@ -322,13 +322,19 @@ subroutine setup_xios_files(files_list, clock)
   type(xios_duration)   :: file_freq
   type(xios_fieldgroup) :: field_group_hdl
   character(str_def)    :: field_group_id
+  character(str_def)    :: file_mode
 
   type(linked_list_item_type), pointer :: loop  => null()
   type(xios_file_type),        pointer :: file  => null()
 
-  ! start at the head of the time_axis linked list
+  ! Start at the head of the time_axis linked list
   loop => files_list%get_head()
-  do while( associated(loop) )
+  do
+    ! If list is empty or we're at the end of list, return a null pointer
+    if ( .not. associated(loop) ) then
+      nullify(file)
+      exit
+    end if
 
     ! tmp_ptr is a dummy pointer used to 'cast' to the xios_file_type so that
     ! we can get at the information in the payload
@@ -354,6 +360,13 @@ subroutine setup_xios_files(files_list, clock)
         if ( .not. field_group_id == "unset" ) then
           call xios_get_handle( field_group_id, field_group_hdl )
           call xios_set_attr( field_group_hdl, enabled=.true. )
+        end if
+
+        ! If file is not in "read" mode switch time-counter to exclusive
+        call xios_get_attr( file_hdl, mode=file_mode )
+        if ( .not. file_mode == "read" ) then
+          call xios_set_attr( file_hdl, time_counter="exclusive", &
+                                        time_counter_name="time" )
         end if
 
     end select

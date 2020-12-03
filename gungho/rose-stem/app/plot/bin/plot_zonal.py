@@ -20,14 +20,15 @@ iris.FUTURE.netcdf_promote = True
 ny, nx = 200, 400
 
 def make_figures(filein, plotpath, fields):
-   
+
    if fields is None:
       # Set the standard default fields
       fields = ['air_potential_temperature', 'eastward_wind']
 
    for field in fields:
       cube = iris.load_cube(filein, field)
-      levels_name = cube.dim_coords[0].name()
+      # Vertical levels will be last entry in dimension coords
+      levels_name = cube.dim_coords[-1].name()
       #Set some levels:
       levels=None
       if field=='air_potential_temperature':

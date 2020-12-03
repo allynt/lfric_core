@@ -113,7 +113,8 @@ def make_figures(filein, plotpath, fields, vertical_spacing, lid, n_full,
             fields = ['u1', 'u2', 'u3']
         for f, field in enumerate(fields):
             cube = read_ugrid_data(filein, field)
-            levels_name = cube.dim_coords[0].name()
+            # Vertical levels will be last entry in dimension coords
+            levels_name = cube.dim_coords[-1].name()
 
             # Set some levels for contours:
             levels = None
