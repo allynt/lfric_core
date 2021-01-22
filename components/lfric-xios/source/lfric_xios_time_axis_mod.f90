@@ -333,9 +333,6 @@ contains
         ! Populate model field with interpolated data
         model_proxy%data = dat_interp
 
-        ! Set halos dirty here as is done in read_field_time_var
-        call model_proxy%set_dirty()
-
         ! Deallocate interpolation array ready for next field
         deallocate(dat_interp)
 
