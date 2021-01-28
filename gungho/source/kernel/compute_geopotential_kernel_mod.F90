@@ -92,6 +92,7 @@ subroutine compute_geopotential_code(nlayers, phi,               &
   real(kind=r_def)    :: lat, lon, radius, shallow_switch, height
 
   real(kind=r_def), dimension(ndf_chi) :: chi_1_e, chi_2_e, chi_3_e
+  real(kind=r_def) :: phi_shallow, phi_deep
 
   ! If geometry is spherical then calculate geopotential using radius
   if ( geometry == geometry_spherical ) then
@@ -120,8 +121,10 @@ subroutine compute_geopotential_code(nlayers, phi,               &
           end do
           call xyz2llr(coord(1), coord(2), coord(3), lon, lat, radius)
 
-          phi(map_w3(df) + k) =  gravity*(shallow_switch*radius - &
-                          (1.0_r_def-shallow_switch)*scaled_radius**2/radius)
+            phi_shallow = gravity*radius
+            phi_deep    = -gravity*scaled_radius*(scaled_radius/radius - 1.0_r_def)
+            phi(map_w3(df) + k) = shallow_switch*phi_shallow &
+                                + (1.0_r_def-shallow_switch)*phi_deep
 
         end do
       end do
@@ -129,15 +132,15 @@ subroutine compute_geopotential_code(nlayers, phi,               &
     else
       do k = 0, nlayers-1
         do df = 1, ndf_w3
-          height = 0.0_r_def
+          radius = scaled_radius
           do dfc = 1, ndf_chi
-            height = height + chi_3( map_chi(dfc) + k )*chi_basis(1,dfc,df)
+            radius = radius + chi_3( map_chi(dfc) + k )*chi_basis(1,dfc,df)
           end do
 
-          phi(map_w3(df) + k) = gravity*              &
-             (shallow_switch*(scaled_radius+height) - &
-             (1.0_r_def-shallow_switch)*scaled_radius**2/(scaled_radius+height))
-
+          phi_shallow = gravity*radius
+          phi_deep    = -gravity*scaled_radius*(scaled_radius/radius - 1.0_r_def)
+          phi(map_w3(df) + k) = shallow_switch*phi_shallow &
+                              + (1.0_r_def-shallow_switch)*phi_deep
         end do
       end do
     end if

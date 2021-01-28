@@ -88,7 +88,7 @@ contains
     call feign_formulation_config(transport_only=.false., rotating=.true., &
                                   l_multigrid=.false.,                     &
                                   use_moisture=.false.,                    &
-                                  shallow=.true., use_physics=.false.,     &
+                                  shallow=.false., use_physics=.false.,    &
                                   use_wavedynamics=.true.,                 &
                                   dry_static_adjust=.false.,               &
                                   exner_from_eos=.false.,                  &
@@ -144,7 +144,7 @@ contains
     this%map(1) = 1
     this%x(1) = 0.0_r_def
     this%y(1) = 0.0_r_def
-    this%z(1) = radius
+    this%z(1) = radius + 10000.0_r_def
     this%basis(1,1,1) = 1.0_r_def
 
     call compute_geopotential_code( nlayers,                         &
@@ -152,8 +152,8 @@ contains
                                    ndf, undf,                        &
                                    this%map, ndf, undf, this%map, this%basis )
 
-    answer = radius * gravity
-
+    ! answer = a*g*(1-r/a)
+    answer = 60000000.0_r_def * ( 1.0_r_def - 6000000.0_r_def/6010000.0_r_def)
     @assertEqual( answer, this%phi(1), tol )
 
   end subroutine test_all
