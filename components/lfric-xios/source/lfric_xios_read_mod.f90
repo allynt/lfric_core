@@ -612,9 +612,14 @@ subroutine read_checkpoint(state, timestep)
           call fld%read_checkpoint( "restart_"//trim(adjustl(fld%get_name())), &
                                     trim(ts_fname(checkpoint_stem_name, "",    &
                                     trim(adjustl(fld%get_name())),timestep,"")) )
+        else if ( fld%can_read() ) then
+          write(log_scratch_space,'(2A)') &
+                "Reading UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+          call log_event(log_scratch_space, LOG_LEVEL_INFO)
+          call fld%read_field( "restart_" // trim(adjustl(fld%get_name())) )
         else
-          call log_event( 'Checkpointing for  '// trim(adjustl(fld%get_name())) // &
-                          ' not set up', LOG_LEVEL_INFO )
+          call log_event( 'Reading not set up for  '// trim(adjustl(fld%get_name())), &
+                          LOG_LEVEL_INFO )
         end if
       type is (integer_field_type)
         if ( fld%can_checkpoint() ) then
@@ -623,9 +628,14 @@ subroutine read_checkpoint(state, timestep)
           call fld%read_checkpoint( "restart_"//trim(adjustl(fld%get_name())), &
                                     trim(ts_fname(checkpoint_stem_name, "",    &
                                     trim(adjustl(fld%get_name())),timestep,"")) )
+        else if ( fld%can_read() ) then
+          write(log_scratch_space,'(2A)') &
+                "Reading UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+          call log_event(log_scratch_space, LOG_LEVEL_INFO)
+          call fld%read_field( "restart_" // trim(adjustl(fld%get_name())) )
         else
-          call log_event( 'Checkpointing for  '// trim(adjustl(fld%get_name())) // &
-                          ' not set up', LOG_LEVEL_INFO )
+          call log_event( 'Reading not set up for  '// trim(adjustl(fld%get_name())), &
+                          LOG_LEVEL_INFO )
         end if
 
       type is (r_solver_field_type)
@@ -635,9 +645,14 @@ subroutine read_checkpoint(state, timestep)
           call fld%read_checkpoint( "restart_"//trim(adjustl(fld%get_name())), &
                                     trim(ts_fname(checkpoint_stem_name, "",    &
                                     trim(adjustl(fld%get_name())),timestep,"")))
+        else if ( fld%can_read() ) then
+          write(log_scratch_space,'(2A)') &
+                "Reading UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+          call log_event(log_scratch_space, LOG_LEVEL_INFO)
+          call fld%read_field( "restart_" // trim(adjustl(fld%get_name())) )
         else
-          call log_event( 'Checkpointing for  '// trim(adjustl(fld%get_name())) // &
-                          ' not set up', LOG_LEVEL_INFO )
+          call log_event( 'Reading not set up for  '// trim(adjustl(fld%get_name())), &
+                          LOG_LEVEL_INFO )
         end if
 
     end select

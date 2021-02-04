@@ -89,7 +89,8 @@ module io_dev_init_files_mod
                            trim(checkpoint_stem_name),"_", clock%get_last_step()
 
       call tmp_file%init_xios_file( "io_dev_checkpoint_write", &
-                                    checkpoint_write_fname, clock%get_last_step(), &
+                                    checkpoint_write_fname,    &
+                                    clock%get_last_step() - clock%get_first_step(), &
                                     field_group_id="checkpoint_fields" )
       call files_list%insert_item(tmp_file)
     end if
@@ -101,8 +102,7 @@ module io_dev_init_files_mod
                    trim(checkpoint_stem_name),"_", (clock%get_first_step() - 1)
 
       call tmp_file%init_xios_file( "io_dev_checkpoint_read", &
-                                    checkpoint_read_fname, clock%get_first_step() - 1, &
-                                    field_group_id="checkpoint_fields" )
+                                    checkpoint_read_fname, clock%get_first_step() - 1 )
       call files_list%insert_item(tmp_file)
     end if
 

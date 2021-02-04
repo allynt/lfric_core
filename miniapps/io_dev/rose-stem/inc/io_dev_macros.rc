@@ -1,0 +1,6 @@
+{# COMPARE KGO MACRO #}
+{#---------------------------------------------------------------------------#}
+{%- macro compare_restart_kgos_graph() %}
+    [[[R1]]]
+    export_source => compare_restart_kgos
+{%- endmacro %}

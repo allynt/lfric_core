@@ -57,6 +57,7 @@ module io_dev_init_mod
                                   twod_mesh_id, &
                                   core_fields,  &
                                   dump_fields,  &
+                                  alg_fields,   &
                                   variable_times_list )
 
     implicit none
@@ -66,6 +67,7 @@ module io_dev_init_mod
     integer(i_def),              intent(in)    :: twod_mesh_id
     type(field_collection_type), intent(out)   :: core_fields
     type(field_collection_type), intent(out)   :: dump_fields
+    type(field_collection_type), intent(out)   :: alg_fields
     type(linked_list_type),      intent(inout) :: variable_times_list
 
     ! Local variables
@@ -85,6 +87,7 @@ module io_dev_init_mod
     ! Create the core and dump field collections.
     core_fields = field_collection_type( name='core_fields' )
     dump_fields = field_collection_type( name='dump_fields' )
+    alg_fields =  field_collection_type( name='alg_fields' )
 
     ! W0 (node) field
     call create_field( core_fields, "W0_field", mesh_id, twod_mesh_id, W0 )
@@ -154,6 +157,26 @@ module io_dev_init_mod
 
     tmp_field_ptr => core_fields%get_field( 'multi_data_field' )
     call dump_fields%add_reference_to_field( tmp_field_ptr )
+
+    !----------------------------------------------------------------------------
+    ! Alg fields
+    !----------------------------------------------------------------------------
+    ! Add fields to alg_fields collection - fields which can be psycloned
+
+    tmp_field_ptr => core_fields%get_field( 'W0_field' )
+    call alg_fields%add_reference_to_field( tmp_field_ptr )
+
+    tmp_field_ptr => core_fields%get_field( 'W2H_field' )
+    call alg_fields%add_reference_to_field( tmp_field_ptr )
+
+    tmp_field_ptr => core_fields%get_field( 'W2V_field' )
+    call alg_fields%add_reference_to_field( tmp_field_ptr )
+
+    tmp_field_ptr => core_fields%get_field( 'W3_field' )
+    call alg_fields%add_reference_to_field( tmp_field_ptr )
+
+    tmp_field_ptr => core_fields%get_field( 'W3_2D_field' )
+    call alg_fields%add_reference_to_field( tmp_field_ptr )
 
     nullify( tmp_field_ptr )
 

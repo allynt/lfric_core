@@ -25,6 +25,7 @@ module io_dev_driver_mod
                                         write_diag,                &
                                         write_dump,                &
                                         diagnostic_frequency
+  use io_dev_config_mod,          only: timestepping_on
   ! IO_Dev driver modules
   use io_dev_mod,                 only: program_name
   use io_dev_data_mod,            only: io_dev_data_type,          &
@@ -34,6 +35,8 @@ module io_dev_driver_mod
                                         finalise_model_data
   use io_dev_model_mod,           only: initialise_infrastructure, &
                                         finalise_infrastructure
+  ! Algorithms
+  use io_dev_timestep_alg_mod,    only: io_dev_timestep_alg
   ! XIOS
   use xios,                       only: xios_update_calendar
 
@@ -82,8 +85,8 @@ module io_dev_driver_mod
                                     clock )
 
     ! Instantiate the fields stored in model_data
-    call create_model_data( model_data,   &
-                            mesh_id,      &
+    call create_model_data( model_data,  &
+                            mesh_id,     &
                             twod_mesh_id )
 
     ! Initialise the fields stored in the model_data
@@ -106,10 +109,6 @@ module io_dev_driver_mod
     ! Model step
     do while( clock%tick() )
 
-      ! Update time-varying fields
-      call update_variable_fields( model_data%variable_field_times, &
-                                   clock, model_data%core_fields )
-
       ! Update XIOS calendar
       if ( use_xios_io ) then
         call log_event( program_name//': Updating XIOS timestep', LOG_LEVEL_INFO )
@@ -117,13 +116,18 @@ module io_dev_driver_mod
         call xios_update_calendar( new_step )
       end if
 
-      if ( ( mod(clock%get_step(), diagnostic_frequency) == 0 ) &
-           .and. ( write_diag .or. write_dump ) ) then
+      ! Update time-varying fields
+      call update_variable_fields( model_data%variable_field_times, &
+                                   clock, model_data%core_fields )
 
-        ! Write out the fields
+      if ( timestepping_on ) then
+        call io_dev_timestep_alg( model_data%alg_fields, clock )
+      end if
+
+      ! Write out the fields
+      if ( (mod( clock%get_step(), diagnostic_frequency ) == 0) ) then
         call log_event( program_name//': Writing XIOS output', LOG_LEVEL_INFO)
         call output_model_data( model_data )
-
       end if
 
     end do
@@ -138,7 +142,7 @@ module io_dev_driver_mod
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Destroy the fields stored in model_data
-    call finalise_model_data( model_data )
+    call finalise_model_data( model_data, clock )
 
     ! Finalise infrastructure and constants
     call finalise_infrastructure( program_name )

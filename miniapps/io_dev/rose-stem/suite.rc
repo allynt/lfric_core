@@ -1,6 +1,7 @@
 #!jinja2
 %include inc/common_macros.rc
 %include inc/common_miniapp_macros.rc
+%include inc/io_dev_macros.rc
 %include suite_control.rc
 %include inc/common_suite.rc
 
@@ -8,3 +9,20 @@
     [[root]]
         [[[environment]]]
             DATA_DIR = {{TARGET_DATA_DIR}}
+
+
+{# #############################################################################}
+{# COMPARE RESTART KGOS #}
+    [[compare_restart_kgos]]
+
+        script = rose task-run --app-key=compare_restart_kgos
+
+        [[[environment]]]
+            APP_NAME   = {{projectName}}
+            KGO_DIR    = $SOURCE_ROOT/{{appPathFragment}}{{projectName}}/kgos
+            TARGET_OPT = {{TARGET_OPT}}
+
+        [[[directives]]]
+{%-                   for DIRECTIVE in TARGET_TECHNICAL_BATCHER_DIRECTIVES %}
+            {{DIRECTIVE}}
+{%-                   endfor %}

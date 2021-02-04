@@ -26,7 +26,6 @@
 {%- endmacro %}
 
 
-
 {# CHECK CONFGI-DUMP MACROS #}
 {#---------------------------------------------------------------------------#}
 {%- macro check_config_dump_graph() %}

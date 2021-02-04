@@ -24,15 +24,16 @@ module io_dev_data_mod
                                                LOG_LEVEL_ERROR
   use variable_fields_mod,              only : init_variable_fields
   ! Configuration
-  use io_config_mod,                    only : write_diag,                &
-                                               write_dump
+  use io_config_mod,                    only : write_diag, write_dump, &
+                                               checkpoint_read,        &
+                                               checkpoint_write
   use initialization_config_mod,        only : init_option,               &
                                                init_option_fd_start_dump, &
                                                ancil_option,              &
                                                ancil_option_basic_gal
   ! I/O methods
-  use lfric_xios_read_mod,              only : read_state
-  use lfric_xios_write_mod,             only : write_state
+  use lfric_xios_read_mod,              only : read_state, read_checkpoint
+  use lfric_xios_write_mod,             only : write_state, write_checkpoint
   ! IO_Dev modules
   use io_dev_init_mod,                  only : setup_io_dev_fields
   use io_dev_init_fields_alg_mod,       only : io_dev_init_fields_alg
@@ -54,6 +55,9 @@ module io_dev_data_mod
 
     !> Field collection holding fields for dumps
     type( field_collection_type ), public :: dump_fields
+
+    !> Field collection holding fields which can be processed by PSyClone
+    type( field_collection_type ), public :: alg_fields
 
     !> Linked list of time_axis objects for variable fields
     type( linked_list_type ),      public :: variable_field_times
@@ -85,6 +89,7 @@ contains
                               twod_mesh_id,                   &
                               model_data%core_fields,         &
                               model_data%dump_fields,         &
+                              model_data%alg_fields,          &
                               model_data%variable_field_times )
 
   end subroutine create_model_data
@@ -110,26 +115,31 @@ contains
     !---------------------------------------------------------------
     ! Now we make separate init calls based on model configuration
     !---------------------------------------------------------------
+    if ( checkpoint_read ) then
+      call read_checkpoint( model_data%core_fields, &
+                            clock%get_first_step() - 1 )
 
-    ! If fields need to be read from dump file, read them
-    select case( init_option )
-      case ( init_option_fd_start_dump )
-        call read_state( model_data%dump_fields, prefix='input_' )
-    end select
+    else
+      ! If fields need to be read from dump file, read them
+      select case( init_option )
+        case ( init_option_fd_start_dump )
+          call read_state( model_data%dump_fields, prefix='input_' )
+      end select
 
-    ! If testing initialisation of time-varying I/O
-    select case( ancil_option )
-    case ( ancil_option_basic_gal )
-      call init_variable_fields( model_data%variable_field_times, &
-                                 clock, model_data%core_fields )
-  end select
+      ! If testing initialisation of time-varying I/O
+      select case( ancil_option )
+      case ( ancil_option_basic_gal )
+        call init_variable_fields( model_data%variable_field_times, &
+                                   clock, model_data%core_fields )
+      end select
+
+    end if
 
 
   end subroutine initialise_model_data
 
   !> @brief Writes out a checkpoint and dump file dependent on namelist options
   !> @param[inout] model_data The working data set for the model run
-  !> @param[in]    clock      The model clock object.
   subroutine output_model_data( model_data )
 
     implicit none
@@ -141,9 +151,6 @@ contains
       call write_state( model_data%dump_fields, prefix='output_' )
     end if
 
-    !=================== Write fields to checkpoint files ====================!
-    ! Functionality to be added
-
     !=================== Write fields to diagnostic files ====================!
     if ( write_diag ) then
       call write_state( model_data%core_fields )
@@ -154,18 +161,21 @@ contains
 
   !> @brief Routine to destroy all the field collections in the working data set
   !> @param[inout] model_data The working data set for a model run
-  subroutine finalise_model_data( model_data )
+  !> @param[in]    clock      The model clock object
+  subroutine finalise_model_data( model_data, clock )
 
     implicit none
 
       type(io_dev_data_type), intent(inout) :: model_data
+      class(clock_type),      intent(in)    :: clock
+
+      !=================== Write fields to checkpoint files ====================!
+      if ( checkpoint_write ) then
+        call write_checkpoint( model_data%core_fields, clock )
+      end if
 
       !==================== Write checksum output =====================
-      ! Remove multi-data fields from core fields as they cannot currently be passed
-      ! to Psyclone to create checksum
-      call model_data%core_fields%remove_field( "multi_data_field" )
-
-      call io_dev_checksum_alg( model_data%core_fields )
+      call io_dev_checksum_alg( model_data%alg_fields )
 
       ! Clear all the fields in each field collection
       call model_data%core_fields%clear()

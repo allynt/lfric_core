@@ -7,6 +7,9 @@
   f_lat_deg       = 45.0
 /
 
+&boundaries
+  limited_area    = .false.
+/
 
 &extrusion
   method           = 'uniform'
@@ -38,13 +41,13 @@
 &io
   use_xios_io               = .true.
   write_diag                = .false.
-  write_dump                = .true.
+  write_dump                = .false.
   diagnostic_frequency      = 1
   nodal_output_on_w3        = .false.
   subroutine_timers         = .false.
   subroutine_counters       = .false.
   checkpoint_read           = .false.
-  checkpoint_write          = .false.
+  checkpoint_write          = .true.
 /
 
 &logging
@@ -67,9 +70,13 @@
   scaling_factor = 1.0
 /
 
+&io_dev
+  timestepping_on    = .true.
+/
+
 &timestepping
   method             = 'semi_implicit'
-  dt                 = 1800.0
+  dt                 = 4.0
   alpha              = 0.5
   tau_u              = 0.5
   tau_t              = 0.5

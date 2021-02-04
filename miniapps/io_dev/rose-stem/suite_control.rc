@@ -33,7 +33,7 @@
 {%- set MAXRUNAHEAD     = 1 %}
 
 {%- set application_configurations = { 'io_dev' : ['read_write', 'gen_dump', 'check_decomp', 'time_var', 'time_var_short',
-                                                   'default'] } %}
+                                                   'checkpoints', 'default'] } %}
 
 {%- set canned_configurations = ['io_dev'] %}
 
@@ -43,8 +43,11 @@
     'check_config_dump_graph()',
     'check_style_graph()',
     'api_documentation_graph(publish=True)',
+    'compare_restart_kgos_graph()',
     'run_application("io_dev", "default", resolutions=[("C12", 3.0)],
-                     env={"crun":1, "nrun":1,}, checkkgo=True)',
+                     env={"crun":1, "nrun":20,}, checkkgo=True)',
+    'run_application("io_dev", "checkpoints", resolutions=[("C12", 3.0)],
+                     env={"crun":2, "nrun":10,}, checkkgo=True)',
     'run_application("io_dev", "read_write",
                      resolutions=[("C12",3.0)],
                      env={"crun":1, "nrun":1,

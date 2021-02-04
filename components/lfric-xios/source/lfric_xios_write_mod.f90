@@ -513,17 +513,21 @@ subroutine write_checkpoint( state, clock )
           write(log_scratch_space,'(2A)') &
                 "Checkpointing ", trim(adjustl(fld%get_name()))
           call log_event(log_scratch_space, LOG_LEVEL_INFO)
-          call fld%write_checkpoint( "checkpoint_"                       &
-                                     // trim(adjustl(fld%get_name())),   &
+          call fld%write_checkpoint( "checkpoint_" //                    &
+                                     trim(adjustl(fld%get_name())),      &
                                      trim(ts_fname(checkpoint_stem_name, &
                                                    "",                   &
                                                    trim(adjustl(fld%get_name())), &
                                                    clock%get_step(),     &
                                                    "")) )
+        else if ( fld%can_write() ) then
+          write(log_scratch_space,'(2A)') &
+                "Writing checkpoint for ", trim(adjustl(fld%get_name()))
+          call log_event(log_scratch_space, LOG_LEVEL_INFO)
+          call fld%write_field( "checkpoint_" // trim(adjustl(fld%get_name())) )
         else
-
-          call log_event( 'Checkpointing for  '// trim(adjustl(fld%get_name())) // &
-                          ' not set up', LOG_LEVEL_INFO )
+          call log_event( 'Writing not set up for '// trim(adjustl(fld%get_name())), &
+                          LOG_LEVEL_INFO )
         end if
       type is (integer_field_type)
         if ( fld%can_checkpoint() ) then
@@ -537,10 +541,14 @@ subroutine write_checkpoint( state, clock )
                                                    trim(adjustl(fld%get_name())), &
                                                    clock%get_step(),     &
                                                    "")) )
+        else if ( fld%can_write() ) then
+          write(log_scratch_space,'(2A)') &
+                "Writing checkpoint for ", trim(adjustl(fld%get_name()))
+          call log_event(log_scratch_space, LOG_LEVEL_INFO)
+          call fld%write_field( "checkpoint_" // trim(adjustl(fld%get_name())) )
         else
-
-          call log_event( 'Checkpointing for  '// trim(adjustl(fld%get_name())) // &
-                          ' not set up', LOG_LEVEL_INFO )
+          call log_event( 'Writing not set up for '// trim(adjustl(fld%get_name())), &
+                          LOG_LEVEL_INFO )
         end if
 
       type is (r_solver_field_type)
@@ -555,10 +563,14 @@ subroutine write_checkpoint( state, clock )
                                                    trim(adjustl(fld%get_name())), &
                                                    clock%get_step(),     &
                                                    "")) )
+        else if ( fld%can_write() ) then
+          write(log_scratch_space,'(2A)') &
+                "Writing UGRID checkpoint for ", trim(adjustl(fld%get_name()))
+          call log_event(log_scratch_space, LOG_LEVEL_INFO)
+          call fld%write_field( "checkpoint_" // trim(adjustl(fld%get_name())) )
         else
-
-          call log_event( 'Checkpointing for  '// trim(adjustl(fld%get_name())) // &
-                          ' not set up', LOG_LEVEL_INFO )
+          call log_event( 'Writing not set up for '// trim(adjustl(fld%get_name())), &
+                          LOG_LEVEL_INFO )
         end if
 
     end select
