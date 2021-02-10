@@ -31,14 +31,15 @@ module hydrostatic_kernel_mod
   use argument_mod,      only : arg_type, func_type,       &
                                 GH_FIELD, GH_READ, GH_INC, &
                                 GH_BASIS, GH_DIFF_BASIS,   &
-                                CELLS, GH_QUADRATURE_XYoZ
+                                CELLS, GH_QUADRATURE_XYoZ, &
+                                ANY_W2
   use constants_mod,     only : r_def
-  use fs_continuity_mod, only : W2, W3, Wtheta
+  use fs_continuity_mod, only : W3, Wtheta
   use kernel_mod,        only : kernel_type
   use planet_config_mod, only : cp
 
   implicit none
-
+  private
   !---------------------------------------------------------------------------
   ! Public types
   !---------------------------------------------------------------------------
@@ -48,14 +49,14 @@ module hydrostatic_kernel_mod
   type, public, extends(kernel_type) :: hydrostatic_kernel_type
     private
     type(arg_type) :: meta_args(5) = (/             &
-        arg_type(GH_FIELD,   GH_INC,  W2),          &
+        arg_type(GH_FIELD,   GH_INC,  ANY_W2),      &
         arg_type(GH_FIELD,   GH_READ, W3),          &
         arg_type(GH_FIELD,   GH_READ, Wtheta),      &
         arg_type(GH_FIELD*3, GH_READ, Wtheta),      &
         arg_type(GH_FIELD,   GH_READ, W3)           &
         /)
     type(func_type) :: meta_funcs(3) = (/                &
-        func_type(W2,          GH_BASIS, GH_DIFF_BASIS), &
+        func_type(ANY_W2,      GH_BASIS, GH_DIFF_BASIS), &
         func_type(W3,          GH_BASIS),                &
         func_type(Wtheta,      GH_BASIS, GH_DIFF_BASIS)  &
         /)
@@ -74,7 +75,7 @@ contains
 
 !> @brief Compute the pressure and geopotential gradient components of the momentum equation
 !! @param[in] nlayers Number of layers
-!! @param[inout] r_u Momentum equation right hand side
+!! @param[in,out] r_u Momentum equation right hand side
 !! @param[in] exner Exner pressure field
 !! @param[in] theta Potential temperature field
 !! @param[in] moist_dyn_gas Moist dynamics factor in gas law

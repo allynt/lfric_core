@@ -635,8 +635,8 @@ contains
     ! levels being -ve. This should be reviewed with ticket #562
     call height_w3%initialise( vector_space = w3_k0_fs )
     call height_wth%initialise( vector_space = wth_k0_fs )
-    call invoke( get_height_kernel_type(height_w3, chi_sph) )
-    call invoke( get_height_kernel_type(height_wth, chi_sph) )
+    call invoke( get_height_kernel_type(height_w3, chi_sph),   &
+                 get_height_kernel_type(height_wth, chi_sph) )
 
     !=== Create multiplicity for horizontally continuous fields ===!
     ! NB most of the time we want 1/multiplicity

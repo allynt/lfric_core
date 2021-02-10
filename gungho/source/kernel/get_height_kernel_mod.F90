@@ -9,22 +9,21 @@
 !>
 module get_height_kernel_mod
 
-  use argument_mod,              only: arg_type, func_type,                 &
-                                       GH_FIELD, GH_WRITE, GH_READ, GH_INC, &
-                                       ANY_SPACE_9,                         &
-                                       GH_BASIS,                            &
+  use argument_mod,              only: arg_type, func_type,                    &
+                                       GH_FIELD, GH_WRITE, GH_READ, GH_INC,    &
+                                       ANY_SPACE_9, ANY_DISCONTINUOUS_SPACE_1, &
+                                       GH_BASIS,                               &
                                        CELLS, GH_EVALUATOR
   use base_mesh_config_mod,      only: geometry, &
                                        geometry_spherical
   use constants_mod,             only: r_def, i_def
   use finite_element_config_mod, only: spherical_coord_system, &
                                        spherical_coord_system_xyz
-  use fs_continuity_mod,         only: W0, W2, W3
   use kernel_mod,                only: kernel_type
   use planet_config_mod,         only: scaled_radius
 
   implicit none
-
+  private
   !---------------------------------------------------------------------------
   ! Public types
   !---------------------------------------------------------------------------
@@ -33,9 +32,9 @@ module get_height_kernel_mod
   !>
   type, public, extends(kernel_type) :: get_height_kernel_type
     private
-    type(arg_type) :: meta_args(2) = (/             &
-        arg_type(GH_FIELD,   GH_WRITE,  W3),        &
-        arg_type(GH_FIELD*3, GH_READ,  ANY_SPACE_9) &
+    type(arg_type) :: meta_args(2) = (/                             &
+        arg_type(GH_FIELD,   GH_WRITE,  ANY_DISCONTINUOUS_SPACE_1), &
+        arg_type(GH_FIELD*3, GH_READ,   ANY_SPACE_9)                &
         /)
     type(func_type) :: meta_funcs(1) = (/ &
         func_type(ANY_SPACE_9, GH_BASIS)  &
@@ -57,7 +56,7 @@ contains
 !> @brief Returns a height field (r or z) from the chi array
 !>        Will only work at lowest order for now
 !! @param[in] nlayers Number of layers
-!! @param[inout] height The height field
+!! @param[in,out] height The height field
 !! @param[in] chi_1 1st component of the coordinate
 !! @param[in] chi_2 2nd component of the coordinate
 !! @param[in] chi_3 3rd component of the coordinate
