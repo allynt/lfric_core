@@ -31,6 +31,7 @@ module map_fd_to_prognostics_alg_mod
   use initialization_config_mod,       only: ancil_option,                &
                                              ancil_option_aquaplanet,     &
                                              hydro_coriolis
+  use sort_ref_kernel_mod,             only: sort_ref_kernel_type
 
   implicit none
 
@@ -114,7 +115,8 @@ contains
 
     ! Update factors for moist dynamics
     call moist_dyn_factors_alg( moist_dyn, mr )
-
+    ! Remove any static instability
+    call invoke( sort_ref_kernel_type(theta) )
     ! Initialize hydrostatically balanced exner field
     call hydrostatic_balance( exner, rho, theta, u, moist_dyn )
 

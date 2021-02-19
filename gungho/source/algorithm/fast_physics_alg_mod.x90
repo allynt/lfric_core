@@ -197,7 +197,7 @@ contains
     ! Jules surface and sub-surface (snow and hydrology)
     !--------------------------------------------------------------------
     if ( surface == surface_jules .and. &
-         outer == outer_iterations ) then
+       outer == outer_iterations ) then
       call jules_extra_alg(microphysics_fields, convection_fields,        &
                            surface_fields, soil_fields, snow_fields,      &
                            snow_sublimation, surf_heat_flux, canopy_evap, &

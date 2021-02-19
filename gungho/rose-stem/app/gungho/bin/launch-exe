@@ -6,7 +6,7 @@
 
 EXEC_PATH="${BIN_DIR}/${EXEC_NAME}"
 NAMELIST_FILE=configuration.nml
-XIOS_SERVER_EXEC_PATH="${XIOS_ROOT}/bin/xios_server.exe"
+XIOS_SERVER_EXEC_PATH="xios_server.exe"
 
 
 # Ensure Total ranks requested is at least 1

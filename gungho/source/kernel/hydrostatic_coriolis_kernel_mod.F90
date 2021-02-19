@@ -8,10 +8,10 @@ module hydrostatic_coriolis_kernel_mod
 
 !> @brief   Computes exner from equation of state and vertical balance including
 !!          Coriolis term.
-!> @details Calculate exner on the bottom level, using equation of state. Then
+!> @details Calculate exner on the top level, using equation of state. Then
 !!          use finite differencing to calculate exner on successive levels
-!!          above. This is similar to hydrostatic_eos_kernel, but here the
-!!          Coriolis term is added to the vertical balance equation.
+!!          below. Unlike hydrostatic_eos_kernel which balances upwards, the
+!!          Coriolis term is also added to the vertical balance equation.
 
 use argument_mod,               only : arg_type, func_type,            &
                                        GH_FIELD, GH_READ, GH_WRITE,    &
@@ -21,9 +21,11 @@ use constants_mod,              only : r_def, i_def
 use planet_config_mod,          only : gravity, p_zero, kappa, rd, cp
 use fs_continuity_mod,          only : WTHETA, W3, W2
 use kernel_mod,                 only : kernel_type
-use reference_element_mod,      only : T
+use reference_element_mod,      only : B
 
 implicit none
+
+private
 
 !-------------------------------------------------------------------------------
 ! Public types
@@ -127,43 +129,45 @@ subroutine hydrostatic_coriolis_code( nlayers,       &
   real(kind=r_def), dimension(ndf_wt)  :: theta_moist_e
   real(kind=r_def)                     :: rho_cell, theta_moist, dz
 
-  ! Compute exner from eqn of state in lowest level
-  k = 0
+  ! Compute exner from eqn of state in top layer
+  k = nlayers-1
 
   do df3 = 1, ndf_w3
-    rho_e(df3) = rho( map_w3(df3) + k)
+    rho_e( df3 ) = rho( map_w3(df3) + k)
   end do
 
   do dft = 1, ndf_wt
-    theta_moist_e(dft) = theta( map_wt(dft) + k) * moist_dyn_gas(map_wt(dft)+k)
+    theta_moist_e( dft ) = theta( map_wt(dft) + k) * moist_dyn_gas( map_wt(dft) + k )
   end do
 
   do df = 1, ndf_w3
 
     rho_cell = 0.0_r_def
     do df3 = 1, ndf_w3
-      rho_cell = rho_cell + rho_e(df3)*basis_w3(1,df3,df)
+      rho_cell = rho_cell + rho_e( df3 )*basis_w3( 1,df3,df )
     end do
 
     theta_moist = 0.0_r_def
     do dft = 1, ndf_wt
-      theta_moist = theta_moist + theta_moist_e(dft)*basis_wt(1,dft,df)
+      theta_moist = theta_moist + theta_moist_e( dft )*basis_wt( 1,dft,df )
     end do
 
-    exner(map_w3(df)+k) = (rd*rho_cell*theta_moist/p_zero) &
-                          **(kappa/(1.0_r_def-kappa))
+    exner( map_w3(df) + k ) = ( rd*rho_cell*theta_moist/p_zero ) &
+                              **( kappa/( 1.0_r_def-kappa ) )
   end do
 
   ! Exner on other levels from hydrostatic balance
-  ! Compute exner at level k from exner at level k-1 plus other terms.
-  ! Add the coriolis term using the top face (T) from the cell at level k-1
-  do k = 1, nlayers-1
-    dz = height_w3(map_w3(1)+k)-height_w3(map_w3(1)+k-1)
-    theta_moist = moist_dyn_gas(map_wt(1)+k) * theta(map_wt(1)+k) /   &
-                  moist_dyn_tot(map_wt(1)+k)
-    exner(map_w3(1)+k) = exner(map_w3(1)+k-1) &
-                       +(coriolis_term(map_w2(T)+k-1)- gravity) * dz &
-                       / (cp * theta_moist)
+  ! Compute exner at level k-1 from exner at level k plus other terms.
+  ! Add the coriolis term using the bottom face (B) from the cell at level k-1
+  do k = nlayers-1, 1, -1
+
+    dz = height_w3( map_w3(1) + k ) - height_w3( map_w3(1) + k - 1 )
+    theta_moist = moist_dyn_gas( map_wt(1) + k ) * theta( map_wt(1) + k ) /   &
+                  moist_dyn_tot( map_wt(1) + k )
+    exner( map_w3(1) + k - 1 ) = exner( map_w3 (1) + k )       &
+       - ( coriolis_term( map_w2(B) + k - 1 ) - gravity ) * dz &
+       / ( cp * theta_moist )
+
   end do
 
 end subroutine hydrostatic_coriolis_code

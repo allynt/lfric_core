@@ -180,7 +180,7 @@ contains
     class(hydrostatic_coriolis_test_type), intent(inout) :: this
 
     real(r_def), parameter :: tol = 1.0e-6_r_def
-    real(r_def), parameter :: mv = 0.01 ! set 10 g/kg of vapour mixing ratio
+    real(r_def), parameter :: mv = 0.01_r_def ! set 10 g/kg of vapour mixing ratio
     real(r_def)            :: recip_epsilon
     real(r_def)            :: answer
     integer(i_def)         :: nlayers, cell, k
@@ -215,26 +215,26 @@ contains
                                     this%map_w2(:,cell)                  &
                                     )
 
-    ! Checks equation of state (lowest level) using a moist theta.
+    ! Checks equation of state (top level) using a moist theta.
     ! theta_moist = theta * ( 1+ mv * recip_epsilon )
     !             = 300 * ( 1 + (461.51/300) *0.01 )
     !             = 304.6151
     ! exner = ( theta_moist Rd rho / p0 ) ^ ( k / 1-k )
     !       = (304.6151 * 300 *1.1 / 100 000 ) ^ (0.3 /0.7)
-    !       = 1.00223801
-    k = 0
-    answer = 1.00223801_r_def
+    !       = 1.0022380
+    k = 2
+    answer = 1.0022380_r_def
     @assertEqual(answer, this%exner_data(this%map_w3(1, cell)+k), tol)
 
-    ! Checks hydrostatic plus coriolis balance (top level)
+    ! Checks hydrostatic plus coriolis balance (bottom level)
     ! theta_moist = theta ( 1+ mv * recip_epsilon )/(1 + mv)
     !             = 300 * (1 + (461.51/300) *0.01 )/ (1 + 0.01)
     !             = 301.5991
-    ! exner_k+2 = exner_k - (g - coriolis) * 2dz / (Cp theta)
-    !           = 1.00223801 - (10 - 0.005) * 4000 / (1000 * 301.5991 )
-    !           = 0.869677943
-    k=2
-    answer = 0.869677943_r_def
+    ! exner_{k} = exner_{k+2} + (g - coriolis) * 2dz / (Cp theta)
+    !           = 1.00223801 + (10 - 0.005) * 4000 / (1000 * 301.5991 )
+    !           = 1.1348
+    k=0
+    answer = 1.1347980_r_def
     @assertEqual(answer, this%exner_data(this%map_w3(1, cell)+k), tol)
 
   end subroutine test_all

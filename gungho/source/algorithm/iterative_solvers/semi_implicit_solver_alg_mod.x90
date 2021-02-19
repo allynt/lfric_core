@@ -15,7 +15,7 @@ module semi_implicit_solver_alg_mod
                                                 LOG_LEVEL_TRACE
 
   ! Config
-  use mixed_solver_config_mod,            only: split_w
+  use mixed_solver_config_mod,            only: split_w, mixed_solver_a_tol
 
   ! Derived Types
   use field_vector_mod,                   only: field_vector_type
@@ -62,9 +62,6 @@ module semi_implicit_solver_alg_mod
   type(mixed_operator_type)                          :: mixed_operator
   class(abstract_preconditioner_type),   allocatable :: mixed_preconditioner
   class(abstract_iterative_solver_type), allocatable :: mixed_solver
-
-  !> Absolute solver tolerance (mixed solver)
-  real(kind=r_def), parameter :: mixed_solver_a_tol = 1.E-6
 
   !> Operator, preconditioner and iterative solver for
   !> Helmholtz (pressure) problem

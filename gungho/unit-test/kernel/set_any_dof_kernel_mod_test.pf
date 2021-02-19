@@ -1,0 +1,120 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!> Test setting of a given dof to a real value.
+!>
+module set_any_dof_kernel_mod_test
+
+  use constants_mod,                 only: i_def, r_def
+
+  use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w2_m3x3_q3x3x3_size
+  use get_unit_test_m3x3_dofmap_mod,       only : get_w2_m3x3_dofmap
+
+  use pFUnit_Mod
+
+  implicit none
+
+  private
+  public :: test_all
+
+  @TestCase
+  type, extends(TestCase), public :: set_any_dof_test_type
+    private
+  contains
+    procedure setup
+    procedure tearDown
+    procedure test_all
+  end type set_any_dof_test_type
+
+  real(r_def), parameter    :: VALUE = 123.234_r_def ! An aribtrary value
+  integer(i_def), parameter :: DOF_TO_SET = 5        ! Set the 5th dof
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine setUp( this )
+
+    implicit none
+
+    class(set_any_dof_test_type), intent(inout) :: this
+
+  end subroutine setUp
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tearDown( this )
+
+    use configuration_mod, only: final_configuration
+
+    implicit none
+
+    class(set_any_dof_test_type), intent(inout) :: this
+
+    call final_configuration()
+
+  end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test
+  subroutine test_all( this )
+
+    use set_any_dof_kernel_mod, only: set_any_dof_code
+    implicit none
+
+    class(set_any_dof_test_type), intent(inout) :: this
+
+    real(r_def) :: answer
+
+    ! Fields
+    real(r_def), allocatable :: w2_field(:)
+
+    integer(i_def) :: cell
+
+    ! Sizes
+    integer(i_def)          :: nlayers, ncells, nqp_h, nqp_v
+    integer(i_def)          :: ndf_w2, undf_w2
+    integer(i_def)          :: dim_space, dim_space_diff
+
+    ! Dofmaps
+    integer(i_def), allocatable :: map_w2(:,:)
+
+    nlayers = 3
+    call get_w2_m3x3_q3x3x3_size( ndf_w2, undf_w2, ncells,     &
+                                  dim_space, dim_space_diff,   &
+                                  nqp_h, nqp_v,                &
+                                  nlayers )
+    call get_w2_m3x3_dofmap(map_w2)
+
+    ! Only test interior cell 5
+    cell = 5
+    ! Create the data, including large magnitude w2_fields
+    allocate( w2_field( undf_w2 ) )
+
+    w2_field(:) = VALUE**2 ! Another arbitrary value that is not = VALUE
+
+    call set_any_dof_code( nlayers,         &
+                           w2_field,        &
+                           DOF_TO_SET,      &
+                           VALUE,           &
+                           ndf_w2, undf_w2, &
+                           map_w2(:,cell)   &
+                           )
+
+    ! Check a couple of levels
+    answer = w2_field( map_w2( DOF_TO_SET, cell ) )
+    @assertEqual( answer, VALUE )
+
+    answer = w2_field( map_w2( DOF_TO_SET, cell ) + 1 )
+    @assertEqual( answer, VALUE )
+
+    ! Check another dof hasn't been modified
+    answer = w2_field( map_w2( DOF_TO_SET - 1, cell ) )
+    @assertEqual( answer, VALUE**2 )
+
+    deallocate(w2_field)
+    deallocate(map_w2)
+
+  end subroutine test_all
+
+end module set_any_dof_kernel_mod_test

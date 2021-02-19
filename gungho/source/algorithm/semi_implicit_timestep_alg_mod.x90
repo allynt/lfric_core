@@ -13,6 +13,7 @@ module semi_implicit_timestep_alg_mod
   use log_mod,                   only: log_event,         &
                                        log_scratch_space, &
                                        LOG_LEVEL_INFO
+  use reference_element_mod, only : T
 
   ! Configuration options
   use section_choice_config_mod, only: cloud,              &
@@ -49,6 +50,7 @@ module semi_implicit_timestep_alg_mod
   use matrix_vector_kernel_mod,           only: matrix_vector_kernel_type
   use moist_dyn_factors_kernel_mod,       only: moist_dyn_factors_kernel_type
   use enforce_lower_bound_kernel_mod,     only: enforce_lower_bound_kernel_type
+  use set_any_dof_kernel_mod,             only: set_any_dof_kernel_type
 
   ! Derived Types
   use field_mod,                 only: field_type
@@ -370,8 +372,7 @@ contains
     ! If off-centring is being spun up then modify the alpha value
     !--------------------------------------------------------------------
     if (spinup_alpha .and. clock%is_spinning_up()) then
-      varalpha = alpha + (1.0_r_def - alpha) &
-                 * (1.0_r_def - clock%get_spinup_fraction())
+      varalpha = 1.0_r_def
     else
       varalpha = alpha
     end if
@@ -451,7 +452,7 @@ contains
         !--------------------------------------------------------------------
         call calc_phys_predictors_alg(derived_fields, rhs_np1,                 &
                                       rhs_adv, rhs_n, state, state_after_slow, &
-                                      moist_dyn, varalpha, dA)
+                                      moist_dyn, varalpha, dA, clock )
         !--------------------------------------------------------------------
         ! Call the fast physics terms
         !--------------------------------------------------------------------
@@ -549,6 +550,12 @@ contains
                                               moist_dyn(gas_law), &
                                               mr, clock%get_step(), &
                                               rho_guess, write_moisture_diag )
+
+          ! For poorly balanced initial conditions, we set the vertical
+          ! component of W2 wind to zero
+          if (spinup_alpha .and. clock%is_spinning_up()) then
+            call invoke( set_any_dof_kernel_type(state(igh_u), T, 0.0_r_def) )
+          end if
 
           !--------------------------------------------------------------------
           ! LAM Overwrite and Blend LBCs
