@@ -4,7 +4,7 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> Test the W0 mass matrix computation
+!> Test the W0 mass matrix computation using w_scalar module
 !>
 module compute_mass_matrix_kernel_w0_mod_test
 
@@ -85,7 +85,8 @@ contains
   @Test( npes=[1] )
   subroutine test_all( this )
 
-    use compute_mass_matrix_kernel_w0_mod, only : compute_mass_matrix_w0_code
+    use compute_mass_matrix_kernel_w_scalar_mod, only : &
+                                 compute_mass_matrix_w_scalar_code
 
     implicit none
 
@@ -143,7 +144,8 @@ contains
     ! Create the data
     allocate( local_stencil(ndf_w0, ndf_w0, ncell_3d) )
     local_stencil(:,:,:) = 0.0_r_def
-    call compute_mass_matrix_w0_code( cell,            &
+    call compute_mass_matrix_w_scalar_code( &
+                                      cell,            &
                                       nlayers,         &
                                       ncell_3d,        &
                                       local_stencil,   &
@@ -158,9 +160,9 @@ contains
                                       map_w0(:, cell), &
                                       basis_w0,        &
                                       diff_basis_w0,   &
-                                      ndf_pid,          &
-                                      undf_pid,         &
-                                      map_pid,          &
+                                      ndf_pid,         &
+                                      undf_pid,        &
+                                      map_pid,         &
                                       nqp_h,           &
                                       nqp_v,           &
                                       wh,              &

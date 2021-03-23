@@ -244,14 +244,14 @@ contains
     grad_v                = operator_type( fs_vel_v, fs_pressure )
     call mm_vel_v_diag%initialise( fs_vel_v )
     call mm_vel_h_diag%initialise( fs_vel_h )
-    ! NOTE: These are separate invokes as chi is defined as any space and
-    ! PSyclone does not support multiple any_spaces in the same invoke
-    call invoke( compute_mass_matrix_kernel_w2_type( mm_vel_v, chi_sph, panel_id, qr ) )
-    call invoke( compute_mass_matrix_kernel_w2_type( mm_vel_h, chi_sph, panel_id, qr ) )
-    call invoke( compute_mass_matrix_kernel_w3_type( mm_pressure, chi_sph, panel_id, qr ) )
-    call invoke( compute_div_operator_kernel_type( div_v, chi_sph, panel_id, qr ) )
-    call invoke( compute_div_operator_kernel_type( div_h, chi_sph, panel_id, qr ) )
-    call invoke( transpose_matrix_kernel_type( div_v, grad_v ) )
+
+    call invoke( compute_mass_matrix_kernel_w2_type( mm_vel_v, chi_sph, panel_id, qr ), &
+                 compute_mass_matrix_kernel_w3_type( mm_pressure, chi_sph, panel_id, qr ),      &
+                 compute_div_operator_kernel_type( div_v, chi_sph, panel_id, qr ),              &
+                 transpose_matrix_kernel_type( div_v, grad_v ) )
+
+    call invoke( compute_mass_matrix_kernel_w2_type( mm_vel_h, chi_sph, panel_id, qr ), &
+                 compute_div_operator_kernel_type( div_h, chi_sph, panel_id, qr ) )
 
     ! Extract diagonal of vertical and horizontal velocity mass matrices
     ! Note that this has to be done BEFORE applying the boundary

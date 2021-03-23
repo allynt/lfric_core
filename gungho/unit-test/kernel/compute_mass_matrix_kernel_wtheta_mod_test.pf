@@ -4,7 +4,7 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> Test the Wtheta mass matrix computation
+!> Test the Wtheta mass matrix computation using w_scalar generic scalar module
 !>
 module compute_mass_matrix_kernel_wtheta_mod_test
 
@@ -89,7 +89,8 @@ contains
   @Test( npes=[1] )
   subroutine test_all( this )
 
-    use compute_mass_matrix_kernel_wtheta_mod, only : compute_mass_matrix_wtheta_code
+    use compute_mass_matrix_kernel_w_scalar_mod, only : &
+                                    compute_mass_matrix_w_scalar_code
 
     implicit none
 
@@ -155,29 +156,29 @@ contains
     local_stencil(:,:,:) = 0.0_r_def
 
     cell = 1
-    call compute_mass_matrix_wtheta_code( cell,                      &
-                                          nlayers,                   &
-                                          ncell_3d,                  &
-                                          local_stencil,             &
-                                          chi1,                      &
-                                          chi2,                      &
-                                          chi3,                      &
-                                          panel_id,                  &
-                                          ndf_wtheta,                &
-                                          basis_wtheta,              &
-                                          ndf_w0,                    &
-                                          undf_w0,                   &
-                                          map_w0(:,cell),            &
-                                          basis_w0,                  &
-                                          diff_basis_w0,             &
-                                          ndf_w3,                    &
-                                          undf_w3,                   &
-                                          map_w3,                    &
-                                          nqp_h,                     &
-                                          nqp_v,                     &
-                                          wh,                        &
-                                          wv                         &
-                                        )
+    call compute_mass_matrix_w_scalar_code( cell,                      &
+                                            nlayers,                   &
+                                            ncell_3d,                  &
+                                            local_stencil,             &
+                                            chi1,                      &
+                                            chi2,                      &
+                                            chi3,                      &
+                                            panel_id,                  &
+                                            ndf_wtheta,                &
+                                            basis_wtheta,              &
+                                            ndf_w0,                    &
+                                            undf_w0,                   &
+                                            map_w0(:,cell),            &
+                                            basis_w0,                  &
+                                            diff_basis_w0,             &
+                                            ndf_w3,                    &
+                                            undf_w3,                   &
+                                            map_w3,                    &
+                                            nqp_h,                     &
+                                            nqp_v,                     &
+                                            wh,                        &
+                                            wv                         &
+                                            )
 
     answer = (1.0_r_def/3.0_r_def)
     @assertEqual(answer, local_stencil(1, 1, 1 )/(dx*dy*dz), tol)

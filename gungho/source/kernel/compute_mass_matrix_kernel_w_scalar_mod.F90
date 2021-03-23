@@ -1,27 +1,28 @@
 !-----------------------------------------------------------------------------
-! Copyright (c) 2017,  Met Office, on behalf of HMSO and Queen's Printer
-! For further details please refer to the file LICENCE.original which you
-! should have received as part of this distribution.
+! Copyright (c) 2021,  Met Office, on behalf of HMSO and Queen's Printer
+! For further details please refer to the file LICENCE.original which
+! you should have received as part of this distribution.
 !-----------------------------------------------------------------------------
-!> @brief Provides access to the members of the w0_kernel class.
+!> @brief Provides access to the members of the ws_kernel class.
 !>
-!> Accessor functions for the w0_kernel class are defined in this module.
+!> Accessor functions for the ws_kernel class are defined in this
+!module.
 !>
-!> @param RHS_w0_code              Code to implement the RHS for a w0 field
+!> @param RHS_w_scalar_code        Code to implement the RHS for a w0 or wtheta field
 !> @param gaussian_quadrature      Contains result of gaussian quadrature
 !>
-module compute_mass_matrix_kernel_w0_mod
+module compute_mass_matrix_kernel_w_scalar_mod
 
   use argument_mod,            only: arg_type, func_type,       &
                                      GH_OPERATOR, GH_FIELD,     &
                                      GH_READ, GH_WRITE,         &
-                                     ANY_SPACE_9,               &
+                                     ANY_SPACE_2,               &
                                      ANY_DISCONTINUOUS_SPACE_3, &
                                      GH_BASIS, GH_DIFF_BASIS,   &
                                      CELLS, GH_QUADRATURE_XYoZ
   use constants_mod,           only: r_def, i_def
   use coordinate_jacobian_mod, only: coordinate_jacobian
-  use fs_continuity_mod,       only: W0
+  use fs_continuity_mod,       only: W0, Wtheta, Wchi
   use kernel_mod,              only: kernel_type
 
   implicit none
@@ -29,31 +30,31 @@ module compute_mass_matrix_kernel_w0_mod
   !---------------------------------------------------------------------------
   ! Public types
   !---------------------------------------------------------------------------
-  type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w0_type
+  type, public, extends(kernel_type) :: compute_mass_matrix_kernel_w_scalar_type
     private
     type(arg_type) :: meta_args(3) = (/                            &
-        arg_type(GH_OPERATOR, GH_WRITE, W0, W0),                   &
-        arg_type(GH_FIELD*3,  GH_READ,  ANY_SPACE_9),              &
+        arg_type(GH_OPERATOR, GH_WRITE, ANY_SPACE_2, ANY_SPACE_2), &
+        arg_type(GH_FIELD*3,  GH_READ,  Wchi),                     &
         arg_type(GH_FIELD,    GH_READ,  ANY_DISCONTINUOUS_SPACE_3) &
         /)
     type(func_type) :: meta_funcs(2) = (/                          &
-        func_type(W0, GH_BASIS),                                   &
-        func_type(ANY_SPACE_9, GH_BASIS, GH_DIFF_BASIS)            &
+        func_type(ANY_SPACE_2, GH_BASIS),                          &
+        func_type(Wchi, GH_DIFF_BASIS, GH_BASIS)                   &
         /)
     integer :: iterates_over = CELLS
     integer :: gh_shape = GH_QUADRATURE_XYoZ
   contains
-    procedure, nopass :: compute_mass_matrix_w0_code
-  end type compute_mass_matrix_kernel_w0_type
+    procedure, nopass :: compute_mass_matrix_w_scalar_code
+  end type compute_mass_matrix_kernel_w_scalar_type
 
   !---------------------------------------------------------------------------
   ! Contained functions/subroutines
   !---------------------------------------------------------------------------
-  public compute_mass_matrix_w0_code
+  public compute_mass_matrix_w_scalar_code
 
 contains
 
-!> @brief This subroutine computes the mass matrix for the w0 space
+!> @brief This subroutine computes the mass matrix for scalar spaces w0 and wtheta
 !! @param[in] cell     The cell number
 !! @param[in] nlayers  The number of layers.
 !! @param[in] ncell_3d ncell*ndf
@@ -62,45 +63,58 @@ contains
 !! @param[in] chi2     2nd (spherical) coordinate field in Wchi
 !! @param[in] chi3     3rd (spherical) coordinate field in Wchi
 !! @param[in] panel_id Field giving the ID for mesh panels.
-!! @param[in] ndf_w0   The number of degrees of freedom per cell for w0.
-!! @param[in] ndf_chi  The number of degrees of freedom per cell for chi.
-!! @param[in] basis_w0 4-dim array holding SCALAR basis functions evaluated at quadrature points for w0.
+!! @param[in] ndf_w_scalar   The number of degrees of freedom per cell
+!for w_scalar.
+!! @param[in] ndf_chi  The number of degrees of freedom per cell for
+!chi.
+!! @param[in] basis_w_scalar 4-dim array holding SCALAR basis functions
+!evaluated at quadrature points for w_scalar.
 !! @param[in] undf_chi Number of unique degrees of freedom for chi
-!! @param[in] map_chi  Array holding the dofmap for the cell at the base of the column for chi
-!! @param[in] basis_chi 4-dim array holding basis functions evaluated at quadrature points for chi
-!! @param[in] diff_basis_chi 4-dim array holding VECTOR differential basis functions evaluated at quadrature points for chi
-!! @param[in] ndf_pid  Number of degrees of freedom per cell for panel_id
+!! @param[in] map_chi  Array holding the dofmap for the cell at the base
+!of the column for chi
+!! @param[in] basis_chi 4-dim array holding basis functions evaluated at
+!quadrature points for chi
+!! @param[in] diff_basis_chi 4-dim array holding VECTOR differential
+!basis functions evaluated at quadrature points for chi
+!! @param[in] ndf_pid  Number of degrees of freedom per cell for
+!panel_id
 !! @param[in] undf_pid Number of unique degrees of freedom for panel_id
-!! @param[in] map_pid  Dofmap for the cell at the base of the column for panel_id
+!! @param[in] map_pid  Dofmap for the cell at the base of the column for
+!panel_id
 !! @param[in] nqp_h    Number of horizontal quadrature points
 !! @param[in] nqp_v    Number of vertical quadrature points
 !! @param[in] wqp_h    Quadrature weights horizontal
 !! @param[in] wqp_v    Quadrature weights vertical
-subroutine compute_mass_matrix_w0_code(cell, nlayers, ncell_3d,    &
-                                       mm,                         &
-                                       chi1, chi2, chi3, panel_id, &
-                                       ndf_w0, basis_w0,           &
-                                       ndf_chi, undf_chi, map_chi, &
-                                       basis_chi, diff_basis_chi,  &
-                                       ndf_pid, undf_pid, map_pid, &
+subroutine compute_mass_matrix_w_scalar_code(cell, nlayers, ncell_3d, &
+                                       mm,                            &
+                                       chi1, chi2, chi3, panel_id,    &
+                                       ndf_w_scalar, basis_w_scalar,  &
+                                       ndf_chi, undf_chi, map_chi,    &
+                                       basis_chi, diff_basis_chi,     &
+                                       ndf_pid, undf_pid, map_pid,    &
                                        nqp_h, nqp_v, wqp_h, wqp_v  )
 
   implicit none
 
   ! Arguments
   integer(kind=i_def), intent(in) :: cell, nqp_h, nqp_v
-  integer(kind=i_def), intent(in) :: nlayers, ndf_w0, ndf_pid, undf_pid
+  integer(kind=i_def), intent(in) :: nlayers, ndf_w_scalar
+  integer(kind=i_def), intent(in) :: ndf_pid, undf_pid
   integer(kind=i_def), intent(in) :: ndf_chi, undf_chi
   integer(kind=i_def), intent(in) :: ncell_3d
 
   integer(kind=i_def), dimension(ndf_chi), intent(in) :: map_chi
   integer(kind=i_def), dimension(ndf_pid), intent(in) :: map_pid
 
-  real(kind=r_def), dimension(ndf_w0,ndf_w0,ncell_3d), intent(inout) :: mm
+  real(kind=r_def), dimension(ndf_w_scalar,ndf_w_scalar,ncell_3d), &
+                                        intent(inout) :: mm
 
-  real(kind=r_def), dimension(1,ndf_chi,nqp_h,nqp_v), intent(in) :: basis_chi
-  real(kind=r_def), dimension(3,ndf_chi,nqp_h,nqp_v), intent(in) :: diff_basis_chi
-  real(kind=r_def), dimension(1,ndf_w0,nqp_h,nqp_v), intent(in)  :: basis_w0
+  real(kind=r_def), dimension(1,ndf_chi,nqp_h,nqp_v), &
+                                           intent(in) :: basis_chi
+  real(kind=r_def), dimension(3,ndf_chi,nqp_h,nqp_v), &
+                                           intent(in) :: diff_basis_chi
+  real(kind=r_def), dimension(1,ndf_w_scalar,nqp_h,nqp_v), &
+                                           intent(in) :: basis_w_scalar
 
   real(kind=r_def), dimension(undf_chi), intent(in) :: chi1
   real(kind=r_def), dimension(undf_chi), intent(in) :: chi2
@@ -131,16 +145,18 @@ subroutine compute_mass_matrix_w0_code(cell, nlayers, ncell_3d,    &
         chi3_e(df) = chi3(map_chi(df) + k - 1)
      end do
 
-    call coordinate_jacobian(ndf_chi, nqp_h, nqp_v, chi1_e, chi2_e, chi3_e,  &
-                             ipanel, basis_chi, diff_basis_chi, jac, dj)
+    call coordinate_jacobian(ndf_chi, nqp_h, nqp_v, chi1_e, chi2_e,     &
+                             chi3_e, ipanel, basis_chi, diff_basis_chi, &
+                             jac, dj)
 
-    do df2 = 1, ndf_w0
-       do df = df2, ndf_w0 ! mass matrix is symmetric
+    do df2 = 1, ndf_w_scalar
+       do df = df2, ndf_w_scalar ! mass matrix is symmetric
           mm(df,df2,ik) = 0.0_r_def
           do qp2 = 1, nqp_v
              do qp1 = 1, nqp_h
                 integrand = wqp_h(qp1) * wqp_v(qp2) * &
-                     basis_w0(1,df,qp1,qp2)*basis_w0(1,df2,qp1,qp2)     * &
+                     basis_w_scalar(1,df,qp1,qp2)   * &
+                     basis_w_scalar(1,df2,qp1,qp2)  * &
                      dj(qp1,qp2)
                 mm(df,df2,ik) = mm(df,df2,ik) + integrand
              end do
@@ -154,6 +170,6 @@ subroutine compute_mass_matrix_w0_code(cell, nlayers, ncell_3d,    &
 
   end do ! end of k loop
 
-end subroutine compute_mass_matrix_w0_code
+end subroutine compute_mass_matrix_w_scalar_code
 
-end module compute_mass_matrix_kernel_w0_mod
+end module compute_mass_matrix_kernel_w_scalar_mod

@@ -4,7 +4,7 @@
 ! should have received as part of this distribution.
 !-----------------------------------------------------------------------------
 
-!> Test the W2 mass matrix computation
+!> Test the W2 mass matrix computation using w2 example
 !>
 module compute_mass_matrix_kernel_w2_mod_test
 
@@ -153,7 +153,8 @@ contains
     ncell_3d = ncells * nlayers
     allocate( local_stencil(ndf_w2, ndf_w2, ncell_3d) )
     local_stencil(:,:,:) = 0.0_r_def
-    call compute_mass_matrix_w2_code( cell,            &
+    call compute_mass_matrix_w2_code( &
+                                      cell,            &
                                       nlayers,         &
                                       ncell_3d,        &
                                       local_stencil,   &
