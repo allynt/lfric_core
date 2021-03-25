@@ -5,6 +5,7 @@ fplane=.false.,
 geometry='spherical',
 partitioner='cubedsphere',
 prime_mesh_name='dynamics',
+topology='fully_periodic',
 /
 
 &extrusion

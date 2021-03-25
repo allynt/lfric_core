@@ -17,6 +17,7 @@ use argument_mod,              only : arg_type, func_type,        &
 use constants_mod,             only : r_def, i_def, PI
 use fs_continuity_mod,         only : W1
 use kernel_mod,                only : kernel_type
+use log_mod,                   only : log_event, LOG_LEVEL_ERROR
 use initial_wind_config_mod,   only : profile, sbr_angle_lat, sbr_angle_lon, u0, v0
 
 implicit none
@@ -94,7 +95,8 @@ subroutine initial_streamfunc_code(nlayers,                         &
                                    )
 
   use analytic_streamfunction_profiles_mod, only: analytic_streamfunction
-  use base_mesh_config_mod,                 only: geometry, &
+  use base_mesh_config_mod,                 only: geometry,           &
+                                                  geometry_planar,    &
                                                   geometry_spherical
   use chi_transform_mod,                    only: chi2llr
   use coordinate_jacobian_mod,              only: coordinate_jacobian, &
@@ -179,9 +181,13 @@ subroutine initial_streamfunc_code(nlayers,                         &
 
           psi_spherical = analytic_streamfunction(llr, profile, 3, option3, time)
           psi_physical = sphere2cart_vector(psi_spherical,llr)
-        else
-          ! Coords must already be (X,Y,Z)
+        else if ( geometry == geometry_planar ) then
+          ! Coords must be (X,Y,Z)
           psi_physical = analytic_streamfunction(coords, profile, 2, option2, time)
+        else
+          call log_event('initial_streamfunc_kernel is not implemented ' // &
+                         'with your geometry and topology',                 &
+                         LOG_LEVEL_ERROR)
         end if
 
         do df = 1, ndf

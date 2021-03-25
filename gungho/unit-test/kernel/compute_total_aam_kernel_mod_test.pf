@@ -56,7 +56,8 @@ contains
   subroutine setUp( this )
 
     use base_mesh_config_mod,      only : geometry_spherical, &
-                                          partitioner_planar
+                                          partitioner_planar, &
+                                          topology_fully_periodic
     use chi_transform_mod,         only : init_chi_transforms
     use finite_element_config_mod, only : cellshape_quadrilateral, &
                                           spherical_coord_system_xyz
@@ -77,6 +78,7 @@ contains
                                  prime_mesh_name='unit_test',         &
                                  geometry=geometry_spherical,         &
                                  partitioner=partitioner_planar,      &
+                                 topology=topology_fully_periodic,    &
                                  fplane=.false., f_lat_deg=lat_c )
 
     call feign_finite_element_config(           &

@@ -3,6 +3,7 @@
   geometry        = 'spherical'
   partitioner     = 'cubedsphere'
   prime_mesh_name = 'dynamics'
+  topology        = 'fully_periodic'
   fplane          = .false.
   f_lat_deg       = 45.0
 /

@@ -39,7 +39,8 @@ contains
 
     use feign_config_mod,     only: feign_base_mesh_config
     use base_mesh_config_mod, only: partitioner_planar,        &
-                                    geometry_planar
+                                    geometry_planar,           &
+                                    topology_non_periodic
 
     implicit none
 
@@ -49,11 +50,12 @@ contains
     ! Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config( filename        = 'foo',                &
-                                 prime_mesh_name = 'unit_test',          &
-                                 geometry        = geometry_planar,      &
-                                 partitioner     = partitioner_planar,   &
-                                 fplane          = .false.,              &
+    call feign_base_mesh_config( filename        = 'foo',                 &
+                                 prime_mesh_name = 'unit_test',           &
+                                 geometry        = geometry_planar,       &
+                                 partitioner     = partitioner_planar,    &
+                                 topology        = topology_non_periodic, &
+                                 fplane          = .false.,               &
                                  f_lat_deg       = 0.0_r_def )
 
   end subroutine setUp

@@ -14,7 +14,7 @@ use log_mod,                      only : log_event,                &
                                          log_scratch_space,        &
                                          LOG_LEVEL_ERROR
 use coord_transform_mod,           only : xyz2llr
-use base_mesh_config_mod,          only : geometry, &
+use base_mesh_config_mod,          only : geometry,           &
                                           geometry_spherical
 use planet_config_mod,             only : scaled_radius, gravity
 use generate_global_gw_fields_mod, only : generate_global_gw_pert

@@ -245,7 +245,8 @@ end subroutine init_mesh
 subroutine read_global_meshes()
 
   use base_mesh_config_mod,   only: prime_mesh_name, &
-                                    geometry, geometry_spherical
+                                    geometry, geometry_spherical, &
+                                    topology, topology_fully_periodic
   use formulation_config_mod, only: l_multigrid
   use multigrid_config_mod,   only: chain_mesh_tags
 
@@ -253,9 +254,11 @@ subroutine read_global_meshes()
 
   integer(i_def) :: n_panels
 
-  if (geometry == geometry_spherical) then
+  if (geometry == geometry_spherical .and. topology == topology_fully_periodic) then
+    ! We assume that this is a cubed sphere (and not a global lon-lat mesh)
     n_panels = 6
   else
+    ! Planar / spherical LAM mesh
     n_panels = 1
   end if
 
@@ -361,8 +364,10 @@ subroutine set_partition_parameters( total_ranks,       &
                                      max_stencil_depth, &
                                      partitioner_ptr )
 
-  use base_mesh_config_mod,       only: geometry, &
-                                        geometry_spherical
+  use base_mesh_config_mod,       only: geometry,           &
+                                        geometry_spherical, &
+                                        topology,           &
+                                        topology_fully_periodic
   use partitioning_config_mod,    only: panel_decomposition,        &
                                         panel_xproc, panel_yproc,   &
                                         PANEL_DECOMPOSITION_AUTO,   &
@@ -410,8 +415,9 @@ subroutine set_partition_parameters( total_ranks,       &
 
   ! 1.0 Setup the partitioning strategy
   !===================================================================
-  if (geometry == geometry_spherical) then
+  if (geometry == geometry_spherical  .and. topology == topology_fully_periodic ) then
 
+    ! Assume that we have a cubed sphere (and not a global lon-lat mesh)
     if (total_ranks == 1 .or. mod(total_ranks,6) == 0) then
 
       ranks_per_panel = total_ranks/6

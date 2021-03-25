@@ -34,8 +34,9 @@ contains
   subroutine setUp( this )
     use feign_config_mod,     only: feign_base_mesh_config, &
                                     feign_planet_config
-    use base_mesh_config_mod, only: geometry_planar, &
-                                    partitioner_planar
+    use base_mesh_config_mod, only: geometry_planar,    &
+                                    partitioner_planar, &
+                                    topology_fully_periodic
     implicit none
 
     class(poly1d_vert_flux_coeffs_test_type), intent(inout) :: this
@@ -49,6 +50,7 @@ contains
                                  prime_mesh_name='unit_test',         &
                                  geometry=geometry_planar,            &
                                  partitioner=partitioner_planar,      &
+                                 topology=topology_fully_periodic,    &
                                  fplane=.false., f_lat_deg=0.0_r_def )
 
   end subroutine setUp

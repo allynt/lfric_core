@@ -55,8 +55,9 @@ contains
   subroutine setUp(this)
 
     use schar_orography_cartesian_mod, only : schar_cartesian_type
-    use base_mesh_config_mod,          only : geometry_planar, &
-                                              partitioner_planar
+    use base_mesh_config_mod,          only : geometry_planar,    &
+                                              partitioner_planar, &
+                                              topology_fully_periodic
     use finite_element_config_mod,     only : cellshape_quadrilateral, &
                                               spherical_coord_system_xyz
     use feign_config_mod,              only : feign_finite_element_config, &
@@ -78,12 +79,13 @@ contains
     call store_comm(this%getMpiCommunicator())
 
     ! Set mesh configuration
-    call feign_base_mesh_config(                               &
-                         filename        = filename,           &
-                         prime_mesh_name = mesh_name,          &
-                         geometry        = geometry_planar,    &
-                         partitioner     = partitioner_planar, &
-                         fplane          = .false.,            &
+    call feign_base_mesh_config(                                    &
+                         filename        = filename,                &
+                         prime_mesh_name = mesh_name,               &
+                         geometry        = geometry_planar,         &
+                         partitioner     = partitioner_planar,      &
+                         topology        = topology_fully_periodic, &
+                         fplane          = .false.,                 &
                          f_lat_deg       = 0.0_r_def )
 
     call feign_extrusion_config( method=method_uniform, &

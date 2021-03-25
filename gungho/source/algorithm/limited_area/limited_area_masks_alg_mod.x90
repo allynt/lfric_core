@@ -164,7 +164,8 @@ contains
 
     use boundaries_config_mod,        only: edge_cells_ns, edge_cells_ew
     use base_mesh_config_mod,         only: geometry, geometry_spherical, &
-                                            geometry_planar
+                                            geometry_planar, topology,    &
+                                            topology_non_periodic
 
     implicit none
 
@@ -173,23 +174,22 @@ contains
     integer(i_def), intent(in)       :: boundary_s,    boundary_n,    &
                                         boundary_e,    boundary_w
 
-    if (geometry == geometry_spherical) then
+    if (geometry == geometry_spherical &
+        .and. topology /= topology_non_periodic) then
       ! The East and West boundaries are swapped over, as changing looking
       ! at the cubed-sphere panel from outside-in to inside-out.
+      ! Needed when the domain is the whole sphere or a belt around the sphere
       coord_bound_s = spherical_boundary(boundary_s, edge_cells_ns, .false.)
       coord_bound_n = spherical_boundary(boundary_n, edge_cells_ns, .true.)
       coord_bound_e = spherical_boundary(boundary_w, edge_cells_ew, .true.)
       coord_bound_w = spherical_boundary(boundary_e, edge_cells_ew, .false.)
 
-    else if (geometry == geometry_planar) then
+    else
+      ! Use this for planar meshes or lon-lat LAMs embedded on the sphere
       coord_bound_s = planar_boundary_ns(boundary_s, edge_cells_ns, .false.)
       coord_bound_n = planar_boundary_ns(boundary_n, edge_cells_ns, .true.)
       coord_bound_e = planar_boundary_ew(boundary_e, edge_cells_ew, .true.)
       coord_bound_w = planar_boundary_ew(boundary_w, edge_cells_ew, .false.)
-
-    else
-      call log_event("Invalid geometry for calculating boundary coords", &
-        LOG_LEVEL_ERROR)
 
     endif
 

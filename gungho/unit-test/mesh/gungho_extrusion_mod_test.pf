@@ -73,8 +73,9 @@ contains
   @Test( npes=[1] )
   subroutine test_planar( this )
 
-    use base_mesh_config_mod, only : geometry_planar, &
-                                     partitioner_planar
+    use base_mesh_config_mod, only : geometry_planar,    &
+                                     partitioner_planar, &
+                                     topology_fully_periodic
     use extrusion_config_mod, only : method_uniform, stretching_method_linear
 
     implicit none
@@ -88,6 +89,7 @@ contains
              prime_mesh_name='unit_test',       &
              geometry=geometry_planar,          &
              partitioner=partitioner_planar,    &
+             topology=topology_fully_periodic,  &
              fplane=.false.,                    &
              f_lat_deg=0.0_r_def )
 
@@ -119,8 +121,9 @@ contains
   @Test( npes=[1] )
   subroutine test_spherical( this )
 
-    use base_mesh_config_mod, only : geometry_spherical, &
-                                     partitioner_cubedsphere
+    use base_mesh_config_mod, only : geometry_spherical,      &
+                                     partitioner_cubedsphere, &
+                                     topology_fully_periodic
     use extrusion_config_mod, only : method_geometric, stretching_method_linear
 
     implicit none
@@ -134,6 +137,7 @@ contains
              prime_mesh_name='prime',             &
              geometry=geometry_spherical,         &
              partitioner=partitioner_cubedsphere, &
+             topology=topology_fully_periodic,    &
              fplane=.false.,                      &
              f_lat_deg=0.0_r_def )
 

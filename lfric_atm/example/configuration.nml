@@ -5,6 +5,7 @@ fplane=.false.,
 geometry='planar',
 partitioner='planar',
 prime_mesh_name='dynamics',
+topology='fully_periodic',
 /
 &blayer
 a_ent_shr=5.0,

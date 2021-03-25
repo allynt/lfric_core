@@ -36,9 +36,9 @@ use idealised_config_mod,         only : test_cold_bubble_x,           &
                                          test_rotational,              &
                                          test_translational,           &
                                          test_vertical_cylinder
-use initial_density_config_mod,    only : r1, x1, y1, r2, x2, y2,     &
+use initial_density_config_mod,    only : r1, x1, y1, r2, x2, y2,      &
                                           tracer_max, tracer_background
-use base_mesh_config_mod,          only : geometry, &
+use base_mesh_config_mod,          only : geometry,                    &
                                           geometry_spherical
 use planet_config_mod,             only : p_zero, Rd, kappa, scaled_radius, &
                                           scaled_omega, gravity, cp

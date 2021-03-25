@@ -61,8 +61,9 @@ contains
   subroutine setUp(this)
 
     use agnesi_orography_spherical_mod, only : agnesi_spherical_type
-    use base_mesh_config_mod,           only : geometry_spherical, &
-                                               partitioner_cubedsphere
+    use base_mesh_config_mod,           only : geometry_spherical,      &
+                                               partitioner_cubedsphere, &
+                                               topology_fully_periodic
     use finite_element_config_mod,      only : cellshape_quadrilateral, &
                                                spherical_coord_system_xyz
     use feign_config_mod,               only : feign_finite_element_config, &
@@ -90,6 +91,7 @@ contains
                          prime_mesh_name = mesh_name,               &
                          geometry        = geometry_spherical,      &
                          partitioner     = partitioner_cubedsphere, &
+                         topology        = topology_fully_periodic, &
                          fplane          = .false.,                 &
                          f_lat_deg       = 0.0_r_def )
 

@@ -8,7 +8,7 @@
 module diagnostic_alg_mod
   use constants_mod,                 only: i_def, r_def, str_max_filename
   use finite_element_config_mod,     only: element_order
-  use base_mesh_config_mod,          only: geometry, &
+  use base_mesh_config_mod,          only: geometry,               &
                                            geometry_spherical
   use mesh_mod,                      only: mesh_type
   use mesh_collection_mod,           only: mesh_collection
@@ -53,7 +53,6 @@ contains
     use fem_constants_mod,            only: get_mass_matrix, &
                                             get_div, &
                                             w3inv_id
-    use planet_config_mod,            only: scaled_radius
     use constants_mod,                only: pi
 
     implicit none
@@ -64,10 +63,6 @@ contains
 
     type(field_type)             :: div_u
     type(operator_type), pointer :: div => null(), m3_inv => null()
-    real(r_def)                  :: norm
-
-
-
 
     call divergence%initialise( vector_space = function_space_collection%get_fs(mesh_id,element_order, W3) )
     call div_u%initialise( vector_space = function_space_collection%get_fs(mesh_id,element_order, W3) )
@@ -77,12 +72,6 @@ contains
     call invoke( dg_matrix_vector_kernel_type( div_u, u, div ),             &
                  dg_matrix_vector_kernel_type( divergence, div_u , m3_inv), &
                  X_innerproduct_Y( l2, div_u, divergence ) )
-    ! Normalisation factor: surface area of planet
-    if ( geometry == geometry_spherical ) then
-      norm = 4.0_r_def*pi*scaled_radius**2
-    else
-      norm = 1.0_r_def
-    end if
     l2 = sqrt(l2)
 
     ! Convert to pointwise W3 field for output

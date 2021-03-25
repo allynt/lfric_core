@@ -15,9 +15,9 @@
 module orography_control_mod
 
   use constants_mod,          only : i_def, str_short, str_max_filename
-  use base_mesh_config_mod,   only : geometry,        &
-                                     geometry_planar, &
-                                     geometry_spherical
+  use base_mesh_config_mod,   only : geometry,           &
+                                     geometry_spherical, &
+                                     geometry_planar
   use orography_config_mod,   only : profile,        &
                                      profile_schar,  &
                                      profile_agnesi, &

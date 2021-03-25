@@ -59,7 +59,8 @@ contains
   subroutine setUp( this )
 
     use base_mesh_config_mod,      only : geometry_planar,        &
-                                          partitioner_planar
+                                          partitioner_planar,     &
+                                          topology_fully_periodic
     use finite_element_config_mod, only : cellshape_quadrilateral
     use feign_config_mod,          only : feign_base_mesh_config, &
                                           feign_planet_config
@@ -83,12 +84,13 @@ contains
     !Store the MPI communicator for later use
     call store_comm(this%getMpiCommunicator())
 
-    call feign_base_mesh_config                &
-             ( filename='foo',                 &
-               prime_mesh_name='unit_test',    &
-               geometry=geometry_planar,       &
-               partitioner=partitioner_planar, &
-               fplane=.false.,                 &
+    call feign_base_mesh_config                  &
+             ( filename='foo',                   &
+               prime_mesh_name='unit_test',      &
+               geometry=geometry_planar,         &
+               partitioner=partitioner_planar,   &
+               topology=topology_fully_periodic, &
+               fplane=.false.,                   &
                f_lat_deg=0.0_r_def )
 
     call feign_planet_config( gravity=gravity, radius=radius, omega=omega,  &

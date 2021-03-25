@@ -51,7 +51,8 @@ contains
                                           feign_formulation_config, &
                                           feign_finite_element_config
     use base_mesh_config_mod,      only : geometry_spherical,       &
-                                          partitioner_cubedsphere
+                                          partitioner_cubedsphere,  &
+                                          topology_fully_periodic
     use finite_element_config_mod, only : cellshape_quadrilateral,  &
                                           spherical_coord_system_xyz
 
@@ -73,6 +74,7 @@ contains
                                  prime_mesh_name='dynamics',          &
                                  geometry=geometry_spherical,         &
                                  partitioner=partitioner_cubedsphere, &
+                                 topology=topology_fully_periodic,    &
                                  fplane=.false., f_lat_deg=f_lat )
 
     call feign_finite_element_config( cellshape=cellshape_quadrilateral, &

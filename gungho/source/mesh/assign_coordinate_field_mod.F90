@@ -8,8 +8,12 @@
 !> @brief Module to assign the values of the coordinates of the mesh to a field
 module assign_coordinate_field_mod
 
-  use base_mesh_config_mod, only : geometry, &
-                                   geometry_spherical
+  use base_mesh_config_mod, only : geometry,                &
+                                   geometry_planar,         &
+                                   geometry_spherical,      &
+                                   topology,                &
+                                   topology_fully_periodic, &
+                                   topology_non_periodic
   use constants_mod,        only : r_def, i_def, i_native, l_def
   use log_mod,              only : log_event, LOG_LEVEL_ERROR
   use planet_config_mod,    only : scaled_radius
@@ -231,10 +235,9 @@ contains
 
     real(kind=r_def) :: interp_weight, x, y, z
 
-    ! Set all panel_ids to 1 for non-spherical geometry
-    if ( geometry /= geometry_spherical ) then
-      panel_id(map_pid(1):map_pid(1)+nlayers-1) = 1.0_r_def
-    else
+    if ( geometry == geometry_spherical .and. &
+         topology == topology_fully_periodic ) then
+      ! Assume for now that any global spherical mesh is a cubed sphere
       ! Find coordinates at centre of cell at bottom of column
       x = 0.0_r_def
       y = 0.0_r_def
@@ -250,6 +253,10 @@ contains
 
       panel = identify_panel(x, y, z)
       panel_id(map_pid(1):map_pid(1)+nlayers-1) = real(panel,r_def)
+
+    else
+      ! Set all panel_ids to 1
+      panel_id(map_pid(1):map_pid(1)+nlayers-1) = 1.0_r_def
     end if
 
   end subroutine calc_panel_id
@@ -321,17 +328,20 @@ contains
     ! Compute the representation of the coordinate field
     do k = 0, nlayers-1
       vertex_local_coords(:,:) = column_coords(:,:,k+1)
-      if (  geometry /= geometry_spherical ) then
+      if ( geometry == geometry_planar .and. &
+           topology /= topology_non_periodic ) then
         ! Check if point cell is on right or bottom boundary,
         ! assumes a monotonic coordinate field
-        if ( column_coords(1,SEB,k+1) < column_coords(1,SWB,k+1)) then
+        if ( column_coords(1,SEB,k+1) < column_coords(1,SWB,k+1) ) then
         ! On x boundary
           vertex_local_coords(1,SEB) = domain_x
           vertex_local_coords(1,NEB) = domain_x
           vertex_local_coords(1,SET) = domain_x
           vertex_local_coords(1,NET) = domain_x
         end if
-        if ( column_coords(2,SWB,k+1) > column_coords(2,NWB,k+1)) then
+        ! Domain does not have N-S boundaries only if topology completely periodic
+        if ( column_coords(2,SWB,k+1) > column_coords(2,NWB,k+1) .and. &
+             topology == topology_fully_periodic ) then
         ! On y boundary
           vertex_local_coords(2,SWB) = domain_y
           vertex_local_coords(2,SEB) = domain_y

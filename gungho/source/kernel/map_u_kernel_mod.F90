@@ -20,6 +20,7 @@ module map_u_kernel_mod
   use constants_mod,           only : r_def, i_def
   use fs_continuity_mod,       only : W2, W3, WTHETA
   use kernel_mod,              only : kernel_type
+  use log_mod,                 only : log_event, LOG_LEVEL_ERROR
 
   implicit none
 
@@ -105,8 +106,11 @@ subroutine map_u_code(nlayers,                                   &
                       nqp_h, nqp_v, wqp_h, wqp_v                 &
                       )
 
-  use base_mesh_config_mod,       only : geometry, &
-                                         geometry_spherical
+  use base_mesh_config_mod,       only : geometry,           &
+                                         geometry_spherical, &
+                                         geometry_planar,    &
+                                         topology,           &
+                                         topology_fully_periodic
   use chi_transform_mod,          only : chi2llr
   use coordinate_jacobian_mod,    only : coordinate_jacobian
   use coord_transform_mod,        only : sphere2cart_vector
@@ -174,7 +178,8 @@ subroutine map_u_code(nlayers,                                   &
       do qp1 = 1, nqp_h
 
         ! Compute analytical vector wind in physical space
-        if ( geometry == geometry_spherical ) then
+        if ( geometry == geometry_spherical &
+             .and. topology == topology_fully_periodic ) then
           ! Need position vector for obtaining (X,Y,Z) components of u_physical
           coords(:) = 0.0_r_def
           do df = 1, ndf_chi_sph
@@ -192,12 +197,18 @@ subroutine map_u_code(nlayers,                                   &
                          + u_up(map_wth(2)+k)*basis_wt(1,2,qp1,qp2)
           u_physical     = sphere2cart_vector(u_spherical,llr)
 
-        else
+        else if ( geometry == geometry_planar ) then
           u_physical(1) = u_lon(map_w3(1)+k)*basis_w3(1,1,qp1,qp2)
           u_physical(2) = u_lat(map_w3(1)+k)*basis_w3(1,1,qp1,qp2)
           u_physical(3) = u_up(map_wth(1)+k)*basis_wt(1,1,qp1,qp2) &
                         + u_up(map_wth(2)+k)*basis_wt(1,2,qp1,qp2)
-         end if
+        else
+
+          call log_event('map_u_kernel is not implemented ' //    &
+                         'with your geometry and topology',       &
+                         LOG_LEVEL_ERROR)
+
+        end if
 
         do df = 1, ndf_w2
           integrand = dot_product(matmul(jacobian(:,:,qp1,qp2),&

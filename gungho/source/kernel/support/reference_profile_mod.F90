@@ -8,8 +8,10 @@
 !> @brief Module for computing a linear hydrostatially balanced reference state
 module reference_profile_mod
 
-use base_mesh_config_mod,           only : geometry, &
-                                           geometry_spherical
+use base_mesh_config_mod,           only : geometry,           &
+                                           geometry_spherical, &
+                                           topology,           &
+                                           topology_fully_periodic
 use constants_mod,                  only : r_def, i_def
 use coord_transform_mod,            only : xyz2llr
 use generate_global_gw_fields_mod,  only : generate_global_gw_fields
@@ -63,7 +65,8 @@ real(kind=r_def), parameter :: exner_surf     = 1.0_r_def
 real(kind=r_def), parameter :: lapse_rate     = 0.0065_r_def
 real(kind=r_def)            :: nsq_over_g, z, u_s(3), lat, lon, r, t, p
 
-if ( geometry == geometry_spherical ) then  ! SPHERICAL DOMAIN
+if ( geometry == geometry_spherical .and. &
+     topology == topology_fully_periodic ) then  ! SPHERICAL DOMAIN
   call xyz2llr(x(1),x(2),x(3),lon,lat,r)
   z = r - scaled_radius
 

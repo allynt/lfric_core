@@ -7,6 +7,7 @@
   prime_mesh_name = 'C24'
   geometry        = 'spherical'
   partitioner     = 'cubedsphere'
+  topology        = 'fully_periodic'
   fplane          = .false.
   f_lat_deg       = 45.0
 /
