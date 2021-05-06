@@ -25,7 +25,10 @@ contains
                                            cellshape_triangle,                 &
                                            element_order,                      &
                                            rehabilitate,                       &
-                                           coordinate_order
+                                           coordinate_order,                   &
+                                           spherical_coord_system,             &
+                                           spherical_coord_system_abh,         &
+                                           spherical_coord_system_llh
     use formulation_config_mod,      only: use_physics,                        &
                                            use_wavedynamics,                   &
                                            transport_only,                     &
@@ -47,7 +50,9 @@ contains
                                            inner_iterations
     use base_mesh_config_mod,        only: geometry,                           &
                                            geometry_spherical,                 &
-                                           geometry_planar
+                                           geometry_planar,                    &
+                                           topology,                           &
+                                           topology_fully_periodic
     use transport_config_mod,        only: scheme,                             &
                                            scheme_horz_cosmic,                 &
                                            scheme_method_of_lines,             &
@@ -90,7 +95,23 @@ contains
       end if
       if ( geometry == geometry_planar .and.  coordinate_order == 0 ) then
         write( log_scratch_space, '(A)' ) 'Coordinate order must be positive for planar geometries'
-         call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      end if
+      if ( spherical_coord_system == spherical_coord_system_abh .and. geometry /= geometry_spherical ) then
+        write( log_scratch_space, '(A)' ) '(alpha,beta) coordinate system is only valid with spherical geometry'
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      end if
+      if ( spherical_coord_system == spherical_coord_system_abh .and. topology /= topology_fully_periodic ) then
+        write( log_scratch_space, '(A)' ) '(alpha,beta) coordinate system is only valid with fully-periodic topology'
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      end if
+      if ( spherical_coord_system == spherical_coord_system_llh .and. geometry /= geometry_spherical ) then
+        write( log_scratch_space, '(A)' ) '(longitude,latitude) coordinate system is only valid with spherical geometry'
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      end if
+      if ( spherical_coord_system == spherical_coord_system_llh .and. topology == topology_fully_periodic ) then
+        write( log_scratch_space, '(A)' ) '(longitude,latitude) coordinate system is not valid with fully-periodic topology'
+        call log_event( log_scratch_space, LOG_LEVEL_ERROR )
       end if
 
 

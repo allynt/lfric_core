@@ -18,7 +18,7 @@ module assign_coordinate_field_mod
   use log_mod,              only : log_event, LOG_LEVEL_ERROR
   use planet_config_mod,    only : scaled_radius
   use mesh_collection_mod,  only : mesh_collection
-  use coord_transform_mod,  only : xyz2llr, identify_panel, &
+  use coord_transform_mod,  only : xyz2llr, llr2xyz, identify_panel, &
                                    xyz2alphabetar, alphabetar2xyz
   use finite_element_config_mod, only: spherical_coord_system, &
                                        spherical_coord_system_xyz, &
@@ -31,6 +31,8 @@ module assign_coordinate_field_mod
   public :: assign_coordinate_field
   ! Make this public only for unit-testing
   public :: assign_coordinate_xyz
+  public :: assign_coordinate_llh
+  public :: assign_coordinate_abh
 
 contains
 
@@ -155,11 +157,7 @@ contains
                                     map_pid(:,cell)          )
       end do
 
-    else
-
-      if ( spherical_coord_system /= spherical_coord_system_abh ) then
-        call log_event('Your spherical coordinate system has not been implemented yet', LOG_LEVEL_ERROR)
-      end if
+    else if ( spherical_coord_system == spherical_coord_system_llh ) then
 
       do cell = 1,chi_proxy(1)%vspace%get_ncell()
 
@@ -171,7 +169,7 @@ contains
                             column_coords(:,:,1),  &
                             panel_id_proxy%data    )
 
-        call assign_coordinate_sph( nlayers,                 &
+        call assign_coordinate_llh( nlayers,                 &
                                     ndf,                     &
                                     nverts,                  &
                                     undf,                    &
@@ -188,6 +186,37 @@ contains
                                     map_pid(:,cell)          )
       end do
 
+    else if ( spherical_coord_system == spherical_coord_system_abh ) then
+
+      do cell = 1,chi_proxy(1)%vspace%get_ncell()
+
+        call mesh%get_column_coords(cell,column_coords)
+
+        call calc_panel_id( nlayers_pid, nverts,   &
+                            ndf_pid, undf_pid,     &
+                            map_pid(:,cell),       &
+                            column_coords(:,:,1),  &
+                            panel_id_proxy%data    )
+
+        call assign_coordinate_abh( nlayers,                 &
+                                    ndf,                     &
+                                    nverts,                  &
+                                    undf,                    &
+                                    map(:,cell),             &
+                                    chi_proxy(1)%data,       &
+                                    chi_proxy(2)%data,       &
+                                    chi_proxy(3)%data,       &
+                                    column_coords,           &
+                                    dof_coords,              &
+                                    vertex_coords,           &
+                                    panel_id_proxy%data,     &
+                                    ndf_pid,                 &
+                                    undf_pid,                &
+                                    map_pid(:,cell)          )
+      end do
+
+    else
+      call log_event('This spherical coordinate system has not been implemented yet', LOG_LEVEL_ERROR)
     end if
 
     ! As we have correctly set the chi fields into their full halos,
@@ -318,8 +347,8 @@ contains
     integer(kind=i_def) :: k, df, dfk, vert, panel
 
     real(kind=r_def)    :: interp_weight, x, y, z, radius_correction
-    real(kind=r_def)    :: alpha, beta, radius
-    real(kind=r_def)    :: v_x, v_y, v_z, v_a, v_b, v_r
+    real(kind=r_def)    :: alpha, beta, radius, longitude, latitude
+    real(kind=r_def)    :: v_x, v_y, v_z, v_a, v_b, v_r, v_lon, v_lat
     real(kind=r_def)    :: vertex_local_coords(3,nverts)
 
     radius_correction = 1.0_r_def
@@ -351,6 +380,10 @@ contains
       end if
 
       if ( spherical_coord_system == spherical_coord_system_abh ) then
+        ! Our spherical coordinates are (alpha, beta, h)
+        ! To make sure our (X,Y,Z) coordinates are consistent with these,
+        ! we first calculate the (alpha,beta,r) coordinates at each DoF and then
+        ! convert to (X,Y,Z) coordinates
         do df = 1, ndf
           dfk = map(df)+k
           ! Compute interpolation weights
@@ -358,24 +391,56 @@ contains
           beta = 0.0_r_def
           radius = 0.0_r_def
           do vert = 1,nverts
-             interp_weight = &
+            interp_weight = &
                    (1.0_r_def - abs(chi_hat_vert(vert,1) - chi_hat_node(1,df))) &
                   *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
                   *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
-             v_x = vertex_local_coords(1,vert)
-             v_y = vertex_local_coords(2,vert)
-             v_z = vertex_local_coords(3,vert)
+            v_x = vertex_local_coords(1,vert)
+            v_y = vertex_local_coords(2,vert)
+            v_z = vertex_local_coords(3,vert)
 
-             call xyz2alphabetar(v_x,v_y,v_z,panel,v_a,v_b,v_r)
-             alpha = alpha + interp_weight*v_a
-             beta = beta + interp_weight*v_b
-             radius = radius + interp_weight*v_r
+            call xyz2alphabetar(v_x,v_y,v_z,panel,v_a,v_b,v_r)
+            alpha = alpha + interp_weight*v_a
+            beta = beta + interp_weight*v_b
+            radius = radius + interp_weight*v_r
           end do
 
           call alphabetar2xyz(alpha, beta, radius, panel, &
                               chi_1(dfk), chi_2(dfk), chi_3(dfk))
 
         end do
+
+      else if ( spherical_coord_system == spherical_coord_system_llh ) then
+          ! Our spherical coordinates are (lon, lat, h)
+          ! To make sure our (X,Y,Z) coordinates are consistent with these,
+          ! we first calculate the (lon,lat,r) coordinates at each DoF and then
+          ! convert to (X,Y,Z) coordinates
+          do df = 1, ndf
+            dfk = map(df)+k
+            ! Compute interpolation weights
+            longitude = 0.0_r_def
+            latitude = 0.0_r_def
+            radius = 0.0_r_def
+            do vert = 1,nverts
+              interp_weight = &
+                     (1.0_r_def - abs(chi_hat_vert(vert,1) - chi_hat_node(1,df))) &
+                    *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
+                    *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
+              v_x = vertex_local_coords(1,vert)
+              v_y = vertex_local_coords(2,vert)
+              v_z = vertex_local_coords(3,vert)
+
+              call xyz2llr(v_x,v_y,v_z,v_lon,v_lat,v_r)
+              longitude = longitude + interp_weight*v_lon
+              latitude = latitude + interp_weight*v_lat
+              radius = radius + interp_weight*v_r
+            end do
+
+            call llr2xyz(longitude, latitude, radius, &
+                         chi_1(dfk), chi_2(dfk), chi_3(dfk))
+
+          end do
+
       else
 
         do df = 1, ndf
@@ -384,21 +449,21 @@ contains
           y = 0.0_r_def
           z = 0.0_r_def
           do vert = 1,nverts
-             interp_weight = &
+            interp_weight = &
                    (1.0_r_def - abs(chi_hat_vert(vert,1) - chi_hat_node(1,df))) &
                   *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
                   *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
 
-             x = x + interp_weight*vertex_local_coords(1,vert)
-             y = y + interp_weight*vertex_local_coords(2,vert)
-             z = z + interp_weight*vertex_local_coords(3,vert)
+            x = x + interp_weight*vertex_local_coords(1,vert)
+            y = y + interp_weight*vertex_local_coords(2,vert)
+            z = z + interp_weight*vertex_local_coords(3,vert)
           end do
           ! For spherical domains we need to project x,y,z back onto
           ! spherical shells
           if ( geometry == geometry_spherical ) then
-             radius_correction = scaled_radius + &
-                                 sum(dz(1:k)) + chi_hat_node(3,df)*dz(k+1)
-             radius_correction = radius_correction/sqrt(x*x + y*y + z*z)
+            radius_correction = scaled_radius + &
+                                sum(dz(1:k)) + chi_hat_node(3,df)*dz(k+1)
+            radius_correction = radius_correction/sqrt(x*x + y*y + z*z)
           end if
           dfk = map(df)+k
           chi_1(dfk) = x*radius_correction
@@ -412,7 +477,7 @@ contains
 
   end subroutine assign_coordinate_xyz
 
-!> @brief Determines and assigns the (X,Y,Z) coordinates for a single column
+!> @brief Determines and assigns the (alpha,beta,h) coordinates for a single column
 !! @param[in]  nlayers       integer: loop bound
 !! @param[in]  ndf           integer: array size and loop bound
 !! @param[in]  nverts        integer: array size and loop bound
@@ -428,7 +493,7 @@ contains
 !! @param[in]  ndf_pid       integer: number of DoFs per cell for panel_id space
 !! @param[in]  undf_pid      integer: number of universal DoFs for panel_id space
 !! @param[in]  map_pid       integer: DoF map for panel_id space
-  subroutine assign_coordinate_sph( nlayers,       &
+  subroutine assign_coordinate_abh( nlayers,       &
                                     ndf,           &
                                     nverts,        &
                                     undf,          &
@@ -469,37 +534,123 @@ contains
 
     ! Compute the representation of the coordinate field
     do k = 0, nlayers-1
-       vertex_local_coords(:,:) = column_coords(:,:,k+1)
+      vertex_local_coords(:,:) = column_coords(:,:,k+1)
 
-       do df = 1, ndf
-          dfk = map(df)+k
-          ! Compute interpolation weights
-          alpha = 0.0_r_def
-          beta = 0.0_r_def
-          radius = 0.0_r_def
-          do vert = 1,nverts
-             interp_weight = &
-                   (1.0_r_def - abs(chi_hat_vert(vert,1) - chi_hat_node(1,df))) &
-                  *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
-                  *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
-             v_x = vertex_local_coords(1,vert)
-             v_y = vertex_local_coords(2,vert)
-             v_z = vertex_local_coords(3,vert)
+      do df = 1, ndf
+        dfk = map(df)+k
+        ! Compute interpolation weights
+        alpha = 0.0_r_def
+        beta = 0.0_r_def
+        radius = 0.0_r_def
+        do vert = 1,nverts
+          interp_weight = &
+                (1.0_r_def - abs(chi_hat_vert(vert,1) - chi_hat_node(1,df))) &
+                *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
+                *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
+          v_x = vertex_local_coords(1,vert)
+          v_y = vertex_local_coords(2,vert)
+          v_z = vertex_local_coords(3,vert)
 
-             call xyz2alphabetar(v_x,v_y,v_z,panel,v_a,v_b,v_r)
-             alpha = alpha + interp_weight*v_a
-             beta = beta + interp_weight*v_b
-             radius = radius + interp_weight*v_r
-          end do
-
-          chi_1(dfk) = alpha
-          chi_2(dfk) = beta
-          chi_3(dfk) = radius - scaled_radius
-
+          call xyz2alphabetar(v_x,v_y,v_z,panel,v_a,v_b,v_r)
+          alpha = alpha + interp_weight*v_a
+          beta = beta + interp_weight*v_b
+          radius = radius + interp_weight*v_r
         end do
 
-     end do
+        chi_1(dfk) = alpha
+        chi_2(dfk) = beta
+        chi_3(dfk) = radius - scaled_radius
 
-   end subroutine assign_coordinate_sph
+      end do
+
+    end do
+
+  end subroutine assign_coordinate_abh
+
+  !> @brief Determines and assigns the (lon,lat,h) coordinates for a single column.
+  !! @param[in]  nlayers       The number of layers in the mesh
+  !! @param[in]  ndf           Number of DoFs per cell for chi field space
+  !! @param[in]  nverts        Number of vertices per cell
+  !! @param[in]  undf          Number of universal DoFs for chi field space
+  !! @param[in]  map           DoF map for chi field
+  !! @param[out] chi_1         1st coordinate field
+  !! @param[out] chi_2         2nd coordinate field
+  !! @param[out] chi_3         3rd coordinate field
+  !! @param[in]  column_coords Coordinates at mesh vertices
+  !! @param[in]  chi_hat_node  Reference cell coordinates at the chi space DoFs
+  !! @param[in]  chi_hat_vert  Reference cell coordinates at the cell vertices
+  !! @param[in]  panel_id      Field giving IDs of mesh panels
+  !! @param[in]  ndf_pid       Number of DoFs per cell for panel_id space
+  !! @param[in]  undf_pid      Number of universal DoFs for panel_id space
+  !! @param[in]  map_pid       DoF map for panel_id space
+  subroutine assign_coordinate_llh( nlayers,       &
+                                    ndf,           &
+                                    nverts,        &
+                                    undf,          &
+                                    map,           &
+                                    chi_1,         &
+                                    chi_2,         &
+                                    chi_3,         &
+                                    column_coords, &
+                                    chi_hat_node,  &
+                                    chi_hat_vert,  &
+                                    panel_id,      &
+                                    ndf_pid,       &
+                                    undf_pid,      &
+                                    map_pid        )
+
+    implicit none
+
+    ! Arguments
+    integer(kind=i_def), intent(in)  :: nlayers, ndf, nverts, undf
+    integer(kind=i_def), intent(in)  :: map(ndf)
+    real(kind=r_def),    intent(out) :: chi_1(undf), chi_2(undf), chi_3(undf)
+    real(kind=r_def),    intent(in)  :: column_coords(3,nverts,nlayers)
+    real(kind=r_def),    intent(in)  :: chi_hat_node(3,ndf), chi_hat_vert(nverts,3)
+    integer(kind=i_def), intent(in)  :: ndf_pid, undf_pid
+    integer(kind=i_def), intent(in)  :: map_pid(ndf_pid)
+    real(kind=r_def),    intent(in)  :: panel_id(undf_pid)
+
+    ! Internal variables
+    integer(kind=i_def) :: k, df, dfk, vert
+    real(kind=r_def)    :: longitude, latitude, radius
+
+    real(kind=r_def) :: interp_weight
+    real(kind=r_def) :: v_x, v_y, v_z, v_lon, v_lat, v_r
+    real(kind=r_def) :: vertex_local_coords(3,nverts)
+
+    ! Compute the representation of the coordinate field
+    do k = 0, nlayers-1
+      vertex_local_coords(:,:) = column_coords(:,:,k+1)
+
+      do df = 1, ndf
+        dfk = map(df)+k
+        ! Compute interpolation weights
+        longitude  = 0.0_r_def
+        latitude = 0.0_r_def
+        radius = 0.0_r_def
+        do vert = 1,nverts
+          interp_weight = &
+                 (1.0_r_def - abs(chi_hat_vert(vert,1) - chi_hat_node(1,df))) &
+                *(1.0_r_def - abs(chi_hat_vert(vert,2) - chi_hat_node(2,df))) &
+                *(1.0_r_def - abs(chi_hat_vert(vert,3) - chi_hat_node(3,df)))
+          v_x = vertex_local_coords(1,vert)
+          v_y = vertex_local_coords(2,vert)
+          v_z = vertex_local_coords(3,vert)
+
+          call xyz2llr(v_x,v_y,v_z,v_lon,v_lat,v_r)
+          longitude = longitude + interp_weight*v_lon
+          latitude = latitude + interp_weight*v_lat
+          radius = radius + interp_weight*v_r
+        end do
+
+        chi_1(dfk) = longitude
+        chi_2(dfk) = latitude
+        chi_3(dfk) = radius - scaled_radius
+
+      end do
+    end do
+
+  end subroutine assign_coordinate_llh
 
 end module assign_coordinate_field_mod

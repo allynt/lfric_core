@@ -1,0 +1,209 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2021 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!
+!-------------------------------------------------------------------------------
+module coordinate_jacobian_llh_mod_test
+
+  use pFUnit_Mod
+  use yaxt,          only : xt_initialize, xt_finalize
+  use mpi_mod,       only : store_comm, clear_comm
+  use constants_mod, only : r_def, i_def, PI
+
+  implicit none
+
+  public :: jacobian_llh_test_type, test_all
+
+  @TestCase
+  type, extends(MPITestCase) :: jacobian_llh_test_type
+    private
+  contains
+    procedure setUp
+    procedure tearDown
+    procedure test_all
+  end type jacobian_llh_test_type
+
+  real(r_def), parameter :: gravity  = 10.0_r_def
+  real(r_def), parameter :: radius   = 270_r_def
+  real(r_def), parameter :: omega    = 8.0E-5_r_def
+  real(r_def), parameter :: p_zero   = 100000.0_r_def
+  real(r_def), parameter :: rd       = 300.0_r_def
+  real(r_def), parameter :: cp       = 1000.0_r_def
+  real(r_def), parameter :: scaling  = 1.0_r_def
+  real(r_def), parameter :: lat_c    = 0.0_r_def
+
+contains
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine setUp( this )
+
+    use finite_element_config_mod, only : cellshape_quadrilateral, &
+                                          spherical_coord_system_llh
+    use feign_config_mod,          only : feign_finite_element_config, &
+                                          feign_planet_config
+
+    implicit none
+
+    class(jacobian_llh_test_type), intent(inout) :: this
+
+    ! Initialise YAXT
+    call xt_initialize(this%getMpiCommunicator())
+    ! Store the MPI communicator for later use
+    call store_comm(this%getMpiCommunicator())
+
+    call feign_finite_element_config(           &
+             cellshape=cellshape_quadrilateral, &
+             coordinate_order=0_i_def,          &
+             element_order=0_i_def,             &
+             rehabilitate=.true.,               &
+             spherical_coord_order = 0,         &
+             spherical_coord_system=spherical_coord_system_llh, &
+             vorticity_in_w1=.false. )
+
+    call feign_planet_config(                   &
+             gravity=gravity,                   &
+             radius=radius,                     &
+             omega=omega,                       &
+             rd=rd,                             &
+             cp=cp,                             &
+             p_zero=p_zero,                     &
+             scaling_factor=scaling )
+
+
+  end subroutine setUp
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine tearDown( this )
+
+    use configuration_mod,        only: final_configuration
+
+    implicit none
+
+    class(jacobian_llh_test_type), intent(inout) :: this
+
+    call final_configuration()
+
+    ! Finalise YAXT
+    call xt_finalize()
+    ! Clear the stored MPI communicator
+    call clear_comm()
+
+  end subroutine tearDown
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test( npes=[1] )
+  subroutine test_all( this )
+
+    use coordinate_jacobian_mod, only : coordinate_jacobian,                   &
+                                        coordinate_jacobian_inverse,           &
+                                        pointwise_coordinate_jacobian,         &
+                                        pointwise_coordinate_jacobian_inverse
+
+    implicit none
+
+    class(jacobian_llh_test_type), intent(inout) :: this
+
+    real(kind=r_def) :: tol, answer_dj
+
+    integer(kind=i_def) :: ndf = 8
+    integer(kind=i_def) :: ngp = 1
+    integer(kind=i_def) :: ipanel = 1
+    integer(kind=i_def) :: df, i, j
+
+    real(kind=r_def) :: longitude(8), latitude(8), height(8), diff_basis(3,8,1,1)
+    real(kind=r_def) :: basis(1,8,1,1), jac(3,3,1,1), dj(1,1), h
+    real(kind=r_def) :: jac_inv(3,3,1,1), identity(3,3,1,1), err, answer(3,3)
+
+    ! Box of length dlon, width dlat and height dh
+    real(kind=r_def), parameter :: dlon = 0.2_r_def
+    real(kind=r_def), parameter :: dlat = 0.1_r_def
+    real(kind=r_def), parameter :: dh = 2.0_r_def
+
+    ! Box is centred on (lon_c, lat_c, h=0)
+    real(kind=r_def), parameter :: lon_c = PI / 6
+    real(kind=r_def), parameter :: lat_c = PI / 3
+
+    ! Make the arrays for the box coordinates
+    longitude(:) = (/ -dlon, dlon, dlon, -dlon, &
+                      -dlon, dlon, dlon, -dlon /) / 2.0_r_def + lon_c
+    latitude(:) = (/ -dlat, -dlat, dlat, dlat,  &
+                     -dlat, -dlat, dlat, dlat /) / 2.0_r_def + lat_c
+    height(:) = (/ 0.0_r_def, 0.0_r_def, 0.0_r_def, 0.0_r_def, dh, dh, dh, dh /)
+
+    ! We are only going to look at the quadrature point in the centre of the cell
+    ! At longitude = pi / 6, latitude = pi / 3, height=dh/2, jac_llh2XYZ will be given by:
+    ! [     -(r+dh/2)/4,        -(r+dh/2)*3/4,    sqrt(3)/4  ]
+    ! [  (r+dh/2)*sqrt(3)/4, -(r+dh/2)*sqrt(3)/4,    1/4     ]
+    ! [           0,             (r+dh/2)/2,      sqrt(3)/2  ]
+
+    ! Our cell is of dimensions (dlon, dlat, dh), so jac_ref2llh is:
+    ! [ dlon,  0,  0 ]
+    ! [ 0,  dlat,  0 ]
+    ! [ 0,   0,   dh ]
+
+    ! Doing jac_llh2XYZ * jac_ref2llh gives
+    ! [ -dlon*(r+dh/2)/4,            -dlat*(r+dh/2)*3/4,   dh*sqrt(3)/4 ]
+    ! [ dlon*(r+dh/2)*sqrt(3)/4, -dlat*(r+dh/2)*sqrt(3)/4,     dh/4     ]
+    ! [          0,                   dlat*(r+dh/2)/2,     dh*sqrt(3)/2 ]
+    h = radius + dh / 2.0_r_def
+    answer(1,:) = (/ -dlon*h/4.0_r_def, -dlat*h*3.0_r_def/4.0_r_def, dh*sqrt(3.0_r_def)/4.0_r_def /)
+    answer(2,:) = (/ dlon*h*sqrt(3.0_r_def)/4.0_r_def, -dlat*h*sqrt(3.0_r_def)/4.0_r_def, dh/4.0_r_def /)
+    answer(3,:) = (/ 0.0_r_def, dlat*h/2.0_r_def, dh*sqrt(3.0_r_def)/2.0_r_def /)
+
+    ! This is the analytic determinant of the above matrix
+    answer_dj = h**2*dlon*dlat*dh / 2.0_r_def
+
+    identity(1,:,1,1) = (/ 1.0_r_def, 0.0_r_def, 0.0_r_def /)
+    identity(2,:,1,1) = (/ 0.0_r_def, 1.0_r_def, 0.0_r_def /)
+    identity(3,:,1,1) = (/ 0.0_r_def, 0.0_r_def, 1.0_r_def /)
+
+    diff_basis(:,:,:,:) = 0.25_r_def
+    do df = 1,ndf
+      if ( longitude(df) < lon_c ) diff_basis(1,df,:,:) = -0.25_r_def
+      if ( latitude(df) < lat_c ) diff_basis(2,df,:,:) = -0.25_r_def
+      if ( height(df) < dh / 2) diff_basis(3,df,:,:) = -0.25_r_def
+    end do
+
+    basis(:,:,:,:) = 0.125_r_def
+
+    call coordinate_jacobian(ndf, ngp, ngp, longitude, latitude, height, &
+                             ipanel, basis, diff_basis, jac, dj)
+    call coordinate_jacobian_inverse(ngp, ngp, jac, dj, jac_inv)
+
+    err = maxval( abs( matmul( jac_inv(:,:,1,1), jac(:,:,1,1) ) - identity(:,:,1,1) ) )
+
+    tol = 1.0e-12_r_def
+
+    @assertEqual( answer_dj, dj, tol*answer_dj )
+    @assertEqual( 0.0_r_def, err, tol )
+
+    ! Test Jacobian values
+    do i = 1, 3
+      do j = 1, 3
+        ! Jacobian values might be zero or very large so check relative error
+        @assertEqual( answer(i,j), jac(i,j,1,1), abs(tol*(answer(i,j)+1.0_r_def)) )
+      end do
+    end do
+
+    ! Test the pointwise computations
+    call pointwise_coordinate_jacobian(ndf, longitude, latitude, height, ipanel, &
+                                       basis, diff_basis, jac(:,:,1,1), dj(1,1) )
+    jac_inv(:,:,1,1) = pointwise_coordinate_jacobian_inverse(jac(:,:,1,1), dj(1,1))
+    err = maxval( abs( matmul( jac_inv(:,:,1,1), jac(:,:,1,1) ) - identity(:,:,1,1) ) )
+
+    @assertEqual( answer_dj, dj, tol*answer_dj )
+    @assertEqual( 0.0_r_def, err, tol)
+
+    ! Test Jacobian values
+    do i = 1, 3
+      do j = 1, 3
+        ! Jacobian values might be zero or very large so check relative error
+        @assertEqual( answer(i,j), jac(i,j,1,1), abs(tol*(answer(i,j)+1.0_r_def)) )
+      end do
+    end do
+
+  end subroutine test_all
+
+end module coordinate_jacobian_llh_mod_test

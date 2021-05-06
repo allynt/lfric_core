@@ -143,7 +143,7 @@ contains
 
     @assertEqual( zero, err, tol)
 
-    ! test the pointwise compuations
+    ! Test the pointwise computations
     call pointwise_coordinate_jacobian(ndf, x, y, z, ipanel, basis,           &
                                        diff_basis, jac(:,:,1,1), dj(1,1))
 
