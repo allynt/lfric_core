@@ -16,10 +16,13 @@ import logging
 from pathlib import Path
 from typing import TextIO, Union
 
-from entities import Field, FieldGroup, OutputStream, OutputStreamField
+from entities import Field, FieldGroup, OutputStream, OutputStreamField, \
+    VerticalDimension, Grid
 from diagnostics_metadata_collection import Metadata
 
-KEY_VALUE_RE = re.compile(r'^([a-zA-Z_]+)=\'?(\w+)\'?')
+KEY_VALUE_RE = re.compile(r'^([a-zA-Z_]+)=\'?([\w.]+)\'?$')
+KEY_VALUE_LIST_RE = re.compile(
+        r'^(\w+)=(\'?[\w.]+\'?(?:, ?\'?[\w.]+\'?)*)(?!,)')
 FIELD_CONFIG_RE = re.compile(r'^\[field_config:([a-zA-Z_]+):([a-zA-Z_]+)\]$')
 FIELD_RE = re.compile(
     r'^([a-zA-Z]+(?:_[a-zA-Z]+)*__[a-zA-Z]+(?:_[a-zA-Z]+)*)=(true|false)$')
@@ -29,6 +32,7 @@ ADDITIONAL_INPUT_RE = re.compile(
 BASE_OUTPUT_RE = re.compile(r'^\[output_stream\(([0-9]+)\)\]$')
 OUTPUT_FIELD_RE = re.compile(
     r'^\[output_stream\(([0-9]+)\):field\(([0-9]+)\)\]$')
+VERTICAL_DIMENSION_RE = re.compile(r'^\[vertical_dimension\(([0-9]+)\)\]$')
 
 REQUIRED_METADATA = ['unique_id', 'long_name', 'standard_name',
                      'units', 'grid_ref', 'function_space', 'mesh_id', 'order',
@@ -114,8 +118,45 @@ class MetadataExtractor:
             if attr in REQUIRED_METADATA:
                 setattr(field, attr, metadata_section[attr])
 
+        # add fixed vertical dimension if field has one
+        vert_dim_meta = metadata_section.get("vertical_dimension", None)
+        if vert_dim_meta is not None:
+            # Create immutable vertical dimension
+            if vert_dim_meta.get("level_definition") is not None:
+                positive = {"POSITIVE_UP": "up", "POSITIVE_DOWN": "down"}
+                id_number = self._metadata.count_fixed_vert_axes() + 1
+                vertical_dimension = VerticalDimension(
+                        "fixed_vert_axis_" + str(id_number),
+                        name="fixed_vert_axis_" + str(id_number),
+                        positive_direction=positive[vert_dim_meta["positive"]],
+                        primary_axis='false',
+                        level_definition=vert_dim_meta["level_definition"],
+                        number_of_layers=len(
+                                vert_dim_meta["level_definition"]),
+                        units=vert_dim_meta["units"]
+                        )
+
+                vert_dim_id = self._metadata.add_vertical_dimension(
+                        vertical_dimension)
+
+                field.vertical_dimension_id = vert_dim_id
+
+            else:
+                # Add information about top_arg and bottom_arg in future ticket
+                field.vertical_dimension_id = "mutable"
+
+        # Set domain reference based on function space
+        function_space_map = {"W0": "node",
+                              "W2H": "edge",
+                              "W3": "face",
+                              "Wtheta": "face"}
+        if field.function_space in function_space_map:
+            field.domain_ref = function_space_map[field.function_space]
+        else:
+            raise ValueError(f"Invalid function space "
+                             f"{field.function_space}")
+
         # hard-code following attributes for now
-        field.grid_ref = 'half_level_face_grid'
         field.mesh_id = 1
         field.io_driver = 'WRITE_FIELD_FACE'
         return field
@@ -144,9 +185,13 @@ class MetadataExtractor:
 
         # stop if file pointer reaches the start of the next section
         while line and line[0] != '[':
-            f_match = FIELD_RE.search(line)
-            if f_match:
-                field_id, active = f_match.groups()
+            field_match = FIELD_RE.search(line)
+            key_value_match = KEY_VALUE_RE.search(line)
+
+            # Matches field__unique_id=(true|false)
+            # Enables field and looks for any additional configuration options
+            if field_match is not None:
+                field_id, active = field_match.groups()
                 field = Field(field_id, field_group_id,
                               active=active.lower() == 'true')
 
@@ -169,8 +214,47 @@ class MetadataExtractor:
 
                 field = self._add_immutable_field_metadata(field)
                 self._metadata.add_field(field)
+
+            # Matches key=value
+            # Used to find vertical dimension id for fields in this group
+            elif key_value_match is not None:
+                key, value = key_value_match.groups()
+
+                if key == "vertical_dimension_for_group":
+                    setattr(field_group, "vertical_dimension_id",
+                            "model_vert_axis_" + value)
+                line = file_pointer.readline()
+
             else:
                 line = file_pointer.readline()
+
+        # Add group vertical dimension to fields on mutable vertical axis
+        for field_id in field_group.get_fields():
+            field = self._metadata.get_field(field_id)
+
+            if field.vertical_dimension_id == "mutable":
+                if not field_group.vertical_dimension_id:
+                    raise Exception(f"Field group '{field_group.name}' "
+                                    f"missing vertical dimension")
+
+                if field.function_space in ['W0', 'W2H', 'Wtheta']:
+                    field.vertical_dimension_id = \
+                        field_group.vertical_dimension_id + '_full_levels'
+                elif field.function_space in ['W3']:
+                    field.vertical_dimension_id = \
+                        field_group.vertical_dimension_id + '_half_levels'
+                else:
+                    raise ValueError(f"Invalid function space "
+                                     f"{field.function_space}")
+
+            axes = []
+            if field.vertical_dimension_id is not None:
+                axes.append(field.vertical_dimension_id)
+
+            grid = Grid(field.domain_ref, axes)
+            grid_id = self._metadata.add_grid(grid)
+            field.grid_ref = grid_id
+
         return line
 
     def _parse_output_stream(self, file_pointer: TextIO, stream_id: int) \
@@ -192,7 +276,7 @@ class MetadataExtractor:
             # check if line has key-value pair
             match = KEY_VALUE_RE.search(line)
 
-            if match:
+            if match is not None:
                 key, value = match.groups()
                 recognised_keys = {'name': 'name', 'timestep': 'timestep'}
 
@@ -229,7 +313,7 @@ class MetadataExtractor:
             # check if line has key-value pair
             match = KEY_VALUE_RE.search(line)
 
-            if match:
+            if match is not None:
                 key, value = match.groups()
                 recognised_keys = {'id': 'field_ref', 'temporal': 'temporal'}
 
@@ -253,6 +337,67 @@ class MetadataExtractor:
         self._metadata.add_output_stream_field(output_stream_field, stream_id)
         return line
 
+    def _parse_vertical_dimension(self, file_pointer: TextIO,
+                                  dimension_id: int) -> str:
+        """
+        Read a vertical_dimension(x) section (in the rose-app) and store
+        info about the vertical dimension in the Metadata object. Creates one
+        vertical axis object for fields using 'half_levels' and one for
+        'full_levels'
+
+        :param file_pointer: IO object pointing to the start of an
+                              output_stream(x):field(y) section
+        :param dimension_id: Identifier for current dimension being processed
+        :return: Current line of the file pointer to allow calling method to
+                 continue parsing where this method left off
+        """
+        vert_dim_half = VerticalDimension(
+                f"model_vert_axis_{dimension_id}_half_levels")
+        vert_dim_full = VerticalDimension(
+                f"model_vert_axis_{dimension_id}_full_levels")
+        line = file_pointer.readline()
+
+        # stop if file pointer reaches the start of the next section
+        while line and line[0] != '[':
+            # check if line has key-value pair
+            single_value_match = KEY_VALUE_RE.search(line)
+            # check if line has key-list pair
+            list_match = KEY_VALUE_LIST_RE.search(line)
+
+            if single_value_match is not None:
+                key, value = single_value_match.groups()
+                recognised_keys = {'domain_top': 'domain_top',
+                                   'extrusion_method': 'extrusion_method',
+                                   'number_of_layers': 'number_of_layers',
+                                   'positive': 'positive_direction',
+                                   'primary_axis': 'primary_axis',
+                                   'units': 'units'}
+                if key in recognised_keys:
+                    setattr(vert_dim_half, recognised_keys[key], value)
+                    setattr(vert_dim_full, recognised_keys[key], value)
+                elif key == 'name':
+                    setattr(vert_dim_half, key, value + '_half_levels')
+                    setattr(vert_dim_full, key, value + '_full_levels')
+
+            elif list_match is not None:
+                key, values = list_match.groups()
+                values = [float(i) for i in values.split(",")]
+
+                if key == "level_definition":
+                    setattr(vert_dim_half, "level_definition", values)
+                    setattr(vert_dim_full, "level_definition", values)
+                else:
+                    LOGGER.warning("Key '%s' unrecognised as a list in "
+                                   "[vertical_dimension(%s)]",
+                                   key, dimension_id)
+
+            line = file_pointer.readline()
+
+        self._metadata.add_vertical_dimension(vert_dim_half)
+        self._metadata.add_vertical_dimension(vert_dim_full)
+
+        return line
+
     def _parse_rose_app(self):
         """
         Read through the rose-app.conf to find which fields are present in the
@@ -273,7 +418,7 @@ class MetadataExtractor:
 
                     # matches [field_config:(section):(field_group)]
                     match = FIELD_CONFIG_RE.search(line)
-                    if match:
+                    if match is not None:
                         line = self._parse_field_config(
                                 file_pointer,
                                 match.group(1),
@@ -283,7 +428,7 @@ class MetadataExtractor:
 
                     # matches [output_stream(x)]
                     match = BASE_OUTPUT_RE.search(line)
-                    if match:
+                    if match is not None:
                         line = self._parse_output_stream(
                                 file_pointer,
                                 int(match.group(1))
@@ -292,11 +437,20 @@ class MetadataExtractor:
 
                     # matches [output_stream(x):field(y)]
                     match = OUTPUT_FIELD_RE.search(line)
-                    if match:
+                    if match is not None:
                         line = self._parse_output_stream_field(
                                 file_pointer,
                                 int(match.group(1)),
                                 int(match.group(2))
+                        )
+                        continue
+
+                    # matches [vertical_dimension(x)]
+                    match = VERTICAL_DIMENSION_RE.search(line)
+                    if match is not None:
+                        line = self._parse_vertical_dimension(
+                                file_pointer,
+                                int(match.group(1))
                         )
                         continue
 
@@ -310,7 +464,7 @@ class MetadataExtractor:
             # Log number of fields in output streams
             stream_fields = 0
             for stream in self._metadata.get_output_streams():
-                stream_fields += len(stream._stream_fields)
+                stream_fields += len(stream.get_fields())
             LOGGER.info("Found %s fields in %s output streams", stream_fields,
                         len(self._metadata.get_output_streams()))
 

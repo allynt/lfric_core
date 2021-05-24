@@ -9,8 +9,9 @@ from pathlib import Path
 from logging import getLogger
 from xml.etree import ElementTree
 
-from entities import Field, FieldGroup, OutputStream
+from entities import Field, FieldGroup, OutputStream, VerticalDimension, Grid
 from diagnostics_metadata_collection import Metadata
+from extrusion_namelist_updater import update_extrusion_namelist
 
 FIELD_NODE_VARIABLE_TYPES = {
     'mesh_id': 'int', 'function_space': 'string',
@@ -47,6 +48,14 @@ FILE_NODE_ATTRS = {
     'output_freq': 'timestep',
     'convention': 'convention'
 }
+AXIS_NODE_ATTRS = {
+        'id': 'unique_id',
+        'n_glo': 'size',
+        'name': 'name',
+        'positive': 'positive_direction',
+        'unit': 'units',
+        'value': 'level_definition'
+}
 
 LOGGER = getLogger("reconfigurator.presenter")
 
@@ -69,16 +78,23 @@ class MetadataIodefGenerator:
         LOGGER.debug("Initialising iodef presenter")
         self._metadata = metadata
         self._root_node = None
+        self._axis_def = None
         self._field_def = None
         self._file_def = None
 
     def _create_root_nodes(self):
         """
-        Create a root <context> element with <field_definition> and
-        <file_definition> elements to append metadata to
+        Create a root <context> element with <field_definition>,
+        <axis_definition>, <grid_definition> and <file_definition> elements
+        to append metadata to
         """
         LOGGER.info("Creating root nodes")
         self._root_node = ElementTree.Element('context', id="diagnostics")
+        self._axis_def = ElementTree.SubElement(self._root_node,
+                                                'axis_definition')
+        self._grid_def = ElementTree.SubElement(self._root_node,
+                                                'grid_definition',
+                                                prec="8")
         self._field_def = ElementTree.SubElement(self._root_node,
                                                  'field_definition',
                                                  prec="8")
@@ -90,8 +106,9 @@ class MetadataIodefGenerator:
 
     def _find_template_nodes(self, template_path: str):
         """
-        Use ElementTree to get the root, field_definition, and file_definition
-        nodes in the given template XML file
+        Use ElementTree to get the root, axis_definition, grid_definition
+        field_definition, and file_definition nodes in the given template XML
+        file
 
         :param template_path: String path to template XML file
         """
@@ -103,6 +120,16 @@ class MetadataIodefGenerator:
 
         self._root_node = xml_tree.getroot()
         context_node = xml_tree.getroot().find('context')
+
+        self._axis_def = context_node.find('axis_definition')
+        if self._axis_def is None:
+            template_invalid = True
+            LOGGER.error('No axis definition found in template iodef')
+
+        self._grid_def = context_node.find('grid_definition')
+        if self._grid_def is None:
+            template_invalid = True
+            LOGGER.error('No grid definition found in template iodef')
 
         self._field_def = context_node.find('field_definition')
         if self._field_def is None:
@@ -117,6 +144,45 @@ class MetadataIodefGenerator:
         if template_invalid:
             raise ValueError("Definition section(s) missing from iodef "
                              "template")
+
+    def _create_vertical_axis_node(self, axis: VerticalDimension) \
+            -> ElementTree.Element:
+        """
+        Create and populate <axis> elements within the axis_definition node
+
+        :param axis: VerticalDimension axis to be created
+        :return: The newly made node in the XML tree containing the axis
+        """
+        LOGGER.debug("Creating axis: %s", axis.name)
+        axis_node = ElementTree.SubElement(self._axis_def, 'axis')
+
+        # Loop through axis attributes and set them
+        for iodef_attr, entity_attr in sorted(AXIS_NODE_ATTRS.items()):
+            attribute_value = getattr(axis, entity_attr, None)
+            axis_node.set(iodef_attr, str(attribute_value))
+
+        return axis_node
+
+    def _create_grid_node(self, grid: Grid) \
+            -> ElementTree.Element:
+        """
+        Create and populate <grid> elements within the grid_definition node
+
+        :param grid: Grid to be created
+        :return: The newly made node in the XML tree containing the grid
+        """
+        LOGGER.debug("Creating grid: %s", grid.unique_id)
+        grid_node = ElementTree.SubElement(self._grid_def, 'grid')
+        grid_node.set("id", grid.unique_id)
+
+        domain_node = ElementTree.SubElement(grid_node, 'domain')
+        domain_node.set("domain_ref", grid.domain)
+
+        for axis in grid.axes:
+            axis_node = ElementTree.SubElement(grid_node, 'axis')
+            axis_node.set("axis_ref", axis)
+
+        return grid_node
 
     def _create_field_group_node(self, field_group: FieldGroup) \
             -> ElementTree.Element:
@@ -226,20 +292,42 @@ class MetadataIodefGenerator:
         with open(output_path, 'wb') as output_file:
             output_file.write(xml_text)
 
-    def generate(self, output_file_path: str, template_file_path: str = None):
+    def generate(self, output_file_path: str, template_file_path: str = None,
+                 namelist_file_path: str = None):
         """
         Write iodef.xml file using data from the Metadata object. This file
         is based on an input template iodef_xml file if one is supplied
 
         :param output_file_path: File path to output iodef.xml to
         :param template_file_path: Template iodef.xml file to build XML tree
-        from
+                                   from
+        :param namelist_file_path: LFRic configuration file containing
+                                   extrusion namelist to be updated
+
         """
         if template_file_path is None:
             LOGGER.info("No template XML file specified")
             self._create_root_nodes()
         else:
             self._find_template_nodes(template_file_path)
+
+        # Build the XML tree for the axis_definition
+        for axis in self._metadata.get_vertical_dimensions():
+            if axis.active:
+                self._create_vertical_axis_node(axis)
+
+                # Update namelist if this is the primary vertical axis
+                if namelist_file_path and axis.primary_axis == 'true':
+                    LOGGER.info("Updating %s", namelist_file_path)
+                    update_extrusion_namelist(namelist_file_path, axis)
+        axes = len(self._axis_def.findall("axis"))
+        LOGGER.info("Created %s axes", axes)
+
+        # Build the XML tree for the grid_definition
+        for grid in self._metadata.get_grids():
+            self._create_grid_node(grid)
+        grids = len(self._grid_def.findall("grid"))
+        LOGGER.info("Created %s grids", grids)
 
         # Build the XML tree for the field_definition
         fields = 0

@@ -41,8 +41,13 @@ def get_args():
                         help="Path to a template iodef.xml file. This is an "
                              "existing iodef file to which the diagnostics "
                              "information will be added. This file should "
-                             "contain a context node containing field "
-                             "definition and file definition nodes")
+                             "contain a context node containing axis, grid, "
+                             "field and file definition nodes")
+    parser.add_argument('--namelist', dest='namelist_path',
+                        help="Path to an LFRic configuration.nml file "
+                             "containing a valid extrusion namelist. This "
+                             "namelist will be updated with the values parsed "
+                             "from the diagnostic configuration")
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         dest='verbosity',
                         help="Increases logging verbosity. -v logs INFO and "
@@ -86,7 +91,8 @@ def reconfigure_metadata():
     metadata = meta_extractor.extract_metadata()
     validate_metadata(metadata, args.force)
     generator = MetadataIodefGenerator(metadata)
-    generator.generate(args.output_file_path, args.template_path)
+    generator.generate(args.output_file_path, args.template_path,
+                       args.namelist_path)
 
 
 if __name__ == '__main__':

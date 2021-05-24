@@ -14,7 +14,7 @@
                                 "file_name": "example_science_section__example_fields__meta_mod.f90",
                                 "_unique_id": "example_fields__eastward_wind",
                                 "units": "m s-1",
-                                "function_space": "W2",
+                                "function_space": "W2H",
                                 "order": "0",
                                 "io_driver": "WRITE_FIELD FACE",
                                 "trigger": "__checksum: true;",
@@ -175,7 +175,7 @@
                                     "positive": "POSITIVE_UP",
                                     "units": "m",
                                     "level_definition": [
-                                        1.5
+                                        0.0
                                     ]
                                 },
                                 "standard_name": "air_temperature",
@@ -233,5 +233,5 @@
             }
         }
     },
-    "checksum": "md5: 3c3fc713de5db8ce2541911f24df1f43"
+    "checksum": "md5: bfa9c0ed7737f6149e6dc9d848c63af5"
 }

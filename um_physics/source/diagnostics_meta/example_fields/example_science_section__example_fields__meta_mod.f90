@@ -211,7 +211,7 @@ contains
     self%air_temperature_over_tiles = field_meta_data_type(&
       unique_id = "example_fields__air_temperature_over_tiles", &
       units = "K", &
-      function_space = WTheta, &
+      function_space = Wtheta, &
       order = 0, &
       io_driver = "", &
       trigger = "__checksum: true;", &
