@@ -486,6 +486,8 @@ contains
 
     real(r_um), dimension(row_length,rows,0:nlayers) :: conv_prog_precip
 
+    real(r_um), dimension(row_length,rows,nlayers) :: tnuc_new
+
     real(r_um), dimension(row_length,rows) :: zlcl, t1_sd, q1_sd, w_max,     &
          deep_flag, past_precip, past_conv_ht, ql_ad, ind_cape_reduced,      &
          it_wstar_dn, g_ccp, h_ccp, ccp_strength, tnuc_nlcl
@@ -495,7 +497,6 @@ contains
     !-----------------------------------------------------------------------
     ! Mapping of LFRic fields into UM variables
     !-----------------------------------------------------------------------
-
     ! Land sea mask
     flandg = 0.0_r_um
     do i = 1, n_land_tile
@@ -772,7 +773,7 @@ contains
         , it_wstar_dn,  it_wstar_up                                         &
         , it_mb1, it_mb2, it_cg_term, n_cumulus                             &
         , uw0, vw0, w_max                                                   &
-        , zlcl, zlcl_uv, tnuc_nlcl, zhpar, entrain_coef                     &
+        , zlcl, zlcl_uv, tnuc_new, tnuc_nlcl, zhpar, entrain_coef           &
         , conv_prog_precip, conv_prog_flx, deep_flag, past_precip           &
         , past_conv_ht, it_cape_diluted, n_deep, n_congestus, n_shallow     &
         , n_mid, r_rho_levels(1,1,1), r_theta_levels(1,1,1)                 &
