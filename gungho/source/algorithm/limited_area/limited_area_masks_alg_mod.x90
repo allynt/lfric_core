@@ -235,15 +235,29 @@ contains
     !             linear-solver
     !                boundary
 
-    outer_n = boundary_n - outer_width_ns
-    outer_s = boundary_s - outer_width_ns
-    outer_w = boundary_w - outer_width_ew
-    outer_e = boundary_e - outer_width_ew
+     if ( rim_width_ns > 0 ) then
+      outer_n = boundary_n - outer_width_ns
+      outer_s = boundary_s - outer_width_ns
+      rim_n = outer_n + rim_width_ns
+      rim_s = outer_s + rim_width_ns
+    else
+      outer_n = boundary_n
+      outer_s = boundary_s
+      rim_n = boundary_n
+      rim_s = boundary_s
+    endif
 
-    rim_n = outer_n + rim_width_ns
-    rim_s = outer_s + rim_width_ns
-    rim_w = outer_w + rim_width_ew
-    rim_e = outer_e + rim_width_ew
+    if ( rim_width_ew > 0 ) then
+      outer_w = boundary_w - outer_width_ew
+      outer_e = boundary_e - outer_width_ew
+      rim_w = outer_w + rim_width_ew
+      rim_e = outer_e + rim_width_ew
+    else
+      outer_w = boundary_w
+      outer_e = boundary_e
+      rim_w = boundary_w
+      rim_e = boundary_e
+    endif
 
     function_space = mask%which_function_space()
 
@@ -367,20 +381,37 @@ contains
     !             linear-solver
     !                boundary
 
-    outer_n = boundary_n - outer_width_ns
-    outer_s = boundary_s - outer_width_ns
-    outer_w = boundary_w - outer_width_ew
-    outer_e = boundary_e - outer_width_ew
+    if ( rim_width_ns > 0 ) then
+      outer_n = boundary_n - outer_width_ns
+      outer_s = boundary_s - outer_width_ns
+      rim_n = outer_n + rim_width_ns
+      rim_s = outer_s + rim_width_ns
+      blend_n = boundary_n + inner_width_ns
+      blend_s = boundary_s + inner_width_ns
+    else
+      outer_n = boundary_n
+      outer_s = boundary_s
+      rim_n = boundary_n
+      rim_s = boundary_s
+      blend_n = boundary_n
+      blend_s = boundary_s
+    endif
 
-    rim_n = outer_n + rim_width_ns
-    rim_s = outer_s + rim_width_ns
-    rim_w = outer_w + rim_width_ew
-    rim_e = outer_e + rim_width_ew
-
-    blend_n = boundary_n + inner_width_ns
-    blend_s = boundary_s + inner_width_ns
-    blend_w = boundary_w + inner_width_ew
-    blend_e = boundary_e + inner_width_ew
+    if ( rim_width_ew > 0 ) then
+      outer_w = boundary_w - outer_width_ew
+      outer_e = boundary_e - outer_width_ew
+      rim_w = outer_w + rim_width_ew
+      rim_e = outer_e + rim_width_ew
+      blend_w = boundary_w + inner_width_ew
+      blend_e = boundary_e + inner_width_ew
+    else
+      outer_w = boundary_w
+      outer_e = boundary_e
+      rim_w = boundary_w
+      rim_e = boundary_e
+      blend_w = boundary_w
+      blend_e = boundary_e
+    endif
 
     function_space = mask%which_function_space()
 

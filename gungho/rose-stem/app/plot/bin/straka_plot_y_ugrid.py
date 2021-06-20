@@ -17,111 +17,103 @@ Levels are determined from the data.
 
 '''
 
-from __future__ import absolute_import
-from __future__ import print_function
+import sys
 import numpy as np
+from read_data import read_ugrid_data
 # Need to set a non-interactive backend for suites
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # noqa: E402
 
-from iris.pandas import as_data_frame
-
-import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-
-
-
-import sys
-
-from read_data import read_ugrid_data
 
 cube = None
 n_levs = None
 
 
-def make_figure(plotpath, nx, ny, field, timestep):
+def make_figure(plotpath, nx, ny, field, timestep=-1):
 
-  # get coordinates
+    """  Create a figure for the input field and output to file. """
 
-  x = np.around(cube.coord('longitude').points)
-  y = np.around(cube.coord('latitude').points)
+    # get coordinates
 
-  # Sort by y and retain indices for reshape
-  sortidx = np.argsort(y)
+    y = np.around(cube.coord('latitude').points)
 
-  slice_fig = plt.figure(figsize=(15,10))
-  # get min and max of x,y data for plot axes
-  xmin =  min(x)
-  xmax = max(x)
-  ymin =  min(y)
-  ymax = max(y)
-  zmin = 0.0
-  zmax = 6400.0
+    time = np.around(cube.coord('time').points)[timestep]
 
-  r2d = 1.0/1000.0;
+    # Sort by y and retain indices for reshape
+    sortidx = np.argsort(y)
 
-  nx = int(nx)
-  ny = int(ny)
-  nz = n_levs
+    slice_fig = plt.figure(figsize=(15, 10))
+    # get min and max of x,y data for plot axes
+    ymin = min(y)
+    ymax = max(y)
+    zmin = 0.0
+    zmax = 6400.0
 
-  #create 2D plot
- 
-  vali = np.zeros([ny,nx,n_levs])
-  yi = np.zeros([ny,nx,n_levs])
+    r2d = 1.0/1000.0
 
-  for p in range(n_levs):
+    nx = int(nx)
+    ny = int(ny)
+    nz = n_levs
 
-    # get the data for this level
-    data = cube.data[-1,p]
+    # create 2D plot
 
-    vali[:,:,p] = data[sortidx].reshape((ny, nx))
-    yi[:,:,p] = y[sortidx].reshape((ny, nx))
+    vali = np.zeros([ny, nx, n_levs])
+    yi = np.zeros([ny, nx, n_levs])
 
-  # create meshgrid to get x_i and y_i for plotting
-  y2d = np.linspace(ymin, ymax, ny)
-  z2d = np.linspace(zmin, zmax, nz)
-  y_i, x_i = np.meshgrid(z2d, y2d) 
+    for p in range(n_levs):
 
+        # get the data for this level
+        data = cube.data[timestep, p]
 
-  dz = np.zeros([ny,nz])
-  for i in range(ny):
-    dz[i,:] = vali[i,0,:] - 300.0
+        vali[:, :, p] = data[sortidx].reshape((ny, nx))
+        yi[:, :, p] = y[sortidx].reshape((ny, nx))
 
+    # create meshgrid to get x_i and y_i for plotting
+    y2d = np.linspace(ymin, ymax, ny)
+    z2d = np.linspace(zmin, zmax, nz)
+    y_i, x_i = np.meshgrid(z2d, y2d)
 
-  matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
-  c_map = cm.summer
-  cc = np.linspace(-16,-1,16)
-  cf = plt.contourf(x_i * r2d, y_i * r2d, np.round(dz,10), cc, cmap = c_map)
-  cl = plt.contour(x_i * r2d, y_i * r2d, np.round(dz,10), cc, linewidths=1.0,colors='k', linestyle="", extend='min')
-  plt.axis([0, 16, 0, 5])
-  plt.xlabel("y (km)")
-  plt.ylabel("z (km)")
-  plt.title('max: %2.4e, min: %2.4e'%(np.max(dz),np.min(dz)))
-  plt.colorbar(cf,  cmap=c_map)
+    dz = np.zeros([ny, nz])
+    for i in range(ny):
+        dz[i, :] = vali[i, 0, :] - 300.0
 
-  out_file_name = plotpath + "/" + 'straka_y_ugrid' + "_" + timestep +  ".png"
-  slice_fig.savefig(out_file_name , bbox_inches='tight')
+    matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
+    c_map = cm.summer
+    cc = np.linspace(-16, -1, 16)
+    cf = plt.contourf(x_i * r2d, y_i * r2d, np.round(dz, 10), cc, cmap=c_map)
+    plt.contour(x_i * r2d, y_i * r2d, np.round(dz, 10), cc,
+                linewidths=1.0, colors='k', extend='min')
+    plt.axis([0, 16, 0, 5])
+    plt.xlabel("y (km)")
+    plt.ylabel("z (km)")
+    plt.title('max: %2.4e, min: %2.4e' % (np.max(dz), np.min(dz)))
+    plt.colorbar(cf, cmap=c_map)
+
+    out_file_name = plotpath + \
+        "/" + 'straka_y_ugrid' + "_T{:06n}".format(time) + ".png"
+    slice_fig.savefig(out_file_name, bbox_inches='tight')
+
 
 if __name__ == "__main__":
 
-  
-  try:
-    datapath, nx, ny, fields, timestep, plotpath = sys.argv[1:7]
-  except ValueError:
-    print("Usage: {0} <datapath> <nx> <ny> <field_names> <timestep> <plotpath>".format(sys.argv[0]))
-    exit(1)
+    try:
+        datapath, nx, ny, fields, plotpath = sys.argv[1:6]
+    except ValueError:
+        print("Usage: {0} <datapath> <nx> <ny> <field_names> <plotpath>"
+              .format(sys.argv[0]))
+        sys.exit(1)
 
-  # Split out the list of fields
-  field_list = fields.split(':')
+    # Split out the list of fields
+    field_list = fields.split(':')
 
-  for field in field_list:
+    for field in field_list:
 
-      cube = read_ugrid_data(datapath, field)
+        cube = read_ugrid_data(datapath, field)
 
-      n_levs = cube.data[0,:].shape[0]
+        n_levs = cube.data[0, :].shape[0]
 
-      # Only try to plot if we found some data for this field
-      if n_levs > 0:
-        make_figure(plotpath, nx, ny, field, timestep)
-
+        # Only try to plot if we found some data for this field
+        if n_levs > 0:
+            make_figure(plotpath, nx, ny, field)
