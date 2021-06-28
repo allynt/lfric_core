@@ -146,7 +146,7 @@ subroutine held_suarez_fv_code(nlayers,                     &
 
   exner0 = exner_in_wth(map_wth(1))
 
-  do k = 0, nlayers-1
+  do k = 0, nlayers
 
     exner = exner_in_wth(map_wth(1) + k)
 

@@ -593,5 +593,7 @@
 {%- do groups.update(vertical_slice_groups) %}
 %include inc/orography.rc
 {%- do groups.update(orography_groups) %}
+%include inc/exoplanets.rc
+{%- do groups.update(exoplanets_groups) %}
 
 #########################################################################################

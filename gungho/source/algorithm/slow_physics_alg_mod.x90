@@ -244,7 +244,7 @@ contains
     !--------------------------------------------------------------------
     if ( heldsuarez_thermo_placement < 0 .OR. &
          heldsuarez_wind_placement < 0 ) then
-      call held_suarez_alg(derived_fields, theta, exner_in_wth,          &
+      call held_suarez_alg(derived_fields, theta, exner, exner_in_wth,   &
                            dtheta_hs, du_hs, dt,                         &
                            held_suarez_thermo_done, held_suarez_wind_done)
     end if

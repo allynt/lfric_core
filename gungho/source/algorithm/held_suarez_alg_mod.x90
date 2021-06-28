@@ -37,20 +37,21 @@ contains
   !>@brief Interface to Held-Suarez theta and wind kernels
   !> @param[in]     derived_fields         Group of derived fields
   !> @param[in]     theta                  Theta field
+  !> @param[in]     exner                  Exner pressure
   !> @param[in]     exner_in_wth           Exner pressure on wtheta space
   !> @param[out]    dtheta_hs              Theta increment from HS code
   !> @param[out]    du_hs                  Wind increment from HS code
   !> @param[out]    dt                     The model timestep length
   !> @param[in,out] held_suarez_thermo_done Flag to say if thermo code run
   !> @param[in,out] held_suarez_wind_done   Flag to say if wind code run
-  subroutine held_suarez_alg(derived_fields, theta, exner_in_wth,          &
+  subroutine held_suarez_alg(derived_fields, theta, exner, exner_in_wth,   &
                              dtheta_hs, du_hs, dt,                         &
                              held_suarez_thermo_done, held_suarez_wind_done)
 
     implicit none
 
     type( field_collection_type ), intent(in) :: derived_fields
-    type( field_type ), intent( in )  :: theta, exner_in_wth
+    type( field_type ), intent( in )  :: theta, exner, exner_in_wth
     type( field_type ), intent( out ) :: dtheta_hs, du_hs
     real( kind=r_def ), intent( in )  :: dt
 
@@ -97,6 +98,7 @@ contains
       dA => get_da_at_w2(mesh_id)
       call invoke(held_suarez_fv_wind_kernel_type(du_hs, u_physics,   &
                                                   w2_rmultiplicity,   &
+                                                  exner,              &
                                                   exner_in_wth, dt),  &
                   inc_X_times_Y(du_hs, dA) )
       held_suarez_wind_done=.true. ! Collect this increment later on

@@ -158,6 +158,7 @@ contains
     real(r_def), allocatable :: u_data(:)
     real(r_def), allocatable :: theta_data(:)
     real(r_def), allocatable :: exner_data(:)
+    real(r_def), allocatable :: exner_wth_data(:)
     real(r_def), allocatable :: du_data(:)
     real(r_def), allocatable :: dtheta_data(:)
     real(r_def), allocatable :: w2_rmultiplicity_data(:)
@@ -192,7 +193,8 @@ contains
     allocate(panel_id(undf_w3))
     allocate(u_data(undf_w2))
     allocate(theta_data(undf_wth))
-    allocate(exner_data(undf_wth))
+    allocate(exner_data(undf_w3))
+    allocate(exner_wth_data(undf_wth))
     allocate(du_data(undf_w2))
     allocate(dtheta_data(undf_wth))
     allocate(w2_rmultiplicity_data(undf_w2))
@@ -223,6 +225,7 @@ contains
     theta_data(:)            = 300.0_r_def
     u_data(:)                = 10.0_r_def
     exner_data(:)            = 1.0_r_def
+    exner_wth_data(:)        = 1.0_r_def
     w2_rmultiplicity_data(:) = 1.0_r_def
 
     ! Only test interior cell 5
@@ -249,8 +252,10 @@ contains
                                    du_data,                              &
                                    u_data,                               &
                                    exner_data,                           &
+                                   exner_wth_data,                       &
                                    w2_rmultiplicity_data, dt,            &
                                    ndf_w2, undf_w2, map_w2(:,cell),      &
+                                   ndf_w3, undf_w3, map_w3(:,cell),      &
                                    ndf_wth, undf_wth, map_wth(:,cell)    &
                                  )
 
@@ -268,6 +273,7 @@ contains
     deallocate(panel_id)
     deallocate(u_data)
     deallocate(theta_data)
+    deallocate(exner_wth_data)
     deallocate(exner_data)
     deallocate(du_data)
     deallocate(dtheta_data)

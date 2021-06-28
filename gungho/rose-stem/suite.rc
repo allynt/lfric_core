@@ -808,7 +808,7 @@
                       # we would expect.
                       #
                       test -f $CYLC_TASK_WORK_DIR/lfric_diag.nc && \
-                      mv $CYLC_TASK_WORK_DIR/lfric_diag.nc \
+                      cp $CYLC_TASK_WORK_DIR/lfric_diag.nc \
                          $DESTINATION_DIRECTORY/{{pathFragment}}/results/ || true
 
                       test -f $CYLC_TASK_WORK_DIR/lfric_initial.nc && \
@@ -816,7 +816,7 @@
                          $DESTINATION_DIRECTORY/{{pathFragment}}/results/ || true
 
                       test -f $CYLC_TASK_WORK_DIR/lfric_averages.nc && \
-                      mv $CYLC_TASK_WORK_DIR/lfric_averages.nc \
+                      cp $CYLC_TASK_WORK_DIR/lfric_averages.nc \
                          $DESTINATION_DIRECTORY/{{pathFragment}}/results/ || true
                       """
 
