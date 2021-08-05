@@ -334,6 +334,11 @@
 	<field id="dtemp_orog_gwd" name="dtemp_orog_gwd" long_name="orographic_gravity_wave_drag_T_increment" unit="K" grid_ref="full_level_face_grid" />
 	<!-- surface fields -->
 	<field id="z0msea" name="z0msea" long_name="sea_surface_roughness_length" unit="m" domain_ref="face" />
+	<field id="u10m" name="u10m" long_name="eastward_wind_at_10m" unit="m s-1" domain_ref="face" />
+	<field id="v10m" name="v10m" long_name="northward_wind_10m" unit="m s-1" domain_ref="face" />
+	<field id="wspd10m" name="wspd10m" long_name="wind_speed_at_10m" unit="m s-1" domain_ref="face" />
+	<field id="taux_ssi" name="taux_ssi" long_name="eastward_wind_stress_sea_seaice" unit="N m-2" domain_ref="face" />
+	<field id="tauy_ssi" name="tauy_ssi" long_name="northward_wind_stress_sea_seaice" unit="N m-2" domain_ref="face" />
 	<field id="gross_prim_prod" name="gross_prim_prod" long_name="gross_primary_productivity" unit="kgC m-2 s-1" domain_ref="face" />
 	<field id="net_prim_prod" name="net_prim_prod" long_name="net_primary_productivity" unit="kgC m-2 s-1" domain_ref="face" />
 	<field id="tile_heat_flux" name="tile_heat_flux" long_name="surface_sensible_heat_flux" unit="W m-2" domain_ref="face" axis_ref="surface_tiles"/>

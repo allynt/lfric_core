@@ -18,13 +18,13 @@ module bl_imp_kernel_mod
                                      ANY_DISCONTINUOUS_SPACE_4, &
                                      ANY_DISCONTINUOUS_SPACE_5, &
                                      ANY_DISCONTINUOUS_SPACE_6, &
-                                     ANY_DISCONTINUOUS_SPACE_7, &
-                                     ANY_SPACE_1
+                                     ANY_DISCONTINUOUS_SPACE_7
   use section_choice_config_mod, only : cloud, cloud_um
+  use blayer_config_mod,         only : fric_heating
   use cloud_config_mod,          only : scheme, scheme_smith, scheme_pc2, &
                                         scheme_bimodal
   use constants_mod,             only : i_def, i_um, r_def, r_um
-  use fs_continuity_mod,         only : W3, Wtheta, W2
+  use fs_continuity_mod,         only : W3, Wtheta
   use kernel_mod,                only : kernel_type
   use timestepping_config_mod,   only : outer_iterations
   use physics_config_mod,        only : lowest_level,          &
@@ -32,7 +32,6 @@ module bl_imp_kernel_mod
                                         lowest_level_gradient, &
                                         lowest_level_flux
   use planet_config_mod,        only : cp
-  use surface_config_mod,       only : formdrag, formdrag_dist_drag
   use water_constants_mod,      only : tfs
 
   implicit none
@@ -46,19 +45,17 @@ module bl_imp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_imp_kernel_type
     private
-    type(arg_type) :: meta_args(92) = (/                                          &
+    type(arg_type) :: meta_args(83) = (/                                          &
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                &! outer
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! theta_in_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! wetrho_in_w3
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! wetrho_in_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! exner_in_w3
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! exner_in_wth
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! u_physics
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! m_v_n
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! m_cl_n
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! m_ci_n
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! theta_star
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! u_physics_star
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! height_w3
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! height_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! ntml_2d
@@ -87,9 +84,9 @@ module bl_imp_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_5),&! water_extraction (kg m-2 s-1)
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! total_snowmelt (kg m-2 s-1)
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     WTHETA),                   &! dtheta_bl
-         arg_type(GH_FIELD,  GH_REAL,    GH_INC,       W2),                       &! du_bl_w2
+         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! diss_u
+         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! diss_v
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! dt_conv
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! du_conv_w2
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! m_v
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! m_cl
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! m_ci
@@ -104,19 +101,13 @@ module bl_imp_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! tau_dec_bm
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! tau_hom_bm
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! tau_mph_bm
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! rhokm_w2
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_SPACE_1),              &! rhokm_surf_w2
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! rhokh_bl
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! ngstress_w2
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! bq_bl
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! bt_bl
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! moist_flux_bl
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! heat_flux_bl
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! dtrdz_w2
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, W3),                       &! moist_flux_bl
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, W3),                       &! heat_flux_bl
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! dtrdz_tq_bl
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! rdz_tq_bl
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! rdz_w2
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W2),                       &! fd_tau_w2
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_2),&! alpha1_tile
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_2),&! ashtf_prime_tile
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_2),&! dtstar_tile
@@ -132,7 +123,6 @@ module bl_imp_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! inv_depth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! qcl_at_inv_top
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! blend_height_tq
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! blend_height_uv
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! ustar
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! soil_moist_avail
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! zh_nonloc
@@ -161,12 +151,10 @@ contains
   !> @param[in]     wetrho_in_wth        Wet density field in wth space
   !> @param[in]     exner_in_w3          Exner pressure field in density space
   !> @param[in]     exner_in_wth         Exner pressure field in wth space
-  !> @param[in]     u_physics            Wind in native space at time n
   !> @param[in]     m_v_n                Vapour mixing ratio at time level n
   !> @param[in]     m_cl_n               Cloud liq mixing ratio at time level n
   !> @param[in]     m_ci_n               Cloud ice mixing ratio at time level n
   !> @param[in]     theta_star           Potential temperature after advection
-  !> @param[in]     u_physics_star       Wind in native space after advection
   !> @param[in]     height_w3            Height of density space above surface
   !> @param[in]     height_wth           Height of theta space above surface
   !> @param[in]     ntml_2d              Number of turbulently mixed levels
@@ -195,9 +183,9 @@ contains
   !> @param[in,out] water_extraction     Extraction of water from each soil layer
   !> @param[in,out] total_snowmelt       Surface plus canopy snowmelt rate
   !> @param[in,out] dtheta_bl            BL theta increment
-  !> @param[in,out] du_bl_w2             BL wind increment
+  !> @param[in]     diss_u               Zonal Molecular dissipation rate
+  !> @param[in]     diss_v               Meridional Molecular dissipation rate
   !> @param[in]     dt_conv              Convection temperature increment
-  !> @param[in]     du_conv_w2           Convection wind increment
   !> @param[in,out] m_v                  Vapour mixing ration after advection
   !> @param[in,out] m_cl                 Cloud liq mixing ratio after advection
   !> @param[in,out] m_ci                 Cloud ice mixing ratio after advection
@@ -212,19 +200,13 @@ contains
   !> @param[in]     tau_dec_bm           Decorrelation time scale in wth
   !> @param[in]     tau_hom_bm           Homogenisation time scale in wth
   !> @param[in]     tau_mph_bm           Phase-relaxation time scale in wth
-  !> @param[in]     rhokm_w2             Momentum eddy diffusivity mapped to cell faces
-  !> @param[in]     rhokm_surf_w2        Surface eddy diffusivity mapped to cell faces
   !> @param[in]     rhokh_bl             Heat eddy diffusivity on BL levels
-  !> @param[in]     ngstress_w2          NG stress function mapped to cell faces
   !> @param[in]     bq_bl                Buoyancy parameter for moisture
   !> @param[in]     bt_bl                Buoyancy parameter for heat
-  !> @param[in]     moist_flux_bl        Vertical moisture flux on BL levels
-  !> @param[in]     heat_flux_bl         Vertical heat flux on BL levels
-  !> @param[in]     dtrdz_w2             dt/(rho*r*r*dz) mapped to cell faces
+  !> @param[in,out] moist_flux_bl        Vertical moisture flux on BL levels
+  !> @param[in,out] heat_flux_bl         Vertical heat flux on BL levels
   !> @param[in]     dtrdz_tq_bl          dt/(rho*r*r*dz) in wth
   !> @param[in]     rdz_tq_bl            1/dz in w3
-  !> @param[in]     rdz_w2               1/dz mapped to cell faces
-  !> @param[in]     fd_tau_w2            Stress for form drag on cell faces
   !> @param[in]     alpha1_tile          dqsat/dT in surface layer on tiles
   !> @param[in]     ashtf_prime_tile     Heat flux coefficient on tiles
   !> @param[in]     dtstar_tile          Change in surface temperature on tiles
@@ -240,7 +222,6 @@ contains
   !> @param[in]     inv_depth            Depth of BL top inversion layer
   !> @param[in]     qcl_at_inv_top       Cloud water at top of inversion
   !> @param[in]     blend_height_tq      Blending height for wth levels
-  !> @param[in]     blend_height_uv      Blending height for w3 levels
   !> @param[in]     ustar                Friction velocity
   !> @param[in]     soil_moist_avail     Available soil moisture for evaporation
   !> @param[in]     zh_nonloc            Depth of non-local BL scheme
@@ -253,9 +234,6 @@ contains
   !> @param[in]     ndf_w3               Number of DOFs per cell for density space
   !> @param[in]     undf_w3              Number of unique DOFs for density space
   !> @param[in]     map_w3               Dofmap for the cell at the base of the column for density space
-  !> @param[in]     ndf_w2               Number of DOFs per cell for w2 space
-  !> @param[in]     undf_w2              Number of unique DOFs for w2 space
-  !> @param[in]     map_w2               Dofmap for the cell at the base of the column for w2 space
   !> @param[in]     ndf_2d               Number of DOFs per cell for 2D fields
   !> @param[in]     undf_2d              Number of unique DOFs for 2D fields
   !> @param[in]     map_2d               Dofmap for the cell at the base of the column for 2D fields
@@ -271,9 +249,6 @@ contains
   !> @param[in]     ndf_soil             Number of DOFs per cell for soil levels
   !> @param[in]     undf_soil            Number of total DOFs for soil levels
   !> @param[in]     map_soil             Dofmap for cell for soil levels
-  !> @param[in]     ndf_w2_2d            Number of DOFs per cell for w2 surface space
-  !> @param[in]     undf_w2_2d           Number of unique DOFs for w2 surface space
-  !> @param[in]     map_w2_2d            Dofmap for the cell at the base of the column for w2 surface space
   !> @param[in]     ndf_smtile           Number of DOFs per cell for soil levels and tiles
   !> @param[in]     undf_smtile          Number of total DOFs for soil levels and tiles
   !> @param[in]     map_smtile           Dofmap for cell for soil levels and tiles
@@ -287,12 +262,10 @@ contains
                          wetrho_in_wth,                      &
                          exner_in_w3,                        &
                          exner_in_wth,                       &
-                         u_physics,                          &
                          m_v_n,                              &
                          m_cl_n,                             &
                          m_ci_n,                             &
                          theta_star,                         &
-                         u_physics_star,                     &
                          height_w3,                          &
                          height_wth,                         &
                          ntml_2d,                            &
@@ -321,9 +294,9 @@ contains
                          water_extraction,                   &
                          total_snowmelt,                     &
                          dtheta_bl,                          &
-                         du_bl_w2,                           &
+                         diss_u,                             &
+                         diss_v,                             &
                          dt_conv,                            &
-                         du_conv_w2,                         &
                          m_v,                                &
                          m_cl,                               &
                          m_ci,                               &
@@ -338,19 +311,13 @@ contains
                          tau_dec_bm,                         &
                          tau_hom_bm,                         &
                          tau_mph_bm,                         &
-                         rhokm_w2,                           &
-                         rhokm_surf_w2,                      &
                          rhokh_bl,                           &
-                         ngstress_w2,                        &
                          bq_bl,                              &
                          bt_bl,                              &
                          moist_flux_bl,                      &
                          heat_flux_bl,                       &
-                         dtrdz_w2,                           &
                          dtrdz_tq_bl,                        &
                          rdz_tq_bl,                          &
-                         rdz_w2,                             &
-                         fd_tau_w2,                          &
                          alpha1_tile,                        &
                          ashtf_prime_tile,                   &
                          dtstar_tile,                        &
@@ -366,7 +333,6 @@ contains
                          inv_depth,                          &
                          qcl_at_inv_top,                     &
                          blend_height_tq,                    &
-                         blend_height_uv,                    &
                          ustar,                              &
                          soil_moist_avail,                   &
                          zh_nonloc,                          &
@@ -379,9 +345,6 @@ contains
                          ndf_w3,                             &
                          undf_w3,                            &
                          map_w3,                             &
-                         ndf_w2,                             &
-                         undf_w2,                            &
-                         map_w2,                             &
                          ndf_2d,                             &
                          undf_2d,                            &
                          map_2d,                             &
@@ -389,7 +352,6 @@ contains
                          ndf_pft, undf_pft, map_pft,         &
                          ndf_sice, undf_sice, map_sice,      &
                          ndf_soil, undf_soil, map_soil,      &
-                         ndf_w2_2d, undf_w2_2d, map_w2_2d,   &
                          ndf_smtile, undf_smtile, map_smtile,&
                          ndf_bl, undf_bl, map_bl)
 
@@ -403,8 +365,7 @@ contains
     ! UM modules containing switches or global constants
     !---------------------------------------
     use ancil_info, only: ssi_pts, sea_pts, sice_pts, sice_pts_ncat
-    use atm_fields_bounds_mod, only: udims, vdims, udims_s, vdims_s,        &
-         pdims
+    use atm_fields_bounds_mod, only: pdims
     use atm_step_local, only: dim_cs1, dim_cs2
     use c_kappai, only: kappai, de
     use dust_parameters_mod, only: ndiv, ndivh
@@ -424,7 +385,6 @@ contains
     use level_heights_mod, only: r_theta_levels, r_rho_levels
 
     ! subroutines used
-    use bdy_expl3_mod, only: bdy_expl3
     use bl_diags_mod, only: bl_diag, dealloc_bl_imp, alloc_bl_expl
     use sf_diags_mod, only: sf_diag, dealloc_sf_expl, dealloc_sf_imp,       &
                             alloc_sf_expl
@@ -450,14 +410,12 @@ contains
     integer(kind=i_def), intent(in) :: nlayers
     integer(kind=i_def), intent(in) :: outer
 
-    integer(kind=i_def), intent(in) :: ndf_wth, ndf_w3, ndf_w2, ndf_w2_2d
-    integer(kind=i_def), intent(in) :: ndf_2d, undf_2d, undf_w2, undf_w2_2d
+    integer(kind=i_def), intent(in) :: ndf_wth, ndf_w3
+    integer(kind=i_def), intent(in) :: ndf_2d, undf_2d
     integer(kind=i_def), intent(in) :: undf_wth, undf_w3
     integer(kind=i_def), intent(in) :: map_wth(ndf_wth)
     integer(kind=i_def), intent(in) :: map_w3(ndf_w3)
     integer(kind=i_def), intent(in) :: map_2d(ndf_2d)
-    integer(kind=i_def), intent(in) :: map_w2(ndf_w2)
-    integer(kind=i_def), intent(in) :: map_w2_2d(ndf_w2_2d)
 
     integer(kind=i_def), intent(in) :: ndf_tile, undf_tile
     integer(kind=i_def), intent(in) :: map_tile(ndf_tile)
@@ -473,18 +431,18 @@ contains
     integer(kind=i_def), intent(in) :: ndf_bl, undf_bl
     integer(kind=i_def), intent(in) :: map_bl(ndf_bl)
 
-    real(kind=r_def), dimension(undf_w2),  intent(inout):: du_bl_w2
-    real(kind=r_def), dimension(undf_wth), intent(inout)  :: dtheta_bl
-    real(kind=r_def), dimension(undf_wth), intent(inout):: m_v, m_cl, m_ci,    &
-                                                           cf_area, cf_ice,    &
-                                                           cf_liq, cf_bulk
+    real(kind=r_def), dimension(undf_w3),  intent(inout) :: moist_flux_bl,     &
+                                                            heat_flux_bl
+    real(kind=r_def), dimension(undf_wth), intent(inout) :: dtheta_bl,         &
+                                                            m_v, m_cl, m_ci,   &
+                                                            cf_area, cf_ice,   &
+                                                            cf_liq, cf_bulk
     real(kind=r_def), dimension(undf_w3),  intent(in)   :: wetrho_in_w3,       &
                                                            exner_in_w3,        &
                                                            height_w3,          &
                                                            rhokh_bl,           &
-                                                           moist_flux_bl,      &
-                                                           heat_flux_bl,       &
-                                                           rdz_tq_bl
+                                                           rdz_tq_bl,          &
+                                                           diss_u, diss_v
     real(kind=r_def), dimension(undf_wth), intent(in)   :: theta_in_wth,       &
                                                            wetrho_in_wth,      &
                                                            exner_in_wth,       &
@@ -503,21 +461,9 @@ contains
                                                            tau_hom_bm,         &
                                                            tau_mph_bm
 
-    real(kind=r_def), dimension(undf_w2),  intent(in)   :: u_physics,         &
-                                                           u_physics_star,    &
-                                                           rhokm_w2,          &
-                                                           ngstress_w2,       &
-                                                           dtrdz_w2,          &
-                                                           rdz_w2,            &
-                                                           du_conv_w2,        &
-                                                           fd_tau_w2
-
-    real(kind=r_def), dimension(undf_w2_2d), intent(in) :: rhokm_surf_w2
-
     real(kind=r_def), dimension(undf_2d), intent(in) :: ntml_2d,              &
                                                         cumulus_2d, zh_2d,    &
                                                         blend_height_tq,      &
-                                                        blend_height_uv,      &
                                                         ustar,                &
                                                         soil_moist_avail,     &
                                                         zh_nonloc, zhsc_2d
@@ -594,11 +540,10 @@ contains
 
     ! profile fields on u/v points and BL levels
     real(r_um), dimension(row_length,rows,bl_levels) :: taux, tauy,          &
-         dtrdz_u, dtrdz_v, rhokm_u, rhokm_v, taux_fd_u, tauy_fd_v
+         dtrdz_u, dtrdz_v, rhokm_u, rhokm_v, dissip_u, dissip_v
 
     ! profile fields from level 2 upwards
-    real(r_um), dimension(row_length,rows,2:bl_levels) :: rdz_u, rdz_v,      &
-         f_ngstress_u, f_ngstress_v
+    real(r_um), dimension(row_length,rows,2:bl_levels) :: rdz_u, rdz_v
 
     ! profile fields from level 0 upwards
     real(r_um), dimension(row_length,rows,0:nlayers) ::                      &
@@ -614,10 +559,8 @@ contains
          u_s, z0hssi, z0mssi, zhnl, zlcl_mix, zlcl, dzh, qcl_inv_top
 
     ! single level real fields on u/v points
-    real(r_um), dimension(row_length,rows) :: u_0, v_0, rhokm_u_land,        &
-         rhokm_u_ssi, rhokm_v_land, rhokm_v_ssi, taux_land, tauy_land,       &
-         taux_ssi, tauy_ssi, flandg_u, flandg_v, flandfac_u, flandfac_v,     &
-         fseafac_u, fseafac_v
+    real(r_um), dimension(row_length,rows) :: u_0, v_0, taux_land, tauy_land,&
+         taux_ssi, tauy_ssi, flandg_u, flandg_v
 
     ! single level integer fields
     integer(i_um), dimension(row_length,rows) :: ntml, lcbase, k_blend_tq,   &
@@ -669,8 +612,6 @@ contains
 
     real(r_um), dimension(row_length,rows,nlayers) :: cca0
 
-    real(r_um), dimension(row_length,rows,2:bl_levels) :: rhogamu_u, rhogamv_v
-
     real(r_um), dimension(row_length,rows,0:nlayers) ::                      &
          aerosol, dust_div1, dust_div2, dust_div3, dust_div4, dust_div5,     &
          dust_div6, so2, dms, so4_aitken, so4_accu, so4_diss, nh3, soot_new, &
@@ -680,7 +621,7 @@ contains
     real(r_um), dimension(row_length,rows,nlayers) ::                        &
          tgrad_in, tau_dec_in, tau_hom_in, tau_mph_in
 
-    real(r_um), dimension(row_length,rows,nlayers) :: wvar_in, gradrinr_in
+    real(r_um), dimension(row_length,rows,nlayers) :: wvar_in
 
     real(r_um), dimension(row_length,rows,0:nlayers,tr_vars) :: free_tracers
 
@@ -744,7 +685,15 @@ contains
       allocate(bl_diag%elm3d(1,1,1))
     end if
 
-    allocate(bl_diag%gradrich(1,1,1))
+    if (bl_diag%l_gradrich) then
+      allocate(bl_diag%gradrich(pdims%i_start:pdims%i_end,                   &
+                           pdims%j_start:pdims%j_end,bl_levels))
+      do k = 1, bl_levels-1
+        bl_diag%gradrich(1,1,k+1) = gradrinr(map_wth(1) + k)
+      end do
+    else
+      allocate(bl_diag%gradrich(1,1,1))
+    end if
 
     ! Following variables need to be initialised to stop crashed in unused
     ! UM code
@@ -987,12 +936,6 @@ contains
       p_theta_levels(1,1,k) = p_zero*(exner_in_wth(map_wth(1) + k))**(1.0_r_def/kappa)
       ! exner pressure on theta levels
       exner_theta_levels(1,1,k) = exner_in_wth(map_wth(1) + k)
-      ! u wind on rho levels
-      u(1,1,k) = u_physics(map_w2(1) + k-1)
-      ! v wind on rho levels
-      v(1,1,k) = u_physics(map_w2(2) + k-1)
-      ! w wind on theta levels
-      w(1,1,k) = u_physics(map_w2(5) + k)
       ! height of rho levels from centre of planet
       r_rho_levels(1,1,k) = height_w3(map_w3(1) + k-1) + planet_radius
       ! height of theta levels from centre of planet
@@ -1019,9 +962,6 @@ contains
     theta(1,1,0) = theta_in_wth(map_wth(1) + 0)
     ! wet density multiplied by planet radius squared on rho levs
     rho_wet_rsq = rho_wet * r_rho_levels**2
-    ! surface currents
-    u_0 = 0.0
-    v_0 = 0.0
     ! near surface moisture fields
     q(1,1,0) = m_v_n(map_wth(1) + 0)
     qcl(1,1,0) = m_cl_n(map_wth(1) + 0)
@@ -1031,8 +971,6 @@ contains
     ! height of levels above surface
     z_rho = r_rho_levels-r_theta_levels(1,1,0)
     z_theta(1,1,:) = r_theta_levels(1,1,1:nlayers)-r_theta_levels(1,1,0)
-    ! vertical velocity
-    w(1,1,0) = u_physics(map_w2(5) + 0)
 
     !-----------------------------------------------------------------------
     ! Things passed from other parametrization schemes on this timestep
@@ -1040,41 +978,21 @@ contains
     cumulus(1,1) = (cumulus_2d(map_2d(1)) > 0.5_r_def)
     ntml(1,1) = INT(ntml_2d(map_2d(1)))
 
-    rhokm_u_land(1,1) = rhokm_surf_w2(map_w2_2d(1) + 0)
-    rhokm_u_ssi(1,1) = rhokm_surf_w2(map_w2_2d(1) + 1)
-    flandg_u(1,1) = rhokm_surf_w2(map_w2_2d(1) + 2)
-    flandfac_u(1,1) = rhokm_surf_w2(map_w2_2d(1) + 3)
-    fseafac_u(1,1) = rhokm_surf_w2(map_w2_2d(1) + 4)
-    rhokm_v_land(1,1) = rhokm_surf_w2(map_w2_2d(2) + 0)
-    rhokm_v_ssi(1,1) = rhokm_surf_w2(map_w2_2d(2) + 1)
-    flandg_v(1,1) = rhokm_surf_w2(map_w2_2d(2) + 2)
-    flandfac_v(1,1) = rhokm_surf_w2(map_w2_2d(2) + 3)
-    fseafac_v(1,1) = rhokm_surf_w2(map_w2_2d(2) + 4)
     do k = 1, bl_levels
-      rhokm_u(1,1,k) = rhokm_w2(map_w2(1) + k)
-      rhokm_v(1,1,k) = rhokm_w2(map_w2(2) + k)
-      rhokh(1,1,k) = rhokh_bl(map_w3(1) + k)
-      bq_gb(1,1,k) = bq_bl(map_wth(1) + k)
-      bt_gb(1,1,k) = bt_bl(map_wth(1) + k)
-      fqw(1,1,k) = moist_flux_bl(map_w3(1) + k)
-      ftl(1,1,k) = heat_flux_bl(map_w3(1) + k)
-      dtrdz_u(1,1,k) = dtrdz_w2(map_w2(1) + k)
-      dtrdz_v(1,1,k) = dtrdz_w2(map_w2(2) + k)
+      rhokh(1,1,k) = rhokh_bl(map_w3(1) + k-1)
+      bq_gb(1,1,k) = bq_bl(map_wth(1) + k-1)
+      bt_gb(1,1,k) = bt_bl(map_wth(1) + k-1)
+      fqw(1,1,k) = moist_flux_bl(map_w3(1) + k-1)
+      ftl(1,1,k) = heat_flux_bl(map_w3(1) + k-1)
       dtrdz_charney_grid(1,1,k) = dtrdz_tq_bl(map_wth(1) + k)
-      rdz_charney_grid(1,1,k) = rdz_tq_bl(map_w3(1) + k)
+      rdz_charney_grid(1,1,k) = rdz_tq_bl(map_w3(1) + k-1)
     end do
-    if (formdrag == formdrag_dist_drag) then
+    if (fric_heating) then
       do k = 1, bl_levels
-        taux_fd_u(1,1,k) = fd_tau_w2(map_w2(1) + k)
-        tauy_fd_v(1,1,k) = fd_tau_w2(map_w2(2) + k)
+        dissip_u(1,1,k) = diss_u(map_w3(1) + k-1)
+        dissip_v(1,1,k) = diss_v(map_w3(1) + k-1)
       end do
     end if
-    do k = 2, bl_levels
-      rdz_u(1,1,k) = rdz_w2(map_w2(1) + k)
-      rdz_v(1,1,k) = rdz_w2(map_w2(2) + k)
-      f_ngstress_u(1,1,k) = ngstress_w2(map_w2(1) + k)
-      f_ngstress_v(1,1,k) = ngstress_w2(map_w2(2) + k)
-    end do
 
     do i = 1, n_land_tile
       alpha1(1, i) = alpha1_tile(map_tile(1)+i-1)
@@ -1126,7 +1044,6 @@ contains
     chr1p5m_sice(1,1) = chr1p5m_tile(map_tile(1)+first_sea_ice_tile-1)
 
     k_blend_tq(1,1) = int(blend_height_tq(map_2d(1)), i_um)
-    k_blend_uv(1,1) = int(blend_height_uv(map_2d(1)), i_um)
     u_s(1,1) = ustar(map_2d(1))
     smc_soilt(1) = soil_moist_avail(map_2d(1))
     zhnl(1,1) = zh_nonloc(map_2d(1))
@@ -1145,23 +1062,6 @@ contains
     bl_type_6(1,1) = bl_type_ind(map_bl(1)+5)
     bl_type_7(1,1) = bl_type_ind(map_bl(1)+6)
 
-    call bdy_expl3 (                                                 &
-         ! IN grid related variables
-         bl_levels, l_calc_at_p,                                     &
-         udims, vdims, udims_s, vdims_s, pdims,                      &
-         udims, vdims,                                               &
-         ! IN SCM diags
-         nSCMDpkgs,L_SCMDiags,                                       &
-         ! IN variables used in flux calculations
-         u, v, u_0, v_0, rhokm_u_land, rhokm_v_land, flandfac_u,     &
-         flandfac_v, rhokm_u_ssi, rhokm_v_ssi, fseafac_u, fseafac_v, &
-         flandg_u, flandg_v, zhnl, rdz_u, rdz_v, rhokm_u, rhokm_v,   &
-         taux_fd_u, tauy_fd_v,                                       &
-         rhogamu_u, rhogamv_v, f_ngstress_u, f_ngstress_v,           &
-         ! OUT explicit momentum fluxes
-         taux_land, tauy_land, taux_ssi, tauy_ssi, taux, tauy        &
-         )
-
     !-----------------------------------------------------------------------
     ! Needed by ni_imp_ctl whether convection called or not
     !-----------------------------------------------------------------------
@@ -1174,18 +1074,12 @@ contains
     do k = 1, nlayers
       t_latest(1,1,k) = theta_star(map_wth(1) + k) * exner_theta_levels(1,1,k) &
                       + dt_conv(map_wth(1) + k)
-      r_u(1,1,k) = u_physics_star(map_w2(1) + k-1)                             &
-                   - u_physics(map_w2(1) + k-1) + du_conv_w2(map_w2(1) + k-1)
-      r_v(1,1,k) = u_physics_star(map_w2(2) + k-1)                             &
-                   - u_physics(map_w2(2) + k-1) + du_conv_w2(map_w2(2) + k-1)
-      r_w(1,1,k) = u_physics_star(map_w2(5) + k) - u_physics(map_w2(5) + k)
       q_latest(1,1,k)   = m_v(map_wth(1) + k)
       qcl_latest(1,1,k) = m_cl(map_wth(1) + k)
       qcf_latest(1,1,k) = m_ci(map_wth(1) + k)
       ! Set qcf2_latest to zero for now, until needed by CASIM coupling.
       qcf2_latest(1,1,k) = 0.0_r_um
     end do
-    r_w(1,1,0) = u_physics_star(map_w2(5) + 0) - u_physics(map_w2(5) + 0)
 
     !-----------------------------------------------------------------------
     ! fields for bimodal cloud scheme
@@ -1196,7 +1090,6 @@ contains
       tau_hom_in(1,1,k)  = tau_hom_bm(map_wth(1) + k)
       tau_mph_in(1,1,k)  = tau_mph_bm(map_wth(1) + k)
       wvar_in(1,1,k)     = wvar(map_wth(1) + k )
-      gradrinr_in(1,1,k) = gradrinr(map_wth(1) + k)
     end do
 
     if (scheme == scheme_pc2) then
@@ -1264,285 +1157,7 @@ contains
           , t_latest, q_latest, qcl_latest, qcf_latest, qcf2_latest     &
           , cf_latest, cfl_latest, cff_latest                           &
           , R_u, R_v, R_w, cloud_fraction_liquid, cloud_fraction_frozen &
-          , sum_eng_fluxes,sum_moist_flux, rhcpt                        &
-    ! IN arguments for bimodal scheme (dzh is a duplicate argument for
-    ! UM compatibility)
-          , tgrad_in, wvar_in, tau_dec_in, tau_hom_in, tau_mph_in, dzh  &
-    ! INOUT tracer fields
-          , aerosol, free_tracers,  resist_b,  resist_b_surft           &
-          , dust_div1,dust_div2,dust_div3,dust_div4,dust_div5,dust_div6 &
-          , drydep2, so2, dms, so4_aitken, so4_accu, so4_diss, nh3      &
-          , soot_new, soot_aged, soot_cld, bmass_new, bmass_aged        &
-          , bmass_cld, ocff_new, ocff_aged, ocff_cld, nitr_acc, nitr_diss &
-          , co2, ozone_tracer                                           &
-    ! INOUT additional variables for JULES
-          , tstar_surft, fqw_surft, epot_surft, ftl_surft               &
-          , radnet_sice,olr,tstar_sice_ncat,tstar_ssi                   &
-          , tstar_sea,taux_land,taux_ssi,tauy_land,tauy_ssi,Error_code  &
-    ! JULES TYPES (IN OUT)
-          , crop_vars, ainfo, aerotype, progs, coast, jules_vars        &
-          !fluxes, &
-          , lake_vars &
-          , forcing &
-          !rivers, &
-          !veg3_parm, &
-          !veg3_field, &
-          !chemvars
-    ! OUT fields
-          , surf_ht_flux_land, zlcl_mix                                 &
-          , theta_star_surf, qv_star_surf                               &
-    ! OUT additional variables for JULES
-          , tstar, ti_sice, ext, snowmelt,tstar_land,tstar_sice, ei_surft &
-          , ecan_surft, melt_surft, surf_htf_surft                      &
-    ! OUT fields for coupling to the wave model
-          , uwind_wav, vwind_wav                                        &
-            )
-
-    !--------------------------------------------------------------
-    ! update the first two dofs of the wind increment
-    !-------------------------------------------------------------
-    do k = 1, nlayers
-      du_bl_w2(map_w2(1) + k - 1) = r_u(1,1,k)                          &
-         - (u_physics_star(map_w2(1) + k-1) - u_physics(map_w2(1) + k-1))
-      du_bl_w2(map_w2(2) + k - 1) = r_v(1,1,k)                          &
-         - (u_physics_star(map_w2(2) + k-1) - u_physics(map_w2(2) + k-1))
-    end do
-
-    !---------------------------------------------------------------
-    ! now need to re-run using the 2nd two dofs
-    !---------------------------------------------------------------
-
-    ! First we need to re-set everythign which has been over-written or
-    ! allocated/deallocated
-    call dealloc_bl_imp(bl_diag)
-    call dealloc_sf_imp(sf_diag)
-    call alloc_bl_expl(bl_diag, outer == outer_iterations)
-
-    if (bl_diag%l_tke) then
-      allocate(bl_diag%tke(pdims%i_start:pdims%i_end,                   &
-                           pdims%j_start:pdims%j_end,bl_levels))
-      do k = 1, bl_levels
-        bl_diag%tke(:,:,k) = 0.0
-      end do
-    else
-      allocate(bl_diag%tke(1,1,1))
-    end if
-
-    if (bl_diag%l_elm3d) then
-      allocate(bl_diag%elm3d(pdims%i_start:pdims%i_end,                &
-                           pdims%j_start:pdims%j_end,bl_levels))
-      do k = 1, bl_levels
-        bl_diag%elm3d(:,:,k) = 0.0
-      end do
-    else
-      allocate(bl_diag%elm3d(1,1,1))
-    end if
-
-    allocate(bl_diag%gradrich(1,1,1))
-
-
-    ! Land tile temperatures
-    tstar_land = 0.0_r_um
-    do i = 1, n_land_tile
-      tstar_surft(1, i) = real(tile_temperature(map_tile(1)+i-1), r_um)
-      tstar_land = tstar_land + frac_surft(1, i) * tstar_surft(1, i)
-      ! sensible heat flux
-      ftl_surft(1, i) = real(tile_heat_flux(map_tile(1)+i-1), r_um)
-      ! moisture flux
-      fqw_surft(1, i) = real(tile_moisture_flux(map_tile(1)+i-1), r_um)
-    end do
-
-    ! Sea temperature
-    tstar_sea = 0.0_r_um
-    if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
-      tstar_sea = real(tile_temperature(map_tile(1)+first_sea_tile-1), r_um)
-    end if
-
-    ! Sea-ice temperatures
-    i_sice = 0
-    tstar_sice = 0.0_r_um
-    if (ice_fract(1, 1) > 0.0_r_um) then
-      do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
-        i_sice = i_sice + 1
-        tstar_sice_ncat(1, 1, i_sice) = real(tile_temperature(map_tile(1)+i-1), r_um)
-        tstar_sice = tstar_sice &
-                   + ice_fract_ncat(1,1,i_sice) * tstar_sice_ncat(1,1,i_sice) &
-                   / ice_fract
-        ! sea-ice heat flux
-        ftl_ice(1,1,i_sice) = real(tile_heat_flux(map_tile(1)+i-1), r_um)
-        ! sea-ice moisture flux
-        fqw_ice(1,1,i_sice) = real(tile_moisture_flux(map_tile(1)+i-1), r_um)
-      end do
-    end if
-
-    ! Sea & Sea-ice temperature
-    tstar_ssi = (1.0_r_um - ice_fract) * tstar_sea + ice_fract * tstar_sice
-
-    ! Grid-box mean surface temperature
-    tstar = flandg * tstar_land + (1.0_r_um - flandg) * tstar_ssi
-
-    ! Sea-ice conductivity, bulk temperature and thickness
-    do i = 1, n_sea_ice_tile
-      ti_sice_ncat(1, 1, i) = real(sea_ice_temperature(map_sice(1)+i-1), r_um)
-    end do
-
-    ! Things passed from other parametrization schemes on this timestep
-
-    ! Update variables with 2nd two DOFs
-    do k = 1, nlayers
-      ! u wind on rho levels
-      u(1,1,k) = u_physics(map_w2(3) + k-1)
-      ! v wind on rho levels
-      v(1,1,k) = u_physics(map_w2(4) + k-1)
-    end do
-
-    rhokm_u_land(1,1) = rhokm_surf_w2(map_w2_2d(3) + 0)
-    rhokm_u_ssi(1,1) = rhokm_surf_w2(map_w2_2d(3) + 1)
-    flandg_u(1,1) = rhokm_surf_w2(map_w2_2d(3) + 2)
-    flandfac_u(1,1) = rhokm_surf_w2(map_w2_2d(3) + 3)
-    fseafac_u(1,1) = rhokm_surf_w2(map_w2_2d(3) + 4)
-    rhokm_v_land(1,1) = rhokm_surf_w2(map_w2_2d(4) + 0)
-    rhokm_v_ssi(1,1) = rhokm_surf_w2(map_w2_2d(4) + 1)
-    flandg_v(1,1) = rhokm_surf_w2(map_w2_2d(4) + 2)
-    flandfac_v(1,1) = rhokm_surf_w2(map_w2_2d(4) + 3)
-    fseafac_v(1,1) = rhokm_surf_w2(map_w2_2d(4) + 4)
-    do k = 1, bl_levels
-      rhokm_u(1,1,k) = rhokm_w2(map_w2(3) + k)
-      rhokm_v(1,1,k) = rhokm_w2(map_w2(4) + k)
-      rhokh(1,1,k) = rhokh_bl(map_w3(1) + k)
-      fqw(1,1,k) = moist_flux_bl(map_w3(1) + k)
-      ftl(1,1,k) = heat_flux_bl(map_w3(1) + k)
-      dtrdz_u(1,1,k) = dtrdz_w2(map_w2(3) + k)
-      dtrdz_v(1,1,k) = dtrdz_w2(map_w2(4) + k)
-    end do
-    if (formdrag == formdrag_dist_drag) then
-      do k = 1, bl_levels
-        taux_fd_u(1,1,k) = fd_tau_w2(map_w2(3) + k)
-        tauy_fd_v(1,1,k) = fd_tau_w2(map_w2(4) + k)
-      end do
-    end if
-    do k = 2, bl_levels
-      rdz_u(1,1,k) = rdz_w2(map_w2(3) + k)
-      rdz_v(1,1,k) = rdz_w2(map_w2(4) + k)
-      f_ngstress_u(1,1,k) = ngstress_w2(map_w2(3) + k)
-      f_ngstress_v(1,1,k) = ngstress_w2(map_w2(4) + k)
-    end do
-
-    do i = 1, n_land_tile
-      dtstar_surft(1, i) = dtstar_tile(map_tile(1)+i-1)
-    end do
-
-    dtstar_sea(1,1) = dtstar_tile(map_tile(1)+first_sea_tile-1)
-
-    i_sice = 0
-    do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
-      i_sice = i_sice + 1
-      dtstar_sice(1,1,i_sice) = dtstar_tile(map_tile(1)+i-1)
-    end do
-
-    ! Re-call the scheme
-    call bdy_expl3 (                                                 &
-         ! IN grid related variables
-         bl_levels, l_calc_at_p,                                     &
-         udims, vdims, udims_s, vdims_s, pdims,                      &
-         udims, vdims,                                               &
-         ! IN SCM diags
-         nSCMDpkgs,L_SCMDiags,                                       &
-         ! IN variables used in flux calculations
-         u, v, u_0, v_0, rhokm_u_land, rhokm_v_land, flandfac_u,     &
-         flandfac_v, rhokm_u_ssi, rhokm_v_ssi, fseafac_u, fseafac_v, &
-         flandg_u, flandg_v, zhnl, rdz_u, rdz_v, rhokm_u, rhokm_v,   &
-         taux_fd_u, tauy_fd_v,                                       &
-         rhogamu_u, rhogamv_v, f_ngstress_u, f_ngstress_v,           &
-         ! OUT explicit momentum fluxes
-         taux_land, tauy_land, taux_ssi, tauy_ssi, taux, tauy        &
-         )
-
-    !-----------------------------------------------------------------------
-    ! increments / fields with increments added
-    !-----------------------------------------------------------------------
-    do k = 1, nlayers
-      t_latest(1,1,k) = theta_star(map_wth(1) + k) * exner_theta_levels(1,1,k) &
-                      + dt_conv(map_wth(1) + k)
-      r_u(1,1,k) = u_physics_star(map_w2(3) + k-1)                             &
-                   - u_physics(map_w2(3) + k-1) + du_conv_w2(map_w2(3) + k-1)
-      r_v(1,1,k) = u_physics_star(map_w2(4) + k-1)                             &
-                   - u_physics(map_w2(4) + k-1) + du_conv_w2(map_w2(4) + k-1)
-      r_w(1,1,k) = u_physics_star(map_w2(5) + k) - u_physics(map_w2(5) + k)
-      q_latest(1,1,k)   = m_v(map_wth(1) + k)
-      qcl_latest(1,1,k) = m_cl(map_wth(1) + k)
-      qcf_latest(1,1,k) = m_ci(map_wth(1) + k)
-      ! Set qcf2_latest to zero for now, until needed by CASIM coupling.
-      qcf2_latest(1,1,k) = 0.0_r_um
-    end do
-    r_w(1,1,0) = u_physics_star(map_w2(5) + 0) - u_physics(map_w2(5) + 0)
-
-    if (scheme == scheme_pc2) then
-      do k = 1, nlayers
-        ! Assign _latest with current updated values
-        cfl_latest(1,1,k) = cf_liq(map_wth(1) + k)
-        cff_latest(1,1,k) = cf_ice(map_wth(1) + k)
-        cf_latest(1,1,k)  = cf_bulk(map_wth(1) + k)
-      end do
-    end if
-
-    call NI_imp_ctl (                                                   &
-    ! IN Model switches
-            outer                                                       &
-    ! IN trig arrays
-          , xx_cos_theta_latitude                                       &
-    ! IN data fields.
-          , p_theta_levels, p_rho_minus_one, rho_wet_rsq, rho_wet_tq    &
-          , u, v, w                                                     &
-          , land_sea_mask, q, qcl, qcf, p_star, theta, qrain            &
-          , exner_theta_levels                                          &
-    ! IN ancillary fields and fields needed to be kept from tstep to tstep
-          , sil_orog_land_gb, ho2r2_orog_gb                             &
-          , ice_fract, di_sice_ncat, ice_fract_ncat, k_sice_ncat        &
-          , u_0, v_0, land_index, cca_3d, lcbase, ccb0, cct0            &
-          , ls_rain, ls_snow, conv_rain, conv_snow                      &
-    ! IN variables required from BDY_LAYR
-          , alpha1_sea, alpha1_sice, ashtf_prime_sea, ashtf_prime, bq_gb, bt_gb&
-          , dtrdz_charney_grid, rdz_charney_grid, dtrdz_u, dtrdz_v      &
-          , rdz_u, rdz_v, cdr10m_u, cdr10m_v, z_theta                   &
-          , k_blend_tq, k_blend_uv, u_s, rhokm, rhokm_u, rhokm_v        &
-    ! IN diagnostics (started or from) BDY_LAYR
-          , rib_gb,zlcl, zhnl, dzh, qcl_inv_top, zh                     &
-          , bl_type_1,bl_type_2,bl_type_3,bl_type_4,bl_type_5,bl_type_6 &
-          , bl_type_7, z0m_eff_gb, ntml, cumulus                        &
-    ! IN data required for tracer mixing :
-          , rho_aresist,aresist,r_b_dust                                &
-          , kent, we_lim, t_frac, zrzi                                  &
-          , kent_dsc, we_lim_dsc, t_frac_dsc, zrzi_dsc                  &
-          , zhsc,z_rho,dust_flux,dust_emiss_frac                        &
-          , u_s_t_tile,u_s_t_dry_tile,u_s_std_surft                     &
-     ! IN additional variables for JULES. Now includes lai_pft, canht_pft.
-          , surft_pts,surft_index,frac_surft,canopy_surft               &
-          , alpha1,fraca,rhokh_surft,smc_soilt,chr1p5m,resfs,z0hssi,z0mssi &
-          , canhc_surft,flake,wt_ext_surft,lw_down,lai_pft,canht_pft    &
-          , sw_surft,ashtf_prime_surft,gc_surft,aresist_surft           &
-          , resft,rhokh_sice,rhokh_sea,z0h_surft,z0m_surft              &
-          , chr1p5m_sice                                                &
-          , fland, flandg, flandg_u,flandg_v                            &
-          , emis_surft, t_soil_soilt, snow_surft, sstfrz                &
-    ! IN JULES variables for STASH
-          , gs_gb, npp_gb, resp_s_gb_um                                 &
-          , resp_s_tot_soilt,cs_pool_gb_um                              &
-          , catch_surft                                                 &
-          , co2_emits, co2flux                                          &
-    ! INOUT diagnostic info
-          , STASHwork3, STASHwork9                                      &
-    ! SCM Diagnostics (dummy in full UM) & BL diags
-          , nSCMDpkgs, L_SCMDiags, bl_diag, sf_diag                     &
-    ! INOUT (Note ti_sice_ncat and ti_sice are IN if l_sice_multilayers=T)
-          , TScrnDcl_SSI, TScrnDcl_surft, tStbTrans                     &
-          , cca0, fqw, ftl, taux, tauy, rhokh                           &
-          , fqw_ice,ftl_ice,dtstar_surft,dtstar_sea,dtstar_sice,ti_sice_ncat &
-          , area_cloud_fraction, bulk_cloud_fraction                    &
-          , t_latest, q_latest, qcl_latest, qcf_latest, qcf2_latest     &
-          , cf_latest, cfl_latest, cff_latest                           &
-          , R_u, R_v, R_w, cloud_fraction_liquid, cloud_fraction_frozen &
-          , sum_eng_fluxes,sum_moist_flux, rhcpt                        &
+          , sum_eng_fluxes,sum_moist_flux, rhcpt, dissip_u, dissip_v    &
     ! IN arguments for bimodal scheme (dzh is a duplicate argument for
     ! UM compatibility)
           , tgrad_in, wvar_in, tau_dec_in, tau_hom_in, tau_mph_in, dzh  &
@@ -1589,11 +1204,6 @@ contains
       ! cloud liquid and ice water on theta levels
       m_cl(map_wth(1) + k) = qcl_latest(1,1,k)
       m_ci(map_wth(1) + k) = qcf_latest(1,1,k)
-      ! wind increments
-      du_bl_w2(map_w2(3) + k - 1) = r_u(1,1,k)                          &
-         - (u_physics_star(map_w2(3) + k-1) - u_physics(map_w2(3) + k-1))
-      du_bl_w2(map_w2(4) + k - 1) = r_v(1,1,k)                          &
-         - (u_physics_star(map_w2(4) + k-1) - u_physics(map_w2(4) + k-1))
     end do
 
     ! Update lowest-level values
@@ -1652,11 +1262,27 @@ contains
 
       z_lcl(map_2d(1)) = zlcl_mix(1,1)
 
+      do k = 0, bl_levels-1
+        heat_flux_bl(map_w3(1)+k) = ftl(1,1,k+1)
+        moist_flux_bl(map_w3(1)+k) = fqw(1,1,k+1)
+      end do
+
+      tile_heat_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+      tile_moisture_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
       ! Update land tiles
       do i = 1, n_land_tile
         tile_temperature(map_tile(1)+i-1) = real(tstar_surft(1, i), r_def)
         tile_heat_flux(map_tile(1)+i-1) = real(ftl_surft(1, i), r_def)
         tile_moisture_flux(map_tile(1)+i-1) = real(fqw_surft(1, i), r_def)
+        ! Sum the fluxes over the land for use in sea point calculation
+        if (tile_fraction(map_tile(1)+i-1) > 0.0_r_def) then
+        tile_heat_flux(map_tile(1)+first_sea_tile-1) =                         &
+             tile_heat_flux(map_tile(1)+first_sea_tile-1)                      &
+             + ftl_surft(1,i) * tile_fraction(map_tile(1)+i-1)
+        tile_moisture_flux(map_tile(1)+first_sea_tile-1) =                     &
+             tile_moisture_flux(map_tile(1)+first_sea_tile-1)                  &
+             + fqw_surft(1,i) * tile_fraction(map_tile(1)+i-1)
+        end if
         snow_sublimation(map_tile(1)+i-1) = real(ei_surft(1, i), r_def)
         ! NB - net surface heat flux
         surf_heat_flux(map_tile(1)+i-1) = real(surf_htf_surft(1, i), r_def)
@@ -1666,24 +1292,48 @@ contains
 
       ! Update sea tile
       tile_temperature(map_tile(1)+first_sea_tile-1) = real(tstar_sea(1,1), r_def)
-      ! NB actually grid box mean but okay for aquaplanet
-      tile_heat_flux(map_tile(1)+first_sea_tile-1) = real(ftl(1,1,1), r_def)
-      ! NB actually grid box mean but okay for aquaplanet
-      tile_moisture_flux(map_tile(1)+first_sea_tile-1) = real(fqw(1,1,1), r_def)
 
       ! Update sea-ice tiles
       i_sice = 0
       do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1
         i_sice = i_sice + 1
         tile_temperature(map_tile(1)+i-1) = real(tstar_sice_ncat(1,1,i_sice), r_def)
-        tile_heat_flux(map_tile(1)+i-1) = real(ftl_ice(1,1,i_sice), r_def)
-        tile_moisture_flux(map_tile(1)+i-1) = real(fqw_ice(1,1,i_sice), r_def)
+        if (ice_fract_ncat(1,1,i_sice) > 0.0_r_def) then
+          ! un-do the scaling which is done in Jules
+          tile_heat_flux(map_tile(1)+i-1) =                                    &
+               real(ftl_ice(1,1,i_sice)/ice_fract_ncat(1,1,i_sice), r_def)
+          tile_moisture_flux(map_tile(1)+i-1) =                                &
+               real(fqw_ice(1,1,i_sice)/ice_fract_ncat(1,1,i_sice), r_def)
+        else
+          tile_heat_flux(map_tile(1)+i-1) = 0.0_r_def
+          tile_moisture_flux(map_tile(1)+i-1) = 0.0_r_def
+        end if
+        ! Sum the fluxes over the sea-ice for use in sea point calculation
+        tile_heat_flux(map_tile(1)+first_sea_tile-1) =                         &
+             tile_heat_flux(map_tile(1)+first_sea_tile-1)                      &
+             + tile_heat_flux(map_tile(1)+i-1) * tile_fraction(map_tile(1)+i-1)
+        tile_moisture_flux(map_tile(1)+first_sea_tile-1) =                     &
+             tile_moisture_flux(map_tile(1)+first_sea_tile-1)                  &
+             + tile_moisture_flux(map_tile(1)+i-1) * tile_fraction(map_tile(1)+i-1)
       end do
 
       ! Sea-ice bulk temperature
       do i = 1, n_sea_ice_tile
         sea_ice_temperature(map_sice(1)+i-1) = real(ti_sice_ncat(1, 1, i), r_def)
       end do
+
+      ! Sea tile fluxes
+      if (tile_fraction(map_tile(1)+first_sea_tile-1) > 0.0_r_def) then
+        tile_heat_flux(map_tile(1)+first_sea_tile-1) = ( ftl(1,1,1) -          &
+             tile_heat_flux(map_tile(1)+first_sea_tile-1) )                    &
+             / tile_fraction(map_tile(1)+first_sea_tile-1)
+        tile_moisture_flux(map_tile(1)+first_sea_tile-1) = ( fqw(1,1,1) -      &
+             tile_moisture_flux(map_tile(1)+first_sea_tile-1) )                &
+             / tile_fraction(map_tile(1)+first_sea_tile-1)
+      else
+        tile_heat_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+        tile_moisture_flux(map_tile(1)+first_sea_tile-1) = 0.0_r_def
+      end if
 
       do i = 1, sm_levels
         water_extraction(map_soil(1)+i-1) = real(ext(1, i), r_def)

@@ -178,7 +178,7 @@ module gungho_step_mod
           if ( use_physics ) call moisture_fluxes_alg( clock%get_step(),    &
                                                        microphysics_fields, &
                                                        convection_fields,   &
-                                                       surface_fields,      &
+                                                       turbulence_fields,   &
                                                        dA,                  &
                                                        dt )
         end if

@@ -88,7 +88,8 @@ contains
                                          aerosol_fields )
 
 #ifdef UM_PHYSICS
-    use jules_control_init_mod,  only: n_surf_tile, n_sea_ice_tile, soil_lev_tile
+    use jules_control_init_mod,  only: n_surf_tile, n_sea_ice_tile,            &
+         soil_lev_tile, n_surf_interp
     use jules_physics_init_mod,  only: snow_lev_tile
     use jules_surface_types_mod, only: npft
     use nlsizes_namelist_mod,    only: sm_levels
@@ -210,6 +211,8 @@ contains
       'u_physics_star', w2_space )
     call add_physics_field( derived_fields, depository, prognostic_fields,     &
       'u_star',         w2_space )
+    call add_physics_field( derived_fields, depository, prognostic_fields,     &
+      'wetrho_in_w2',   w2_space )
 
 #ifdef UM_PHYSICS
     !========================================================================
@@ -400,16 +403,10 @@ contains
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'blend_height_tq',  twod_space, twod=.true. )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'blend_height_uv',  twod_space, twod=.true. )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'zh_nonloc',  twod_space, twod=.true. )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'zhsc',  twod_space, twod=.true. )
 
-    ! Space for the three fields required to regrid this
-    vector_space => function_space_collection%get_fs(twod_mesh_id, 0, W3, 5)
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'rhokm_surf',  vector_space, twod=.true. )
     ! Space for the 7 BL types
     vector_space => function_space_collection%get_fs(twod_mesh_id, 0, W3, 7)
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
@@ -417,21 +414,11 @@ contains
 
     ! 3D fields, don't need checkpointing
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'rhokm_bl', wtheta_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'ngstress_bl', wtheta_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'bq_bl', wtheta_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'bt_bl', wtheta_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'dtrdz_tq_bl', wtheta_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'rdz_uv_bl', wtheta_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'fd_taux', wtheta_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'fd_tauy', wtheta_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'lmix_bl', wtheta_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
@@ -445,13 +432,15 @@ contains
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'heat_flux_bl',     w3_space )
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
-      'dtrdz_uv_bl',     w3_space )
-    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'rdz_tq_bl',     w3_space )
 
     ! W2 fields, don't need checkpointing
     call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
       'du_bl', w2_space )
+    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
+      'rhokm_w2', w2_space )
+    call add_physics_field( turbulence_fields, depository, prognostic_fields,  &
+      'tau_w2', w2_space )
 
     !========================================================================
     ! Fields owned by the convection scheme
@@ -667,6 +656,24 @@ contains
       'ustar', twod_space, twod=.true. )
     call add_physics_field(surface_fields, depository, prognostic_fields,      &
       'net_prim_prod', twod_space, twod=.true.)
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'wspd10m', twod_space, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'taux_ssi', twod_space, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'tauy_ssi', twod_space, twod=.true. )
+
+    ! Space for variables required for regridding to cell faces
+    vector_space => function_space_collection%get_fs(twod_mesh_id, 0, W2, n_surf_interp)
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'surf_interp_w2',  vector_space, twod=.true. )
+
+    ! 2D fields at W2 points
+    vector_space => function_space_collection%get_fs(twod_mesh_id, 0, W2)
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'tau_land_w2',  vector_space, twod=.true. )
+    call add_physics_field( surface_fields, depository, prognostic_fields,     &
+      'tau_ssi_w2',  vector_space, twod=.true. )
 
     ! Field on soil levels and land tiles
     vector_space => function_space_collection%get_fs(twod_mesh_id, 0, W3, soil_lev_tile)

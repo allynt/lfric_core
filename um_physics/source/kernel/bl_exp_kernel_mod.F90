@@ -51,10 +51,9 @@ module bl_exp_kernel_mod
   !>
   type, public, extends(kernel_type) :: bl_exp_kernel_type
     private
-    type(arg_type) :: meta_args(125) = (/                                      &
+    type(arg_type) :: meta_args(121) = (/                                      &
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! theta_in_wth
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3),                       &! rho_in_w3
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3),                       &! wetrho_in_w3
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! wetrho_in_wth
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3),                       &! exner_in_w3
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! exner_in_wth
@@ -129,19 +128,17 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! visc_h_blend
          arg_type(GH_FIELD, GH_REAL,  GH_INC,       W2),                       &! du_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! rhokm_bl
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_7),&! rhokm_surf
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_7),&! surf_interp
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! rhokh_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! ngstress_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! bq_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! bt_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! moist_flux_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! heat_flux_bl
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! dtrdz_uv_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! dtrdz_tq_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! rdz_tq_bl
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! rdz_uv_bl
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! fd_taux
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! fd_tauy
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! fd_taux
+         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     W3),                       &! fd_tauy
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! lmix_bl
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     WTHETA),                   &! gradrinr
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! alpha1_tile
@@ -156,7 +153,6 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_2),&! canhc_tile
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_8),&! tile_water_extract
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! blend_height_tq
-         arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! blend_height_uv
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! ustar
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! soil_moist_avail
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! zh_nonloc
@@ -195,7 +191,6 @@ contains
   !> @param[in]     nlayers                Number of layers
   !> @param[in]     theta_in_wth           Potential temperature field
   !> @param[in]     rho_in_w3              Density field in density space
-  !> @param[in]     wetrho_in_w3           Wet density field in density space
   !> @param[in]     wetrho_in_wth          Wet density field in wth space
   !> @param[in]     exner_in_w3            Exner pressure field in density space
   !> @param[in]     exner_in_wth           Exner pressure field in wth space
@@ -270,17 +265,15 @@ contains
   !> @param[in,out] visc_h_blend           Blended BL-Smag diffusion coefficient for scalars
   !> @param[in,out] du_bl                  Wind increment from BL scheme
   !> @param[in,out] rhokm_bl               Momentum eddy diffusivity on BL levels
-  !> @param[in,out] rhokm_surf             Momentum eddy diffusivity for coastal tiling
+  !> @param[in,out] surf_interp            Surface variables for regridding
   !> @param[in,out] rhokh_bl               Heat eddy diffusivity on BL levels
   !> @param[in,out] ngstress_bl            Non-gradient stress function on BL levels
   !> @param[in,out] bq_bl                  Buoyancy parameter for moisture
   !> @param[in,out] bt_bl                  Buoyancy parameter for heat
   !> @param[in,out] moist_flux_bl          Vertical moisture flux on BL levels
   !> @param[in,out] heat_flux_bl           Vertical heat flux on BL levels
-  !> @param[in,out] dtrdz_uv_bl            dt/(rho*r*r*dz) in w3 space
   !> @param[in,out] dtrdz_tq_bl            dt/(rho*r*r*dz) in wth
   !> @param[in,out] rdz_tq_bl              1/dz in w3
-  !> @param[in,out] rdz_uv_bl              1/dz in wth space
   !> @param[in,out] fd_taux                'Zonal' momentum stress from form drag
   !> @param[in,out] fd_tauy                'Meridional' momentum stress from form drag
   !> @param[in,out] lmix_bl                Turbulence mixing length in wth
@@ -297,7 +290,6 @@ contains
   !> @param[in,out] canhc_tile             Canopy heat capacity on tiles
   !> @param[in,out] tile_water_extract     Extraction of water from each tile
   !> @param[in,out] blend_height_tq        Blending height for wth levels
-  !> @param[in,out] blend_height_uv        Blending height for w3 levels
   !> @param[in,out] ustar                  Friction velocity
   !> @param[in,out] soil_moist_avail       Available soil moisture for evaporation
   !> @param[in,out] zh_nonloc              Depth of non-local BL scheme
@@ -357,7 +349,6 @@ contains
   subroutine bl_exp_code(nlayers,                               &
                          theta_in_wth,                          &
                          rho_in_w3,                             &
-                         wetrho_in_w3,                          &
                          wetrho_in_wth,                         &
                          exner_in_w3,                           &
                          exner_in_wth,                          &
@@ -435,17 +426,15 @@ contains
                          visc_h_blend,                          &
                          du_bl,                                 &
                          rhokm_bl,                              &
-                         rhokm_surf,                            &
+                         surf_interp,                           &
                          rhokh_bl,                              &
                          ngstress_bl,                           &
                          bq_bl,                                 &
                          bt_bl,                                 &
                          moist_flux_bl,                         &
                          heat_flux_bl,                          &
-                         dtrdz_uv_bl,                           &
                          dtrdz_tq_bl,                           &
                          rdz_tq_bl,                             &
-                         rdz_uv_bl,                             &
                          fd_taux,                               &
                          fd_tauy,                               &
                          lmix_bl,                               &
@@ -462,7 +451,6 @@ contains
                          canhc_tile,                            &
                          tile_water_extract,                    &
                          blend_height_tq,                       &
-                         blend_height_uv,                       &
                          ustar,                                 &
                          soil_moist_avail,                      &
                          zh_nonloc,                             &
@@ -608,17 +596,14 @@ contains
                                                            ngstress_bl,        &
                                                            bq_bl, bt_bl,       &
                                                            dtrdz_tq_bl,        &
-                                                           rdz_uv_bl,          &
-                                                           fd_taux, fd_tauy,   &
                                                            lmix_bl,            &
                                                            gradrinr
     real(kind=r_def), dimension(undf_w3),  intent(inout):: rhokh_bl,           &
                                                            moist_flux_bl,      &
                                                            heat_flux_bl,       &
-                                                           dtrdz_uv_bl,        &
-                                                           rdz_tq_bl
+                                                           rdz_tq_bl, fd_taux, &
+                                                           fd_tauy
     real(kind=r_def), dimension(undf_w3),  intent(in)   :: rho_in_w3,          &
-                                                           wetrho_in_w3,       &
                                                            exner_in_w3,        &
                                                            u1_in_w3, u2_in_w3, &
                                                            height_w3
@@ -645,7 +630,6 @@ contains
     real(kind=r_def), dimension(undf_2d), intent(inout) :: ntml_2d,            &
                                                            cumulus_2d,         &
                                                            blend_height_tq,    &
-                                                           blend_height_uv,    &
                                                            ustar,              &
                                                            soil_moist_avail,   &
                                                            zh_nonloc,          &
@@ -716,7 +700,7 @@ contains
 
     real(kind=r_def), dimension(undf_bl),   intent(inout)  :: bl_type_ind
     real(kind=r_def), dimension(undf_pft),  intent(inout)  :: snow_unload_rate
-    real(kind=r_def), dimension(undf_surf), intent(inout)  :: rhokm_surf
+    real(kind=r_def), dimension(undf_surf), intent(inout)  :: surf_interp
     real(kind=r_def), dimension(undf_tile), intent(inout):: alpha1_tile,      &
                                                             ashtf_prime_tile, &
                                                             dtstar_tile,      &
@@ -1230,7 +1214,6 @@ contains
       theta(1,1,k) = theta_in_wth(map_wth(1) + k)
       ! wet density on theta and rho levels
       rho_wet_tq(1,1,k) = wetrho_in_wth(map_wth(1) + k)
-      rho_wet(1,1,k) = wetrho_in_w3(map_w3(1) + k-1)
       ! dry density on rho levels
       rho_dry(1,1,k) = rho_in_w3(map_w3(1) + k-1)
       ! pressure on rho and theta levels
@@ -1283,8 +1266,6 @@ contains
     exner_theta_levels(1,1,0) = exner_in_wth(map_wth(1) + 0)
     ! near surface potential temperature
     theta(1,1,0) = theta_in_wth(map_wth(1) + 0)
-    ! wet density multiplied by planet radius squared on rho levs
-    rho_wet_rsq(1,1,:) = rho_wet(1,1,:) * r_rho_levels(1,1,:)**2
     ! non-halo u and v winds
     u_p(1,1,:) = u_px(1,1,:)
     v_p(1,1,:) = v_px(1,1,:)
@@ -1619,33 +1600,45 @@ contains
 
     end if
 
-    rhokm_surf(map_surf(1)+0) = rhokm_land(1,1)
-    rhokm_surf(map_surf(1)+1) = rhokm_ssi(1,1)
-    rhokm_surf(map_surf(1)+2) = flandg(1,1)
-    rhokm_surf(map_surf(1)+3) = flandfac(1,1)
-    rhokm_surf(map_surf(1)+4) = fseafac(1,1)
+    ! 2D variables that need interpolating to cell faces
+    surf_interp(map_surf(1)+0) = flandg(1,1)
+    surf_interp(map_surf(1)+1) = rhokm_land(1,1)
+    surf_interp(map_surf(1)+2) = rhokm_ssi(1,1)
+    surf_interp(map_surf(1)+3) = flandfac(1,1)
+    surf_interp(map_surf(1)+4) = fseafac(1,1)
+    surf_interp(map_surf(1)+5) = zhnl(1,1)
+    surf_interp(map_surf(1)+6) = fb_surf(1,1)
+    surf_interp(map_surf(1)+7) = real(k_blend_uv(1,1)-1, r_def)
+    surf_interp(map_surf(1)+8) = cdr10m(1,1)
     do k=1,bl_levels
-      rhokm_bl(map_wth(1) + k) = rhokm(1,1,k)
-      rhokh_bl(map_w3(1) + k) = rhokh(1,1,k)
-      bq_bl(map_wth(1) + k) = bq_gb(1,1,k)
-      bt_bl(map_wth(1) + k) = bt_gb(1,1,k)
-      moist_flux_bl(map_w3(1) + k) = fqw(1,1,k)
-      heat_flux_bl(map_w3(1) + k) = ftl(1,1,k)
-      dtrdz_uv_bl(map_w3(1) + k) = dtrdz_u(1,1,k)
+      rhokm_bl(map_wth(1) + k-1) = rhokm(1,1,k)
+      rhokh_bl(map_w3(1) + k-1) = rhokh(1,1,k)
+      bq_bl(map_wth(1) + k-1) = bq_gb(1,1,k)
+      bt_bl(map_wth(1) + k-1) = bt_gb(1,1,k)
+      moist_flux_bl(map_w3(1) + k-1) = fqw(1,1,k)
+      heat_flux_bl(map_w3(1) + k-1) = ftl(1,1,k)
       dtrdz_tq_bl(map_wth(1) + k) = dtrdz_charney_grid(1,1,k)
-      rdz_tq_bl(map_w3(1) + k) = rdz_charney_grid(1,1,k)
+      rdz_tq_bl(map_w3(1) + k-1) = rdz_charney_grid(1,1,k)
     end do
     if (formdrag == formdrag_dist_drag) then
       do k=1,bl_levels
-        fd_taux(map_wth(1) + k) = tau_fd_x(1,1,k)
-        fd_tauy(map_wth(1) + k) = tau_fd_y(1,1,k)
+        ! These fields will be passed to set wind, which maps w3 (cell centre)
+        ! to w2 (cell face) vectors. However, they are actually defined in
+        ! wtheta (cell top centre) and need mapping to fd1 (cell top edge).
+        ! Set wind will therefore work correctly, but the indexing is shifted
+        ! by half a level in the vertical for the input & output
+        fd_taux(map_w3(1) + k-1) = tau_fd_x(1,1,k)
+        fd_tauy(map_w3(1) + k-1) = tau_fd_y(1,1,k)
+      end do
+      do k=bl_levels+1,nlayers
+        fd_taux(map_w3(1) + k-1) = 0.0_r_def
+        fd_tauy(map_w3(1) + k-1) = 0.0_r_def
       end do
     end if
     do k=2,bl_levels
-      rdz_uv_bl(map_wth(1) + k) = rdz_u(1,1,k)
       gradrinr(map_wth(1) + k-1) = BL_diag%gradrich(1,1,k)
       lmix_bl(map_wth(1) + k-1)  = BL_diag%elm3d(1,1,k)
-      ngstress_bl(map_wth(1) + k) = f_ngstress(1,1,k)
+      ngstress_bl(map_wth(1) + k-1) = f_ngstress(1,1,k)
     end do
 
     do i = 1, n_land_tile
@@ -1687,7 +1680,6 @@ contains
     chr1p5m_tile(map_tile(1)+first_sea_ice_tile-1) = chr1p5m_sice(1,1)
 
     blend_height_tq(map_2d(1)) = real(k_blend_tq(1,1), r_def)
-    blend_height_uv(map_2d(1)) = real(k_blend_uv(1,1), r_def)
     ustar(map_2d(1)) = u_s(1,1)
     soil_moist_avail(map_2d(1)) = smc_soilt(1)
     zh_nonloc(map_2d(1)) = zhnl(1,1)
@@ -1733,10 +1725,6 @@ contains
 
     ! Sea temperature
     tile_temperature(map_tile(1)+first_sea_tile-1) = real(tstar_sea(1,1), r_def)
-    ! heat flux - NB actually grid box mean but okay for aquaplanet
-    tile_heat_flux(map_tile(1)+first_sea_tile-1) = real(ftl(1,1,1), r_def)
-    ! moisture flux - NB actually grid box mean but okay for aquaplanet
-    tile_moisture_flux(map_tile(1)+first_sea_tile-1) = real(fqw(1,1,1), r_def)
 
     i_sice = 0
     do i = first_sea_ice_tile, first_sea_ice_tile + n_sea_ice_tile - 1

@@ -24,6 +24,8 @@ module jules_control_init_mod
   integer(kind=i_def), parameter :: n_sea_tile  = 1
   integer(kind=i_def), parameter :: n_sea_ice_tile = 1
 
+  integer(kind=i_def), parameter :: n_surf_interp = 9
+
   integer(kind=i_def), protected :: n_surf_tile
   integer(kind=i_def), protected :: first_sea_tile
   integer(kind=i_def), protected :: first_sea_ice_tile
@@ -34,7 +36,7 @@ module jules_control_init_mod
   private
   public :: n_land_tile, n_sea_tile, n_sea_ice_tile, n_surf_tile, &
        first_sea_tile, first_sea_ice_tile, jules_control_init,    &
-       sw_band_tile, lw_band_tile, soil_lev_tile
+       sw_band_tile, lw_band_tile, soil_lev_tile, n_surf_interp
 
 contains
 

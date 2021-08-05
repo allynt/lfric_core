@@ -41,6 +41,9 @@ contains
     type( field_type ), pointer :: sea_ice_thickness   => null()
     type( field_type ), pointer :: sea_ice_temperature => null()
 
+    ! Diagnostic fields
+    type( field_type ), pointer :: tau_ssi_w2          => null()
+
     type( field_type ), pointer :: tile_fraction       => null()
     type( field_type ), pointer :: leaf_area_index     => null()
     type( field_type ), pointer :: canopy_height       => null()
@@ -54,6 +57,7 @@ contains
     chloro_sea          => surface_fields%get_field('chloro_sea')
     sea_ice_thickness   => surface_fields%get_field('sea_ice_thickness')
     sea_ice_temperature => surface_fields%get_field('sea_ice_temperature')
+    tau_ssi_w2          => surface_fields%get_field('tau_ssi_w2')
 
     tile_fraction       => surface_fields%get_field('tile_fraction')
     leaf_area_index     => surface_fields%get_field('leaf_area_index')
@@ -69,6 +73,8 @@ contains
                  setval_c(chloro_sea,          5.0e-7_r_def),                 &
                  setval_c(sea_ice_thickness,   1.0_r_def),                    &
                  setval_c(sea_ice_temperature, 260.0_r_def),                  &
+                 ! Diagnostics
+                 setval_c(tau_ssi_w2,          0.0_r_def),                    &
                  ! Set land prognostics to fixed values for use in SCM
                  ! testing or when no values are provided by um2lfric
                  setval_c(surface_conductance, 1.0_r_def),                    &

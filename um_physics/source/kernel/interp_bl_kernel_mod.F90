@@ -22,7 +22,7 @@ module interp_bl_kernel_mod
   use fs_continuity_mod,        only: W2, W3, WTHETA
   use kernel_mod,               only: kernel_type
 
-  use surface_config_mod,       only: formdrag, formdrag_dist_drag
+  use jules_control_init_mod,   only: n_surf_interp
 
   implicit none
 
@@ -34,20 +34,16 @@ module interp_bl_kernel_mod
   !> Kernel metadata type.
   type, public, extends(kernel_type) :: interp_bl_kernel_type
     private
-    type(arg_type) :: meta_args(13) = (/                                  &
+    type(arg_type) :: meta_args(9) = (/                                  &
          arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                    &! rhokm_bl
-         arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_1), &! rhokm_surf
+         arg_type(GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_1), &! surf_interp
          arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                    &! ngstress_bl
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W3),                        &! dtrdz_uv_bl
-         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                    &! rdz_uv_bl
-         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                    &! fd_taux
-         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                    &! fd_tauy
+         arg_type(GH_FIELD, GH_REAL, GH_READ, W3),                        &! wetrho_in_w3
          arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),                        &! rhokm_w2
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1),               &! rhokm_surf_w2
+         arg_type(GH_FIELD, GH_REAL, GH_INC,  ANY_SPACE_1),               &! surf_interp_w2
          arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),                        &! ngstress_w2
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),                        &! dtrdz_w2
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),                        &! rdz_w2
-         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2)                         &! fd_tau_w2
+         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),                        &! wetrho_in_w2
+         arg_type(GH_FIELD, GH_REAL, GH_INC,  W2)                         &! w2_rmultiplicity
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -64,18 +60,14 @@ contains
   !> @brief Subroutine to do the re-mapping
   !> @param[in]     nlayers       Number of layers
   !> @param[in]     rhokm_bl      Momentum eddy diffusivity on BL levels
-  !> @param[in]     rhokm_surf    Momentum eddy diffusivity for coastal tiling
+  !> @param[in]     surf_interp   Surface variables for interpolation
   !> @param[in]     ngstress_bl   Non-gradient stress function on BL levels
-  !> @param[in]     dtrdz_uv_bl   dt/(rho*r*r*dz) in W3 space
-  !> @param[in]     rdz_uv_bl     1/dz in wth space
-  !> @param[in]     fd_taux       'Zonal' momentum stress from form drag
-  !> @param[in]     fd_tauy       'Meridional' momentum stress from form drag
+  !> @param[in]     wetrho_in_w3  Wet density in W3 space
   !> @param[in,out] rhokm_w2      Momentum eddy diffusivity mapped to cell faces
-  !> @param[in,out] rhokm_surf_w2 Surface eddy diffusivity mapped to cell faces
+  !> @param[in,out] surf_interp_w2 Surface variables on cell faces
   !> @param[in,out] ngstress_w2   NG stress function mapped to cell faces
-  !> @param[in,out] dtrdz_w2      dt/(rho*r*r*dz) mapped to cell faces
-  !> @param[in,out] rdz_w2        1/dz mapped to cell faces
-  !> @param[in,out] fd_tau_w2     Momentum stress for form drag on cell faces
+  !> @param[in,out] wetrho_in_w2  Wet density in W2 space
+  !> @param[in]     w2_rmultiplicity Reciprocal of multiplicity for w2
   !> @param[in]     ndf_wth       Number of DOFs per cell for potential temperature space
   !> @param[in]     undf_wth      Number of unique DOFs for potential temperature space
   !> @param[in]     map_wth       dofmap for the cell at the base of the column for potential temperature space
@@ -91,34 +83,30 @@ contains
   !> @param[in]     ndf_w2_2d     Number of DOFs per cell for W2 surface space
   !> @param[in]     undf_w2_2d    Number of unique DOFs for W2 surface space
   !> @param[in]     map_w2_2d     dofmap for the cell at the base of the column for W2 surface space
-  subroutine interp_bl_code(nlayers,       &
-                            rhokm_bl,      &
-                            rhokm_surf,    &
-                            ngstress_bl,   &
-                            dtrdz_uv_bl,   &
-                            rdz_uv_bl,     &
-                            fd_taux,       &
-                            fd_tauy,       &
-                            rhokm_w2,      &
-                            rhokm_surf_w2, &
-                            ngstress_w2,   &
-                            dtrdz_w2,      &
-                            rdz_w2,        &
-                            fd_tau_w2,     &
-                            ndf_wth,       &
-                            undf_wth,      &
-                            map_wth,       &
-                            ndf_surf,      &
-                            undf_surf,     &
-                            map_surf,      &
-                            ndf_w3,        &
-                            undf_w3,       &
-                            map_w3,        &
-                            ndf_w2,        &
-                            undf_w2,       &
-                            map_w2,        &
-                            ndf_w2_2d,     &
-                            undf_w2_2d,    &
+  subroutine interp_bl_code(nlayers,          &
+                            rhokm_bl,         &
+                            surf_interp,      &
+                            ngstress_bl,      &
+                            wetrho_in_w3,     &
+                            rhokm_w2,         &
+                            surf_interp_w2,   &
+                            ngstress_w2,      &
+                            wetrho_in_w2,     &
+                            w2_rmultiplicity, &
+                            ndf_wth,          &
+                            undf_wth,         &
+                            map_wth,          &
+                            ndf_surf,         &
+                            undf_surf,        &
+                            map_surf,         &
+                            ndf_w3,           &
+                            undf_w3,          &
+                            map_w3,           &
+                            ndf_w2,           &
+                            undf_w2,          &
+                            map_w2,           &
+                            ndf_w2_2d,        &
+                            undf_w2_2d,       &
                             map_w2_2d)
 
     !---------------------------------------
@@ -142,95 +130,51 @@ contains
     integer(kind=i_def), intent(in) :: map_surf(ndf_surf)
 
     real(kind=r_def), dimension(undf_wth), intent(in) :: rhokm_bl,           &
-                                                         ngstress_bl,        &
-                                                         rdz_uv_bl,          &
-                                                         fd_taux, fd_tauy
+                                                         ngstress_bl
 
-    real(kind=r_def), dimension(undf_w3),  intent(in) :: dtrdz_uv_bl
+    real(kind=r_def), dimension(undf_w3),  intent(in) :: wetrho_in_w3
 
-    real(kind=r_def), dimension(undf_surf), intent(in)  :: rhokm_surf
+    real(kind=r_def), dimension(undf_surf), intent(in)  :: surf_interp
+
+    real(kind=r_def), dimension(undf_w2),  intent(in) :: w2_rmultiplicity
 
     real(kind=r_def), dimension(undf_w2), intent(inout) :: rhokm_w2,           &
                                                            ngstress_w2,        &
-                                                           rdz_w2,             &
-                                                           dtrdz_w2,           &
-                                                           fd_tau_w2
+                                                           wetrho_in_w2
 
-    real(kind=r_def), dimension(undf_w2_2d), intent(inout) :: rhokm_surf_w2
+    real(kind=r_def), dimension(undf_w2_2d), intent(inout) :: surf_interp_w2
 
     ! Internal variables
-    integer(kind=i_def) :: k, df
+    integer :: k, df
 
-    ! Map the BL variables from W3 to W2 space
+    ! Map the BL variables from w3 to w2 space and
+    ! wtheta to a vertically shifted w2 space
 
-    ! Temporarily use the vertical co-ordinate here until multi-dimensional
-    ! W2 fields are available
-    do df = 1,3,2
-      ! rhokm_land
-      rhokm_surf_w2(map_w2_2d(df)) = rhokm_surf_w2(map_w2_2d(df)) +            &
-                                   0.5_r_def * rhokm_surf(map_surf(1))
-      rhokm_surf_w2(map_w2_2d(df+1)) = rhokm_surf_w2(map_w2_2d(df+1)) +        &
-                                     0.5_r_def * rhokm_surf(map_surf(1))
-      ! rhokm_ssi
-      rhokm_surf_w2(map_w2_2d(df) + 1) = rhokm_surf_w2(map_w2_2d(df) + 1) +    &
-                                       0.5_r_def * rhokm_surf(map_surf(1) + 1)
-      rhokm_surf_w2(map_w2_2d(df+1) + 1) = rhokm_surf_w2(map_w2_2d(df+1) + 1) +&
-                                         0.5_r_def * rhokm_surf(map_surf(1)+1)
-      ! flandg
-      rhokm_surf_w2(map_w2_2d(df) + 2) = rhokm_surf_w2(map_w2_2d(df) + 2) +    &
-                                       0.5_r_def * rhokm_surf(map_surf(1) + 2)
-      rhokm_surf_w2(map_w2_2d(df+1) + 2) = rhokm_surf_w2(map_w2_2d(df+1) + 2) +&
-                                         0.5_r_def * rhokm_surf(map_surf(1)+2)
-      ! Variable called flandfac in UM BL code
-      rhokm_surf_w2(map_w2_2d(df) + 3) = rhokm_surf_w2(map_w2_2d(df) + 3) +    &
-                                       0.5_r_def * rhokm_surf(map_surf(1) + 3)
-      rhokm_surf_w2(map_w2_2d(df+1) + 3) = rhokm_surf_w2(map_w2_2d(df+1) + 3) +&
-                                         0.5_r_def * rhokm_surf(map_surf(1)+3)
-      ! Variable called fseafac in UM BL code
-      rhokm_surf_w2(map_w2_2d(df) + 4) = rhokm_surf_w2(map_w2_2d(df) + 4) +    &
-                                       0.5_r_def * rhokm_surf(map_surf(1) + 4)
-      rhokm_surf_w2(map_w2_2d(df+1) + 4) = rhokm_surf_w2(map_w2_2d(df+1) + 4) +&
-                                         0.5_r_def * rhokm_surf(map_surf(1)+4)
-    end do
-
-    do k = 1, bl_levels
-      do df = 1,3,2
-        ! Strictly speaking the vertical indexing here is incorrect because
-        ! we want the normal to the cell face at the top and bottom of the cell
-        rhokm_w2(map_w2(df) + k) = rhokm_w2(map_w2(df) + k) +                &
-                                    0.5_r_def * rhokm_bl(map_wth(1) + k)
-        rhokm_w2(map_w2(df+1) + k) = rhokm_w2(map_w2(df+1) + k) +            &
-                                      0.5_r_def * rhokm_bl(map_wth(1) + k)
-        dtrdz_w2(map_w2(df) + k) = dtrdz_w2(map_w2(df) + k) +                &
-                                    0.5_r_def * dtrdz_uv_bl(map_w3(1) + k)
-        dtrdz_w2(map_w2(df+1) + k) = dtrdz_w2(map_w2(df+1) + k) +            &
-                                      0.5_r_def * dtrdz_uv_bl(map_w3(1) + k)
+    do df = 1,4
+      do k = 0, n_surf_interp-1
+        ! Single level variables which need mapping
+        surf_interp_w2(map_w2_2d(df)+k) = surf_interp_w2(map_w2_2d(df)+k) +    &
+                                          w2_rmultiplicity(map_w2(df)) *       &
+                                          surf_interp(map_surf(1)+k)
       end do
-    end do
 
-    if (formdrag == formdrag_dist_drag) then
-      do k = 1, bl_levels
-        do df = 1,3,2
-          fd_tau_w2(map_w2(df) + k) = fd_tau_w2(map_w2(df) + k) +            &
-                                       0.5_r_def * fd_taux(map_wth(1) + k)
-          fd_tau_w2(map_w2(df+1) + k) = fd_tau_w2(map_w2(df+1) + k) +        &
-                                       0.5_r_def * fd_tauy(map_wth(1) + k)
-        end do
+      do k = 0, bl_levels-1
+        ! Strictly speaking this is not a w2 field as it is the normal to the
+        ! cell face at the top/bottom of the cell
+        rhokm_w2(map_w2(df) + k) = rhokm_w2(map_w2(df) + k) +                  &
+                                   w2_rmultiplicity(map_w2(df) + k) *          &
+                                   rhokm_bl(map_wth(1) + k)
+        wetrho_in_w2(map_w2(df) + k) = wetrho_in_w2(map_w2(df) + k) +          &
+                                       w2_rmultiplicity(map_w2(df) + k) *      &
+                                       wetrho_in_w3(map_w3(1) + k)
       end do
-    end if
 
-    do k = 2, bl_levels
-      do df = 1,3,2
-        ! Strictly speaking the vertical indexing here is incorrect because
-        ! we want the normal to the cell face at the top and bottom of the cell
-        rdz_w2(map_w2(df) + k) = rdz_w2(map_w2(df) + k) +                    &
-                                  0.5_r_def * rdz_uv_bl(map_wth(1) + k)
-        rdz_w2(map_w2(df+1) + k) = rdz_w2(map_w2(df+1) + k) +                &
-                                    0.5_r_def * rdz_uv_bl(map_wth(1) + k)
-        ngstress_w2(map_w2(df) + k) = ngstress_w2(map_w2(df) + k) +          &
-                                       0.5_r_def *ngstress_bl(map_wth(1) + k)
-        ngstress_w2(map_w2(df+1) + k) = ngstress_w2(map_w2(df+1) + k) +      &
-                                         0.5_r_def *ngstress_bl(map_wth(1) + k)
+      do k = 1, bl_levels-1
+        ! Strictly speaking this is not a w2 field as it is the normal to the
+        ! cell face at the top/bottom of the cell
+        ngstress_w2(map_w2(df) + k) = ngstress_w2(map_w2(df) + k) +            &
+                                      w2_rmultiplicity(map_w2(df) + k) *       &
+                                      ngstress_bl(map_wth(1) + k)
       end do
     end do
 
