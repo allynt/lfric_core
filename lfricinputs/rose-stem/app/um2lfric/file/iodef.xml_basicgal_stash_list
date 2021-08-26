@@ -5,7 +5,7 @@
 
   <context id = "gungho_atm">
 
-    <calendar type = "Gregorian"/>
+    <calendar type = "Gregorian" start_date = "2016-01-01 15:00:00" time_origin = "2016-01-01 15:00:00" />
 
     <axis_definition>
       <axis id="vert_axis_half_levels" name="half_levels"/>
@@ -128,7 +128,7 @@
 	<field field_ref="frozen_fraction"/>
 	<field field_ref="zh"/>
 	<field field_ref="z0msea"/>
-	<!-- Additional fields for basicGAGL -->
+	<!-- Additional fields for basicGAL -->
 	<field field_ref="dd_mf_cb"/>
 	<field field_ref="tile_snow_mass"/>
 	<field field_ref="tile_n_snow_layers"/>
