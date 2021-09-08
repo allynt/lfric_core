@@ -97,7 +97,7 @@ module gungho_model_mod
   use transport_config_mod,       only : scheme, &
                                          scheme_method_of_lines
   use yaxt,                       only : xt_initialize, xt_finalize
-
+  use coupler_mod,                only : l_esm_couple, cpl_define, cpl_fields
 #ifdef UM_PHYSICS
   use jules_control_init_mod,     only : jules_control_init
   use jules_physics_init_mod,     only : jules_physics_init
@@ -150,7 +150,7 @@ contains
   !> @param [in,out] double_level_mesh_id The identifier given to the
   !>                                      double-level 3d mesh the double-level
   !>                                      mesh
-  !>
+  !> @param [in,out] model_data The working data set for the model run
   subroutine initialise_infrastructure(communicator,         &
                                        filename,             &
                                        program_name,         &
@@ -158,7 +158,8 @@ contains
                                        mesh_id,              &
                                        twod_mesh_id,         &
                                        shifted_mesh_id,      &
-                                       double_level_mesh_id)
+                                       double_level_mesh_id, &
+                                       model_data)
 
     use logging_config_mod, only: run_log_level,          &
                                   key_from_run_log_level, &
@@ -178,6 +179,7 @@ contains
     integer(i_def),         intent(inout)            :: twod_mesh_id
     integer(i_def),         intent(inout)            :: double_level_mesh_id
     integer(i_def),         intent(inout)            :: shifted_mesh_id
+    type (model_data_type), intent(inout)            :: model_data
 
     character(len=*), parameter :: io_context_name = "gungho_atm"
 
@@ -290,6 +292,22 @@ contains
                    chi_mg                = chi_mg,                &
                    panel_id_mg           = panel_id_mg,           &
                    use_multigrid         = l_multigrid )
+
+    !-------------------------------------------------------------------------
+    ! initialize coupling
+    !-------------------------------------------------------------------------
+!> @todo this must be done in infrastructure for now (before XIOS context
+!>       initialization). With XIOS 3 it will be possible to move it outside
+!>       infrastructure and remove change in gungho_prognostics_mod.f90
+    if( l_esm_couple ) then
+       call log_event("Initialising coupler", LOG_LEVEL_INFO)
+       !add fields used in coupling
+       call cpl_fields(twod_mesh_id,  model_data%depository,  &
+                                  model_data%prognostic_fields)
+       !define coupling interface
+       call cpl_define(twod_mesh_id, chi, model_data%depository, &
+                       model_data%cpl_snd, model_data%cpl_rcv    )
+    endif
 
     !-------------------------------------------------------------------------
     ! Initialise aspects of output

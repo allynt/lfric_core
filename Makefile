@@ -17,12 +17,14 @@
 #
 OPERATE_ON ?= infrastructure                             \
               components/lfric-xios                      \
+              components/coupler-oasis                   \
               mesh_tools gungho lfric_atm                \
               miniapps/skeleton                          \
               miniapps/diagnostics                       \
               miniapps/gravity_wave                      \
               miniapps/solver_miniapp                    \
               miniapps/io_dev                            \
+              miniapps/lfric_coupled                     \
               miniapps/transport												 \
 							miniapps/multires_coupling								 \
 							lfricinputs

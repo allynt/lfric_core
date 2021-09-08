@@ -154,6 +154,16 @@ build: ALWAYS
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
 	         SOURCE_DIR=$(ROOT_DIR)/gungho/source
 	         OPTIMISATION_PATH=$(OPTIMISATION_PATH)
+	$(call MESSAGE,========================================)
+	$(call MESSAGE,Extracting coupler-oasis)
+	$(call MESSAGE,========================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk \
+		SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
+	$(call MESSAGE,====================================)
+	$(call MESSAGE,Psycloning coupler-oasis)
+	$(call MESSAGE,====================================)
+	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone.mk \
+	        SOURCE_DIR=$(ROOT_DIR)/components/coupler-oasis/source
 	$(call MESSAGE,==============================)
 	$(call MESSAGE,Extracting $(PROJECT_NAME))
 	$(call MESSAGE,==============================)

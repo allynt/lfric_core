@@ -567,7 +567,6 @@ contains
   ! Contained functions/subroutines
   !---------------------------------------------------------------------------
 
-
   !> Sends field contents to the log.
   !!
   !! @param[in] dump_level The level to use when sending the dump to the log.

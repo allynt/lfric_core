@@ -39,6 +39,7 @@ module gungho_driver_mod
                                          LOG_LEVEL_INFO
   use variable_fields_mod,        only : update_variable_fields
   use esm_couple_config_mod,      only : l_esm_couple_test
+  use coupler_mod,                only : l_esm_couple, cpl_snd, cpl_rcv
 
   implicit none
 
@@ -81,7 +82,8 @@ contains
                                     mesh_id,              &
                                     twod_mesh_id,         &
                                     shifted_mesh_id,      &
-                                    double_level_mesh_id  )
+                                    double_level_mesh_id, &
+                                    model_data            )
 
     clock => io_context%get_clock()
     ! Instantiate the fields stored in model_data
@@ -118,11 +120,16 @@ contains
   subroutine run()
 
     implicit none
-
+    integer(i_def)             :: cpl_step
     class(clock_type), pointer :: clock
 
     write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+
+    if(l_esm_couple) then
+      write(log_scratch_space,'(A)') 'Configuration is coupled'
+      call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
+    endif
 
     clock => io_context%get_clock()
     do while (clock%tick())
@@ -130,6 +137,18 @@ contains
       ! Update time-varying fields
       call update_variable_fields( model_data%ancil_times_list, &
                                    clock, model_data%ancil_fields )
+      if(l_esm_couple) then
+
+         cpl_step = clock%get_step() - clock%get_first_step()
+
+         write(log_scratch_space, *) 'Coupling step ', cpl_step
+         call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+         call cpl_rcv(model_data%cpl_rcv, clock)
+
+         CALL cpl_snd(model_data%cpl_snd, model_data%depository, clock, cpl_step)
+
+      endif
 
       if ( lbc_option == lbc_option_file ) then
 

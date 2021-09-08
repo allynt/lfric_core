@@ -13,7 +13,8 @@
 
 module field_parent_mod
 
-  use constants_mod,               only: i_def, l_def, str_def, r_def, real_type
+  use constants_mod,               only: i_def, l_def, str_def, r_def, &
+                                         real_type, imdi
   use function_space_mod,          only: function_space_type
   use halo_routing_collection_mod, only: halo_routing_collection
   use halo_routing_mod,            only: halo_routing_type
@@ -42,6 +43,8 @@ module field_parent_mod
     character(str_def) :: name = 'unset'
     !> Flag describes order of data. False=layer first, true=multi-data first
     logical :: ndata_first
+    !> Coupling id for each multidata-level
+    integer(kind=i_def), allocatable :: cpl_id( : )
   contains
     !> Initialiser for a field parent object
     !> @param [in] vector_space The function space that the field lives on
@@ -76,6 +79,10 @@ module field_parent_mod
     procedure, public :: get_name
     !> Returns whether the field is advected
     procedure, public :: is_advected
+    !> routine to get coupling id
+    procedure         :: get_cpl_id
+    !> routine to set coupling id
+    procedure         :: set_cpl_id
   end type field_parent_type
 
   !> Abstract field proxy type that is the patrent of any field proxy
@@ -244,6 +251,9 @@ contains
     nullify( self%vspace )
     if ( allocated(self%halo_dirty) ) deallocate(self%halo_dirty)
 
+    if(allocated(self%cpl_id)) then
+      deallocate(self%cpl_id)
+    end if
   end subroutine field_parent_final
 
   ! Initialise public pointers that belong to the field_parent_type.
@@ -452,5 +462,72 @@ contains
     flag = self%ndata_first
 
   end function is_ndata_first
+
+  !> Function to get coupling id from the field.
+  !>
+  !> @param[in] i_multidata_lev multidata-level for which coupling id is requested
+  !> @return field coupling id
+  function get_cpl_id(self, i_multidata_lev) result(dcpl_id)
+    use log_mod, only : log_event, log_scratch_space, LOG_LEVEL_INFO
+    implicit none
+
+    class (field_parent_type), intent(in) :: self
+    integer(i_def), intent(in)     :: i_multidata_lev
+
+    integer(i_def) :: dcpl_id
+    type(function_space_type), pointer :: function_space => null()
+
+    function_space => self%get_function_space()
+
+    if(i_multidata_lev > function_space%get_ndata()) then
+       write(log_scratch_space,'(A,I3,A,I3,A,A)')&
+       'get_cpl_id: multidata-level requested ', i_multidata_lev, &
+       ' larger than number of multidata-levels available (', &
+       function_space%get_ndata(), &
+       ') for', self%name
+       call log_event(log_scratch_space,LOG_LEVEL_INFO )
+       dcpl_id = imdi
+    elseif(allocated(self%cpl_id)) then
+       dcpl_id = self%cpl_id(i_multidata_lev)
+    else
+       dcpl_id = imdi
+    endif
+
+    return
+  end function get_cpl_id
+
+  !> subroutine to set coupling id of the field.
+  !>
+  !> @param[in] dcpl_id oasis id of the field
+  !> @param[in] i_multidata_lev multidata-level for which coupling id is set
+  subroutine set_cpl_id(self, dcpl_id, i_multidata_lev)
+    use log_mod, only : log_event, log_scratch_space, LOG_LEVEL_ERROR
+    implicit none
+
+    class (field_parent_type), intent(inout) :: self
+    integer(i_def),     intent(in   ) :: dcpl_id, i_multidata_lev
+
+    type(function_space_type), pointer :: function_space => null()
+
+    function_space => self%get_function_space()
+
+    if(i_multidata_lev > function_space%get_ndata()) then
+      write(log_scratch_space,'(A,I3,A,I3,A,A)')&
+      'set_cpl_id: multidata-level requested (', i_multidata_lev, &
+      ') larger than number of multidata-levels available (', &
+      function_space%get_ndata(), &
+      ') for ', self%name
+      call log_event(log_scratch_space,LOG_LEVEL_ERROR )
+    endif
+
+    if(allocated(self%cpl_id)) then
+       self%cpl_id(i_multidata_lev) = dcpl_id
+    else
+       allocate(self%cpl_id(function_space%get_ndata()))
+       self%cpl_id(:) = imdi
+       self%cpl_id(i_multidata_lev) = dcpl_id
+    endif
+
+  end subroutine set_cpl_id
 
 end module field_parent_mod

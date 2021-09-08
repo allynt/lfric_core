@@ -182,6 +182,7 @@ build: ALWAYS
 #
 .PHONY: unit-tests
 unit-tests: export ADDITIONAL_EXTRACTION = "$(ROOT_DIR)/infrastructure/source \
+                                            $(ROOT_DIR)/components/coupler-oasis/source \
                                             $(ROOT_DIR)/gungho/source"
 unit-tests: export BIN_DIR = $(PROJECT_DIR)/test
 unit-tests: export EXTERNAL_STATIC_LIBRARIES += pfunit

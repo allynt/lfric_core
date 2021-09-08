@@ -56,6 +56,7 @@ module gungho_model_data_mod
   use init_gungho_lbcs_alg_mod,         only : init_lbcs_file_alg,    &
                                                init_lbcs_analytic_alg
   use init_physics_prognostics_alg_mod, only : init_physics_prognostics_alg
+  use coupler_mod,                      only : cpl_init_fields, l_esm_couple
   use moist_dyn_factors_alg_mod,        only : moist_dyn_factors_alg
   use init_fd_prognostics_mod,          only : init_fd_prognostics_dump
 #ifdef UM_PHYSICS
@@ -124,6 +125,9 @@ module gungho_model_data_mod
     type( field_type ), allocatable, public :: mr(:)
     !> Array of fields containing the moist dynamics (auxiliary prognostic)
     type( field_type ), allocatable, public :: moist_dyn(:)
+    !> Array of fields containing coupling data
+    type( field_collection_type ), public :: cpl_snd
+    type( field_collection_type ), public :: cpl_rcv
     !> @}
 
     !> FD fields used to read initial conditions from LFRic-Input files
@@ -493,6 +497,10 @@ contains
 
     end select
 
+    ! initialise coupling fields
+    if(l_esm_couple) call cpl_init_fields(model_data%cpl_rcv)
+
+
     if (limited_area) then
 
       select case( lbc_option )
@@ -613,6 +621,10 @@ contains
       call model_data%snow_fields%clear()
       call model_data%aerosol_fields%clear()
       call model_data%fd_fields%clear()
+      if(l_esm_couple) then
+         call model_data%cpl_snd%clear()
+         call model_data%cpl_rcv%clear()
+      endif
       call model_data%lbc_fields%clear()
       call model_data%ls_fields%clear()
       if (allocated(model_data%mr)) deallocate(model_data%mr)

@@ -9,7 +9,7 @@
 !-------------------------------------------------------------------------------
 module field_mod_test
 
-  use constants_mod,                  only : i_def, r_def, str_def
+  use constants_mod,                  only : i_def, r_def, str_def, imdi
   use halo_routing_collection_mod,    only : halo_routing_collection_type, &
                                              halo_routing_collection
   use halo_routing_mod,               only : halo_routing_type
@@ -20,7 +20,7 @@ module field_mod_test
                                              mesh_collection
   use mesh_mod,                       only : mesh_type, PLANE_BI_PERIODIC
   use function_space_mod,             only : function_space_type
-  use fs_continuity_mod,              only : W2
+  use fs_continuity_mod,              only : W2, W3
   use yaxt,                           only : xt_initialize, xt_finalize
   use mpi_mod,                        only : store_comm, clear_comm
   use pFUnit_Mod
@@ -28,12 +28,13 @@ module field_mod_test
   implicit none
 
   private
-  public :: test_field, test_field_proxy
+  public :: test_field, test_field_proxy, test_cpl_functionality
 
   @TestCase
   type, extends(MPITestCase), public :: field_test_type
     private
     type(function_space_type), pointer :: w2_fs => null()
+    type(function_space_type), pointer :: w3_fs => null()
     type(local_mesh_type)              :: unit_test_local_mesh
     integer(i_def) :: mesh_id
   contains
@@ -42,6 +43,7 @@ module field_mod_test
     procedure get_local_mesh_ptr
     procedure test_field
     procedure test_field_proxy
+    procedure test_cpl_functionality
   end type field_test_type
 
   integer(i_def), parameter :: element_order = 0
@@ -81,6 +83,8 @@ contains
     ! Make a function space to be used to create fields in the tests
     this%w2_fs => function_space_collection%get_fs( this%mesh_id, &
                                                     element_order, W2 )
+    this%w3_fs => function_space_collection%get_fs( this%mesh_id, &
+                                                    element_order, W3 )
 
   end subroutine setUp
 
@@ -311,5 +315,33 @@ contains
     @assertTrue ( multidata_order )
 
   end subroutine test_field_proxy
+
+  @Test( npes=[1] )
+  subroutine test_cpl_functionality( this )
+
+    use field_mod,             only: field_type, field_proxy_type
+
+    implicit none
+
+    class(field_test_type), intent(inout) :: this
+
+    type(field_type)          :: f1
+    integer(i_def)            :: id_cpl
+
+    ! Make a field with a function space
+    call f1%initialise( vector_space = this%w3_fs, name='f1' )
+
+    !set coupling id (12) for f1
+    call f1%set_cpl_id(12_i_def, 1_i_def)
+
+    !get coupling id for f1
+    id_cpl = f1%get_cpl_id( 1_i_def )
+    @assertEqual (id_cpl, 12_i_def)
+
+    !try to get coupling id for non-existent level
+    id_cpl = f1%get_cpl_id( 5_i_def )
+    @assertEqual (id_cpl, imdi)
+
+ end subroutine test_cpl_functionality
 
 end module field_mod_test

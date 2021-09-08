@@ -39,6 +39,7 @@ module create_gungho_prognostics_mod
                                              write_diag,      &
                                              checkpoint_read, &
                                              checkpoint_write
+  use coupler_mod,                    only : l_esm_couple
   implicit none
 
   private
@@ -62,8 +63,8 @@ contains
 
     integer(i_def), intent(in)                :: mesh_id
 
-    type(field_collection_type), intent(out)  :: depository
-    type(field_collection_type), intent(out)  :: prognostic_fields
+    type(field_collection_type), intent(inout):: depository
+    type(field_collection_type), intent(inout):: prognostic_fields
     type(field_collection_type), intent(out)  :: diagnostic_fields
 
     type( field_type ), intent(inout), target :: mr(nummr)
@@ -83,8 +84,15 @@ contains
     call log_event( 'GungHo: Creating prognostics...', LOG_LEVEL_INFO )
 
     ! Create the depository, prognostics and diagnostics field collections.
-    depository = field_collection_type(name='depository')
-    prognostic_fields = field_collection_type(name="prognostics")
+    ! if coupled configuration depository and prognostics created in cpl_fields
+!> @todo this is a temporary solution related to the limitation of the XIOS
+!>       currently used. This routine should return to original version
+!>       when cpl_define can be called in any place in the code.
+!>       See #2710 test branch for details.
+    if(.not.l_esm_couple) then
+       depository = field_collection_type(name='depository')
+       prognostic_fields = field_collection_type(name="prognostics")
+    endif
     diagnostic_fields = field_collection_type(name="diagnostics")
 
     ! Create prognostic fields
