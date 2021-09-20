@@ -19,6 +19,7 @@ OPERATE_ON ?= infrastructure                             \
               components/lfric-xios                      \
               components/coupler-oasis                   \
               mesh_tools gungho lfric_atm                \
+              linear                                     \
               miniapps/skeleton                          \
               miniapps/diagnostics                       \
               miniapps/gravity_wave                      \

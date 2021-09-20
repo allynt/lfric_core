@@ -67,7 +67,8 @@ contains
                                     mesh_id,              &
                                     twod_mesh_id,         &
                                     shifted_mesh_id,      &
-                                    double_level_mesh_id  )
+                                    double_level_mesh_id, &
+                                    model_data  )
 
     clock => io_context%get_clock()
     ! Instantiate the fields stored in model_data

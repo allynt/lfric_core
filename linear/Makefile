@@ -181,7 +181,8 @@ build: ALWAYS
 unit-tests: export ADDITIONAL_EXTRACTION = "$(ROOT_DIR)/infrastructure/source \
                                             $(ROOT_DIR)/gungho/source \
                                             $(ROOT_DIR)/gungho/unit-test/support \
-                                            $(ROOT_DIR)/components/lfric-xios/source"
+                                            $(ROOT_DIR)/components/lfric-xios/source \
+                                            $(ROOT_DIR)/components/coupler-oasis/source"
 unit-tests: export BIN_DIR ?= $(PROJECT_DIR)/test
 unit-tests: export CXX_LINK = TRUE
 unit-tests: export EXTERNAL_STATIC_LIBRARIES += pfunit
@@ -202,7 +203,8 @@ unit-tests: do-unit-tests
 .PHONY: integration-tests
 integration-tests: export ADDITIONAL_EXTRACTION = "$(ROOT_DIR)/infrastructure/source \
                                                    $(ROOT_DIR)/gungho/source \
-                                                   $(ROOT_DIR)/components/lfric-xios/source"
+                                                   $(ROOT_DIR)/components/lfric-xios/source \
+                                                   $(ROOT_DIR)/components/coupler-oasis/source"
 integration-tests: export BIN_DIR ?= $(PROJECT_DIR)/test
 integration-tests: export CXX_LINK = TRUE
 integration-tests: export META_FILE_DIR = rose-meta/lfric-linear/HEAD
