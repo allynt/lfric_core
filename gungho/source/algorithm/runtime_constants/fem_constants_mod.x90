@@ -15,7 +15,7 @@
 module fem_constants_mod
 
   ! Infrastructure
-  use constants_mod,                      only: i_def, r_def
+  use constants_mod,                      only: i_def, r_def, str_def
   use field_mod,                          only: field_type, field_proxy_type
   use fs_continuity_mod,                  only: W0, W1, W2, W2broken, &
                                                 W2H, W2V, W3, Wtheta
@@ -40,12 +40,14 @@ module fem_constants_mod
 
   ! Other algorithms
   use geometric_constants_mod,            only: get_coordinates, get_panel_id
-  use runtime_tools_mod,                  only: find_mesh_index,         &
-                                                primary_mesh_label,      &
-                                                shifted_mesh_label,      &
-                                                double_level_mesh_label, &
-                                                twod_mesh_label,         &
-                                                multigrid_mesh_label,    &
+  use runtime_tools_mod,                  only: find_mesh_index,            &
+                                                check_initialised_field,    &
+                                                check_initialised_operator, &
+                                                primary_mesh_label,         &
+                                                shifted_mesh_label,         &
+                                                double_level_mesh_label,    &
+                                                twod_mesh_label,            &
+                                                multigrid_mesh_label,       &
                                                 extra_mesh_label
 
   ! Kernels
@@ -565,8 +567,10 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: mm_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'mass matrix'
 
     select case (space)
       case (W0)
@@ -591,6 +595,8 @@ contains
         stop
     end select
 
+    call check_initialised_operator(mm_op, op_name, mesh_id, space)
+
   end function get_mass_matrix
 
   !> @brief Returns a pointer to a mass matrix diagonal
@@ -603,8 +609,10 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),        pointer :: mmd
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'diagonal mass matrix'
 
     select case (space)
     case (W0)
@@ -623,6 +631,8 @@ contains
         stop
     end select
 
+    call check_initialised_field(mmd, field_name, mesh_id, space)
+
   end function get_mass_matrix_diagonal
 
   !> @brief Returns a pointer to a inverse lumped mass matrix
@@ -635,8 +645,10 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: mm
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'inverse_lumped_mass_matrix'
 
     select case (space)
       case (W0)
@@ -655,6 +667,8 @@ contains
         stop
     end select
 
+    call check_initialised_field(mm, field_name, mesh_id, space)
+
   end function get_inverse_lumped_mass_matrix
 
   !> @brief Returns a pointer to the inverse W3 mass matrix operator
@@ -665,9 +679,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: mm_w3_inv_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'inverse_w3_mass_matrix'
     mm_w3_inv_op => mm_w3_inv(mesh_index)
+    call check_initialised_operator(mm_w3_inv_op, op_name, mesh_id)
 
   end function get_inverse_w3_mass_matrix
 
@@ -679,9 +696,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: mm_dl_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'dl_w2_mass_matrix'
     mm_dl_op => mm_dl(mesh_index)
+    call check_initialised_operator(mm_dl_op, op_name, mesh_id)
 
   end function get_dl_mass_matrix
 
@@ -693,9 +713,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: mm_w2_si_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'w2_si_mass_matrix'
     mm_w2_si_op => mm_w2_si(mesh_index)
+    call check_initialised_operator(mm_w2_si_op, op_name, mesh_id)
 
   end function get_w2_si_mass_matrix
 
@@ -707,9 +730,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: grad_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'grad'
     grad_op => grad(mesh_index)
+    call check_initialised_operator(grad_op, op_name, mesh_id)
 
   end function get_grad
 
@@ -721,9 +747,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: curl_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'curl'
     curl_op => curl(mesh_index)
+    call check_initialised_operator(curl_op, op_name, mesh_id)
 
   end function get_curl
 
@@ -735,9 +764,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: div_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'div'
     div_op => div(mesh_index)
+    call check_initialised_operator(div_op, op_name, mesh_id)
 
   end function get_div
 
@@ -749,9 +781,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: broken_div_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'broken_div'
     broken_div_op => broken_div(mesh_index)
+    call check_initialised_operator(broken_div_op, op_name, mesh_id)
 
   end function get_broken_div
 
@@ -763,9 +798,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: div_h_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'div_h'
     div_h_op => div_h(mesh_index)
+    call check_initialised_operator(div_h_op, op_name, mesh_id)
 
   end function get_div_h
 
@@ -777,9 +815,12 @@ contains
     integer(kind=i_def),   intent(in) :: mesh_id
     integer(kind=i_def)               :: mesh_index
     type(operator_type),      pointer :: div_v_op
+    character(str_def)                :: op_name
 
     mesh_index = find_mesh_index(mesh_id)
+    op_name = 'div_v'
     div_v_op => div_v(mesh_index)
+    call check_initialised_operator(div_v_op, op_name, mesh_id)
 
   end function get_div_v
 
@@ -793,8 +834,10 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: normalisation
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'normalisation'
 
     select case (space)
       case (W2)
@@ -809,6 +852,8 @@ contains
         stop
     end select
 
+    call check_initialised_field(normalisation, field_name, mesh_id, space)
+
   end function get_normalisation
 
   !> @brief Returns a pointer to the reciprocal of the multiplicity field
@@ -821,8 +866,10 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: rmultiplicity
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'rmultiplicity'
 
     select case (space)
       case (W0)
@@ -838,6 +885,8 @@ contains
         call log_event( "RMultiplicity does not exist for given space", &
            LOG_LEVEL_ERROR)
     end select
+
+    call check_initialised_field(rmultiplicity, field_name, mesh_id, space)
 
   end function get_rmultiplicity
 
@@ -873,9 +922,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: detj
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'detj_at_w2'
     detj => detj_at_w2(mesh_index)
+    call check_initialised_field(detj, field_name, mesh_id)
 
    end function get_detj_at_w2
 

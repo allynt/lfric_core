@@ -21,7 +21,7 @@
 !!                      an integer argument that = 1 (.true.) or = 0 (.false.).
 module flux_alg_mod
 
-  use constants_mod,                  only: r_def, i_def, l_def
+  use constants_mod,                  only: r_def, i_def, l_def, str_def
   use enforce_bc_kernel_mod,          only: enforce_bc_kernel_type
   use geometric_constants_mod,        only: get_coordinates,          &
                                             get_panel_id
@@ -52,7 +52,8 @@ module flux_alg_mod
                                             operators_fv,         &
                                             operators_fem,        &
                                             oned_reconstruction
-  use runtime_tools_mod,              only: find_mesh_index
+  use runtime_tools_mod,              only: find_mesh_index,   &
+                                            check_initialised_field
   use log_mod,                        only: log_event,         &
                                             LOG_LEVEL_ERROR,   &
                                             LOG_LEVEL_INFO
@@ -493,9 +494,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: flux_coeffs
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'flux_coeffs'
     flux_coeffs => flux_coeffs_list(mesh_index)
+    call check_initialised_field(flux_coeffs, field_name, mesh_id)
 
   end function get_flux_coeffs
 
@@ -507,9 +511,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: vert_flux_coeffs
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'vert_flux_coeffs'
     vert_flux_coeffs => vert_flux_coeffs_list(mesh_index)
+    call check_initialised_field(vert_flux_coeffs, field_name, mesh_id)
 
   end function get_vert_flux_coeffs
 

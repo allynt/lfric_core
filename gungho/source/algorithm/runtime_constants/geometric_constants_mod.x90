@@ -27,10 +27,12 @@ module geometric_constants_mod
   use timer_mod,                          only: timer
 
   ! Other algorithms
-  use runtime_tools_mod,                  only: find_mesh_index,    &
-                                                primary_mesh_label, &
-                                                shifted_mesh_label, &
-                                                twod_mesh_label,    &
+  use runtime_tools_mod,                  only: find_mesh_index,            &
+                                                check_initialised_field,    &
+                                                check_initialised_operator, &
+                                                primary_mesh_label,         &
+                                                shifted_mesh_label,         &
+                                                twod_mesh_label,            &
                                                 multigrid_mesh_label
 
   ! Configuration
@@ -293,6 +295,9 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: orientation
+    character(str_def)              :: field_name
+
+    field_name = 'cell orientation'
 
     if (scheme /= scheme_method_of_lines    .or. &
         rho_splitting /= rho_splitting_none .or. &
@@ -304,6 +309,8 @@ contains
       call log_event( "Cell orientation variable has not been created", LOG_LEVEL_ERROR )
     end if
 
+    call check_initialised_field(orientation, field_name, mesh_id)
+
   end function get_cell_orientation
 
   !> @brief Returns the dA values at W2 dof locations
@@ -314,9 +321,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: dA
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'dA_at_w2'
     dA => dA_at_w2_list(mesh_index)
+    call check_initialised_field(dA, field_name, mesh_id)
 
   end function get_dA_at_w2
 
@@ -330,8 +340,10 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: height
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'height'
 
     select case (space)
     case (W1)
@@ -347,6 +359,8 @@ contains
       call log_event( "Height not available on requested space", LOG_LEVEL_ERROR)
     end select
 
+    call check_initialised_field(height, field_name, mesh_id, space)
+
   end function get_height
 
   !> @brief Returns a pointer to the latitude map
@@ -357,9 +371,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: lat_ptr
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'latitude'
     lat_ptr => lat_w3_list(mesh_index)
+    call check_initialised_field(lat_ptr, field_name, mesh_id)
 
   end function get_latitude
 
@@ -371,9 +388,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: long_ptr
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'longitude'
     long_ptr => long_w3_list(mesh_index)
+    call check_initialised_field(long_ptr, field_name, mesh_id)
 
   end function get_longitude
 

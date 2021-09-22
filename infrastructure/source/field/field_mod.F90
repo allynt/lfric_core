@@ -132,6 +132,9 @@ module field_mod
     !> Routine to destroy field_type
     procedure         :: field_final
 
+    !> Checks if field has been initialised
+    procedure, public :: is_initialised
+
     !> Finalizers for scalar and arrays of field_type objects
     final             :: field_destructor_scalar, &
                          field_destructor_array1d, &
@@ -421,6 +424,16 @@ contains
              self%checkpoint_read_method )
 
   end subroutine field_final
+
+  !> Return a logical indicating whether the field has been initialised
+  function is_initialised(self) result(initialised)
+    implicit none
+    class(field_type), intent(in) :: self
+    logical(l_def)                :: initialised
+
+    initialised = allocated(self%data)
+
+  end function is_initialised
 
   !> Finalizer for a scalar <code>field_type</code> instance.
   subroutine field_destructor_scalar(self)

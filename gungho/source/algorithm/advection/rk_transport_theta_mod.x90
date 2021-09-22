@@ -149,8 +149,8 @@ contains
     ! Pointers to pre-computed fields
     adv_coeffs => get_adv_coeffs(mesh_id)
     vert_adv_coeffs =>  get_vert_adv_coeffs(mesh_id)
-    chi3_at_wt => get_chi3_at_wt(mesh_id)
     w1_multiplicity => get_multiplicity(W1, mesh_id)
+    if (consistent_metric) chi3_at_wt => get_chi3_at_wt(mesh_id)
 
     qr => get_qr()
     chi => get_coordinates(mesh_id)

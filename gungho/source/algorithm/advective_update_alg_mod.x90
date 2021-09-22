@@ -21,7 +21,7 @@
 !!                      an integer argument that = 1 (.true.) or = 0 (.false.).
 module advective_update_alg_mod
 
-  use constants_mod,                      only: r_def, i_def, l_def
+  use constants_mod,                      only: r_def, i_def, l_def, str_def
   use geometric_constants_mod,            only: get_coordinates,                &
                                                 get_panel_id
   use fem_constants_mod,                  only: get_mass_matrix_diagonal,       &
@@ -61,7 +61,8 @@ module advective_update_alg_mod
   use poly1d_vert_adv_kernel_mod,         only: poly1d_vert_adv_kernel_type
   use poly2d_advective_coeffs_kernel_mod, only: poly2d_advective_coeffs_kernel_type
   use poly2d_adv_recon_kernel_mod,        only: poly2d_adv_recon_kernel_type
-  use runtime_tools_mod,                  only: find_mesh_index
+  use runtime_tools_mod,                  only: find_mesh_index, &
+                                                check_initialised_field
 
   implicit none
 
@@ -589,9 +590,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: adv_coeffs
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'adv_coeffs'
     adv_coeffs => adv_coeffs_list(mesh_index)
+    call check_initialised_field(adv_coeffs, field_name, mesh_id)
 
   end function get_adv_coeffs
 
@@ -603,9 +607,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: vert_adv_coeffs
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'vert_adv_coeffs'
     vert_adv_coeffs => vert_adv_coeffs_list(mesh_index)
+    call check_initialised_field(vert_adv_coeffs, field_name, mesh_id)
 
   end function get_vert_adv_coeffs
 
@@ -617,9 +624,12 @@ contains
     integer(kind=i_def), intent(in) :: mesh_id
     integer(kind=i_def)             :: mesh_index
     type(field_type),       pointer :: chi3_at_wt
+    character(str_def)              :: field_name
 
     mesh_index = find_mesh_index(mesh_id)
+    field_name = 'chi3_at_wt'
     chi3_at_wt => chi3_at_wt_list(mesh_index)
+    call check_initialised_field(chi3_at_wt, field_name, mesh_id)
 
   end function get_chi3_at_wt
 

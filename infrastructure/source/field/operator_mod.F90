@@ -14,7 +14,7 @@
 !>      (i.e. the matrix is assembled in each vertical column of the grid)
 module operator_mod
 
-  use constants_mod,            only : r_def, i_def
+  use constants_mod,            only : r_def, i_def, l_def
   use function_space_mod,       only : function_space_type
   use mesh_mod,                 only : mesh_type
   use log_mod,                  only : log_event, LOG_LEVEL_ERROR
@@ -82,6 +82,9 @@ module operator_mod
 
     !> Destroys object
     procedure, public :: operator_final
+
+    !> Checks if operator is initialised
+    procedure, public :: is_initialised
 
     ! Finalizer for the object
     final :: operator_destructor
@@ -388,6 +391,16 @@ contains
     end if
 
   end subroutine operator_final
+
+  !> Return logical desribing whether operator has been initialised
+  function is_initialised(self) result(initialised)
+    implicit none
+    class(operator_type), intent(in) :: self
+    logical(l_def)                   :: initialised
+
+    initialised = allocated(self%local_stencil)
+
+  end function is_initialised
 
   !>@brief Destroy the operator proxy
   subroutine destroy_op_proxy(self)

@@ -18,8 +18,13 @@
 !>          dependency trees and duplicated code.
 module runtime_tools_mod
 
-  use constants_mod,  only: i_def
-  use log_mod,        only: log_event, LOG_LEVEL_ERROR
+  use constants_mod,     only: i_def, str_def
+  use field_mod,         only: field_type
+  use fs_continuity_mod, only: W0, W1, W2, W2H, W2V, W3,    &
+                               W2trace, W2Htrace, W2Vtrace, &
+                               W2broken, Wtheta, Wchi
+  use log_mod,           only: log_event, log_scratch_space, LOG_LEVEL_ERROR
+  use operator_mod,      only: operator_type
 
   implicit none
 
@@ -44,6 +49,8 @@ module runtime_tools_mod
   public :: init_hierarchical_mesh_id_list
   public :: final_hierarchical_mesh_id_list
   public :: get_hierarchical_mesh_id
+  public :: check_initialised_field
+  public :: check_initialised_operator
 
 contains
   !> @brief Subroutine to initialise mesh ID list
@@ -128,7 +135,7 @@ contains
 
   end subroutine final_hierarchical_mesh_id_list
 
-  !> @breif Gets the mesh id of a given hierarchical level
+  !> @brief Gets the mesh id of a given hierarchical level
   function get_hierarchical_mesh_id(level) result(mesh_id)
     implicit none
     integer(kind=i_def), intent(in) :: level
@@ -137,5 +144,92 @@ contains
     mesh_id = hierarchical_mesh_id_list(level)
 
   end function get_hierarchical_mesh_id
+
+  !> @brief Checks whether a field is initialised and returns an error if not
+  !> @param[in] field      The field to check
+  !> @param[in] field_name A name of the field to include in the error message
+  !> @param[in] mesh_id    ID of the mesh
+  !> @param[in] space      An optional integer representing the function space
+  subroutine check_initialised_field(field, field_name, mesh_id, space)
+    implicit none
+    type(field_type),              intent(in) :: field
+    character(str_def),            intent(in) :: field_name
+    integer(kind=i_def),           intent(in) :: mesh_id
+    integer(kind=i_def), optional, intent(in) :: space
+
+    if (.not. field%is_initialised()) then
+      if (present(space)) then
+        write(log_scratch_space, '(A,A,I3,A,A)') &
+        trim(field_name), ' on mesh ', mesh_id, ' not initialised for ', find_space_name(space)
+      else
+        write(log_scratch_space, '(A,A,I3,A)') &
+        trim(field_name), ' on mesh ', mesh_id, ' not initialised'
+      end if
+      call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+    end if
+
+  end subroutine check_initialised_field
+
+  !> @brief Checks whether an operator is initialised and returns an error if not
+  !> @param[in] operator      The operator to check
+  !> @param[in] operator_name A name of the operator to include in the error message
+  !> @param[in] mesh_id       ID of the mesh
+  !> @param[in] space         An optional integer representing the function space
+  subroutine check_initialised_operator(operator, operator_name, mesh_id, space)
+    implicit none
+    type(operator_type),           intent(in) :: operator
+    character(str_def),            intent(in) :: operator_name
+    integer(kind=i_def),           intent(in) :: mesh_id
+    integer(kind=i_def), optional, intent(in) :: space
+
+    if (.not. operator%is_initialised()) then
+      if (present(space)) then
+        write(log_scratch_space, '(A,A,I3,A,A)') &
+        trim(operator_name), ' on mesh ', mesh_id, ' not initialised for ', find_space_name(space)
+      else
+        write(log_scratch_space, '(A,A,I3,A)') &
+        trim(operator_name), ' on mesh ', mesh_id, ' not initialised'
+      end if
+      call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+    end if
+
+  end subroutine check_initialised_operator
+
+  !> Converts the integer function space name into a human readable string
+  function find_space_name(space) result(space_name)
+    implicit none
+    integer(kind=i_def), intent(in) :: space
+    character(str_def)              :: space_name
+
+    select case(space)
+    case (W0)
+      space_name = 'W0'
+    case (W1)
+      space_name = 'W1'
+    case (W2)
+      space_name = 'W2'
+    case (W2V)
+      space_name = 'W2V'
+    case (W2H)
+      space_name = 'W2H'
+    case (W2broken)
+      space_name = 'W2broken'
+    case (W2trace)
+      space_name = 'W2trace'
+    case (W2Vtrace)
+      space_name = 'W2Vtrace'
+    case (W2Htrace)
+      space_name = 'W2Htrace'
+    case (W3)
+      space_name = 'W3'
+    case (Wtheta)
+      space_name = 'Wtheta'
+    case (Wchi)
+      space_name = 'Wchi'
+    case default
+      call log_event("Space not identified", LOG_LEVEL_ERROR)
+    end select
+
+  end function find_space_name
 
 end module runtime_tools_mod
