@@ -15,6 +15,7 @@ module gungho_model_mod
   use create_fem_mod,             only : init_fem, final_fem
   use create_mesh_mod,            only : init_mesh, final_mesh
   use configuration_mod,          only : final_configuration
+  use check_configuration_mod,    only : get_required_stencil_depth
   use conservation_algorithm_mod, only : conservation_algorithm
   use constants_mod,              only : i_def, i_native, r_def, &
                                          PRECISION_REAL, r_second
@@ -187,7 +188,7 @@ contains
 
     procedure(populate_filelist_if), pointer :: populate_pointer
 
-    integer(i_def)    :: total_ranks, local_rank
+    integer(i_def)    :: total_ranks, local_rank, stencil_depth
     integer(i_native) :: log_level
 
     class(clock_type), pointer :: clock
@@ -280,8 +281,11 @@ contains
     allocate( mesh_collection, &
               source=mesh_collection_type() )
 
+    stencil_depth = get_required_stencil_depth()
+
     ! Create the mesh
-    call init_mesh( local_rank, total_ranks, mesh_id,             &
+    call init_mesh( local_rank, total_ranks, stencil_depth,       &
+                    mesh_id,                                      &
                     twod_mesh_id          = twod_mesh_id,         &
                     shifted_mesh_id       = shifted_mesh_id,      &
                     double_level_mesh_id  = double_level_mesh_id, &

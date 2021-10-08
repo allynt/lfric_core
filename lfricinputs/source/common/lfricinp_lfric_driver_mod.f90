@@ -110,6 +110,8 @@ PROCEDURE(populate_filelist_if), POINTER :: populate_pointer
 
 CHARACTER(LEN=10) :: char_first_step, char_last_step
 
+INTEGER(KIND=i_def) :: stencil_depth
+
 ! Set module variables
 program_name = program_name_arg
 xios_id = TRIM(program_name) // "_client"
@@ -149,7 +151,10 @@ CALL log_event('Initialising mesh', LOG_LEVEL_INFO)
 ALLOCATE(local_mesh_collection, source = local_mesh_collection_type())
 ALLOCATE(mesh_collection, source=mesh_collection_type() )
 
-CALL init_mesh(local_rank, total_ranks, mesh_id, twod_mesh_id)
+! LFricInputs does not contain science, hard code to the default
+stencil_depth = 1
+
+CALL init_mesh(local_rank, total_ranks, stencil_depth, mesh_id, twod_mesh_id)
 
 ! Create FEM specifics (function spaces and chi field)
 CALL log_event('Creating function spaces and chi', LOG_LEVEL_INFO)

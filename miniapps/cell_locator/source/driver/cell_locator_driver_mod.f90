@@ -9,6 +9,7 @@
 !>
 module cell_locator_driver_mod
 
+  use check_configuration_mod,        only : get_required_stencil_depth
   use constants_mod,                  only : i_def, i_native, r_def
   use cli_mod,                        only : get_initial_filename
   use cell_locator_mod,               only : load_configuration
@@ -71,7 +72,7 @@ contains
     character(:),      intent(in), allocatable :: filename
     integer(i_native), intent(in)              :: model_communicator
 
-    integer(i_def) :: total_ranks, local_rank
+    integer(i_def) :: total_ranks, local_rank, stencil_depth
     integer(i_def) :: ier
 
     ! Store the MPI communicator for later use.
@@ -104,8 +105,11 @@ contains
     allocate( mesh_collection, &
               source=mesh_collection_type() )
 
+    stencil_depth = get_required_stencil_depth()
+
     ! Create the mesh
-    call init_mesh( local_rank, total_ranks, mesh_id, &
+    call init_mesh( local_rank, total_ranks, stencil_depth, &
+                    mesh_id,                                &
                     twod_mesh_id=twod_mesh_id )
 
     ! Create FEM specifics (function spaces and chi field)

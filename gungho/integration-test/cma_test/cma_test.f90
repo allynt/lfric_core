@@ -21,6 +21,7 @@ program cma_test
   use base_mesh_config_mod,           only : geometry,           &
                                              geometry_spherical, &
                                              prime_mesh_name
+  use check_configuration_mod,        only : get_required_stencil_depth
   use cma_test_algorithm_mod,         only : cma_test_init,                  &
                                              test_cma_apply_mass_p,          &
                                              test_cma_apply_mass_v,          &
@@ -68,7 +69,8 @@ program cma_test
   integer(kind=i_def) :: mesh_id
 
   ! Number of processes and local rank
-  integer(kind=i_def) :: total_ranks, local_rank
+  integer(kind=i_def) :: total_ranks, local_rank, stencil_depth
+
   ! Filename to read namelist from
   character(:), allocatable :: filename
 
@@ -242,7 +244,9 @@ program cma_test
   allocate( mesh_collection, &
             source=mesh_collection_type() )
 
-  call init_mesh( local_rank, total_ranks, mesh_id )
+  stencil_depth = get_required_stencil_depth()
+
+  call init_mesh( local_rank, total_ranks, stencil_depth, mesh_id )
 
   ! Work out grid spacing, which should be of order 1
   mesh => mesh_collection%get_mesh( mesh_id )

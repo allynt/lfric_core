@@ -10,6 +10,7 @@
 module catalyst_demo_driver_mod
 
   use catalyst_demo_mod,              only: load_configuration
+  use check_configuration_mod,        only: get_required_stencil_depth
   use checksum_alg_mod,               only: checksum_alg
   use clock_mod,                      only: clock_type
   use constants_mod,                  only: i_def, i_native
@@ -120,7 +121,7 @@ contains
   character(*),      intent(in) :: filename
   integer(i_native), intent(in) :: model_communicator
 
-  integer(i_def) :: total_ranks, local_rank
+  integer(i_def) :: total_ranks, local_rank, stencil_depth
 
   ! Initialse mpi and create the default communicator: mpi_comm_world
   call initialise_comm(comm)
@@ -163,10 +164,13 @@ contains
   allocate( mesh_collection, &
        source=mesh_collection_type() )
 
+  stencil_depth = get_required_stencil_depth()
+
   ! Create the mesh
-  call init_mesh( local_rank, total_ranks, mesh_id, &
-                  twod_mesh_id=twod_mesh_id,        &
-                  multigrid_mesh_ids=multigrid_mesh_ids, &
+  call init_mesh( local_rank, total_ranks, stencil_depth, &
+                  mesh_id,                                &
+                  twod_mesh_id=twod_mesh_id,              &
+                  multigrid_mesh_ids=multigrid_mesh_ids,  &
                   use_multigrid=l_multigrid )
 
   !----------------------------------------------------------------------------

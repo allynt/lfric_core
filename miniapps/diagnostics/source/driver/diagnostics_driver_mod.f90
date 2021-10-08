@@ -9,6 +9,7 @@
 !>
 module diagnostics_driver_mod
 
+  use check_configuration_mod,       only : get_required_stencil_depth
   use clock_mod,                     only : clock_type
   use constants_mod,                 only : i_def, i_native, str_def, r_def
   use diagnostics_configuration_mod, only : load_configuration, program_name
@@ -104,7 +105,7 @@ contains
     class(clock_type), pointer :: clock
     real(r_def)                :: dt_model
 
-    integer(i_def)     :: total_ranks, local_rank
+    integer(i_def)     :: total_ranks, local_rank, stencil_depth
 
     integer(i_native) :: log_level
 
@@ -155,9 +156,11 @@ contains
     allocate( mesh_collection, &
               source=mesh_collection_type() )
 
+    stencil_depth = get_required_stencil_depth()
+
     ! Create the mesh
-    call init_mesh( local_rank, total_ranks, mesh_id, &
-                    twod_mesh_id=twod_mesh_id )
+    call init_mesh( local_rank, total_ranks, stencil_depth, &
+                    mesh_id, twod_mesh_id=twod_mesh_id )
 
 
     ! Create FEM specifics (function spaces and chi field)

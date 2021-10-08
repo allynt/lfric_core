@@ -13,6 +13,7 @@ module skeleton_driver_mod
   use checksum_alg_mod,           only : checksum_alg
   use clock_mod,                  only : clock_type
   use configuration_mod,          only : final_configuration
+  use check_configuration_mod,    only : get_required_stencil_depth
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL, r_def
   use convert_to_upper_mod,       only : convert_to_upper
@@ -95,7 +96,7 @@ contains
     character(:),      intent(in), allocatable :: filename
     integer(i_native), intent(in)              :: model_communicator
 
-    integer(i_def)    :: total_ranks, local_rank
+    integer(i_def)    :: total_ranks, local_rank, stencil_depth
     integer(i_native) :: log_level
 
     class(clock_type), pointer :: clock
@@ -153,9 +154,11 @@ contains
     allocate( mesh_collection, &
               source = mesh_collection_type() )
 
+    stencil_depth = get_required_stencil_depth()
+
     ! Create the mesh
-    call init_mesh( local_rank, total_ranks, mesh_id, &
-                    twod_mesh_id = twod_mesh_id )
+    call init_mesh( local_rank, total_ranks, stencil_depth, &
+                    mesh_id, twod_mesh_id = twod_mesh_id )
 
     ! Create FEM specifics (function spaces and chi field)
     call init_fem( mesh_id, chi, panel_id )

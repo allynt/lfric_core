@@ -8,6 +8,7 @@
 
 module gravity_wave_infrastructure_mod
 
+  use check_configuration_mod,    only : get_required_stencil_depth
   use clock_mod,                  only : clock_type
   use configuration_mod,          only : final_configuration
   use constants_mod,              only : i_def, i_native, PRECISION_REAL, r_def
@@ -86,7 +87,7 @@ contains
     type(field_type), allocatable :: chi_mg(:,:)
     type(field_type), allocatable :: panel_id_mg(:)
 
-    integer(i_def) :: total_ranks, local_rank
+    integer(i_def) :: total_ranks, local_rank, stencil_depth
 
     integer(i_native) :: log_level
 
@@ -147,8 +148,11 @@ contains
     total_ranks = get_comm_size()
     local_rank  = get_comm_rank()
 
+    stencil_depth = get_required_stencil_depth()
+
     ! Create the mesh
-    call init_mesh( local_rank, total_ranks, mesh_id,              &
+    call init_mesh( local_rank, total_ranks, stencil_depth,        &
+                    mesh_id,                                       &
                     twod_mesh_id          = twod_mesh_id,          &
                     multigrid_mesh_ids    = multigrid_mesh_ids,    &
                     multigrid_2D_mesh_ids = multigrid_2D_mesh_ids, &

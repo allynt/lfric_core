@@ -10,6 +10,7 @@ module io_dev_model_mod
 
   ! Infrastructure
   use base_mesh_config_mod,       only : prime_mesh_name
+  use check_configuration_mod,    only : get_required_stencil_depth
   use clock_mod,                  only : clock_type
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL
@@ -121,7 +122,7 @@ contains
 
     procedure(populate_filelist_if), pointer :: init_context_ptr
 
-    integer(i_def)    :: total_ranks, local_rank
+    integer(i_def)    :: total_ranks, local_rank, stencil_depth
     integer(i_native) :: log_level
 
     ! Save the model's part of the split communicator for later use
@@ -177,7 +178,11 @@ contains
               source = local_mesh_collection_type() )
     allocate( mesh_collection, &
               source=mesh_collection_type() )
-    call init_mesh( local_rank, total_ranks, mesh_id, twod_mesh_id )
+
+    stencil_depth = get_required_stencil_depth()
+
+    call init_mesh( local_rank, total_ranks, stencil_depth, &
+                    mesh_id, twod_mesh_id )
 
     ! Create FEM specifics (function spaces and chi field)
     call init_fem( mesh_id, chi, panel_id )

@@ -9,6 +9,7 @@
 
 module init_multires_coupling_model_mod
 
+  use check_configuration_mod,        only : get_required_stencil_depth
   use constants_mod,                  only : i_def, r_def
   use field_mod,                      only : field_type
   use create_mesh_mod,                only : init_mesh, final_mesh
@@ -92,7 +93,7 @@ contains
 
     real(r_def),                   intent(in)    :: dt
 
-    integer(kind=i_def) :: total_ranks, local_rank
+    integer(kind=i_def) :: total_ranks, local_rank, stencil_depth
 
     allocate( local_mesh_collection, &
               source = local_mesh_collection_type() )
@@ -104,8 +105,11 @@ contains
     total_ranks = get_comm_size()
     local_rank  = get_comm_rank()
 
+    stencil_depth = get_required_stencil_depth()
+
     ! Create the meshes
     call init_mesh( local_rank, total_ranks,         &
+                    stencil_depth,                   &
                     prime_mesh_id, prime_2D_mesh_id, &
                     prime_shifted_mesh_id,           &
                     prime_double_level_mesh_id,      &

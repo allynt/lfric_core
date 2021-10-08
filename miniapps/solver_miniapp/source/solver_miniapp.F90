@@ -54,7 +54,7 @@ program solver_miniapp
 
   character(:), allocatable :: filename
 
-  integer(i_def) :: total_ranks, local_rank
+  integer(i_def) :: total_ranks, local_rank, stencil_depth
   integer(i_def) :: log_level
   integer(i_def) :: comm = -999
 
@@ -124,7 +124,11 @@ program solver_miniapp
   allocate( mesh_collection, &
             source=mesh_collection_type() )
 
-  call init_mesh( local_rank, total_ranks, mesh_id )
+  ! Set stencil depth to 1 as the solver miniapp doesn't
+  ! have the same config modules as gungho
+  stencil_depth = 1
+
+  call init_mesh( local_rank, total_ranks, stencil_depth, mesh_id )
 
   call init_fem( mesh_id, chi, panel_id )
 
