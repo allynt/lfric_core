@@ -225,7 +225,7 @@ contains
     use glomap_clim_option_mod, only: i_glomap_clim_setup,                 &
          i_gc_sussocbc_5mode, i_gc_sussocbcdu_7mode, l_glomap_clim_aie2
     use g_wave_input_mod, only: ussp_launch_factor, wavelstar, l_add_cgw,  &
-         cgw_scale_factor, i_moist
+         cgw_scale_factor, i_moist, scale_aware, middle, var
     use mphys_bypass_mod, only: mphys_mod_top
     use mphys_constants_mod, only: cx, constp
     use mphys_inputs_mod, only: ai, ar, bi, c_r_correl, ci_input, cic_input, &
@@ -860,6 +860,9 @@ contains
     end if
 
     if ( orographic_drag == orographic_drag_um ) then
+      scale_aware = .false.
+      middle = 0.42_r_um
+      var = 0.18_r_um
       select case (include_moisture)
         case(include_moisture_dry)
           i_moist = 0

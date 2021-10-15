@@ -200,7 +200,9 @@ contains
                 modu                    ! ... Wind speed
 
     ! Input subgrid orographic characteristics
-    real(r_um), dimension(seg_len) :: sd, grad_xx, grad_xy, grad_yy
+    real(r_um), dimension(seg_len) ::               &
+                sd, grad_xx, grad_xy, grad_yy,      &
+                orog_f1, orog_f2, orog_f3, orog_amp
 
     ! Computed subgrid orographic characteristics
     real(r_um), dimension(seg_len) :: mt_high, slope, anis, banis,  &
@@ -288,6 +290,12 @@ contains
     grad_xy(1) = real(grad_xy_orog(map_2d(1)), r_um)
     grad_yy(1) = real(grad_yy_orog(map_2d(1)), r_um)
 
+    ! Scale aware inputs (not used in LFRic)
+    orog_f1(1)  = 0.0_r_um
+    orog_f2(1)  = 0.0_r_um
+    orog_f3(1)  = 0.0_r_um
+    orog_amp(1) = 0.0_r_um
+
     ! Recasting of LFRic to UM namelist inputs
     fbcd         = real(cd_flow_blocking, r_um)
     gsharp       = real(gwd_scaling, r_um)
@@ -345,6 +353,7 @@ contains
                  ulow,vlow,rholow,psi1,psilow,nlow,modu,ktop,        &
                  z_rho_levels,z_theta_levels,delta_lambda,delta_phi, &
                  latitude,mt_high,sd,slope,zb,banis,canis,           &
+                 orog_f1,orog_f2,orog_f3,orog_amp,                   &
                  du_dt_orog_gwd,dv_dt_orog_gwd,dtemp_dt_orog_gwd,    &
                  dynbeta,nonhydro,l_smooth,                          &
                  gwd_fsat,gsharp,drag,l_gw_heating,                  &
