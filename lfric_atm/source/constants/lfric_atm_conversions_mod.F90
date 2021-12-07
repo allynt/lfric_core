@@ -15,7 +15,7 @@ module lfric_atm_conversions_mod
   private
   public :: seconds_per_day, seconds_per_hour, seconds_per_minute, &
             hours_per_day, seconds_to_hours, hours_to_days,        &
-            zero_degrees_celcius, knots_to_metre_per_second,       &
+            zero_degrees_celsius, knots_to_metre_per_second,       &
             feet_to_metres
 
   !> @name Time conversions (Conversion factors)
@@ -28,8 +28,8 @@ module lfric_atm_conversions_mod
   real(r_def), parameter :: hours_to_days      = 1.0_r_def/hours_per_day
   !> @}
 
-  ! Celcius to Kelvin (Conversion offset)
-  real(r_def), parameter :: zero_degrees_celcius = 273.15_r_def
+  ! Celsius to Kelvin (Conversion offset)
+  real(r_def), parameter :: zero_degrees_celsius = 273.15_r_def
 
   ! Knots to m/s (Conversion factor)
   real(r_def), parameter :: knots_to_metre_per_second = 1852.0_r_def / &

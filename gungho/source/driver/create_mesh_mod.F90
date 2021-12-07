@@ -168,16 +168,17 @@ subroutine init_mesh( local_rank, total_ranks,       &
 
   if ( present(use_multigrid) ) then
     create_multigrid = use_multigrid
+    n_chain_meshes = size(chain_mesh_tags)
     if ( create_multigrid ) then
       if ( present(multigrid_mesh_ids) ) then
         create_multigrid_meshes    = .true.
         if (allocated(multigrid_mesh_ids)) deallocate(multigrid_mesh_ids)
-        allocate(multigrid_mesh_ids(size(chain_mesh_tags)))
+        allocate( multigrid_mesh_ids(n_chain_meshes) )
       end if
       if ( present(multigrid_2d_mesh_ids) )then
         create_multigrid_2d_meshes = .true.
         if (allocated(multigrid_2d_mesh_ids)) deallocate(multigrid_2d_mesh_ids)
-        allocate(multigrid_2d_mesh_ids(size(chain_mesh_tags)))
+        allocate( multigrid_2d_mesh_ids(n_chain_meshes) )
       end if
     end if
   end if
@@ -252,7 +253,6 @@ subroutine init_mesh( local_rank, total_ranks,       &
 
   ! 6.0 Assign maps to local 3D meshes
   !=================================================================
-  n_chain_meshes = size(chain_mesh_tags)
   if (create_multigrid_meshes) then
     do i=1, n_chain_meshes-1
       mesh_name_A = chain_mesh_tags(i)

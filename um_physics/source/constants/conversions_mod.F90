@@ -20,7 +20,7 @@ module conversions_mod
                                        hours_per_day,             &
                                        seconds_to_hours,          &
                                        hours_to_days,             &
-                                       zero_degrees_celcius,      &
+                                       zero_degrees_celsius,      &
                                        knots_to_metre_per_second, &
                                        feet_to_metres
   implicit none
@@ -61,8 +61,8 @@ module conversions_mod
   real(r_um),    parameter :: recip_pi_over_180 = real(radians_to_degrees, r_um)
 
   ! zerodegc is a conversion between degrees centigrade and kelvin
-  real(r_um),    parameter :: zerodegc     = real(zero_degrees_celcius, r_um)
-  real(real32),  parameter :: zerodegc_32  = real(zero_degrees_celcius, real32)
+  real(r_um),    parameter :: zerodegc     = real(zero_degrees_celsius, r_um)
+  real(real32),  parameter :: zerodegc_32  = real(zero_degrees_celsius, real32)
 
   ! Knots to m/s conversion
   real(r_um),    parameter :: kt2ms = real(knots_to_metre_per_second, r_um)

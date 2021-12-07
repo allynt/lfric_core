@@ -267,12 +267,20 @@ contains
     logical,      optional, intent(in)             :: advection_flag
     integer(i_def), target, optional, intent(in)   :: override_data( : )
 
-    ! In case the field is already initialised, destruct it ready for
+    character(str_def) :: local_name
+
+    if ( present(name) ) then
+      local_name = name
+    else
+      local_name = 'none'
+    end if
+
+   ! In case the field is already initialised, destruct it ready for
     ! re-initialisation
     call field_destructor_scalar(self)
 
     call self%field_parent_initialiser(vector_space, &
-                                       name=name, &
+                                       name=local_name, &
                                        fortran_type=integer_type, &
                                        fortran_kind=i_def, &
                                        ndata_first=ndata_first, &

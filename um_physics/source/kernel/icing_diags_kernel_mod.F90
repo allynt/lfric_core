@@ -68,7 +68,7 @@ contains
                                undf_wth,         &
                                map_wth           )
 
-    use lfric_atm_conversions_mod, only: zero_degrees_celcius
+    use lfric_atm_conversions_mod, only: zero_degrees_celsius
 
     implicit none
 
@@ -96,10 +96,10 @@ contains
                         member_clw   ! water content
 
     ! Thresholds for membership functions
-    real(kind=r_def), parameter :: t1 = zero_degrees_celcius-28.0_r_def
-    real(kind=r_def), parameter :: t2 = zero_degrees_celcius-12.0_r_def
-    real(kind=r_def), parameter :: t3 = zero_degrees_celcius -1.0_r_def
-    real(kind=r_def), parameter :: t4 = zero_degrees_celcius +1.0_r_def
+    real(kind=r_def), parameter :: t1 = zero_degrees_celsius-28.0_r_def
+    real(kind=r_def), parameter :: t2 = zero_degrees_celsius-12.0_r_def
+    real(kind=r_def), parameter :: t3 = zero_degrees_celsius -1.0_r_def
+    real(kind=r_def), parameter :: t4 = zero_degrees_celsius +1.0_r_def
     real(kind=r_def), parameter :: w1 =   -0.1_r_def
     real(kind=r_def), parameter :: w2 =    0.0_r_def
     real(kind=r_def), parameter :: w3 =    0.05_r_def
@@ -119,8 +119,8 @@ contains
         cld_fraction = cld_fraction_wth(map_wth(1) + k)
         !
         ! Simplified Forecast Icing Potential (SFIP) based on
-        ! Morcrette et al (2019) https://doi.org/10.1175/WAF-D-18-0177.1 
-        ! which is heavily based on 
+        ! Morcrette et al (2019) https://doi.org/10.1175/WAF-D-18-0177.1
+        ! which is heavily based on
         ! Bernstein et al (2005) https://doi.org/10.1175/JAM2246.1
         ! and Belo-Pereira (2015) https://doi.org/10.1002/met.1505
         !
@@ -138,7 +138,7 @@ contains
         end if
 
         ! Cloud liquid water membership function.
-        ! Can include contribution from ice and rain 
+        ! Can include contribution from ice and rain
         ! (depending on what gets passed in).
         if ( lwc * 1000.0_r_def < q1 ) then
           member_clw = (1.0_r_def/q1) * lwc * 1000.0_r_def
@@ -148,7 +148,7 @@ contains
 
         ! Vertical velocity membership function
         ! N.B. there is a typo in equation 4 of
-        ! https://doi.org/10.1175/WAF-D-18-0177.1 
+        ! https://doi.org/10.1175/WAF-D-18-0177.1
         ! it should be w3=0.05m/s, like in their Fig 2c.
         if (w_wind < w1) then
           member_w = -0.4_r_def
