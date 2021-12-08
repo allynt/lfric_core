@@ -16,6 +16,7 @@ use argument_mod,      only: arg_type,                  &
                              CELL_COLUMN
 use fs_continuity_mod, only: WTHETA, W3
 use kernel_mod,        only: kernel_type
+use empty_data_mod,    only: empty_real_data
 
 implicit none
 
@@ -29,7 +30,7 @@ private
 
 type, public, extends(kernel_type) :: mphys_kernel_type
   private
-  type(arg_type) :: meta_args(37) = (/                                 &
+  type(arg_type) :: meta_args(38) = (/                                      &
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! mv_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! ml_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! mi_wth
@@ -56,8 +57,8 @@ type, public, extends(kernel_type) :: mphys_kernel_type
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1),    & ! ls_rain_2d
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1),    & ! ls_snow_2d
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1),    & ! lsca_2d
-       arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! ls_rain_3d 
-       arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! ls_snow_3d 
+       arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! ls_rain_3d
+       arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! ls_snow_3d
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! autoconv
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! accretion
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA),                       & ! rim_cry
@@ -66,7 +67,8 @@ type, public, extends(kernel_type) :: mphys_kernel_type
        arg_type(GH_FIELD, GH_REAL, GH_READWRITE, WTHETA),                   & ! dcfl_wth
        arg_type(GH_FIELD, GH_REAL, GH_READWRITE, WTHETA),                   & ! dcff_wth
        arg_type(GH_FIELD, GH_REAL, GH_READWRITE, WTHETA),                   & ! dbcf_wth
-       arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_2)     & ! f_arr_wth
+       arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_2),    & ! f_arr_wth
+       arg_type(GH_FIELD, GH_REAL, GH_WRITE, WTHETA)                        & ! superc_liq_wth
        /)
    integer :: operates_on = CELL_COLUMN
 contains
@@ -118,6 +120,7 @@ contains
 !> @param[in,out] dbcf_wth            Increment to bulk cloud fraction
 !> @param[in]     f_arr_wth           Parameters related to fractional standard
 !!                                     deviation of condensate
+!> @param[in,out] superc_liq_wth      Supercooled cloud liquid water content
 !> @param[in]     ndf_wth             Number of degrees of freedom per cell for
 !!                                     potential temperature space
 !> @param[in]     undf_wth            Number unique of degrees of freedom for
@@ -160,6 +163,7 @@ subroutine mphys_code( nlayers,                     &
                        theta_inc,                   &
                        dcfl_wth, dcff_wth, dbcf_wth,&
                        f_arr_wth,                   &
+                       superc_liq_wth,              &
                        ndf_wth, undf_wth, map_wth,  &
                        ndf_w3,  undf_w3,  map_w3,   &
                        ndf_2d,  undf_2d,  map_2d,   &
@@ -192,6 +196,7 @@ subroutine mphys_code( nlayers,                     &
 
     use level_heights_mod,          only: r_rho_levels, r_theta_levels
     use planet_constants_mod,       only: p_zero, kappa, planet_radius
+    use water_constants_mod,        only: tm
     use arcl_mod,                   only: npd_arcl_compnts
     use def_easyaerosol,            only: t_easyaerosol_cdnc
 
@@ -246,6 +251,8 @@ subroutine mphys_code( nlayers,                     &
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dcfl_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dcff_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dbcf_wth
+
+    real(kind=r_def), pointer, intent(inout) :: superc_liq_wth(:)
 
     integer(kind=i_def), intent(in), dimension(ndf_wth) :: map_wth
     integer(kind=i_def), intent(in), dimension(ndf_w3)  :: map_w3
@@ -661,7 +668,20 @@ end if
   do k = 1, model_levels
     ls_rain_3d(map_wth(1) + k) = ls_rain3d(1,1,k)
     ls_snow_3d(map_wth(1) + k) = ls_snow3d(1,1,k)
-  end do
+  end do ! model levels
+
+  if (.not. associated(superc_liq_wth, empty_real_data) ) then
+    do k = 1, model_levels
+      if (t_n(1,1,k) < tm) then
+        ! Following the UM, have taken start of timestep quantity for the
+        ! supercooled liquid cloud. This is where the model cloud should
+        ! be in a steady-state.
+        superc_liq_wth( map_wth(1) + k) = ml_wth(map_wth(1) + k)
+      else
+        superc_liq_wth( map_wth(1) + k) = 0.0_r_um
+      end if
+    end do ! model_levels
+  end if ! not assoc. superc_liq_wth
 
   ! Copy diagnostics if selected: autoconversion, accretion & riming rates
   do k = 1, model_levels

@@ -638,8 +638,8 @@
 	<field field_ref="bulk_fraction"/>
 	<field field_ref="conv_rain"/>
 	<field field_ref="conv_snow"/>
-	<field field_ref="ls_rain"/>
-	<field field_ref="ls_snow"/>
+	<field field_ref="microphysics__ls_rain"/>
+	<field field_ref="microphysics__ls_snow"/>
 	<field field_ref="tile_heat_flux"/>
 	<field field_ref="tile_moisture_flux"/>
 	<field field_ref="tile_fraction"/>
