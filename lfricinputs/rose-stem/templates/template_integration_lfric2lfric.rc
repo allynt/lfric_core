@@ -79,7 +79,7 @@
 
     {% set task_name = "integration-" + build + "-lfric2lfric" %}
     [[rose_ana-integration-{{build}}-lfric2lfric]]
-        inherit = {{rose_ana_family}}, {{build_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
+        inherit = {{rose_ana_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
         [[[environment]]]
             SUITE_DIR=../um2lfric-{{build}}-{{um2lfric_config}}_lfric2lfric
             KGO_DIR={{kgo_dir_base}}/{{task_name}}/{{KGO_DIRS[task_name]|default("no_kgo_var")}}

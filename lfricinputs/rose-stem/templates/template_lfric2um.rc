@@ -42,7 +42,7 @@
 
     {% set task_name = "lfric2um-" + build + "-" + config %}
     [[rose_ana-lfric2um-{{build}}-{{config}}]]
-        inherit = {{rose_ana_family}}, {{build_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
+        inherit = {{rose_ana_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
         [[[environment]]]
             SUITE_DIR=../lfric2um-{{build}}-{{config}}
             KGO_DIR={{kgo_dir_base}}/{{task_name}}/{{KGO_DIRS[task_name]|default("no_kgo_var")}}

@@ -80,7 +80,7 @@
 
     {% set task_name = "integration-" + build + "-um2um" %}
     [[rose_ana-integration-{{build}}-um2um]]
-        inherit = {{rose_ana_family}}, {{build_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
+        inherit = {{rose_ana_family}}, METO_{{platform_fam}}_1_TASKS, {{platform_fam}}
         [[[environment]]]
             SUITE_DIR=../lfric2um-{{build}}-{{lfric2um_config}}_um2um
             KGO_DIR={{kgo_dir_base}}/{{task_name}}/{{KGO_DIRS[task_name]|default("no_kgo_var")}}
