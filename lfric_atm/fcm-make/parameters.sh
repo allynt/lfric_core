@@ -16,7 +16,7 @@
 # changes were committed to the project's trunk
 export casim_rev=um12.1
 export casim_sources=
-export jules_rev=22119
+export jules_rev=22305
 export jules_sources=
 export shumlib_rev=um12.1
 export shumlib_sources=
