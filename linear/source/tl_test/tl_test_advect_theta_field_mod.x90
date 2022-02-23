@@ -141,10 +141,10 @@ module tl_test_advect_theta_field_mod
     transport_metadata => transport_metadata_collection%get_transport_metadata('potential_temperature')
 
     ! Taylor Remainder Convergence Test
-    call invoke( assign_field_random_kernel_type( random_u ) )
-    call invoke( assign_field_random_kernel_type( random_theta ) )
+    call invoke( assign_field_random_kernel_type( random_u, 1.0_r_def ),     &
+                 assign_field_random_kernel_type( random_theta, 1.0_r_def ), &
+                 setval_C( n1_advection_inc, 0.0_r_def ) )
 
-    call invoke( setval_C( n1_advection_inc, 0.0_r_def ) )
     call transport_field( ls_theta_np1, ls_theta, dt, transport_metadata )
     call invoke( X_minus_Y( n1_advection_inc, ls_theta_np1, ls_theta ) )
 

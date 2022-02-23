@@ -477,15 +477,15 @@ contains
     real(kind=r_def), intent(in) :: tolerance
     character(len=32) :: label = "apply pressure mass matrix"
 
-    call invoke( assign_field_random_kernel_type( p_in ),          &
-                 setval_c( p_in,      1.0_r_def ),                 &
-                 setval_c( p_out,     0.0_r_def ),                 &
-                 setval_c( p_out_cma, 0.0_r_def ),                 &
-                 columnwise_op_app_kernel_type( p_out_cma, &
-                                                p_in,      &
-                                                mm_pressure_cma ), &
-                 matrix_vector_kernel_type( p_out,         &
-                                            p_in,          &
+    call invoke( assign_field_random_kernel_type( p_in, 1.0_r_def ), &
+                 setval_c( p_in,      1.0_r_def ),                   &
+                 setval_c( p_out,     0.0_r_def ),                   &
+                 setval_c( p_out_cma, 0.0_r_def ),                   &
+                 columnwise_op_app_kernel_type( p_out_cma,           &
+                                                p_in,                &
+                                                mm_pressure_cma ),   &
+                 matrix_vector_kernel_type( p_out,                   &
+                                            p_in,                    &
                                             mm_pressure ) )
     call compare_fields(p_out,p_out_cma,tolerance,label)
   end subroutine test_cma_apply_mass_p
@@ -500,7 +500,7 @@ contains
     real(kind=r_def), intent(in) :: tolerance
     character(len=32) :: label = "apply vert velocity mass matrix"
 
-    call invoke( assign_field_random_kernel_type( u_v_in ),     &
+    call invoke( assign_field_random_kernel_type( u_v_in, 1.0_r_def ), &
                  enforce_bc_kernel_type( u_v_in ),              &
                  setval_c( u_v_out,     0.0_r_def ),            &
                  setval_c( u_v_out_cma, 0.0_r_def ),            &
@@ -527,7 +527,7 @@ contains
     real(kind=r_def), intent(in) :: tolerance
     character(len=32) :: label = "apply vert divergence"
 
-    call invoke( assign_field_random_kernel_type( u_v_in ),  &
+    call invoke( assign_field_random_kernel_type( u_v_in, 1.0_r_def ), &
                  enforce_bc_kernel_type( u_v_in ),           &
                  setval_c( p_out,     0.0_r_def ),           &
                  setval_c( p_out_cma, 0.0_r_def ),           &
@@ -564,7 +564,7 @@ contains
                                                 mm_vel_v_cma,    &
                                                 div_v_mm_vel_v_cma ) )
     ! Initialise fields
-    call invoke( assign_field_random_kernel_type( u_v_in ),       &
+    call invoke( assign_field_random_kernel_type( u_v_in, 1.0_r_def ), &
                  enforce_bc_kernel_type( u_v_in ),                &
                  setval_c( p_out,     0.0_r_def ),                &
                  setval_c( u_v_tmp,   0.0_r_def ),                &
@@ -609,7 +609,7 @@ contains
                                                 div_v_cma,        &
                                                 grad_v_div_v_cma ) )
     ! Initialise fields
-    call invoke( assign_field_random_kernel_type( u_v_in ),   &
+    call invoke( assign_field_random_kernel_type( u_v_in, 1.0_r_def ), &
                  enforce_bc_kernel_type( u_v_in ),            &
                  setval_c( p_tmp,       0.0_r_def ),          &
                  setval_c( u_v_out,     0.0_r_def ),          &
@@ -651,8 +651,8 @@ contains
     ! Choose arbitrary scaling parameters
     alpha = 2.5_r_def
     beta = 3.7_r_def
-    call invoke( assign_field_random_kernel_type( p_in ),    &
-                 setval_c( p_out,     0.0_r_def ),           &
+    call invoke( assign_field_random_kernel_type( p_in, 1.0_r_def ), &
+                 setval_c( p_out,     0.0_r_def ),                   &
                  setval_c( p_out_cma, 0.0_r_def ) )
 
     ! Assemble CMA representation of Helmholtz operator
@@ -688,8 +688,8 @@ contains
     ! Choose arbitrary scaling parameters
     alpha = 2.5_r_def
     beta = 3.7_r_def
-    call invoke( assign_field_random_kernel_type( p_in ),          &
-                 setval_c( p_tmp,     0.0_r_def ),                 &
+    call invoke( assign_field_random_kernel_type( p_in, 1.0_r_def ), &
+                 setval_c( p_tmp,     0.0_r_def ),                   &
                  setval_c( p_out_cma, 0.0_r_def ) )
 
     ! Assemble CMA representation of Helmholtz operator

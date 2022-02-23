@@ -195,13 +195,13 @@ module tl_test_timesteps_alg_mod
       function_space_collection%get_fs(mesh, element_order, Wtheta) )
     call clone_bundle(mr, diff_mr, nummr)
 
-    call invoke( assign_field_random_kernel_type(r_u) ,     &
-                 assign_field_random_kernel_type(r_rho) ,   &
-                 assign_field_random_kernel_type(r_theta) , &
-                 assign_field_random_kernel_type(r_exner) )
+    call invoke( assign_field_random_kernel_type( r_u, 1.0_r_def ) ,     &
+                 assign_field_random_kernel_type( r_rho, 1.0_r_def ) ,   &
+                 assign_field_random_kernel_type( r_theta, 1.0_r_def ) , &
+                 assign_field_random_kernel_type( r_exner, 1.0_r_def ) )
 
     do i = 1, nummr
-      call invoke( assign_field_random_kernel_type(r_mr(i)) )
+      call invoke( assign_field_random_kernel_type( r_mr(i), 1.0_r_def ) )
     end do
 
     gamma_u = 1.e4_r_def

@@ -165,13 +165,13 @@ module tl_test_rk_alg_mod
     call clone_bundle(mr, p_mr, nummr)
     call clone_bundle(mr, n_mr, nummr)
 
-    call invoke( assign_field_random_kernel_type( r_u) ,     &
-                 assign_field_random_kernel_type( r_rho) ,   &
-                 assign_field_random_kernel_type( r_theta) , &
-                 assign_field_random_kernel_type( r_exner) )
+    call invoke( assign_field_random_kernel_type( r_u, 1.0_r_def ) ,     &
+                 assign_field_random_kernel_type( r_rho, 1.0_r_def ) ,   &
+                 assign_field_random_kernel_type( r_theta, 1.0_r_def ) , &
+                 assign_field_random_kernel_type( r_exner, 1.0_r_def ) )
 
     do i = 1, num_moist_factors
-      call invoke( assign_field_random_kernel_type( r_moist_dyn(i) ) )
+      call invoke( assign_field_random_kernel_type( r_moist_dyn(i), 1.0_r_def ) )
     end do
 
     call invoke( setval_X( u, ls_u ),                     &

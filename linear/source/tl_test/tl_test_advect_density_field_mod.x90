@@ -145,10 +145,10 @@ module tl_test_advect_density_field_mod
     transport_metadata => transport_metadata_collection%get_transport_metadata('density')
 
     ! Taylor Remainder Convergence Test
-    call invoke( assign_field_random_kernel_type( random_u ) )
-    call invoke( assign_field_random_kernel_type( random_rho ) )
+    call invoke( assign_field_random_kernel_type( random_u, 1.0_r_def ),   &
+                 assign_field_random_kernel_type( random_rho, 1.0_r_def ), &
+                 setval_C( n1_advection_inc, 0.0_r_def ) )
 
-    call invoke( setval_C( n1_advection_inc, 0.0_r_def ) )
     call transport_field( ls_rho_np1, ls_rho, dt, &
                           transport_metadata, flux=dummy_flux )
     call invoke( X_minus_Y( n1_advection_inc, ls_rho_np1, ls_rho ) )

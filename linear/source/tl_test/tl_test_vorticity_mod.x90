@@ -153,7 +153,7 @@ module tl_test_vorticity_mod
                                                       chi, panel_id, qr) )
     end if
 
-    call invoke( assign_field_random_kernel_type( random_u ) )
+    call invoke( assign_field_random_kernel_type( random_u, 1.0_r_def ) )
 
     gamma = 1.e5_r_def
     do n=1,2

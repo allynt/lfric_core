@@ -234,31 +234,25 @@ module linear_data_algorithm_mod
     gamma_mr = 1.e-1
 
     field => model_data%prognostic_fields%get_field("u")
-    call invoke( assign_field_random_kernel_type( field ))
-    call invoke( inc_a_times_X( gamma_u, field ))
+    call invoke( assign_field_random_kernel_type( field, gamma_u))
 
     field => model_data%prognostic_fields%get_field("rho")
-    call invoke( assign_field_random_kernel_type( field ))
-    call invoke( inc_a_times_X( gamma_rho, field ))
+    call invoke( assign_field_random_kernel_type( field, gamma_rho ))
 
     field => model_data%prognostic_fields%get_field("theta")
-    call invoke( assign_field_random_kernel_type( field ))
-    call invoke( inc_a_times_X( gamma_theta, field ))
+    call invoke( assign_field_random_kernel_type( field, gamma_theta ))
 
     field => model_data%prognostic_fields%get_field("exner")
-    call invoke( assign_field_random_kernel_type( field ))
-    call invoke( inc_a_times_X( gamma_exner, field ))
+    call invoke( assign_field_random_kernel_type( field, gamma_exner ))
 
     moist_dyn => model_data%moist_dyn
     do i = 1, num_moist_factors
-      call invoke( assign_field_random_kernel_type( moist_dyn(i) ) )
-      call invoke( inc_a_times_X( gamma_moist_dyn, moist_dyn(i) ))
+      call invoke( assign_field_random_kernel_type( moist_dyn(i), gamma_moist_dyn ) )
     end do
 
     mr => model_data%mr
     do i = 1, nummr
-      call invoke( assign_field_random_kernel_type( mr(i) ) )
-      call invoke( inc_a_times_X( gamma_mr, mr(i) ))
+      call invoke( assign_field_random_kernel_type( mr(i), gamma_mr ) )
     end do
 
     nullify( field, mr, moist_dyn )
