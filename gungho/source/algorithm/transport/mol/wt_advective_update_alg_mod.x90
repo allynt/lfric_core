@@ -25,7 +25,8 @@ module wt_advective_update_alg_mod
 
   use constants_mod,                      only: r_def, i_def, l_def, str_def
   use geometric_constants_mod,            only: get_coordinates,                &
-                                                get_panel_id
+                                                get_panel_id,                   &
+                                                get_height
   use fem_constants_mod,                  only: get_mass_matrix_diagonal,       &
                                                 get_inverse_lumped_mass_matrix, &
                                                 get_rmultiplicity
@@ -75,7 +76,6 @@ module wt_advective_update_alg_mod
   integer(kind=i_def), allocatable, target :: ndata_v_list(:)
   type(field_type),    allocatable, target :: adv_coeffs_list(:)
   type(field_type),    allocatable, target :: vert_adv_coeffs_list(:)
-  type(field_type),    allocatable, target :: chi3_at_wt_list(:)
 
   public  :: wt_advective_update_set_num_meshes
   public  :: wt_advective_update_alg_init
@@ -87,7 +87,6 @@ module wt_advective_update_alg_mod
   public  :: get_adv_ndata_v
   public  :: get_adv_coeffs
   public  :: get_vert_adv_coeffs
-  public  :: get_chi3_at_wt
   public  :: horizontal_wt_reconstruct_alg
 
 contains
@@ -109,7 +108,6 @@ contains
       if (.not. allocated(ndata_v_list)) allocate(ndata_v_list(number_of_meshes))
       if (.not. allocated(adv_coeffs_list)) allocate(adv_coeffs_list(number_of_meshes))
       if (.not. allocated(vert_adv_coeffs_list)) allocate(vert_adv_coeffs_list(number_of_meshes))
-      if (.not. allocated(chi3_at_wt_list)) allocate(chi3_at_wt_list(number_of_meshes))
 
       variables_allocated = .true.
     else
@@ -130,7 +128,6 @@ contains
   !!
   subroutine wt_advective_update_alg_init( mesh )
 
-    use sample_field_kernel_mod,           only: sample_field_kernel_type
     use reference_element_mod,             only: reference_element_type
     use mesh_mod,                          only: mesh_type
 
@@ -167,7 +164,6 @@ contains
     integer(kind=i_def)                    :: nqp_xy, nqp_z, nqp_xyz
     real(kind=r_def)                       :: transform_radius, chi3_max
     type(function_space_type),     pointer :: multidata_fs => null()
-    type(field_type),              pointer :: wt_rmultiplicity => null()
 
     reference_element => mesh%get_reference_element()
     mesh_index = find_mesh_index(mesh%get_id())
@@ -293,13 +289,7 @@ contains
                                             vert_adv_coeffs_list(mesh_index),  &
                                             chi, ndata_v,                      &
                                             fv_advective_order) )
-        if ( consistent_metric ) then
-          call chi3_at_wt_list(mesh_index)%initialise(vector_space = wt_fs )
-          wt_rmultiplicity => get_rmultiplicity(Wtheta, mesh%get_id())
-          call invoke( setval_c(chi3_at_wt_list(mesh_index), 0.0_r_def),       &
-                       sample_field_kernel_type(chi3_at_wt_list(mesh_index),   &
-                                                wt_rmultiplicity, chi(3)) )
-        end if
+
         !======================================================================!
       else
         call log_event( "Gungho: subgrid mappings needed for FV MoL with high &
@@ -312,7 +302,7 @@ contains
     ndata_h_list(mesh_index) = ndata_h
     ndata_v_list(mesh_index) = ndata_v
 
-    nullify( chi, panel_id, md_wt, wt_fs, w1_fs, reference_element, wt_rmultiplicity )
+    nullify( chi, panel_id, md_wt, wt_fs, w1_fs, reference_element )
 
   end subroutine wt_advective_update_alg_init
 
@@ -322,7 +312,6 @@ contains
 
     implicit none
 
-    if (allocated(chi3_at_wt_list)) deallocate(chi3_at_wt_list)
     if (allocated(vert_adv_coeffs_list)) deallocate(vert_adv_coeffs_list)
     if (allocated(adv_coeffs_list)) deallocate(adv_coeffs_list)
     if (allocated(ndata_v_list)) deallocate(ndata_v_list)
@@ -339,6 +328,7 @@ contains
   !> @param[in]     field             Wtheta field to advect
   subroutine horizontal_wt_reconstruct_alg(h_reconstruction, wind, field)
 
+    use sample_field_kernel_mod, only: sample_field_kernel_type
     implicit none
 
     type(field_type),              intent(in)    :: field, wind
@@ -446,7 +436,7 @@ contains
     type(field_type)                       :: consistent_wind
     type(field_type)                       :: u_grad_z
     type(field_type), pointer              :: vert_adv_coeffs => null()
-    type(field_type), pointer              :: chi3_at_wt => null()
+    type(field_type), pointer              :: height => null()
     type(function_space_type), pointer     :: w1_fs => null()
     class(reference_element_type), pointer :: reference_element => null()
     type(mesh_type), pointer               :: mesh => null()
@@ -499,12 +489,14 @@ contains
 
         ! Adjust consistent wind field
         if ( consistent_metric ) then
-          chi3_at_wt => chi3_at_wt_list(mesh_index)
+          height => get_height(Wtheta, mesh%get_id())
           chi => get_coordinates(mesh%get_id())
           call u_grad_z%initialise( u_grad_f%get_function_space() )
-          call horizontal_wt_reconstruct_alg(u_grad_z, wind, chi3_at_wt)
-          call invoke( consistent_wind_kernel_type(consistent_wind, wind,        &
-                                                   u_grad_z, chi) )
+          call horizontal_wt_reconstruct_alg(h_reconstruction, wind, height)
+          call invoke( poly_advective_kernel_type(u_grad_z, wind,         &
+                                                  h_reconstruction),      &
+                       consistent_wind_kernel_type(consistent_wind, wind, &
+                                                   u_grad_z, chi(3)) )
         end if
       else
         call invoke( setval_c( u_grad_f, 0.0_r_def ) )
@@ -563,7 +555,7 @@ contains
     ! Scale by lumped inverse mass matrix
     call invoke( X_times_Y(rhs, u_grad_f, mt_lumped_inv) )
 
-    nullify( chi3_at_wt, chi, mt_lumped_inv, vert_adv_coeffs, &
+    nullify( height, chi, mt_lumped_inv, vert_adv_coeffs, &
              reference_element, mesh, ndata_v )
 
   end subroutine wt_advective_update_alg
@@ -657,22 +649,5 @@ contains
     call check_initialised_field(vert_adv_coeffs, field_name, mesh_id)
 
   end function get_vert_adv_coeffs
-
-  !> @brief Returns a pointer to the chi3 at Wtheta
-  !> @param[in] mesh_id the ID of the mesh to get the object for
-  !> @return The chi3_at_wt field
-  function get_chi3_at_wt(mesh_id) result(chi3_at_wt)
-    implicit none
-    integer(kind=i_def), intent(in) :: mesh_id
-    integer(kind=i_def)             :: mesh_index
-    type(field_type),       pointer :: chi3_at_wt
-    character(str_def)              :: field_name
-
-    mesh_index = find_mesh_index(mesh_id)
-    field_name = 'chi3_at_wt'
-    chi3_at_wt => chi3_at_wt_list(mesh_index)
-    call check_initialised_field(chi3_at_wt, field_name, mesh_id)
-
-  end function get_chi3_at_wt
 
 end module wt_advective_update_alg_mod

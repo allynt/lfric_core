@@ -16,11 +16,10 @@ module consistent_wind_kernel_mod
 use argument_mod,      only : arg_type, func_type,     &
                               GH_FIELD, GH_REAL,       &
                               GH_INC, GH_READ,         &
-                              ANY_SPACE_1,             &
                               GH_BASIS, GH_DIFF_BASIS, &
                               CELL_COLUMN, GH_EVALUATOR
 use constants_mod,     only : r_def, i_def
-use fs_continuity_mod, only : Wtheta, W2
+use fs_continuity_mod, only : Wtheta, W2, Wchi
 use kernel_mod,        only : kernel_type
 
 implicit none
@@ -32,15 +31,15 @@ private
 !> The type declaration for the kernel. Contains the metadata needed by the PSy layer
 type, public, extends(kernel_type) :: consistent_wind_kernel_type
   private
-  type(arg_type) :: meta_args(4) = (/                      &
-       arg_type(GH_FIELD,   GH_REAL, GH_INC,  W2),         &
-       arg_type(GH_FIELD,   GH_REAL, GH_READ, W2),         &
-       arg_type(GH_FIELD,   GH_REAL, GH_READ, Wtheta),     &
-       arg_type(GH_FIELD*3, GH_REAL, GH_READ, ANY_SPACE_1) &
+  type(arg_type) :: meta_args(4) = (/                &
+       arg_type(GH_FIELD, GH_REAL, GH_INC,  W2),     &
+       arg_type(GH_FIELD, GH_REAL, GH_READ, W2),     &
+       arg_type(GH_FIELD, GH_REAL, GH_READ, Wtheta), &
+       arg_type(GH_FIELD, GH_REAL, GH_READ, Wchi)    &
        /)
-  type(func_type) :: meta_funcs(2) = (/                    &
-       func_type(W2,          GH_BASIS),                   &
-       func_type(ANY_SPACE_1, GH_DIFF_BASIS)               &
+  type(func_type) :: meta_funcs(2) = (/              &
+       func_type(W2,   GH_BASIS),                    &
+       func_type(Wchi, GH_DIFF_BASIS)                &
        /)
   integer :: operates_on = CELL_COLUMN
   integer :: gh_shape = GH_EVALUATOR
@@ -56,33 +55,31 @@ public :: consistent_wind_code
 contains
 
 !> @brief Modify the vertical wind to include consistent computation of grid metric.
-!> @param[in]     nlayers Number of vertical layers
+!> @param[in]     nlayers         Number of vertical layers
 !> @param[in,out] consistent_wind Wind with the vertical component modified to
 !!                                include consistent metrics
-!> @param[in]     wind Unmodified wind field
-!> @param[in]     theta_metrics Horizontal component of u.grad(z) computed by
-!!                              advection scheme
-!> @param[in]     chi1 1st component of the physical coordinate field
-!> @param[in]     chi2 2nd component of the physical coordinate field
-!> @param[in]     chi3 3rd component of the physical coordinate field
-!> @param[in]     ndf_w2 Number of degrees of freedom per cell for W2
-!> @param[in]     undf_w2 Total number of degrees of freedom for W2
-!> @param[in]     map_w2 Dofmap of the wind field
-!> @param[in]     basis_w2 Basis function of the wind space evaluated on
-!!                         W2 nodal points
-!> @param[in]     ndf_wt Number of degrees of freedom per cell for Wtheta
-!> @param[in]     undf_wt Total number of degrees of freedom for Wtheta
-!> @param[in]     map_wt Dofmap of the metric field
-!> @param[in]     ndf_wx Number of degrees of freedom per cell for the coordinate space
-!> @param[in]     undf_wx Total number of degrees of freedom for the coordinate space
-!> @param[in]     map_wx Dofmap of the coordinate space
-!> @param[in]     diff_basis_wx Differential of basis function of the coordinate space
-!!                              evaluated on W2 nodal points
+!> @param[in]     wind            Unmodified wind field
+!> @param[in]     theta_metrics   Horizontal component of u.grad(z) computed by
+!!                                advection scheme
+!> @param[in]     height          Height above the surface
+!> @param[in]     ndf_w2          Number of degrees of freedom per cell for W2
+!> @param[in]     undf_w2         Total number of degrees of freedom for W2
+!> @param[in]     map_w2          Dofmap of the wind field
+!> @param[in]     basis_w2        Basis function of the wind space evaluated on
+!!                                W2 nodal points
+!> @param[in]     ndf_wt          Number of degrees of freedom per cell for Wtheta
+!> @param[in]     undf_wt         Total number of degrees of freedom for Wtheta
+!> @param[in]     map_wt          Dofmap of the metric field
+!> @param[in]     ndf_wx          Number of degrees of freedom per cell for the coordinate space
+!> @param[in]     undf_wx         Total number of degrees of freedom for the coordinate space
+!> @param[in]     map_wx          Dofmap of the coordinate space
+!> @param[in]     diff_basis_wx   Differential of basis function of the coordinate space
+!!                                evaluated on W2 nodal points
 subroutine consistent_wind_code(nlayers,                   &
                                 consistent_wind,           &
                                 wind,                      &
                                 theta_metrics,             &
-                                chi1, chi2, chi3,          &
+                                height,                    &
                                 ndf_w2,                    &
                                 undf_w2,                   &
                                 map_w2,                    &
@@ -110,7 +107,7 @@ subroutine consistent_wind_code(nlayers,                   &
   real(kind=r_def), dimension(undf_w2), intent(inout) :: consistent_wind
   real(kind=r_def), dimension(undf_wt), intent(in)    :: theta_metrics
   real(kind=r_def), dimension(undf_w2), intent(in)    :: wind
-  real(kind=r_def), dimension(undf_wx), intent(in)    :: chi1, chi2, chi3
+  real(kind=r_def), dimension(undf_wx), intent(in)    :: height
 
   real(kind=r_def), dimension(3,ndf_wx,ndf_w2), intent(in) :: diff_basis_wx
   real(kind=r_def), dimension(3,ndf_w2,ndf_w2), intent(in) :: basis_w2
@@ -138,9 +135,9 @@ subroutine consistent_wind_code(nlayers,                   &
     dzdx = 0.0_r_def
     dzdy = 0.0_r_def
     do df = 1,ndf_wx
-        dzdx = dzdx + chi3(map_wx(df)+k)*diff_basis_wx(1,df,df2)
-        dzdy = dzdy + chi3(map_wx(df)+k)*diff_basis_wx(2,df,df2)
-        dz   = dz   + chi3(map_wx(df)+k)*diff_basis_wx(3,df,df2)
+        dzdx = dzdx + height(map_wx(df)+k)*diff_basis_wx(1,df,df2)
+        dzdy = dzdy + height(map_wx(df)+k)*diff_basis_wx(2,df,df2)
+        dz   = dz   + height(map_wx(df)+k)*diff_basis_wx(3,df,df2)
     end do
 
     consistent_wind(map_w2(df2)+k) = consistent_wind(map_w2(df2)+k) &

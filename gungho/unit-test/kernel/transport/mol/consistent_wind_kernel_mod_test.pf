@@ -48,7 +48,7 @@ contains
 
     real(r_def), dimension(undf_w2) :: consistent_wind, wind
     real(r_def), dimension(undf_wt) :: metrics
-    real(r_def), dimension(undf_wx) :: x, y, z
+    real(r_def), dimension(undf_wx) :: z
     real(r_def), dimension(3,ndf_w2,ndf_w2) :: basis
     real(r_def), dimension(3,ndf_wx,ndf_w2) :: diff_basis
 
@@ -105,21 +105,11 @@ contains
     dzdx = 2.0_r_def
     dzdy = 3.0_r_def
     do k = 0,nlayers-1
-      x(map_wx(1) + k) = 0.0_r_def
-      x(map_wx(2) + k) = dx
-      x(map_wx(3) + k) = 0.0_r_def
-      x(map_wx(4) + k) = dx
-      y(map_wx(1) + k) = 0.0_r_def
-      y(map_wx(2) + k) = 0.0_r_def
-      y(map_wx(3) + k) = dy
-      y(map_wx(4) + k) = dy
       z(map_wx(1) + k) = 0.0_r_def + k*dz
       z(map_wx(2) + k) = dzdx + k*dz
       z(map_wx(3) + k) = dzdx + dzdy + k*dz
       z(map_wx(4) + k) = dzdy + k*dz
       do i = 1,4
-        x(map_wx(4+i) + k) = x(map_wx(i))
-        y(map_wx(4+i) + k) = y(map_wx(i))
         z(map_wx(4+i) + k) = z(map_wx(i)+k) + dz
       end do
     end do
@@ -133,7 +123,7 @@ contains
                               consistent_wind,           &
                               wind,                      &
                               metrics,                   &
-                              x, y, z,                   &
+                              z,                         &
                               ndf_w2,                    &
                               undf_w2,                   &
                               map_w2,                    &
