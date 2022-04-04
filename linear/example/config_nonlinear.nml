@@ -80,6 +80,7 @@ ancil_option='none',
 init_option='analytic',
 lbc_option='none',
 ls_option='analytic',
+read_w2h_wind=.false.
 /
 &initial_density
 r1=0.0,
@@ -100,6 +101,7 @@ surface_pressure=1000.0e2,
 &initial_temperature
 bvf_square=0.0001,
 pert_width_scaling=1.0,
+perturb='none',
 theta_surf=300.0,
 /
 &initial_vapour
@@ -117,10 +119,12 @@ wind_time_period=0.0,
 &io
 checkpoint_read=.false.,
 checkpoint_write=.false.,
+counter_output_suffix='counter.txt',
 diagnostic_frequency=5,
 nodal_output_on_w3=.false.,
 subroutine_counters=.false.,
 subroutine_timers=.true.,
+timer_output_path='timer.txt',
 use_xios_io=.true.,
 write_conservation_diag=.false.,
 write_diag=.true.,
@@ -144,6 +148,7 @@ si_tolerance=1.0e-3,
 split_w=.true.,
 /
 &mixing
+leonard_term=.false.,
 smagorinsky=.false.,
 viscosity=.false.,
 viscosity_mu=0.0,
@@ -183,6 +188,7 @@ tolerance=1.0e-6,
 dep_pt_stencil_extent=3,
 rho_approximation='ppm_no_limiter',
 rho_approximation_stencil_extent=2,
+calculate_detj = 'upwind'
 /
 &time
 calendar='timestep',
@@ -212,7 +218,7 @@ field_names='density','potential_temperature','wind','moisture','cloud'
 fv_advective_order=2
 fv_flux_order=2
 horizontal_method=1,1,1,1,1
-log_space.false.,.false.,.false.,.false.,.false.
+log_space=.false.,.false.,.false.,.false.,.false.
 min_value=0.0,0.0,-99999999.0,0.0,0.0
 moisture_eqn='advective'
 monotone=1,1,1,1,1

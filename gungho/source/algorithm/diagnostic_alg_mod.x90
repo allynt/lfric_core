@@ -27,7 +27,8 @@ module diagnostic_alg_mod
   use project_output_mod,               only: project_output
   use log_mod,                          only: log_event,         &
                                               log_scratch_space, &
-                                              LOG_LEVEL_INFO
+                                              LOG_LEVEL_INFO,    &
+                                              LOG_LEVEL_ERROR
 
   implicit none
 
@@ -191,7 +192,7 @@ contains
     type(field_type)             :: physical_chi(3)
     type(field_type), pointer    :: w2_rmultiplicity
 
-    integer(i_def)               :: i
+    integer(i_def)               :: i, fs_id
 
 
     ! get chi field
@@ -241,10 +242,21 @@ contains
 
     ! Extract vertical wind into W2V and u,v winds into W2H
 
-    call invoke( extract_w_kernel_type(u3_wind, physical_wind(3)),  &
-                 extract_uv_kernel_type(u1_wind, physical_wind(1)), &
-                 extract_uv_kernel_type(u2_wind, physical_wind(2)) )
+    fs_id = wind%which_function_space()
 
+    select case( fs_id )
+      case ( W2 )
+        call invoke( extract_w_kernel_type(u3_wind, physical_wind(3)),  &
+                     extract_uv_kernel_type(u1_wind, physical_wind(1)), &
+                     extract_uv_kernel_type(u2_wind, physical_wind(2)) )
+      case ( W2H )
+        call invoke( setval_c(u3_wind, 0.0_r_def),                      &
+                     extract_uv_kernel_type(u1_wind, physical_wind(1)), &
+                     extract_uv_kernel_type(u2_wind, physical_wind(2)) )
+      case default
+        call log_event("Not possible to extract winds for this function space", &
+                        LOG_LEVEL_ERROR )
+    end select
 
   end subroutine split_wind_diagnostic_alg
 

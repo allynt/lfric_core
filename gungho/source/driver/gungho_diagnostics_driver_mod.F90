@@ -34,6 +34,9 @@ module gungho_diagnostics_driver_mod
                                         moisture_formulation_dry
   use fs_continuity_mod,         only : W3, Wtheta
   use integer_field_mod,         only : integer_field_type
+  use initialization_config_mod, only : ls_option,          &
+                                        ls_option_analytic, &
+                                        ls_option_file
   use moist_dyn_mod,             only : num_moist_factors
   use mr_indices_mod,            only : nummr, mr_names
   use log_mod,                   only : log_event, &
@@ -233,10 +236,13 @@ contains
 
     end if
 
-    ! Other derived diagnostics with special pre-processing
-    call write_divergence_diagnostic( u, clock, mesh )
-    call write_hydbal_diagnostic( theta, moist_dyn, exner, mesh )
-    call column_total_diagnostics_alg( rho, mr, mesh, twod_mesh )
+    if (ls_option /= ls_option_file .and. ls_option /= ls_option_analytic) then
+      ! Other derived diagnostics with special pre-processing
+      ! Don't output for the tangent linear model
+      call write_divergence_diagnostic( u, clock, mesh )
+      call write_hydbal_diagnostic( theta, moist_dyn, exner, mesh )
+      call column_total_diagnostics_alg( rho, mr, mesh, twod_mesh )
+    end if
 
     if ( subroutine_timers ) call timer('gungho_diagnostics_driver')
   end subroutine gungho_diagnostics_driver

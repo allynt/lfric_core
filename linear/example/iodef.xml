@@ -13,6 +13,7 @@
     <axis id="vert_axis_full_levels" name="full_levels"/>
     <axis id="monthly_axis" name="monthly_axis" n_glo="12"/>
     <axis id="ls_axis" name="ls_axis" n_glo="6"/>
+    <axis id="radiation_levels" name="radiation_levels"/>
    </axis_definition>
 
    <domain_definition>
