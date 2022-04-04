@@ -59,10 +59,10 @@ class TestFortranAnalyser():
         Ensure continuation lines are handled correctly.
         """
         database.addProgram(u'stock', u'oxo.f90')
-        database.addModuleCompileDependency(u'stock', u'widgit')
-        database.addModuleLinkDependency(u'stock', u'widgit')
-        database.addModuleCompileDependency(u'stock', u'thingy')
-        database.addModuleLinkDependency(u'stock', u'thingy')
+        database.addCompileDependency(u'stock', u'widgit')
+        database.addLinkDependency(u'stock', u'widgit')
+        database.addCompileDependency(u'stock', u'thingy')
+        database.addLinkDependency(u'stock', u'thingy')
         database.addModule(u'beef', u'cow.f90')
         database.addModule(u'pork', u'pig.f90')
 
@@ -92,10 +92,10 @@ class TestFortranAnalyser():
         uut.analyse(test_filename)
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'old_school', test_filename, u'pork', Path('pig.f90')),
-                (u'stock', Path('oxo.f90'), u'thingy', test_filename),
-                (u'stock', Path('oxo.f90'), u'widgit', test_filename),
-                (u'widgit', test_filename, u'beef', Path('cow.f90'))] \
+        assert [(u'old_school', test_filename, u'procedure', u'pork', Path('pig.f90'), u'module'),
+                (u'stock', Path('oxo.f90'), u'program', u'thingy', test_filename, u'procedure'),
+                (u'stock', Path('oxo.f90'), u'program', u'widgit', test_filename, u'procedure'),
+                (u'widgit', test_filename, u'procedure', u'beef', Path('cow.f90'), u'module')] \
             == sorted(dependencies)
 
         dependencies = list(database.getLinkDependencies('widgit'))
@@ -150,10 +150,10 @@ class TestFortranAnalyser():
         assert [u'foo'] == programs
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'foo', test_filename,
-                 u'constants_mod', Path('constants_mod.f90')),
-                (u'foo', test_filename,
-                 u'trumpton_mod', Path('trumpton_mod.f90'))] \
+        assert [(u'foo', test_filename, u'program',
+                 u'constants_mod', Path('constants_mod.f90'), u'module'),
+                (u'foo', test_filename, u'program',
+                 u'trumpton_mod', Path('trumpton_mod.f90'), u'module')] \
             == sorted(dependencies)
 
         dependencies = list(database.getLinkDependencies('foo'))
@@ -196,8 +196,8 @@ class TestFortranAnalyser():
         assert [] == programs
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'foo', test_filename, u'constants_mod', other_filename),
-                (u'foo', test_filename, u'trumpton_mod', test_filename)] \
+        assert [(u'foo', test_filename, u'module', u'constants_mod', other_filename, u'module'),
+                (u'foo', test_filename, u'module', u'trumpton_mod', test_filename, u'module')] \
             == sorted(dependencies)
 
         dependencies = list(database.getLinkDependencies('foo'))
@@ -249,7 +249,7 @@ class TestFortranAnalyser():
 
         child1_filename = tmp_path / 'child1.f90'
         child1_filename.write_text(dedent('''
-            submodule (paRent) Child1
+            submodule(paRent) Child1
               implicit none
               type :: secondary_type
               contains
@@ -307,9 +307,9 @@ class TestFortranAnalyser():
         assert [] == programs
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'child1', child1_filename, u'parent', parent_filename),
-                (u'child2', child2_filename, u'parent', parent_filename),
-                (u'grandchild', child3_filename, u'child1', child1_filename)] \
+        assert [(u'child1', child1_filename, u'module', u'parent', parent_filename, u'module'),
+                (u'child2', child2_filename, u'module', u'parent', parent_filename, u'module'),
+                (u'grandchild', child3_filename, u'module', u'child1', child1_filename, u'module')] \
             == sorted(dependencies)
 
         dependencies = list(database.getLinkDependencies('parent'))
@@ -356,8 +356,8 @@ class TestFortranAnalyser():
         assert [] == programs
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'function_thing_mod', test_filename,
-                 u'constants_mod', other_filename)] == sorted(dependencies)
+        assert [(u'function_thing_mod', test_filename, u'module',
+                 u'constants_mod', other_filename, u'module')] == sorted(dependencies)
 
         dependencies = list(database
                             .getLinkDependencies('function_thing_mod'))
@@ -369,7 +369,7 @@ class TestFortranAnalyser():
         The analyser has to be able to track dependencies using the deprecated
         "depends on:" comments of the UM.
         '''
-        database.add_procedure(u'flibble', u'flibble.f90')
+        database.addProcedure(u'flibble', u'flibble.f90')
         test_filename = tmp_path / 'test.f90'
         test_filename.write_text(dedent('''
             module function_thing_mod
@@ -422,12 +422,12 @@ class TestFortranAnalyser():
         assert [] == programs
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'function_thing_mod', test_filename,
-                 u'constants_mod', other_filename),
-                (u'function_thing_mod', test_filename,
-                 u'flibble', Path('flibble.f90')),
-                (u'function_thing_mod', test_filename,
-                 u'wooble', depend_filename)] == sorted(dependencies)
+        assert [(u'function_thing_mod', test_filename, u'module',
+                 u'constants_mod', other_filename, u'module'),
+                (u'function_thing_mod', test_filename, u'module',
+                 u'flibble', Path('flibble.f90'), u'procedure'),
+                (u'function_thing_mod', test_filename, u'module',
+                 u'wooble', depend_filename, u'procedure')] == sorted(dependencies)
 
         dependencies = list(database
                             .getLinkDependencies('function_thing_mod'))
@@ -515,10 +515,10 @@ class TestFortranAnalyser():
         assert [u'boo'] == programs
 
         dependencies = list(database.getCompileDependencies())
-        assert [(u'boo', test_filename, u'bibble', Path('bibble.f90')),
-                (u'boo', test_filename, u'gribble', Path('gribble.f90')),
-                (u'boo', test_filename, u'ibble', Path('ibble.f90')),
-                (u'boo', test_filename, u'wibble', Path('wibble.f90'))] \
+        assert [(u'boo', test_filename, u'program', u'bibble', Path('bibble.f90'), u'module'),
+                (u'boo', test_filename, u'program', u'gribble', Path('gribble.f90'), u'module'),
+                (u'boo', test_filename, u'program', u'ibble', Path('ibble.f90'), u'module'),
+                (u'boo', test_filename, u'program', u'wibble', Path('wibble.f90'), u'module')] \
             == sorted(dependencies)
 
         dependencies = list(database.getLinkDependencies('boo'))

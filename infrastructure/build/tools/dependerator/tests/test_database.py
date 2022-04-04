@@ -61,6 +61,10 @@ class TestFileDependency():
         result = uut.getDependencies()
         assert [(Path('qux.f90'), [Path('bar')])] == list(result)
 
+        uut.removeAllFileDependencies()
+        result = uut.getDependencies()
+        assert [] == list(result)
+
 
 class TestFortranDependency():
     def test_add_program(self, tmp_path: Path):
@@ -88,11 +92,11 @@ class TestFortranDependency():
         uut.removeFile('bar.f90')
 
         result = uut.getPrograms()
-        assert [u'foo', u'fred'] == list(result)
+        assert [u'fred', u'foo'] == list(result)
 
         result = uut.getCompileDependencies()
-        assert [(u'foo', Path('foo.f90'), u'baz', Path('baz.f90')),
-                (u'fred', Path('fred.f90'), u'wilma', Path('wilma.f90'))] \
+        assert [(u'foo', Path('foo.f90'), u'program', u'baz', Path('baz.f90'), u'module'),
+                (u'fred', Path('fred.f90'), u'program', u'wilma', Path('wilma.f90'), u'module')] \
             == list(result)
 
         assert [(u'baz', Path('baz.f90'),
@@ -105,14 +109,25 @@ class TestFortranDependency():
 
     def test_programs(self, tmp_path: Path):
         """
-        Ensure the the list of prgrams is correctly retrieved.
+        Ensure the the list of programs is correctly retrieved.
         """
         database = SQLiteDatabase(str(tmp_path / 'fortran.db'))
         uut = FortranDependencies(database)
         self._populateDB(uut)
 
         programs = uut.getPrograms()
-        assert [u'foo', u'fred'] == list(programs)
+        assert [u'fred', u'foo'] == list(programs)
+
+    def test_modules(self, tmp_path: Path):
+        """
+        Ensure the the list of modules is correctly retrieved.
+        """
+        database = SQLiteDatabase(str(tmp_path / 'fortran.db'))
+        uut = FortranDependencies(database)
+        self._populateDB(uut)
+
+        modules = uut.getModules()
+        assert [(u'bar', u'bar.f90'), (u'baz', u'baz.f90'), (u'qux', u'qux.f90'), (u'wilma', u'wilma.f90')] == list(modules)
 
     def test_get_all_file_dependencies(self, tmp_path: Path):
         """
@@ -123,10 +138,10 @@ class TestFortranDependency():
         self._populateDB(uut)
 
         dependencies = list(uut.getCompileDependencies())
-        assert [(u'bar', Path('bar.f90'), u'qux', Path('qux.f90')),
-                (u'foo', Path('foo.f90'), u'bar', Path('bar.f90')),
-                (u'foo', Path('foo.f90'), u'baz', Path('baz.f90')),
-                (u'fred', Path('fred.f90'), u'wilma', Path('wilma.f90'))] \
+        assert [(u'bar', Path('bar.f90'), u'module', u'qux', Path('qux.f90'), u'module'),
+                (u'foo', Path('foo.f90'), u'program', u'bar', Path('bar.f90'), u'module'),
+                (u'foo', Path('foo.f90'), u'program', u'baz', Path('baz.f90'), u'module'),
+                (u'fred', Path('fred.f90'), u'program', u'wilma', Path('wilma.f90'), u'module')] \
             == dependencies
 
         assert [(u'bar', Path('bar.f90'),
@@ -165,12 +180,12 @@ class TestFortranDependency():
         database.addProgram('fred', 'fred.f90')
         database.addModule('wilma', 'wilma.f90')
 
-        database.addModuleCompileDependency('foo', 'bar')
-        database.addModuleCompileDependency('foo', 'baz')
-        database.addModuleCompileDependency('bar', 'qux')
-        database.addModuleCompileDependency('fred', 'wilma')
+        database.addCompileDependency('foo', 'bar')
+        database.addCompileDependency('foo', 'baz')
+        database.addCompileDependency('bar', 'qux')
+        database.addCompileDependency('fred', 'wilma')
 
-        database.addModuleLinkDependency('bar', 'foo')
-        database.addModuleLinkDependency('baz', 'foo')
-        database.addModuleLinkDependency('qux', 'bar')
-        database.addModuleLinkDependency('wilma', 'fred')
+        database.addLinkDependency('bar', 'foo')
+        database.addLinkDependency('baz', 'foo')
+        database.addLinkDependency('qux', 'bar')
+        database.addLinkDependency('wilma', 'fred')

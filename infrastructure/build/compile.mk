@@ -111,14 +111,14 @@ $(BIN_DIR)/%: %.x | $(BIN_DIR)
 	             $(patsubst %,-l%,$(EXTERNAL_STATIC_LIBRARIES)) \
 	             $(patsubst %,-l%,$(EXTERNAL_DYNAMIC_LIBRARIES))
 
-.PRECIOUS: %.o %.mod
-%.o %.mod: %.f90
+.PRECIOUS: %.o
+%.o: %.f90
 	$(call MESSAGE,Compile,$<)
 	$(Q)$(FC) $(FFLAGS) \
 	          $(MODULE_DESTINATION_ARGUMENT) \
 	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
 
-%.o %.mod: %.F90
+%.o: %.F90
 	$(call MESSAGE,Pre-process and compile,$<)
 	$(Q)$(FC) $(FFLAGS) \
 	          $(MODULE_DESTINATION_ARGUMENT) \
