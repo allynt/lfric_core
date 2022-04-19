@@ -90,7 +90,7 @@ subroutine tri_solve_sh_rho_to_mr_code(                                  &
 
   ! Internal variables
   integer(kind=i_def)                     :: k, ij, nlayers_shifted
-  real(kind=r_def), dimension(undf_sh_w3) :: rhs_new, tri_above_new
+  real(kind=r_def), dimension(nlayers+1)  :: rhs_new, tri_above_new
   real(kind=r_def)                        :: denom
 
   nlayers_shifted = nlayers + 1
