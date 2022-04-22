@@ -107,7 +107,7 @@
         <field id="checkpoint_dust_flux" name="dust_flux" long_name="dust_emissions_flux_in_size_bins" unit="kg m-2 s-1" domain_ref="face" axis_ref="dust_divisions" />
 	<!-- cloud fields -->
 	<field id="checkpoint_area_fraction" name="area_fraction" long_name="area_fraction" unit="1" grid_ref="full_level_face_grid" />
-	<field id="checkpoint_ice_fraction" name="ice_fraction" long_name="ice_fraction" unit="1" grid_ref="full_level_face_grid" />
+	<field id="checkpoint_frozen_fraction" name="frozen_fraction" long_name="frozen_fraction" unit="1" grid_ref="full_level_face_grid" />
 	<field id="checkpoint_liquid_fraction" name="liquid_fraction" long_name="liquid_fraction" unit="1" grid_ref="full_level_face_grid" />
 	<field id="checkpoint_bulk_fraction" name="bulk_fraction" long_name="bulk_fraction" unit="1" grid_ref="full_level_face_grid" />
 	<!-- convection fields -->
@@ -310,7 +310,7 @@
         <field id="aerosol__dust_flux" name="dust_flux" long_name="dust_emissions_flux_in_size_bins" unit="kg m-2 s-1" domain_ref="face" axis_ref="dust_divisions" />
 	<!-- cloud fields -->
 	<field id="area_fraction" name="area_fraction" long_name="area_fraction" unit="1" grid_ref="full_level_face_grid" />
-	<field id="ice_fraction" name="ice_fraction" long_name="ice_fraction" unit="1" grid_ref="full_level_face_grid" />
+	<field id="frozen_fraction" name="frozen_fraction" long_name="frozen_fraction" unit="1" grid_ref="full_level_face_grid" />
 	<field id="liquid_fraction" name="liquid_fraction" long_name="liquid_fraction" unit="1" grid_ref="full_level_face_grid" />
 	<field id="bulk_fraction" name="bulk_fraction" long_name="bulk_fraction" unit="1" grid_ref="full_level_face_grid" />
 	<field id="rh_crit" name="rh_crit" long_name="critical_relative_humidity" unit="1" grid_ref="full_level_face_grid" />
@@ -649,7 +649,7 @@
 	<field id="init_divergence" name="divergence" long_name="divergence_of_wind" standard_name="divergence_of_wind" unit="s-1" grid_ref="half_level_face_grid" />
 	<field id="init_exner" name="exner" long_name="exner_pressure" unit="1" grid_ref="half_level_face_grid" />
 	<field id="init_area_fraction" name="area_fraction" long_name="area_fraction"  unit="1" grid_ref="full_level_face_grid" />
-	<field id="init_ice_fraction" name="ice_fraction" long_name="ice_fraction"  unit="1" grid_ref="full_level_face_grid" />
+	<field id="init_frozen_fraction" name="frozen_fraction" long_name="frozen_fraction"  unit="1" grid_ref="full_level_face_grid" />
 	<field id="init_liquid_fraction" name="liquid_fraction" long_name="liquid_fraction"  unit="1" grid_ref="full_level_face_grid" />
 	<field id="init_bulk_fraction" name="bulk_fraction" long_name="bulk_fraction"  unit="1" grid_ref="full_level_face_grid" />
 	<field id="init_rh_crit" name="rh_crit" long_name="critical_relative_humidity"  unit="1" grid_ref="full_level_face_grid" />
@@ -732,7 +732,7 @@
         <field id="restart_dust_flux" name="dust_flux" long_name="dust_emissions_flux_in_size_bins" unit="kg m-2 s-1" operation="instant" domain_ref="face" axis_ref="dust_divisions" />
 	<!-- cloud fields -->
 	<field id="restart_area_fraction" name="area_fraction" long_name="area_fraction" unit="1" operation="instant" grid_ref="full_level_face_grid" />
-	<field id="restart_ice_fraction" name="ice_fraction" long_name="ice_fraction" unit="1" operation="instant" grid_ref="full_level_face_grid" />
+	<field id="restart_frozen_fraction" name="frozen_fraction" long_name="frozen_fraction" unit="1" operation="instant" grid_ref="full_level_face_grid" />
 	<field id="restart_liquid_fraction" name="liquid_fraction" long_name="liquid_fraction" unit="1" operation="instant" grid_ref="full_level_face_grid" />
 	<field id="restart_bulk_fraction" name="bulk_fraction" long_name="bulk_fraction" unit="1" operation="instant" grid_ref="full_level_face_grid" />
 	<!-- convection fields -->
@@ -869,7 +869,7 @@
 	<field field_ref="rho"/>
 	<field field_ref="exner"/>
 	<field field_ref="exner_in_wth"/>
-	<field field_ref="ice_fraction"/>
+	<field field_ref="frozen_fraction"/>
 	<field field_ref="liquid_fraction"/>
 	<field field_ref="bulk_fraction"/>
 	<field field_ref="convection__conv_rain"/>
@@ -995,7 +995,7 @@
 	<field id="read_area_fraction" name="area_fraction" long_name="cloud_area_fraction" unit="1" grid_ref="full_level_face_grid" operation="once" />
 	<field id="read_bulk_fraction" name="bulk_fraction" long_name="cloud_bulk_fraction" unit="1" grid_ref="full_level_face_grid" operation="once" />
 	<field id="read_liquid_fraction" name="liquid_fraction" long_name="cloud_liquid_fraction" unit="1" grid_ref="full_level_face_grid" operation="once" />
-	<field id="read_ice_fraction" name="frozen_fraction" long_name="cloud_ice_fraction" unit="1" grid_ref="full_level_face_grid" operation="once" />
+	<field id="read_frozen_fraction" name="frozen_fraction" long_name="cloud_frozen_fraction" unit="1" grid_ref="full_level_face_grid" operation="once" />
 	<field id="read_z0msea" name="z0msea" long_name="sea_surface_roughness_length" unit="m" domain_ref="face" operation="once" />
 	<field id="read_tstar" name="tstar" long_name="surface_temperature" standard_name="surface_temperature" unit="K" domain_ref="face" operation="once" />
 	<field id="read_ozone" name="ozone" long_name="mass_fraction_of_ozone_in_air" standard_name="mass_fraction_of_ozone_in_air" unit="1" grid_ref="full_level_face_grid" operation="once" />

@@ -11,6 +11,7 @@ module cld_diags_kernel_mod
                                  GH_FIELD, GH_REAL,                        &
                                  GH_READ, GH_READWRITE,                    &
                                  GH_WRITE, CELL_COLUMN,                    &
+                                 GH_SCALAR, GH_LOGICAL,                    &
                                  ANY_DISCONTINUOUS_SPACE_1
   use constants_mod,      only : r_def, r_double, i_def, i_um, r_um, l_def
   use empty_data_mod,     only : empty_real_data
@@ -25,7 +26,7 @@ module cld_diags_kernel_mod
   !>
   type, public, extends(kernel_type) :: cld_diags_kernel_type
     private
-    type(arg_type) :: meta_args(14) = (/                                       &
+    type(arg_type) :: meta_args(19) = (/                                       &
          arg_type(GH_FIELD, GH_REAL, GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1), & ! cld_amount_max
          arg_type(GH_FIELD, GH_REAL, GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1), & ! cld_amount_rnd
          arg_type(GH_FIELD, GH_REAL, GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1), & ! cld_amount_maxrnd
@@ -38,8 +39,13 @@ module cld_diags_kernel_mod
          arg_type(GH_FIELD, GH_REAL, GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1), & ! high_cld_amount
          arg_type(GH_FIELD, GH_REAL, GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1), & ! very_high_cld_amount
          arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                         & ! combined_cld_amount
+         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                         & ! mi_wth
+         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                         & ! cf_frozen
          arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                         & ! height_wth
-         arg_type(GH_FIELD, GH_REAL, GH_READ, W3)                              & ! height_w3
+         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),                         & ! rho_wth
+         arg_type(GH_FIELD, GH_REAL, GH_READ, W3),                             & ! height_w3
+         arg_type(GH_SCALAR, GH_REAL, GH_READ),                                & ! opt_depth_thresh
+         arg_type(GH_SCALAR, GH_LOGICAL, GH_READ)                              & ! filter_optical_depth
         /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -66,8 +72,13 @@ contains
   !> @param[in,out] high_cld_amount        Maximum cloud amount between 5574 and 13608m above sea level
   !> @param[in,out] very_high_cld_amount   Maximum cloud amount above 13608m above sea level
   !> @param[in]     combined_cld_amount    Combined cloud amount
+  !> @param[in]     mi_wth                 Ice water content
+  !> @param[in]     cf_frozen              Frozen fraction
   !> @param[in]     height_wth             Height above sea level in wtheta
+  !> @param[in]     rho_wth                Dry air density in wtheta
   !> @param[in]     height_w3              Height above sea level in w3
+  !> @param[in]     opt_depth_thresh       Optical depth filter threshold
+  !> @param[in]     filter_optical_depth   Apply optical depth filter for cloud diagnostics
   !> @param[in]     ndf_2d                 Number of degrees of freedom per cell for 2D fields
   !> @param[in]     undf_2d                Number unique of degrees of freedom  for 2D fields
   !> @param[in]     map_2d                 Dofmap for the cell at the base of the column for 2D fields
@@ -79,7 +90,6 @@ contains
   !> @param[in]     map_w3                 Dofmap for the cell at the base of the column for density space
 
   subroutine cld_diags_code( nlayers,                 &
-                             combined_cld_amount_wth, &
                              cld_amount_max,          &
                              cld_amount_rnd,          &
                              cld_amount_maxrnd,       &
@@ -91,14 +101,20 @@ contains
                              medium_cld_amount,       &
                              high_cld_amount,         &
                              very_high_cld_amount,    &
+                             combined_cld_amount_wth, &
+                             mi_wth,                  &
+                             cf_frozen,               &
                              height_wth,              &
+                             rho_wth,                 &
                              height_w3,               &
-                             ndf_wth,                 &
-                             undf_wth,                &
-                             map_wth,                 &
+                             opt_depth_thresh,        &
+                             filter_optical_depth,    &
                              ndf_2d,                  &
                              undf_2d,                 &
                              map_2d,                  &
+                             ndf_wth,                 &
+                             undf_wth,                &
+                             map_wth,                 &
                              ndf_w3,                  &
                              undf_w3,                 &
                              map_w3                   )
@@ -130,8 +146,14 @@ contains
     real(kind=r_def), pointer, intent(inout)            :: very_high_cld_amount(:)
 
     real(kind=r_def), intent(in), dimension(undf_wth)   :: combined_cld_amount_wth
+    real(kind=r_def), intent(in), dimension(undf_wth)   :: mi_wth
+    real(kind=r_def), intent(in), dimension(undf_wth)   :: cf_frozen
     real(kind=r_def), intent(in), dimension(undf_wth)   :: height_wth
+    real(kind=r_def), intent(in), dimension(undf_wth)   :: rho_wth
     real(kind=r_def), intent(in), dimension(undf_w3)    :: height_w3
+
+    real(kind=r_def), intent(in)                        :: opt_depth_thresh
+    logical(kind=l_def), intent(in)                     :: filter_optical_depth
 
     integer(kind=i_def) :: k, k_top, k_bot
 
@@ -168,13 +190,50 @@ contains
     ! make it hard to do quickviews as the dynamic range of the data will get 
     ! compressed. Instead use unphysical value of the same order of magnitude.
     real(kind=r_def), parameter :: cld_mdi = -0.999_r_def
+    
+    ! Tolerance of cloud fraction for resetting of cloud
+    real(kind=r_def), parameter :: cld_tol = 0.001_r_def
 
     ! Scalar field for working out calculations
     real(kind=r_def) :: work_scalar
 
+    ! Scalars for optical depth filtering
+    real(kind=r_def) :: sigma, tau, filtered_cloud, ice_fraction
+
+
     do k = 1, nlayers
       combined_cld_amount(k) = combined_cld_amount_wth(map_wth(1) + k)
     end do
+
+    if (filter_optical_depth) then
+      ! Filter the combined cloud amount by removing sub-visual
+      ! (optically thin) ice cloud before calculating other diagnostics
+      ! such as total cloud amount.
+      do k = 1, nlayers
+        if (combined_cld_amount(k) > cld_tol) then
+          ! Extinction (m-1) taken from Heymsfield et al 2003.
+          sigma = ((( mi_wth(map_wth(1) + k) *                                 &
+                      rho_wth(map_wth(1) + k) * 1000.0_r_def ) /               &
+                      combined_cld_amount(k))**0.9_r_def ) * 0.02_r_def
+          ! Optical depth=integral of sigma over depth of model level.
+          tau = sigma * (height_w3(map_w3(1) + k) - height_w3(map_w3(1) + k-1))
+          if (tau < opt_depth_thresh) then
+            filtered_cloud = 0.0_r_def
+          else
+            filtered_cloud = combined_cld_amount(k)
+          end if
+
+          ice_fraction = cf_frozen(map_wth(1) + k) / combined_cld_amount(k)
+          combined_cld_amount(k) = ( ice_fraction * filtered_cloud ) +         &
+             ((1.0_r_def - ice_fraction) * combined_cld_amount(k))
+
+        else
+          ! If there is practically no cloud
+          ! set filtered combined cloud to zero.
+          combined_cld_amount(k) = 0.0_r_def
+        end if
+      end do
+    end if
 
     ! cld_amount_max
     if (.not. associated(cld_amount_max, empty_real_data) ) then

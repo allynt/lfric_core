@@ -640,8 +640,6 @@ contains
       ! l_add_cca_to_mcica is unused in LFRic, its functionality
       ! ... being replaced by the cloud_representation option in
       ! ... the radiation namelist (T=combined, F=liquid_and_ice).
-      ! l_od_cld_filter=.true. should be here - only for diagnostics
-      ! ...tau_thresh=0.01 should be set here if so
       l_subgrid_qv               = subgrid_qv
       rhcrit(1:number_of_layers) = real(rh_crit, r_um)
       ! Options which are bespoke to the choice of scheme
