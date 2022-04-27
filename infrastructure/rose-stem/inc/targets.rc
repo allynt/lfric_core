@@ -193,7 +193,7 @@
         }
     },
     'monsoon-xc40' : {
-        'hostname' : '$(rose host-select --rank-method=random xcsc)',
+        'hostname' : 'xcslc0',
         'batcher' : 'pbs',
         'build_root' : '\${RAMTMP}',
         'update' : 'polling',
@@ -213,6 +213,7 @@
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
+            'run': [],
             'tech' : ['module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
