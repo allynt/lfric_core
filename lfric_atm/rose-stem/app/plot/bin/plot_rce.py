@@ -26,8 +26,10 @@ m_v             = ['m_v',             6e-3, 10e-3]
 m_cl            = ['m_cl',            0,    5e-5]
 m_ci            = ['m_ci',            0,    1e-4]
 ls_rain         = ['ls_rain',         1,    9]
+total_prec      = ['total_prec',1,9]
 sw_heating_rate = ['sw_heating_rate', 0,    7e-5]
 cloud_cover_rts = ['cloud_cover_rts', 0, 1]
+cloud_amount_maxrnd = ['cloud_amount_maxrnd',0,1]
 cloud_fraction_rts = ['cloud_fraction_rts', 0, 1]
 cloud_droplet_re_rts = ['cloud_droplet_re_rts', 0, 20e-6]
 trop_level      = ['trop_level', 20, 50]
@@ -47,7 +49,7 @@ def do_plot(datapath, plotfield, plotpath='.', plotlevel=0):
     else:
         lfric = lfric[-1, plotlevel]
 
-    if plotfield[varname] == 'ls_rain':
+    if plotfield[varname] == 'ls_rain' or plotfield[varname] == 'total_prec':
        import cf_units
        lfric.units = cf_units.Unit('mm s-1')
        lfric.convert_units('mm h-1')
@@ -98,11 +100,5 @@ if __name__ == "__main__":
     do_plot(datapath, m_v,             plotpath, plotlevel=20)
     do_plot(datapath, m_cl,            plotpath, plotlevel=20)
     do_plot(datapath, m_ci,            plotpath, plotlevel=20)
-    do_plot(datapath, ls_rain, plotpath)
-    do_plot(datapath, sw_heating_rate, plotpath)
-    do_plot(datapath, cloud_cover_rts, plotpath)
-    do_plot(datapath, cloud_fraction_rts, plotpath, plotlevel=20)
-    do_plot(datapath, cloud_droplet_re_rts, plotpath, plotlevel=20)
-    do_plot(datapath, trop_level,      plotpath)
-    do_plot(datapath, sw_down_surf,    plotpath)
-    do_plot(datapath, sw_aod, plotpath, plotlevel=38)
+    do_plot(datapath, total_prec, plotpath)
+    do_plot(datapath, cloud_amount_maxrnd, plotpath)

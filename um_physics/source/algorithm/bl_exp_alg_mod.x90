@@ -103,7 +103,8 @@ contains
     type( field_type ), pointer :: wetrho_in_w2  => null()
     type( field_type ), pointer :: u_in_w3       => null()
     type( field_type ), pointer :: v_in_w3       => null()
-    type( field_type ), pointer :: w_physics     => null()
+    type( field_type ), pointer :: w_in_wth      => null()
+    type( field_type ), pointer :: velocity_w2v  => null()
     type( field_type ), pointer :: shear         => null()
     type( field_type ), pointer :: u_physics     => null()
 
@@ -211,7 +212,6 @@ contains
     type( field_type ), pointer :: soil_thermal_cond      => null()
     type( field_type ), pointer :: soil_suction_sat       => null()
     type( field_type ), pointer :: clapp_horn_b           => null()
-    type( field_type ), pointer :: soil_carbon_content    => null()
     type( field_type ), pointer :: soil_temperature       => null()
     type( field_type ), pointer :: soil_moisture          => null()
     type( field_type ), pointer :: unfrozen_soil_moisture => null()
@@ -262,7 +262,8 @@ contains
     wetrho_in_w2  => derived_fields%get_field('wetrho_in_w2')
     u_in_w3       => derived_fields%get_field('u_in_w3')
     v_in_w3       => derived_fields%get_field('v_in_w3')
-    w_physics     => derived_fields%get_field('velocity_w2v')
+    w_in_wth      => derived_fields%get_field('w_in_wth')
+    velocity_w2v  => derived_fields%get_field('velocity_w2v')
     shear         => derived_fields%get_field('shear')
     u_physics     => derived_fields%get_field('u_physics')
 
@@ -378,7 +379,6 @@ contains
     soil_thermal_cond      => soil_fields%get_field('soil_thermal_cond')
     soil_suction_sat       => soil_fields%get_field('soil_suction_sat')
     clapp_horn_b           => soil_fields%get_field('clapp_horn_b')
-    soil_carbon_content    => soil_fields%get_field('soil_carbon_content')
     soil_temperature       => soil_fields%get_field('soil_temperature')
     soil_moisture          => soil_fields%get_field('soil_moisture')
     unfrozen_soil_moisture => soil_fields%get_field('unfrozen_soil_moisture')
@@ -450,7 +450,7 @@ contains
                 bl_exp_kernel_type( theta, rho,                                &
                            wetrho_in_wth, exner, exner_in_wth,                 &
                            u_in_w3, stencil_depth, v_in_w3, stencil_depth,     &
-                           w_physics,                                          &
+                           w_in_wth, velocity_w2v,                             &
                            mr_n(imr_v), mr_n(imr_cl), mr_n(imr_ci),            &
                            height_w3, height_wth, shear, delta, max_diff_smag, &
                            zh, z0msea, z0m, ntml, cumulus,                     &
@@ -460,7 +460,7 @@ contains
                            soil_albedo, soil_roughness,                        &
                            soil_moist_wilt, soil_moist_crit, soil_moist_sat,   &
                            soil_thermal_cond, soil_suction_sat, clapp_horn_b,  &
-                           soil_carbon_content, soil_respiration,              &
+                           soil_respiration,                                   &
                            thermal_cond_wet_soil, sea_ice_temperature,         &
                            tile_temperature,                                   &
                            tile_snow_mass, n_snow_layers, snow_depth,          &

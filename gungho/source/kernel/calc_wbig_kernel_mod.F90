@@ -34,7 +34,7 @@ module calc_wbig_kernel_mod
   type, public, extends(kernel_type) :: calc_wbig_kernel_type
     private
     type(arg_type) :: meta_args(2) = (/                     &
-         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),      & !w_physics
+         arg_type(GH_FIELD, GH_REAL, GH_READ, WTHETA),      & !w_in_wth
          arg_type(GH_FIELD, GH_REAL, GH_READWRITE,  WTHETA) & !wbig
          /)
     integer :: operates_on = CELL_COLUMN
@@ -48,17 +48,17 @@ module calc_wbig_kernel_mod
   public :: calc_wbig_code
 
 contains
-!> @brief The identifies values of w_physics greater than 1 and sets them to 1
+!> @brief The identifies values of w_in_wth greater than 1 and sets them to 1
 !>        in the wbig field.
 !! @param[in] nlayers Integer the number of layers
-!! @param[in] w_physics Real array, w component of u_physics
+!! @param[in] w_in_wth Real array, w component of u_physics
 !! @param[in,out] wbig - the wbig field
 !! @param[in] ndf_wth The number of degrees of freedom per cell for wth
 !! @param[in] undf_wth The number of unique degrees of freedom for wth
 !! @param[in] map_wth Integer array holding the dofmap for the cell at the
 !>            base of the column for wth
 subroutine calc_wbig_code(nlayers,                    &
-                          w_physics,                  &
+                          w_in_wth,                  &
                           wbig,                       &
                           ndf_wth, undf_wth, map_wth  &
                           )
@@ -70,7 +70,7 @@ subroutine calc_wbig_code(nlayers,                    &
 
   integer(kind=i_def), intent(in) :: ndf_wth, undf_wth
 
-  real(kind=r_def), dimension(undf_wth), intent(in)    :: w_physics
+  real(kind=r_def), dimension(undf_wth), intent(in)    :: w_in_wth
   real(kind=r_def), dimension(undf_wth), intent(inout) :: wbig
   integer(kind=i_def), dimension(ndf_wth),  intent(in) :: map_wth
 
@@ -79,7 +79,7 @@ subroutine calc_wbig_code(nlayers,                    &
 
   do k = 0, nlayers
 
-    if ( (w_physics(map_wth(1) + k)) > 1.0_r_def ) then
+    if ( (w_in_wth(map_wth(1) + k)) > 1.0_r_def ) then
 
       wbig(map_wth(1) + k) = 1.0_r_def
 

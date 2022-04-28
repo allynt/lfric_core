@@ -81,6 +81,7 @@ contains
     type( field_type ), pointer :: emiss_so2_nat => null()
     type( field_type ), pointer :: soil_clay => null()
     type( field_type ), pointer :: soil_sand => null()
+    type( field_type ), pointer :: surf_wetness => null()
     type( field_type ), pointer :: dust_mrel => null()
 
     ! Prognostic field (emissions)
@@ -165,6 +166,7 @@ contains
     emiss_so2_nat        => aerosol_fields%get_field('emiss_so2_nat')
     soil_clay            => aerosol_fields%get_field('soil_clay')
     soil_sand            => aerosol_fields%get_field('soil_sand')
+    surf_wetness         => aerosol_fields%get_field('surf_wetness')
     dust_mrel            => aerosol_fields%get_field('dust_mrel')
     dust_flux            => aerosol_fields%get_field('dust_flux')
 
@@ -257,6 +259,7 @@ contains
                    setval_c(emiss_so2_nat,         0.0_r_def), &
                    setval_c(soil_clay,             0.2_r_def), &
                    setval_c(soil_sand,             0.2_r_def), &
+                   setval_c(surf_wetness,          0.0_r_def), &
                    setval_c(dust_mrel,           0.167_r_def), &
                    setval_c(dust_flux,             0.0_r_def), &
                    ! CDNC and particle properties prior to their calculation
@@ -358,6 +361,7 @@ contains
                    setval_c(emiss_so2_nat,         0.0_r_def), &
                    setval_c(soil_clay,             0.0_r_def), &
                    setval_c(soil_sand,             0.0_r_def), &
+                   setval_c(surf_wetness,          0.0_r_def), &
                    setval_c(dust_mrel,             0.0_r_def), &
                    setval_c(dust_flux,             0.0_r_def), & 
                    ! Default values of CDNC for microphysics and
@@ -457,6 +461,7 @@ contains
                    setval_c(emiss_so2_nat,         0.0_r_def), &
                    setval_c(soil_clay,             0.0_r_def), &
                    setval_c(soil_sand,             0.0_r_def), &
+                   setval_c(surf_wetness,          0.0_r_def), &
                    setval_c(dust_mrel,             0.0_r_def), &
                    setval_c(dust_flux,             0.0_r_def), & 
                    ! CDNC for use in microphysics and particle properties
@@ -544,6 +549,7 @@ contains
                    setval_c(emiss_so2_nat,         0.0_r_def), &
                    setval_c(soil_clay,             0.0_r_def), &
                    setval_c(soil_sand,             0.0_r_def), &
+                   setval_c(surf_wetness,          0.0_r_def), &
                    setval_c(dust_mrel,             0.0_r_def), &
                    setval_c(dust_flux,             0.0_r_def), & 
                    ! CDNC and particle properties 

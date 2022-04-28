@@ -85,7 +85,6 @@ contains
     type( field_type ), pointer :: soil_thermal_cond      => null()
     type( field_type ), pointer :: soil_suction_sat       => null()
     type( field_type ), pointer :: clapp_horn_b           => null()
-    type( field_type ), pointer :: soil_carbon_content    => null()
     type( field_type ), pointer :: soil_roughness         => null()
     type( field_type ), pointer :: mean_topog_index       => null()
     type( field_type ), pointer :: a_sat_frac             => null()
@@ -154,7 +153,6 @@ contains
     soil_thermal_cond      => soil_fields%get_field('soil_thermal_cond')
     soil_suction_sat       => soil_fields%get_field('soil_suction_sat')
     clapp_horn_b           => soil_fields%get_field('clapp_horn_b')
-    soil_carbon_content    => soil_fields%get_field('soil_carbon_content')
     soil_roughness         => soil_fields%get_field('soil_roughness')
     mean_topog_index       => soil_fields%get_field('mean_topog_index')
     a_sat_frac             => soil_fields%get_field('a_sat_frac')
@@ -206,7 +204,7 @@ contains
                            soil_moist_wilt, soil_moist_crit,                   &
                            soil_moist_sat, soil_cond_sat, soil_thermal_cap,    &
                            soil_thermal_cond, soil_suction_sat, clapp_horn_b,  &
-                           soil_carbon_content, soil_roughness,                &
+                           soil_roughness,                                     &
                            mean_topog_index, a_sat_frac, c_sat_frac,           &
                            a_wet_frac, c_wet_frac, tile_temperature,           &
                            net_prim_prod, snowice_sublimation, surf_heat_flux, &

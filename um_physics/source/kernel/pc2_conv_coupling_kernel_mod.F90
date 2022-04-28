@@ -25,11 +25,10 @@ private
 
 type, public, extends(kernel_type) :: pc2_conv_coupling_kernel_type
   private
-  type(arg_type) :: meta_args(16) = (/                         &
+  type(arg_type) :: meta_args(14) = (/                         &
        arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! theta_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! mv_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! ml_wth
-       arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! mi_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! cfl_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! cff_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READ,      WTHETA),      & ! bcf_wth
@@ -37,7 +36,6 @@ type, public, extends(kernel_type) :: pc2_conv_coupling_kernel_type
        arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dt_conv_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dmv_conv_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dmcl_conv_wth
-       arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dmci_conv_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dcfl_conv_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dcff_conv_wth
        arg_type(GH_FIELD,  GH_REAL, GH_READWRITE, WTHETA),      & ! dbcf_conv_wth
@@ -63,7 +61,6 @@ contains
 !> @param[in]     theta_wth     Potential temperature field
 !> @param[in]     mv_wth        Vapour mass mixing ratio
 !> @param[in]     ml_wth        Liquid cloud mass mixing ratio
-!> @param[in]     mi_wth        Ice cloud mass mixing ratio
 !> @param[in]     cfl_wth       Liquid cloud fraction
 !> @param[in]     cff_wth       Ice cloud fraction
 !> @param[in]     bcf_wth       Bulk cloud fraction
@@ -71,7 +68,6 @@ contains
 !> @param[in,out] dt_conv_wth   Increment to theta in theta space
 !> @param[in,out] dmv_conv_wth  Increment to vapour from convection in theta space
 !> @param[in,out] dmcl_conv_wth Increment to liquid water content from convection in theta space
-!> @param[in,out] dmci_conv_wth Increment to ice water content from convection in theta space
 !> @param[in,out] dcfl_conv_wth Increment to liquid cloud fraction from convection in theta space
 !> @param[in,out] dcff_conv_wth Increment to ice cloud fraction from convection in theta space
 !> @param[in,out] dbcf_conv_wth Increment to bulk cloud fraction from convection in theta space
@@ -85,7 +81,6 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
                                    theta_wth,                                  &
                                    mv_wth,                                     &
                                    ml_wth,                                     &
-                                   mi_wth,                                     &
                                    cfl_wth,                                    &
                                    cff_wth,                                    &
                                    bcf_wth,                                    &
@@ -94,7 +89,6 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
                                    dt_conv_wth,                                &
                                    dmv_conv_wth,                               &
                                    dmcl_conv_wth,                              &
-                                   dmci_conv_wth,                              &
                                    dcfl_conv_wth,                              &
                                    dcff_conv_wth,                              &
                                    dbcf_conv_wth,                              &
@@ -124,7 +118,6 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
     real(kind=r_def), intent(in),    dimension(undf_wth) :: theta_wth
     real(kind=r_def), intent(in),    dimension(undf_wth) :: mv_wth
     real(kind=r_def), intent(in),    dimension(undf_wth) :: ml_wth
-    real(kind=r_def), intent(in),    dimension(undf_wth) :: mi_wth
     real(kind=r_def), intent(in),    dimension(undf_wth) :: cfl_wth
     real(kind=r_def), intent(in),    dimension(undf_wth) :: cff_wth
     real(kind=r_def), intent(in),    dimension(undf_wth) :: bcf_wth
@@ -134,7 +127,6 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dt_conv_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dmv_conv_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dmcl_conv_wth
-    real(kind=r_def), intent(inout), dimension(undf_wth) :: dmci_conv_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dcfl_conv_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dcff_conv_wth
     real(kind=r_def), intent(inout), dimension(undf_wth) :: dbcf_conv_wth
@@ -146,13 +138,13 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
     real(r_um), dimension(seg_len,1) ::                                        &
                 p_theta_levels,                                                &
                 ! Work arrays
-                qv_work,  qcl_work, qcf_work,                                  &
+                qv_work,  qcl_work,                                            &
                 bcf_work, cfl_work, cff_work, t_work,                          &
                 ! Forcings
                 t_forcing, qv_forcing, cfl_forcing,                            &
                 ! Increments
-                qv_incr,  qcl_incr, qcf_incr,                                  &
-                bcf_incr, cfl_incr, cff_incr, t_incr,                          &
+                qv_incr,  qcl_incr,                                            &
+                bcf_incr, cfl_incr, t_incr,                                    &
                 ! Other
                 zeros
 
@@ -175,13 +167,12 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
 
         ! Moist prognostics
         qv_work(i,j)    = mv_wth(map_wth(1,i) + k)
-        qcl_work(i,j)   = ml_wth(map_wth(1,i) + k)
-        qcf_work(i,j)   = mi_wth(map_wth(1,i) + k)
+        qcl_work(i,j)   = ml_wth(map_wth(1,i) + k) + dmcl_conv_wth(map_wth(1,i) + k)
 
         ! Cloud fractions
-        cfl_work(i,j)   = cfl_wth(map_wth(1,i) + k)
-        cff_work(i,j)   = cff_wth(map_wth(1,i) + k)
-        bcf_work(i,j)   = bcf_wth(map_wth(1,i) + k)
+        cfl_work(i,j)   = cfl_wth(map_wth(1,i) + k) + dcfl_conv_wth(map_wth(1,i) + k)
+        cff_work(i,j)   = cff_wth(map_wth(1,i) + k) + dcff_conv_wth(map_wth(1,i) + k)
+        bcf_work(i,j)   = bcf_wth(map_wth(1,i) + k) + dbcf_conv_wth(map_wth(1,i) + k)
 
         ! Forcings
         t_forcing(i,j)  = dt_conv_wth(map_wth(1,i) + k)
@@ -192,9 +183,7 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
         t_incr(i,j)     = 0.0_r_um
         qv_incr(i,j)    = 0.0_r_um
         qcl_incr(i,j)   = 0.0_r_um
-        qcf_incr(i,j)   = 0.0_r_um
         cfl_incr(i,j)   = 0.0_r_um
-        cff_incr(i,j)   = 0.0_r_um
         bcf_incr(i,j)   = 0.0_r_um
       end do
 
@@ -231,9 +220,7 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
         dt_conv_wth  (map_wth(1,i) + k) = dt_conv_wth (map_wth(1,i) + k)  + t_incr(i,j)
         dmv_conv_wth (map_wth(1,i) + k) = dmv_conv_wth(map_wth(1,i) + k)  + qv_incr   (i,j)
         dmcl_conv_wth(map_wth(1,i) + k) = dmcl_conv_wth(map_wth(1,i) + k) + qcl_incr  (i,j)
-        dmci_conv_wth(map_wth(1,i) + k) = dmci_conv_wth(map_wth(1,i) + k) + qcf_incr  (i,j)
         dcfl_conv_wth(map_wth(1,i) + k) = dcfl_conv_wth(map_wth(1,i) + k) + cfl_incr  (i,j)
-        dcff_conv_wth(map_wth(1,i) + k) = dcff_conv_wth(map_wth(1,i) + k) + cff_incr  (i,j)
         dbcf_conv_wth(map_wth(1,i) + k) = dbcf_conv_wth(map_wth(1,i) + k) + bcf_incr  (i,j)
       end do
     end do
@@ -245,9 +232,7 @@ subroutine pc2_conv_coupling_code( nlayers, seg_len,                           &
                                       / exner_wth(map_wth(1,i) + 1)
       dmv_conv_wth (map_wth(1,i) + 0) = dmv_conv_wth (map_wth(1,i) + 1)
       dmcl_conv_wth(map_wth(1,i) + 0) = dmcl_conv_wth(map_wth(1,i) + 1)
-      dmci_conv_wth(map_wth(1,i) + 0) = dmci_conv_wth(map_wth(1,i) + 1)
       dcfl_conv_wth(map_wth(1,i) + 0) = dcfl_conv_wth(map_wth(1,i) + 1)
-      dcff_conv_wth(map_wth(1,i) + 0) = dcff_conv_wth(map_wth(1,i) + 1)
       dbcf_conv_wth(map_wth(1,i) + 0) = dbcf_conv_wth(map_wth(1,i) + 1)
     end do
 

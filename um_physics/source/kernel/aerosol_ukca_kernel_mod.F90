@@ -30,7 +30,7 @@ implicit none
 
 type, public, extends(kernel_type) :: aerosol_ukca_kernel_type
   private
-  type(arg_type) :: meta_args(151) = (/            &
+  type(arg_type) :: meta_args(153) = (/            &
        arg_type( GH_FIELD, GH_REAL, GH_READWRITE, WTHETA ), & ! h2o2
        arg_type( GH_FIELD, GH_REAL, GH_READWRITE, WTHETA ), & ! dms 
        arg_type( GH_FIELD, GH_REAL, GH_READWRITE, WTHETA ), & ! so2
@@ -155,6 +155,7 @@ type, public, extends(kernel_type) :: aerosol_ukca_kernel_type
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_4 ), & ! z0m 
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_4 ), & ! ustar 
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_4 ), & ! wspd10m
+       arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_4 ), & ! chloro_sea
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_4 ), & ! zh
        arg_type( GH_FIELD, GH_REAL, GH_READ, W3 ),          & ! wetrho_in_w3 
        arg_type( GH_FIELD, GH_REAL, GH_READ, W3 ),          & ! rhokh_bl 
@@ -171,6 +172,7 @@ type, public, extends(kernel_type) :: aerosol_ukca_kernel_type
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_5 ), & ! ent_zrzi_dsc
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_4 ), & ! dms_conc_ocean 
        arg_type( GH_FIELD, GH_REAL, GH_READ, ANY_DISCONTINUOUS_SPACE_6 ), & ! dust_flux 
+       arg_type( GH_FIELD, GH_REAL, GH_READWRITE, ANY_DISCONTINUOUS_SPACE_4 ), & ! surf_wetness
        arg_type( GH_FIELD, GH_REAL, GH_READ, WTHETA ),      & ! emiss_bc_biomass
        arg_type( GH_FIELD, GH_REAL, GH_READ, WTHETA ),      & ! emiss_om_biomass
        arg_type( GH_FIELD, GH_REAL, GH_READ, WTHETA ),      & ! emiss_so2_nat
@@ -293,6 +295,7 @@ contains
 !> @param[in]     z0m                 Cell surface roughness length (m)
 !> @param[in]     ustar               Friction velocity (m s-1)
 !> @param[in]     wspd10m             Wind speed at 10 m (m s-1) 
+!> @param[in]     chloro_sea          Sea surface chlorophyll content
 !> @param[in]     zh                  Boundary layer depth (m)
 !> @param[in]     wetrho_in_w3        Wet density (kg m-3) 
 !> @param[in]     rhokh_bl            Scalar eddy diffusivity * rho (kg m-1 s-1)
@@ -309,6 +312,7 @@ contains
 !> @param[in]     ent_zrzi_dsc        Level height as fraction of DSC inversion height above DSC ML base
 !> @param[in]     dms_conc_ocean      DMS concentration in seawater (nmol l-1)
 !> @param[in]     dust_flux           Dust emission fluxes in CLASSIC size divisions (kg m-2 s-1) 
+!> @param[in,out] surf_wetness        Surface wetness prognostic (dimensionless)
 !> @param[in]     emiss_bc_biomass    Black C emissions from biomass burning (kg m-2 s-1)
 !> @param[in]     emiss_om_biomass    Organic matter emissions from biomass burning expressed as C (kg m-2 s-1)
 !> @param[in]     emiss_so2_nat       SO2 natural emissions expressed as S (kg m-2 s-1)
@@ -470,6 +474,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
                               z0m,                                             &
                               ustar,                                           &
                               wspd10m,                                         &
+                              chloro_sea,                                      &
                               zh,                                              &
                               wetrho_in_w3,                                    &
                               rhokh_bl,                                        &
@@ -486,6 +491,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
                               ent_zrzi_dsc,                                    &
                               dms_conc_ocean,                                  &
                               dust_flux,                                       &
+                              surf_wetness,                                    &
                               emiss_bc_biomass,                                &
                               emiss_om_biomass,                                &
                               emiss_so2_nat,                                   &
@@ -508,6 +514,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
 
   use constants_mod,    only: r_def, i_def, r_um, i_um, i_timestep,            &
                               radians_to_degrees
+  use conversions_mod,  only: rsec_per_day, rsec_per_hour
   use jules_control_init_mod, only: n_surf_tile, n_land_tile, n_sea_ice_tile,  &
                                     first_sea_ice_tile
   use um_ukca_init_mod, only: tracer_names, ntp_names,                         &
@@ -614,6 +621,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
                               fldname_surf_hf,                                 &
                               fldname_zbl,                                     &
                               fldname_u_scalar_10m,                            &
+                              fldname_chloro_sea,                              &
                               fldname_dms_sea_conc,                            &
                               fldname_dust_flux_div1,                          &
                               fldname_dust_flux_div2,                          &
@@ -622,6 +630,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
                               fldname_dust_flux_div5,                          &
                               fldname_dust_flux_div6,                          &
                               fldname_zhsc,                                    &
+                              fldname_surf_wetness,                            &
                               fldname_l_land,                                  &
                               fldname_stcon,                                   &
                               fldname_theta,                                   &
@@ -675,6 +684,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
   use nlsizes_namelist_mod, only: land_field, bl_levels
   use planet_constants_mod,  only: p_zero, kappa, planet_radius
   use level_heights_mod, only: r_theta_levels, r_rho_levels
+  use timestep_mod, only: timestep
 
   ! JULES modules
   use jules_surface_types_mod, only: npft
@@ -844,6 +854,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
   real(kind=r_def), intent(in), dimension(undf_2d) :: z0m 
   real(kind=r_def), intent(in), dimension(undf_2d) :: ustar 
   real(kind=r_def), intent(in), dimension(undf_2d) :: wspd10m
+  real(kind=r_def), intent(in), dimension(undf_2d) :: chloro_sea
   real(kind=r_def), intent(in), dimension(undf_2d) :: zh
   real(kind=r_def), intent(in), dimension(undf_w3) :: wetrho_in_w3 
   real(kind=r_def), intent(in), dimension(undf_w3) :: rhokh_bl 
@@ -860,6 +871,7 @@ subroutine aerosol_ukca_code( nlayers,                                         &
   real(kind=r_def), intent(in), dimension(undf_ent) :: ent_zrzi_dsc
   real(kind=r_def), intent(in), dimension(undf_2d) :: dms_conc_ocean
   real(kind=r_def), intent(in), dimension(undf_dust) :: dust_flux 
+  real(kind=r_def), intent(inout), dimension(undf_2d) :: surf_wetness
   real(kind=r_def), intent(in), dimension(undf_wth) :: emiss_bc_biomass 
   real(kind=r_def), intent(in), dimension(undf_wth) :: emiss_om_biomass
   real(kind=r_def), intent(in), dimension(undf_wth) :: emiss_so2_nat
@@ -946,6 +958,12 @@ subroutine aerosol_ukca_code( nlayers,                                         &
   real(r_um) :: catch_snow_surft( land_field, n_land_tile )
   real(r_um) :: catch_surft( land_field, n_land_tile )
   real(r_um) :: z0h_bare_surft( land_field, n_land_tile )
+
+  ! surface wetness calculation
+  real(r_def) :: tot_precip
+  real(r_def), parameter :: tol = 1.0e-10_r_def
+  real(r_def), parameter :: raincrit = 0.5_r_def/rsec_per_day
+  real(r_def), parameter :: ztodry = 3.0_r_def * rsec_per_hour
 
   ! UKCA error reporting variables
   character(len=ukca_maxlen_message)  :: ukca_errmsg  ! Error return message
@@ -1363,6 +1381,8 @@ subroutine aerosol_ukca_code( nlayers,                                         &
     case(fldname_u_scalar_10m)
       ! Wind speed at 10 m
       environ_flat_real(i) = real( wspd10m(map_2d(1)), r_um )
+    case(fldname_chloro_sea)
+      environ_flat_real(i) = real( chloro_sea(map_2d(1)), r_um )
     case(fldname_dms_sea_conc)
       ! Sea surface DMS concentration
       ! (Replace fill value with zeros to avoid potential unsafe multiplication
@@ -1391,6 +1411,33 @@ subroutine aerosol_ukca_code( nlayers,                                         &
     case(fldname_zhsc)
       ! Height at top of decoupled stratocumulus layer
       environ_flat_real(i) = real( zhsc(map_2d(1)), r_um )
+    case(fldname_surf_wetness)
+      tot_precip = max(0.0_r_def, ls_rain_3d(map_wth(1)+1)   &
+                                + ls_snow_3d(map_wth(1)+1)   &
+                                + conv_rain_3d(map_wth(1)+1) &
+                                + conv_snow_3d(map_wth(1)+1) )
+      if ( surf_wetness(map_2d(1)) < tol) then
+        ! Surface was dry last timestep, check if it has rained since
+        if (tot_precip > raincrit) then
+          surf_wetness(map_2d(1)) = 1.0_r_def
+        end if
+      else
+        ! Surface was wet last timestep, check if more rain since
+        if (tot_precip > tol) then
+          ! Check if there is enough rain to reset surf_wet to 1.0.
+          ! Otherwise, it is raining but less than raincrit so surface
+          ! does not dry but is not reset to 1 it just keeps the same
+          ! value of surf_wet
+          if (tot_precip > raincrit) then
+            surf_wetness(map_2d(1)) = 1.0_r_def
+          end if
+        else
+          ! Not raining, so the surface is gradually drying.
+          surf_wetness(map_2d(1)) = max(0.0_r_def, surf_wetness(map_2d(1)) &
+                                                 - timestep/ztodry)
+        end if
+      end if
+      environ_flat_real(i) = real(surf_wetness(map_2d(1)), r_um)
     case default
       write( log_scratch_space, '(A,A)' )                                      &
         'Missing required UKCA environment field: ', env_names_flat_real(i)

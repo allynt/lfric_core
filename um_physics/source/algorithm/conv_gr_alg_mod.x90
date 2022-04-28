@@ -75,7 +75,7 @@ contains
     type( field_type ), pointer :: rho_in_wth => null()
     type( field_type ), pointer :: wetrho_in_wth => null()
     type( field_type ), pointer :: wetrho_in_w3 => null()
-    type( field_type ), pointer :: w_physics => null()
+    type( field_type ), pointer :: w_in_wth => null()
     type( field_type ), pointer :: theta_star => null()
     type( field_type ), pointer :: u_in_w3_star => null()
     type( field_type ), pointer :: v_in_w3_star => null()
@@ -83,6 +83,7 @@ contains
     type( field_type ), pointer :: zh => null()
     type( field_type ), pointer :: ntml => null()
     type( field_type ), pointer :: cumulus => null()
+    type( field_type ), pointer :: tke_bl => null()
 
     type( field_type ), pointer :: conv_rain => null()
     type( field_type ), pointer :: conv_rain_3d => null()
@@ -188,7 +189,7 @@ contains
     wetrho_in_wth => derived_fields%get_field('wetrho_in_wth')
     wetrho_in_w3 => derived_fields%get_field('wetrho_in_w3')
     rho_in_wth => derived_fields%get_field('rho_in_wth')
-    w_physics => derived_fields%get_field('velocity_w2v')
+    w_in_wth => derived_fields%get_field('w_in_wth')
     theta_star => derived_fields%get_field('theta_star')
     u_in_w3_star => derived_fields%get_field('u_in_w3_star')
     v_in_w3_star => derived_fields%get_field('v_in_w3_star')
@@ -197,6 +198,7 @@ contains
     zh => turbulence_fields%get_field('zh')
     ntml => turbulence_fields%get_field('ntml')
     cumulus => turbulence_fields%get_field('cumulus')
+    tke_bl => turbulence_fields%get_field('tke_bl')
 
     ! Unpack convection fields
     conv_rain => convection_fields%get_field('conv_rain')
@@ -344,7 +346,7 @@ contains
 
                  ! call the scheme
                  conv_gr_kernel_type( outer, rho, rho_in_wth, wetrho_in_w3,   &
-                          wetrho_in_wth, exner, exner_in_wth, w_physics,      &
+                          wetrho_in_wth, exner, exner_in_wth, w_in_wth,       &
                           theta_star, u_in_w3_star, v_in_w3_star,             &
                           height_w3, height_wth, delta,                       &
                           ntml, cumulus, tile_fraction,                       &
@@ -356,7 +358,7 @@ contains
                           cape_diluted, conv_rain, conv_snow,                 &
                           conv_rain_3d, conv_snow_3d,                         &
                           cca_2d,                                             &
-                          dd_mf_cb, massflux_up, massflux_down,               &
+                          dd_mf_cb, massflux_up, massflux_down, tke_bl,       &
                           zh, shallow_flag,                                   &
                           uw0_flux, vw0_flux, lcl_height, parcel_top,         &
                           level_parcel_top, wstar, thv_flux,                  &

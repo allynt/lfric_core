@@ -46,7 +46,7 @@ contains
 
 !> @brief The subroutine which is called directly by the psy layer
 !! @param[in] nlayers Integer the number of layers
-!! @param[in,out] w_physics Real array, w component of u_physics
+!! @param[in,out] velocity_w2v  component of u_physics normal to cell top
 !! @param[in] u_physics Real array winds for physics
 !! @param[in] ndf_wth The number of degrees of freedom per cell for wth
 !! @param[in] undf_wth The number of unique degrees of freedom for wth
@@ -57,7 +57,7 @@ contains
 !! @param[in] map_w2 Integer array holding the dofmap for the cell at the
 !>            base of the column for w2
 subroutine extract_w_code(nlayers,                    &
-                          w_physics,                  &
+                          velocity_w2v,               &
                           u_physics,                  &
                           ndf_wth, undf_wth, map_wth, &
                           ndf_w2, undf_w2, map_w2     &
@@ -71,7 +71,7 @@ subroutine extract_w_code(nlayers,                    &
   integer(kind=i_def), intent(in) :: ndf_wth, undf_wth
   integer(kind=i_def), intent(in) :: ndf_w2, undf_w2
 
-  real(kind=r_def), dimension(undf_wth), intent(inout) :: w_physics
+  real(kind=r_def), dimension(undf_wth), intent(inout) :: velocity_w2v
   real(kind=r_def), dimension(undf_w2), intent(in)     :: u_physics
   integer(kind=i_def), dimension(ndf_wth),  intent(in) :: map_wth
   integer(kind=i_def), dimension(ndf_w2),  intent(in)  :: map_w2
@@ -81,7 +81,7 @@ subroutine extract_w_code(nlayers,                    &
 
   do k = 0, nlayers
 
-    w_physics(map_wth(1) + k) = u_physics(map_w2(5) + k )
+    velocity_w2v(map_wth(1) + k) = u_physics(map_w2(5) + k )
 
   end do
 

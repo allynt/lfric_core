@@ -80,7 +80,7 @@ module jules_physics_init_mod
                                      l_vg_bc_switch => l_vg_soil,              &
                                      use_variable_sst, heat_cap_sea,           &
                                      evap_scale_sea, buddy_sea_in => buddy_sea,&
-                                     buddy_sea_on
+                                     buddy_sea_on, knl_in => knl
 
   ! UM modules used
   use jules_surface_types_mod, only : npft, nnvg
@@ -161,7 +161,6 @@ contains
   !>          from the Jules code.
   !>        Other parameters and switches which are genuinely input variables,
   !>         via the LFRic namelists, are also set here for the Jules code.
-  !>       Where possible, all values are taken from GL7 science settings.
   subroutine jules_physics_init()
 
     ! Jules modules containing things that need setting
@@ -226,7 +225,7 @@ contains
          g_leaf_0, glmin, gsoil_f, hw_sw, infil_f, kext, kn, knl, kpar,     &
          lai_alb_lim, lma, neff, nl0, nmass, nr, nr_nl, ns_nl, nsw, omega,  &
          omegal, omegau, omnir, omnirl, omniru, orient, q10_leaf, r_grow,   &
-         rootd_ft, sigl, tleaf_of, tlow, tupp, vint, vsl, z0v
+         rootd_ft, sigl, tleaf_of, tlow, tupp, vint, vsl, z0v, dust_veg_scj
 
     implicit none
 
@@ -491,15 +490,14 @@ contains
     ! Temporary logicals used to fix bugs in Jules
     !  - contained in jules_science_fixes
     ! ----------------------------------------------------------------
-    l_dtcanfix = .true.
-    ! Not strictly GA7 but sensible to set them
+    l_accurate_rho      = .true.
+    l_dtcanfix          = .true.
     ctile_orog_fix      = correct_sea_only
     l_fix_alb_ice_thick = .true.
     l_fix_albsnow_ts    = .true.
-    l_fix_wind_snow     = .true.
-    l_accurate_rho      = .false.
     l_fix_osa_chloro    = .true.
     l_fix_ustar_dust    = .true.
+    l_fix_wind_snow     = .true.
 
     ! The following routine initialises 3D arrays which are used direct
     ! from modules throughout the Jules code base.
@@ -607,6 +605,7 @@ contains
     dgl_dm=(/ 0.0_r_um, 0.0_r_um, 0.0_r_um, 0.0_r_um, 0.0_r_um /)
     dgl_dt=(/ 9.0_r_um, 9.0_r_um, 0.0_r_um, 0.0_r_um, 9.0_r_um /)
     dqcrit=(/ 0.090_r_um, 0.060_r_um, 0.100_r_um, 0.075_r_um, 0.100_r_um /)
+    dust_veg_scj=(/ 0.0_r_um, 0.0_r_um, 1.0_r_um, 1.0_r_um, 0.5_r_um /)
     dz0v_dh=(/ 5.0e-2_r_um, 5.0e-2_r_um, 1.0e-1_r_um, 1.0e-1_r_um, 1.0e-1_r_um /)
     emis_pft=(/ 0.98_r_um, 0.99_r_um, 0.98_r_um, 0.98_r_um, 0.98_r_um /)
     eta_sl=(/ 0.01_r_um, 0.01_r_um, 0.01_r_um, 0.01_r_um, 0.01_r_um /)
@@ -621,7 +620,7 @@ contains
     infil_f=(/ 4.0_r_um, 4.0_r_um, 2.0_r_um, 2.0_r_um, 2.0_r_um /)
     kext = real(light_extinct, r_um)
     kn=(/ 0.78_r_um, 0.78_r_um, 0.78_r_um, 0.78_r_um, 0.78_r_um /)
-    knl=(/ 0.20_r_um, 0.20_r_um, 0.20_r_um, 0.20_r_um, 0.20_r_um /)
+    knl = real(knl_in, r_um)
     kpar=(/ 0.5_r_um, 0.5_r_um, 0.5_r_um, 0.5_r_um, 0.5_r_um /)
     lai_alb_lim=(/ 0.005_r_um, 0.005_r_um, 0.005_r_um, 0.005_r_um, 0.005_r_um /)
     lma=(/ 0.0824_r_um, 0.2263_r_um, 0.0498_r_um, 0.1370_r_um, 0.0695_r_um /)

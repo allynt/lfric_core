@@ -35,7 +35,6 @@ module diagnostic_alg_mod
   private
   public :: divergence_diagnostic_alg
   public :: hydbal_diagnostic_alg
-  public :: split_wind_diagnostic_alg
   public :: scalar_nodal_diagnostic_alg
   public :: vector_nodal_diagnostic_alg
   public :: scalar_ugrid_diagnostic_alg
@@ -165,100 +164,6 @@ contains
     nullify( geopotential, qr, theta_mesh )
 
   end subroutine hydbal_diagnostic_alg
-
-  !> @details Splits a 3D wind field into Horizontal (on W2H) and Vertical (on W2V)
-  !>          fields after projecting to physical space using the Piola transform
-  !> @param[in,out] u1_wind  Meridional wind component
-  !> @param[in,out] u2_wind  Zonal wind component
-  !> @param[in,out] u3_wind  Vertical wind component
-  !> @param[in] wind         3D wind field
-  !> @param[in] mesh         Mesh
-  subroutine split_wind_diagnostic_alg(u1_wind, u2_wind, u3_wind, &
-                                       wind, mesh)
-
-    use convert_hdiv_field_kernel_mod,       only: convert_hdiv_field_kernel_type
-    use extract_w_kernel_mod,                only: extract_w_kernel_type
-    use extract_uv_kernel_mod,               only: extract_uv_kernel_type
-
-    implicit none
-
-    type(field_type), intent(inout)  :: u1_wind, u2_wind, u3_wind
-    type(field_type), intent(in)     :: wind
-    type(mesh_type),  intent(in), pointer :: mesh
-
-    type(field_type), pointer    :: chi(:) => null(), &
-                                    panel_id => null()
-    type(field_type)             :: physical_wind(3)
-    type(field_type)             :: physical_chi(3)
-    type(field_type), pointer    :: w2_rmultiplicity
-
-    integer(i_def)               :: i, fs_id
-
-
-    ! get chi field
-    chi => get_coordinates(mesh%get_id())
-    panel_id => get_panel_id(mesh%get_id())
-
-    ! Create intermediate fields
-    do i = 1,3
-      call wind%copy_field_properties(physical_wind(i))
-      call wind%copy_field_properties(physical_chi(i))
-      call invoke( setval_c(physical_wind(i), 0.0_r_def) )
-    end do
-
-    call u1_wind%initialise( vector_space = &
-              function_space_collection%get_fs(mesh,element_order, W2H) )
-
-    call u2_wind%initialise( vector_space = &
-              function_space_collection%get_fs(mesh,element_order, W2H) )
-
-    call u3_wind%initialise( vector_space = &
-              function_space_collection%get_fs(mesh,element_order, Wtheta) )
-
-    w2_rmultiplicity => get_rmultiplicity( W2, mesh%get_id() )
-
-    call invoke( setval_c(u1_wind, 0.0_r_def), &
-                 setval_c(u2_wind, 0.0_r_def), &
-                 setval_c(u3_wind, 0.0_r_def) )
-
-    ! Convert coordinate field to physical space
-
-    call invoke( nodal_xyz_coordinates_kernel_type(physical_chi, chi, panel_id) )
-
-    ! Convert 3D wind field to 3 components using the Piola transform
-
-    call invoke( convert_hdiv_field_kernel_type(physical_wind, wind, chi, panel_id) )
-
-    ! Scale fields by the reciprocal of multiplicity
-    do i = 1,3
-      call invoke( inc_X_times_Y(physical_wind(i), w2_rmultiplicity) )
-    end do
-
-    ! Convert to standard SI units (m/s) in orthogonal directions
-
-    if ( geometry == geometry_spherical ) then
-        call invoke_convert_cart2sphere_vector(physical_wind, physical_chi)
-    end if
-
-    ! Extract vertical wind into W2V and u,v winds into W2H
-
-    fs_id = wind%which_function_space()
-
-    select case( fs_id )
-      case ( W2 )
-        call invoke( extract_w_kernel_type(u3_wind, physical_wind(3)),  &
-                     extract_uv_kernel_type(u1_wind, physical_wind(1)), &
-                     extract_uv_kernel_type(u2_wind, physical_wind(2)) )
-      case ( W2H )
-        call invoke( setval_c(u3_wind, 0.0_r_def),                      &
-                     extract_uv_kernel_type(u1_wind, physical_wind(1)), &
-                     extract_uv_kernel_type(u2_wind, physical_wind(2)) )
-      case default
-        call log_event("Not possible to extract winds for this function space", &
-                        LOG_LEVEL_ERROR )
-    end select
-
-  end subroutine split_wind_diagnostic_alg
 
   !> @details Generic diagnostic processing for a scalar field to nodal format
   !>          Allows optional projection to W3
@@ -678,10 +583,10 @@ contains
   !!          zero. The diagnostic's primary use is in long, climate runs where
   !!          it is averaged in time to help indicate whether the model has any
   !!          stability problems.
-  !> @param[in] w_physics 3D vertical velocity field seen by the model physics
+  !> @param[in] w_in_wth  3D vertical velocity field seen by the model physics
   !> @param[in] mesh      The primary mesh
 
-  subroutine calc_wbig_diagnostic_alg( w_physics, mesh )
+  subroutine calc_wbig_diagnostic_alg( w_in_wth, mesh )
 
     use calc_wbig_kernel_mod,             only: calc_wbig_kernel_type
     use io_config_mod,                    only: write_diag, use_xios_io
@@ -691,15 +596,15 @@ contains
     implicit none
 
     ! Set up necessary fields
-    type(field_type), intent(in)          :: w_physics
+    type(field_type), intent(in)          :: w_in_wth
     type(mesh_type),  intent(in), pointer :: mesh
 
     type( field_type ) :: wbig
 
-    ! Give wbig the same properties as w_physics (on WTHETA levels)
-    call w_physics%copy_field_properties(wbig)
+    ! Give wbig the same properties as w_in_wth (on WTHETA levels)
+    call w_in_wth%copy_field_properties(wbig)
 
-    call invoke( calc_wbig_kernel_type(w_physics, wbig) )
+    call invoke( calc_wbig_kernel_type(w_in_wth, wbig) )
 
     if (write_diag .and. use_xios_io) then
 

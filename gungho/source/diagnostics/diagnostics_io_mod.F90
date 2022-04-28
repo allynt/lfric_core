@@ -13,13 +13,16 @@ module diagnostics_io_mod
   use clock_mod,                     only: clock_type
   use constants_mod,                 only: i_def, i_timestep, &
                                            r_def, str_max_filename
-  use diagnostic_alg_mod,            only: split_wind_diagnostic_alg,   &
-                                           extract_w2h_diagnostic_alg,  &
+  use physics_mappings_alg_mod,      only: split_wind_alg
+  use diagnostic_alg_mod,            only: extract_w2h_diagnostic_alg,  &
                                            scalar_nodal_diagnostic_alg, &
                                            scalar_ugrid_diagnostic_alg, &
                                            vector_nodal_diagnostic_alg
   use io_config_mod,                 only: use_xios_io, write_fluxes
   use files_config_mod,              only: diag_stem_name
+  use function_space_collection_mod, only: function_space_collection
+  use finite_element_config_mod,     only: element_order
+  use fs_continuity_mod,             only: Wtheta, W2H
   use project_output_mod,            only: project_output
   use io_mod,                        only: ts_fname, &
                                            nodal_write_field
@@ -287,8 +290,17 @@ subroutine write_vector_diagnostic( field_name, field, &
 
       !---- Output wind as u1, u2, and u3 wind components ---
 
-      call split_wind_diagnostic_alg( u1_wind, u2_wind, u3_wind, &
-                                      field, mesh )
+      call u1_wind%initialise( vector_space = &
+               function_space_collection%get_fs(mesh, element_order, W2H) )
+
+     call u2_wind%initialise( vector_space = &
+              function_space_collection%get_fs(mesh,element_order, W2H) )
+
+     call u3_wind%initialise( vector_space = &
+              function_space_collection%get_fs(mesh,element_order, Wtheta) )
+
+      call split_wind_alg( u1_wind, u2_wind, u3_wind, &
+                           field, mesh )
 
       ! Set up I/O handler as these are derived fields
       tmp_write_ptr => write_field_face

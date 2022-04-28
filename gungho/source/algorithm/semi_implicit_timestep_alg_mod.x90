@@ -63,8 +63,6 @@ module semi_implicit_timestep_alg_mod
   use matrix_vector_kernel_mod,   only: matrix_vector_kernel_type
   use dg_inc_matrix_vector_kernel_mod, &
                                   only: dg_inc_matrix_vector_kernel_type
-  use enforce_lower_bound_kernel_mod, &
-                                  only: enforce_lower_bound_kernel_type
   use enforce_bc_kernel_mod,      only: enforce_bc_kernel_type
   use set_any_dof_kernel_mod,     only: set_any_dof_kernel_type
 
@@ -352,7 +350,7 @@ contains
     type(operator_type), pointer :: mm_wt  => null()
     type(operator_type), pointer :: mm_vel => null()
 
-    integer(kind=i_def) :: outer, inner, reset_ref_state, i_mr
+    integer(kind=i_def) :: outer, inner, reset_ref_state
     real(kind=r_def)    :: varalpha, varbeta ! alpha, beta weight to use
                                              ! these may differ from input values
                                              ! during the spinup period
@@ -411,12 +409,8 @@ contains
     ! Update state_n and mr_n with start of timestep values
     !--------------------------------------------------------------------
     if (use_moisture) then
-      do i_mr = 1, nummr
-        call invoke( enforce_lower_bound_kernel_type (mr(i_mr), 0.0_r_def) )
-      end do
       call copy_bundle(mr, mr_n, nummr)
       call copy_bundle(mr, mr_after_slow, nummr)
-      call moist_dyn_factors_alg(moist_dyn, mr_n)
     end if
     call copy_bundle(state, state_n, bundle_size)
     call copy_bundle(state, state_after_slow, bundle_size)
@@ -425,10 +419,6 @@ contains
     ! Compute slow physic updates
     !--------------------------------------------------------------------
     if (use_physics) then
-      ! Calculate fields derived from dynamics fields for use in physics
-      call map_physics_fields_alg(state_n(igh_u), state_n(igh_p),              &
-                                  state_n(igh_d), state_n(igh_t),              &
-                                  moist_dyn, derived_fields)
       call slow_physics(du, dtheta, mr_after_slow, visc_m, visc_h,             &
                         state_n(igh_t), state_n(igh_d), state_n(igh_p),        &
                         mr_n, derived_fields, radiation_fields,                &
@@ -685,7 +675,7 @@ contains
 #ifdef UM_PHYSICS
     if (aerosol == aerosol_um .and. glomap_mode == glomap_mode_ukca) then
       call aerosol_ukca_alg ( chemistry_fields, aerosol_fields,          &
-                              radiation_fields,                          &
+                              radiation_fields, derived_fields,          &
                               microphysics_fields, turbulence_fields,    &
                               convection_fields, cloud_fields,           &
                               surface_fields, soil_fields,               &

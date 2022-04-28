@@ -86,7 +86,7 @@ contains
     type( field_type ), pointer :: exner_in_wth        => null()
     type( field_type ), pointer :: u_in_w3             => null()
     type( field_type ), pointer :: v_in_w3             => null()
-    type( field_type ), pointer :: w_physics           => null()
+    type( field_type ), pointer :: w_in_wth            => null()
     type( field_type ), pointer :: wetrho_in_w3        => null()
     type( field_type ), pointer :: rho_in_wth          => null()
 
@@ -138,7 +138,7 @@ contains
     exner_in_wth       => derived_fields%get_field('exner_in_wth')
     u_in_w3            => derived_fields%get_field('u_in_w3')
     v_in_w3            => derived_fields%get_field('v_in_w3')
-    w_physics          => derived_fields%get_field('velocity_w2v')
+    w_in_wth           => derived_fields%get_field('w_in_wth')
     wetrho_in_w3       => derived_fields%get_field('wetrho_in_w3')
     rho_in_wth         => derived_fields%get_field('rho_in_wth')
 
@@ -172,12 +172,11 @@ contains
 
     if (mphys_erosion) then
       call invoke( pc2_conv_coupling_kernel_type(theta, mr_n(imr_v),           &
-                                                 mr_n(imr_cl), mr_n(imr_ci),   &
+                                                 mr_n(imr_cl),                 &
                                                  cfl_in, cff_in, bcf_in,       &
                                                  exner_in_wth, dtheta_mphys,   &
                                                  dmr_mphys(imr_v),             &
                                                  dmr_mphys(imr_cl),            &
-                                                 dmr_mphys(imr_ci),            &
                                                  dcfl_mphys, dcff_mphys,       &
                                                  dbcf_mphys, dt) )
     end if
@@ -185,7 +184,7 @@ contains
     call invoke( mphys_kernel_type ( mr_n(imr_v), mr_n(imr_cl), mr_n(imr_ci),  &
                                      mr_n(imr_r), mr_n(imr_g),                 &
                                      bcf_in, cfl_in, cff_in,                   &
-                                     u_in_w3, v_in_w3, w_physics,              &
+                                     u_in_w3, v_in_w3, w_in_wth,               &
                                      theta, exner_in_wth,                      &
                                      wetrho_in_w3, dry_rho_in_w3,              &
                                      height_w3, height_wth,                    &

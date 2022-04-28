@@ -28,7 +28,8 @@ module gungho_diagnostics_driver_mod
                                         pressure_diag_alg
   use gungho_model_data_mod,     only : model_data_type
   use field_mod,                 only : field_type
-  use field_parent_mod,          only : field_parent_type
+  use field_parent_mod,          only : field_parent_type, write_interface
+  use lfric_xios_write_mod,      only : write_field_edge
   use formulation_config_mod,    only : use_physics,             &
                                         moisture_formulation,    &
                                         moisture_formulation_dry
@@ -43,7 +44,7 @@ module gungho_diagnostics_driver_mod
                                         LOG_LEVEL_INFO
   use mesh_mod,                  only : mesh_type
   use geometric_constants_mod,   only : get_panel_id, get_height
-  use io_config_mod,             only: subroutine_timers
+  use io_config_mod,             only: subroutine_timers, use_xios_io, write_fluxes
   use timer_mod,                 only: timer
 
 
@@ -93,10 +94,12 @@ contains
     type( field_type), pointer :: rho => null()
     type( field_type), pointer :: exner => null()
     type( field_type), pointer :: panel_id => null()
-    type( field_type), pointer :: w_physics => null()
     type( field_type), pointer :: height_w3 => null()
     type( field_type), pointer :: height_wth => null()
     type( field_type), pointer :: exner_in_wth => null()
+    type( field_type), pointer :: u_in_w2h => null()
+    type( field_type), pointer :: v_in_w2h => null()
+    type( field_type), pointer :: w_in_wth => null()
 
     ! Iterator for field collection
     type(field_collection_iterator_type)  :: iterator
@@ -104,6 +107,8 @@ contains
     ! A pointer used for retrieving fields from collections
     ! when iterating over them
     class( field_parent_type ), pointer :: field_ptr  => null()
+
+    procedure(write_interface), pointer  :: tmp_write_ptr => null()
 
     character(str_def) :: name
 
@@ -145,8 +150,27 @@ contains
                                  clock, mesh, nodal_output_on_w3)
 
     ! Vector fields
-    call write_vector_diagnostic('u', u, &
+    if (use_physics .and. use_xios_io .and. .not. write_fluxes) then
+      ! These have already been calculated, so no need to recalculate them
+      u_in_w2h => derived_fields%get_field('u_in_w2h')
+      v_in_w2h => derived_fields%get_field('v_in_w2h')
+      w_in_wth => derived_fields%get_field('w_in_wth')
+      tmp_write_ptr => write_field_edge
+      call u_in_w2h%set_write_behaviour(tmp_write_ptr)
+      call v_in_w2h%set_write_behaviour(tmp_write_ptr)
+      if (clock%is_initialisation()) then
+        call u_in_w2h%write_field("init_u_in_w2h")
+        call v_in_w2h%write_field("init_v_in_w2h")
+        call w_in_wth%write_field("init_w_in_wth")
+      else
+        call u_in_w2h%write_field("u_in_w2h")
+        call v_in_w2h%write_field("v_in_w2h")
+        call w_in_wth%write_field("w_in_wth")
+      end if
+    else
+      call write_vector_diagnostic('u', u, &
                                  clock, mesh, nodal_output_on_w3)
+    end if
     call write_vorticity_diagnostic( u, clock )
 
     ! Moisture fields
@@ -217,9 +241,9 @@ contains
       end do
       field_ptr => null()
 
-      ! Get w_physics for WBig calculation
-      w_physics => derived_fields%get_field('velocity_w2v')
-      call calc_wbig_diagnostic_alg(w_physics, mesh)
+      ! Get w_in_wth for WBig calculation
+      w_in_wth => derived_fields%get_field('w_in_wth')
+      call calc_wbig_diagnostic_alg(w_in_wth, mesh)
 
       ! Pressure diagnostics
       exner => prognostic_fields%get_field('exner')

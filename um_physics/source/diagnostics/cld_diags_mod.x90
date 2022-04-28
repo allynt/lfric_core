@@ -286,10 +286,7 @@ contains
     if ( icing_sfip_li_bcf_flag .or. icing_sfip_lir_com_flag ) then
       ! Get fields for all aviation in-flight icing diagnostics
 
-      ! We need a value for the vertical velocity (w_wind), for now use w_physics
-      ! which is not strictly vertical but rather normal to the top of the cell.
-      ! This can be changed later when a truly vertical velocity is available.
-      w_wind  => derived_fields%get_field('velocity_w2v')
+       w_wind  => derived_fields%get_field('w_in_wth')
 
       call theta%copy_field(theta_updated)
       call theta%copy_field_properties(icing_condensate)

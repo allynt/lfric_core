@@ -41,7 +41,7 @@ type, public, extends(kernel_type) :: mphys_kernel_type
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! cff_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  W3),                           & ! u_in_w3
        arg_type(GH_FIELD, GH_REAL, GH_READ,  W3),                           & ! v_in_w3,
-       arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! w_phys
+       arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! w_in_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! theta_in_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                       & ! exner_in_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  W3),                           & ! wetrho_in_w3
@@ -92,7 +92,7 @@ contains
 !> @param[in]     cff_wth             Ice cloud fraction
 !> @param[in]     u_in_w3             'Zonal' wind in density space
 !> @param[in]     v_in_w3             'Meridional' wind in density space
-!> @param[in]     w_phys              'Vertical' wind in theta space
+!> @param[in]     w_in_wth            'Vertical' wind in theta space
 !> @param[in]     theta_in_wth        Potential temperature field
 !> @param[in]     exner_in_wth        Exner pressure in potential temperature space
 !> @param[in]     wetrho_in_w3        Wet density in density space
@@ -145,7 +145,7 @@ subroutine mphys_code( nlayers, seg_len,            &
                        mv_wth,   ml_wth,   mi_wth,  &
                        mr_wth,   mg_wth,            &
                        cf_wth,   cfl_wth,  cff_wth, &
-                       u_in_w3, v_in_w3, w_phys,    &
+                       u_in_w3, v_in_w3, w_in_wth,  &
                        theta_in_wth,                &
                        exner_in_wth, wetrho_in_w3,  &
                        dry_rho_in_w3,               &
@@ -218,7 +218,7 @@ subroutine mphys_code( nlayers, seg_len,            &
     real(kind=r_def), intent(in),  dimension(undf_wth) :: cff_wth
     real(kind=r_def), intent(in),  dimension(undf_w3)  :: u_in_w3
     real(kind=r_def), intent(in),  dimension(undf_w3)  :: v_in_w3
-    real(kind=r_def), intent(in),  dimension(undf_wth) :: w_phys
+    real(kind=r_def), intent(in),  dimension(undf_wth) :: w_in_wth
     real(kind=r_def), intent(in),  dimension(undf_wth) :: theta_in_wth
     real(kind=r_def), intent(in),  dimension(undf_wth) :: exner_in_wth
     real(kind=r_def), intent(in),  dimension(undf_w3)  :: wetrho_in_w3
@@ -397,7 +397,7 @@ subroutine mphys_code( nlayers, seg_len,            &
 
         u_on_p(i,j,k) = u_in_w3(map_w3(1,i) + k-1)
         v_on_p(i,j,k) = v_in_w3(map_w3(1,i) + k-1)
-        w(i,j,k)   = w_phys(map_wth(1,i) + k)
+        w(i,j,k)   = w_in_wth(map_wth(1,i) + k)
 
         t_n(i,j,k)    = theta_in_wth(map_wth(1,i) + k) *                       &
                         exner_in_wth(map_wth(1,i) + k)

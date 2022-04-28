@@ -23,7 +23,7 @@ module bl_exp_kernel_mod
                                      ANY_DISCONTINUOUS_SPACE_10, &
                                      ANY_DISCONTINUOUS_SPACE_11, &
                                      ANY_DISCONTINUOUS_SPACE_12, &
-                                     STENCIL, CROSS
+                                     STENCIL, REGION
   use constants_mod,          only : i_def, i_um, r_def, r_um, rmdi
   use empty_data_mod,         only : empty_real_data
   use fs_continuity_mod,      only : W3, Wtheta
@@ -60,9 +60,10 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! wetrho_in_wth
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3),                       &! exner_in_w3
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! exner_in_wth
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3, STENCIL(CROSS)),       &! u_in_w3
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3, STENCIL(CROSS)),       &! v_in_w3
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! u3_in_wth
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3, STENCIL(REGION)),      &! u_in_w3
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      W3, STENCIL(REGION)),      &! v_in_w3
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! w_in_wth
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! velocity_w2v
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! m_v_n
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! m_cl_n
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      WTHETA),                   &! m_ci_n
@@ -76,7 +77,7 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1),&! z0m_2d
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! ntml_2d
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! cumulus_2d
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_2, STENCIL(CROSS)),&! tile_fraction
+         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_2, STENCIL(REGION)),&! tile_fraction
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_3),&! leaf_area_index
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_3),&! canopy_height
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! sd_orog_2d
@@ -90,7 +91,6 @@ module bl_exp_kernel_mod
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! soil_thermal_cond
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! soil_suction_sat
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! clapp_horn_b
-         arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! soil_carbon_content
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! soil_respiration
          arg_type(GH_FIELD, GH_REAL,  GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! thermal_cond_wet_soil
          arg_type(GH_FIELD, GH_REAL,  GH_READ,      ANY_DISCONTINUOUS_SPACE_4),&! sea_ice_temperature
@@ -218,7 +218,8 @@ contains
   !> @param[in]     exner_in_wth           Exner pressure field in wth space
   !> @param[in]     u_in_w3                'Zonal' wind in density space
   !> @param[in]     v_in_w3                'Meridional' wind in density space
-  !> @param[in]     u3_in_wth              'Vertical' wind in theta space
+  !> @param[in]     w_in_wth               'Vertical' wind in theta space
+  !> @param[in]     velocity_w2v           Velocity normal to cell top
   !> @param[in]     m_v_n                  Vapour mixing ratio at time level n
   !> @param[in]     m_cl_n                 Cloud liquid mixing ratio at time level n
   !> @param[in]     m_ci_n                 Cloud ice mixing ratio at time level n
@@ -246,7 +247,6 @@ contains
   !> @param[in]     soil_thermal_cond      Soil thermal conductivity
   !> @param[in]     soil_suction_sat       Saturated soil water suction
   !> @param[in]     clapp_horn_b           Clapp and Hornberger b coefficient
-  !> @param[in]     soil_carbon_content    Soil carbon content
   !> @param[in,out] soil_respiration       Soil respiration  (kg m-2 s-1)
   !> @param[in,out] thermal_cond_wet_soil  Thermal conductivity of wet soil (W m-1 K-1)
   !> @param[in]     sea_ice_temperature    Bulk temperature of sea-ice (K)
@@ -404,7 +404,8 @@ contains
                          u_w3_stencil_size, u_w3_stencil,       &
                          v_in_w3,                               &
                          v_w3_stencil_size, v_w3_stencil,       &
-                         u3_in_wth,                             &
+                         w_in_wth,                              &
+                         velocity_w2v,                          &
                          m_v_n,                                 &
                          m_cl_n,                                &
                          m_ci_n,                                &
@@ -433,7 +434,6 @@ contains
                          soil_thermal_cond,                     &
                          soil_suction_sat,                      &
                          clapp_horn_b,                          &
-                         soil_carbon_content,                   &
                          soil_respiration,                      &
                          thermal_cond_wet_soil,                 &
                          sea_ice_temperature,                   &
@@ -678,7 +678,8 @@ contains
     real(kind=r_def), dimension(undf_wth), intent(in)   :: theta_in_wth,       &
                                                            wetrho_in_wth,      &
                                                            exner_in_wth,       &
-                                                           u3_in_wth,          &
+                                                           w_in_wth,           &
+                                                           velocity_w2v,       &
                                                            m_v_n, m_cl_n,      &
                                                            m_ci_n,             &
                                                            height_wth,         &
@@ -739,7 +740,6 @@ contains
     real(kind=r_def), intent(in) :: soil_albedo(undf_2d)
     real(kind=r_def), intent(in) :: soil_roughness(undf_2d)
     real(kind=r_def), intent(in) :: soil_thermal_cond(undf_2d)
-    real(kind=r_def), intent(in) :: soil_carbon_content(undf_2d)
     real(kind=r_def), intent(inout) :: surface_conductance(undf_2d)
     real(kind=r_def), intent(in) :: cos_zen_angle(undf_2d)
     real(kind=r_def), intent(in) :: sw_down_surf(undf_2d)
@@ -1023,24 +1023,38 @@ contains
     if (buddy_sea == buddy_sea_on) then
       do i = 1, n_land_tile
         flandg(0,1) = flandg(0,1) + real(tile_fraction(tile_stencil(1,2)+i-1), r_um)
-        flandg(1,0) = flandg(1,0) + real(tile_fraction(tile_stencil(1,3)+i-1), r_um)
-        flandg(2,1) = flandg(2,1) + real(tile_fraction(tile_stencil(1,4)+i-1), r_um)
-        flandg(1,2) = flandg(1,2) + real(tile_fraction(tile_stencil(1,5)+i-1), r_um)
+        flandg(0,0) = flandg(0,0) + real(tile_fraction(tile_stencil(1,3)+i-1), r_um)
+        flandg(1,0) = flandg(1,0) + real(tile_fraction(tile_stencil(1,4)+i-1), r_um)
+        flandg(2,0) = flandg(2,0) + real(tile_fraction(tile_stencil(1,5)+i-1), r_um)
+        flandg(2,1) = flandg(2,1) + real(tile_fraction(tile_stencil(1,6)+i-1), r_um)
+        flandg(2,2) = flandg(2,2) + real(tile_fraction(tile_stencil(1,7)+i-1), r_um)
+        flandg(1,2) = flandg(1,2) + real(tile_fraction(tile_stencil(1,8)+i-1), r_um)
       end do
-      ! Set these to land to exclude them until full stencil is available
-      flandg(0,0) = 1.0_r_um
-      flandg(0,2) = 1.0_r_um
-      flandg(2,0) = 1.0_r_um
-      flandg(2,2) = 1.0_r_um
       ! Set winds in stencil region
       u_px(0,1,1) = u_in_w3(u_w3_stencil(1,2))
-      u_px(1,0,1) = u_in_w3(u_w3_stencil(1,3))
-      u_px(2,1,1) = u_in_w3(u_w3_stencil(1,4))
-      u_px(1,2,1) = u_in_w3(u_w3_stencil(1,5))
+      u_px(0,0,1) = u_in_w3(u_w3_stencil(1,3))
+      u_px(1,0,1) = u_in_w3(u_w3_stencil(1,4))
+      u_px(2,0,1) = u_in_w3(u_w3_stencil(1,5))
+      u_px(2,1,1) = u_in_w3(u_w3_stencil(1,6))
+      u_px(2,2,1) = u_in_w3(u_w3_stencil(1,7))
+      u_px(1,2,1) = u_in_w3(u_w3_stencil(1,8))
       v_px(0,1,1) = v_in_w3(v_w3_stencil(1,2))
-      v_px(1,0,1) = v_in_w3(v_w3_stencil(1,3))
-      v_px(2,1,1) = v_in_w3(v_w3_stencil(1,4))
-      v_px(1,2,1) = v_in_w3(v_w3_stencil(1,5))
+      v_px(0,0,1) = v_in_w3(v_w3_stencil(1,3))
+      v_px(1,0,1) = v_in_w3(v_w3_stencil(1,4))
+      v_px(2,0,1) = v_in_w3(v_w3_stencil(1,5))
+      v_px(2,1,1) = v_in_w3(v_w3_stencil(1,6))
+      v_px(2,2,1) = v_in_w3(v_w3_stencil(1,7))
+      v_px(1,2,1) = v_in_w3(v_w3_stencil(1,8))
+      ! Deal with corners of cubed-sphere
+      if (tile_stencil_size == 9) then
+        do i = 1, n_land_tile
+          flandg(0,2) = flandg(0,2) + real(tile_fraction(tile_stencil(1,9)+i-1), r_um)
+        end do
+        u_px(0,2,1) = u_in_w3(u_w3_stencil(1,9))
+        v_px(0,2,1) = v_in_w3(v_w3_stencil(1,9))
+      else
+        flandg(0,2) = 1.0_r_um
+      end if
     else
       flandfac = 1.0_r_def
       fseafac = 1.0_r_def
@@ -1338,7 +1352,7 @@ contains
       ! v wind on rho levels
       v_px(1,1,k) = v_in_w3(v_w3_stencil(1,1) + k-1)
       ! w wind on theta levels
-      w(1,1,k) = u3_in_wth(map_wth(1) + k)
+      w(1,1,k) = w_in_wth(map_wth(1) + k)
       ! height of rho levels from centre of planet
       r_rho_levels(:,:,k) = height_w3(map_w3(1) + k-1) + planet_radius
       ! height of theta levels from centre of planet
@@ -1387,8 +1401,8 @@ contains
     z_rho(1,1,:) = r_rho_levels(1,1,:)-r_theta_levels(1,1,0)
     z_theta(1,1,:) = r_theta_levels(1,1,1:nlayers)-r_theta_levels(1,1,0)
     ! vertical velocity
-    w(1,1,0) = u3_in_wth(map_wth(1) + 0)
-    etadot = w / z_theta(1,1,nlayers)
+    w(1,1,0) = w_in_wth(map_wth(1) + 0)
+    etadot(1,1,:) = velocity_w2v(map_wth(1):map_wth(1)+nlayers) / z_theta(1,1,nlayers)
 
     !-----------------------------------------------------------------------
     ! Things saved from one timestep to the next

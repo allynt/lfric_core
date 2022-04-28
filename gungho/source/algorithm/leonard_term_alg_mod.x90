@@ -66,7 +66,7 @@ subroutine leonard_term_alg(mt_inc_leonard, thetal_inc_leonard, &
 
     ! Temporary fields unpacked from collections
     type( field_type ), pointer :: exner_in_wth       => null()
-    type( field_type ), pointer :: w_physics          => null()
+    type( field_type ), pointer :: velocity_w2v       => null()
     type( field_type ), pointer :: dtrdz_tq_bl        => null()
     type( field_type ), pointer :: height_w3          => null()
     type( field_type ), pointer :: height_wth         => null()
@@ -87,7 +87,7 @@ subroutine leonard_term_alg(mt_inc_leonard, thetal_inc_leonard, &
 
     ! Unpack derived fields
     exner_in_wth => derived_fields%get_field('exner_in_wth')
-    w_physics    => derived_fields%get_field('velocity_w2v')
+    velocity_w2v => derived_fields%get_field('velocity_w2v')
 
     ! Unpack turbulence fields
     dtrdz_tq_bl  => turbulence_fields%get_field('dtrdz_tq_bl')
@@ -104,7 +104,7 @@ subroutine leonard_term_alg(mt_inc_leonard, thetal_inc_leonard, &
     ! Apply stability-limit to leonard_kl:
     !--------------------------------------------------------------------
     call invoke( leonard_term_kl_kernel_type( kl,                       &
-                                              w_physics,                &
+                                              velocity_w2v,             &
                                               stencil_depth,            &
                                               height_wth,               &
                                               leonard_kl,               &
@@ -122,7 +122,7 @@ subroutine leonard_term_alg(mt_inc_leonard, thetal_inc_leonard, &
                  leonard_term_th_kernel_type( thetal_inc_leonard,       &
                                               thetal,                   &
                                               stencil_depth,            &
-                                              w_physics,                &
+                                              velocity_w2v,             &
                                               stencil_depth,            &
                                               dtrdz_tq_bl,              &
                                               kl,                       &
@@ -141,7 +141,7 @@ subroutine leonard_term_alg(mt_inc_leonard, thetal_inc_leonard, &
                    leonard_term_th_kernel_type( mt_inc_leonard,         &
                                                 mt,                     &
                                                 stencil_depth,          &
-                                                w_physics,              &
+                                                velocity_w2v,           &
                                                 stencil_depth,          &
                                                 dtrdz_tq_bl,            &
                                                 kl,                     &

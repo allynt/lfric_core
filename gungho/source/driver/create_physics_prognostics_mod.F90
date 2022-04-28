@@ -17,7 +17,7 @@ module create_physics_prognostics_mod
   use finite_element_config_mod,      only : element_order
   use function_space_collection_mod,  only : function_space_collection
   use field_collection_mod,           only : field_collection_type
-  use fs_continuity_mod,              only : W2, W3, Wtheta
+  use fs_continuity_mod,              only : W2, W3, Wtheta, W2H
   use function_space_mod,             only : function_space_type
   use log_mod,                        only : log_event,         &
                                              LOG_LEVEL_INFO,    &
@@ -140,6 +140,7 @@ contains
     type(function_space_type), pointer :: wtheta_space => null()
     type(function_space_type), pointer :: w3_space => null()
     type(function_space_type), pointer :: w2_space => null()
+    type(function_space_type), pointer :: w2h_space => null()
 
     type( field_type ), pointer :: theta => null()
 
@@ -169,6 +170,7 @@ contains
     wtheta_space => function_space_collection%get_fs(mesh, 0, Wtheta)
     w3_space => function_space_collection%get_fs(mesh, 0, W3)
     w2_space => function_space_collection%get_fs(mesh, 0, W2)
+    w2h_space => function_space_collection%get_fs(mesh, 0, W2H)
 #ifdef UM_PHYSICS
     twod_space  => function_space_collection%get_fs(twod_mesh, 0, W3)
     surft_space => function_space_collection%get_fs(twod_mesh, 0, W3, n_surf_tile)
@@ -187,6 +189,9 @@ contains
     call add_physics_field( derived_fields, depository, prognostic_fields,     &
       advected_fields, &
       'velocity_w2v',      wtheta_space )
+    call add_physics_field( derived_fields, depository, prognostic_fields,     &
+      advected_fields, &
+      'w_in_wth',      wtheta_space )
     call add_physics_field( derived_fields, depository, prognostic_fields,     &
       advected_fields, &
       'rho_in_wth',     wtheta_space )
@@ -245,6 +250,14 @@ contains
     call add_physics_field( derived_fields, depository, prognostic_fields,     &
       advected_fields, &
       'wetrho_in_w2',   w2_space )
+
+    ! W2H fields
+    call add_physics_field( derived_fields, depository, prognostic_fields,     &
+      advected_fields, &
+      'u_in_w2h',      w2h_space )
+    call add_physics_field( derived_fields, depository, prognostic_fields,     &
+      advected_fields, &
+      'v_in_w2h',      w2h_space )
 
 #ifdef UM_PHYSICS
     !========================================================================
@@ -1046,9 +1059,6 @@ contains
     call add_physics_field( soil_fields, depository, prognostic_fields,       &
       advected_fields, &
       'soil_thermal_cond', twod_space, checkpoint_flag=checkpoint_flag, twod=.true. )
-    call add_physics_field( soil_fields, depository, prognostic_fields,       &
-      advected_fields, &
-      'soil_carbon_content', twod_space, checkpoint_flag=checkpoint_flag, twod=.true. )
     call add_physics_field(soil_fields, depository, prognostic_fields,        &
       advected_fields, &
       'mean_topog_index', twod_space, checkpoint_flag=checkpoint_flag, twod=.true.)
@@ -1292,6 +1302,10 @@ contains
     call add_physics_field( aerosol_fields, depository, prognostic_fields,     &
       advected_fields, &
       'soil_sand', twod_space, twod=.true.,                                    &
+      checkpoint_flag=checkpoint_flag )
+    call add_physics_field( aerosol_fields, depository, prognostic_fields,     &
+      advected_fields, &
+      'surf_wetness', twod_space, twod=.true.,                                 &
       checkpoint_flag=checkpoint_flag )
 
     ! 3D fields, might need checkpointing

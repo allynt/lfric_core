@@ -25,6 +25,7 @@ module physical_op_constants_mod
                                                 LOG_LEVEL_ERROR
   use mesh_mod,                           only: mesh_type
   use mesh_collection_mod,                only: mesh_collection
+  use extrusion_mod,                      only: TWOD
 
   use operator_mod,                       only: operator_type
   use quadrature_xyoz_mod,                only: quadrature_xyoz_type
@@ -45,9 +46,7 @@ module physical_op_constants_mod
                                                 get_latitude
   use fem_constants_mod,                  only: get_detj_at_w2, get_qr
   use runtime_tools_mod,                  only: find_mesh_index, &
-                                                primary_mesh_label, &
-                                                twod_mesh_label
-
+                                                primary_mesh_label
 
   ! PsyKAl PSYClone kernels
   use calc_delta_at_wtheta_kernel_mod,    only: calc_delta_at_wtheta_kernel_type
@@ -153,6 +152,7 @@ contains
 #ifdef UM_PHYSICS
     type(function_space_type),  pointer :: w_Pnm_star_fs => null()
     type(field_type),           pointer :: latitude => null()
+    type(mesh_type),            pointer :: twod_mesh => null()
     type(field_type)                    :: Pnm_star
 #endif
 
@@ -332,31 +332,35 @@ contains
           nullify( height_w3 )
           nullify( height_wth )
 
+          ! ================= Add Pnm_star for stochastic physics ==============
+#ifdef UM_PHYSICS
+          if (use_spt) then
+            ! Only done on the prime 2D mesh
+            twod_mesh => mesh_collection%get_mesh( mesh, TWOD )
+            write(mesh_number, '(I8)') twod_mesh%get_id()
+
+            call Pnm_star_collection%initialise(name="Pnm_star", table_len=100)
+            w_Pnm_star_fs => function_space_collection%get_fs(twod_mesh, 0, W3, spt_spectral_dim)
+            latitude  => get_latitude(twod_mesh%get_id())
+            field_name = trim("Pnm_star_") // adjustl(mesh_number)
+            call Pnm_star%initialise(vector_space= w_Pnm_star_fs, name=field_name)
+
+            call invoke( setval_c(Pnm_star,  0.0_r_def),              &
+                        get_Pnm_star_kernel_type(Pnm_star, latitude, spt_n_max))
+
+            call Pnm_star_collection%add_field( Pnm_star )
+
+            nullify( latitude )
+            nullify( w_Pnm_star_fs )
+            nullify( twod_mesh )
+
+          end if
+#endif
+
         end if ! Physics
 
       end if ! Mesh label
 
-      ! ================= Add Pnm_star for stochastic physics ==============!
-#ifdef UM_PHYSICS
-      if (use_spt) then
-        if (label_list(i) == twod_mesh_label) then
-          call Pnm_star_collection%initialise(name="Pnm_start", table_len=100)
-          w_Pnm_star_fs => function_space_collection%get_fs(mesh, 0, W3, spt_spectral_dim)
-          latitude  => get_latitude(mesh%get_id())
-          field_name = trim("Pnm_star_") // adjustl(mesh_number)
-          call Pnm_star%initialise(vector_space= w_Pnm_star_fs, name=field_name)
-
-          call invoke( setval_c(Pnm_star,  0.0_r_def),              &
-                       get_Pnm_star_kernel_type(Pnm_star, latitude, spt_n_max))
-
-          call Pnm_star_collection%add_field( Pnm_star )
-
-          nullify( latitude )
-          nullify( w_Pnm_star_fs )
-
-        end if
-      end if
-#endif
     end do ! Loop through meshes
 
     nullify( w1_k0_fs  )

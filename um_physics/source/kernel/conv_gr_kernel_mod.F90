@@ -32,7 +32,7 @@ module conv_gr_kernel_mod
   !>
   type, public, extends(kernel_type) :: conv_gr_kernel_type
     private
-    type(arg_type) :: meta_args(127) = (/                                         &
+    type(arg_type) :: meta_args(128) = (/                                         &
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                                &! outer
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! rho_in_w3
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! rho_in_wth
@@ -40,7 +40,7 @@ module conv_gr_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! wetrho_in_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! exner_in_w3
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! exner_in_wth
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! u3_in_wth
+         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! w_in_wth
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      WTHETA),                   &! theta_star
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! u_in_w3_star
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      W3),                       &! v_in_w3_star
@@ -75,6 +75,7 @@ module conv_gr_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! dd_mf_cb
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! massflux_up
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! massflux_down
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! tke_bl
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! zh_2d
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! shallow_flag
          arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! uw0_flux
@@ -137,8 +138,8 @@ module conv_gr_kernel_mod
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! cv_top
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! pres_cv_base
          arg_type(GH_FIELD,  GH_REAL,    GH_WRITE,     ANY_DISCONTINUOUS_SPACE_1),&! pres_cv_top
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! deep_cfl_limited
-         arg_type(GH_FIELD,  GH_REAL,    GH_READ,      ANY_DISCONTINUOUS_SPACE_1),&! mid_cfl_limited
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1),&! deep_cfl_limited
+         arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, ANY_DISCONTINUOUS_SPACE_1),&! mid_cfl_limited
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! entrain_up
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! entrain_down
          arg_type(GH_FIELD,  GH_REAL,    GH_READWRITE, WTHETA),                   &! detrain_up
@@ -182,7 +183,7 @@ contains
   !> @param[in]     wetrho_in_wth        Wet density field in wth space
   !> @param[in]     exner_in_w3          Exner pressure field in density space
   !> @param[in]     exner_in_wth         Exner pressure field in wth space
-  !> @param[in]     u3_in_wth            'Vertical' wind in theta space
+  !> @param[in]     w_in_wth             'Vertical' wind in theta space
   !> @param[in]     theta_star           Potential temperature after advection
   !> @param[in]     u_in_w3_star         'Zonal' wind after advection
   !> @param[in]     v_in_w3_star         'Meridional' wind after advection
@@ -217,6 +218,7 @@ contains
   !> @param[in,out] dd_mf_cb             Downdraft massflux at cloud base (Pa/s)
   !> @param[in,out] massflux_up          Convective upwards mass flux (Pa/s)
   !> @param[in,out] massflux_down        Convective downwards mass flux (Pa/s)
+  !> @param[in,out] tke_bl               Turbulent kinetic energy (m2/s2)
   !> @param[in]     zh_2d                Boundary layer depth
   !> @param[in]     shallow_flag         Indicator of shallow convection
   !> @param[in]     uw0_flux             'Zonal' surface momentum flux
@@ -322,7 +324,7 @@ contains
                           wetrho_in_wth,                     &
                           exner_in_w3,                       &
                           exner_in_wth,                      &
-                          u3_in_wth,                         &
+                          w_in_wth,                          &
                           theta_star,                        &
                           u_in_w3_star,                      &
                           v_in_w3_star,                      &
@@ -357,6 +359,7 @@ contains
                           dd_mf_cb,                          &
                           massflux_up,                       &
                           massflux_down,                     &
+                          tke_bl,                            &
                           zh_2d,                             &
                           shallow_flag,                      &
                           uw0_flux,                          &
@@ -500,6 +503,7 @@ contains
     !---------------------------------------
     ! UM modules containing switches or global constants
     !---------------------------------------
+    use bl_option_mod, only: max_tke
     use cloud_inputs_mod, only: i_cld_vn
     use cv_run_mod, only: n_conv_calls, iconv_deep, iconv_shallow, l_mom, &
                           qmin_conv, l_safe_conv
@@ -508,7 +512,7 @@ contains
     use mphys_inputs_mod, only: l_mcr_qcf2, l_mcr_qgraup, l_mcr_qrain
     use nlsizes_namelist_mod, only: row_length, rows, bl_levels, n_cca_lev
     use pc2_constants_mod, only: i_cld_pc2
-    use planet_constants_mod, only: p_zero, kappa, planet_radius
+    use planet_constants_mod, only: p_zero, kappa, planet_radius, g
     use scm_convss_dg_mod, only: scm_convss_dg_type
     use timestep_mod, only: timestep
 
@@ -549,7 +553,7 @@ contains
                                                          rho_in_wth,        &
                                                          wetrho_in_wth,     &
                                                          exner_in_wth,      &
-                                                         u3_in_wth,         &
+                                                         w_in_wth,          &
                                                          theta_star,        &
                                                          height_wth,        &
                                                          delta
@@ -557,7 +561,7 @@ contains
     real(kind=r_def), dimension(undf_wth), intent(inout) :: dt_conv, dmv_conv, &
                                           dmcl_conv, dmci_conv, cca, ccw,      &
                                           massflux_up, massflux_down,          &
-                                          conv_rain_3d, conv_snow_3d
+                                          conv_rain_3d, conv_snow_3d, tke_bl
 
     real(kind=r_def), dimension(undf_w3), intent(inout) :: du_conv, dv_conv
 
@@ -783,7 +787,7 @@ contains
       exner_rho_levels(1,1,k) = exner_in_w3(map_w3(1) + k-1)
       exner_theta_levels(1,1,k) = exner_in_wth(map_wth(1) + k)
       ! w wind on theta levels
-      w(1,1,k) = u3_in_wth(map_wth(1) + k)
+      w(1,1,k) = w_in_wth(map_wth(1) + k)
       ! height of rho and theta levels from centre of planet
       r_rho_levels(1,1,k) = height_w3(map_w3(1) + k-1) + planet_radius
       r_theta_levels(1,1,k) = height_wth(map_wth(1) + k) + planet_radius
@@ -811,7 +815,7 @@ contains
     z_rho = r_rho_levels-r_theta_levels(1,1,0)
     z_theta(1,1,:) = r_theta_levels(1,1,1:nlayers)-r_theta_levels(1,1,0)
     ! vertical velocity
-    w(1,1,0) = u3_in_wth(map_wth(1) + 0)
+    w(1,1,0) = w_in_wth(map_wth(1) + 0)
 
     !-----------------------------------------------------------------------
     ! Things passed from other parametrization schemes on this timestep
@@ -835,7 +839,7 @@ contains
     ! Call to 6A Gregory-Rowntree convection scheme
     !========================================================================
 
-    ! Current assumptions about setup based on GA7
+    ! Current assumptions about setup based on GA9
 
     ! If this is the last solver outer loop then tracers may need convecting.
     ! Enable tracers for UKCA if a UKCA tracer list is available
@@ -849,7 +853,7 @@ contains
 
     l_calc_dxek  = ( i_cld_vn == i_cld_pc2 )
     l_q_interact = l_calc_dxek
-    l_congestus = .false. ! never used in GA7
+    l_congestus = .false. ! never used in GA9
     entrain_coef = -99.0  ! unused default value
 
     segments = 1          ! i.e. one column
@@ -1226,61 +1230,63 @@ contains
       cape_diluted(map_2d(1)) = cape_diluted(map_2d(1)) +                   &
                               it_cape_diluted(1,1)*one_over_conv_calls
 
-      if (.not. associated(deep_in_col, empty_real_data) ) then
-        deep_in_col(map_2d(1)) = deep_in_col(map_2d(1)) +                   &
+      if (outer == outer_iterations) then
+        if (.not. associated(deep_in_col, empty_real_data) ) then
+          deep_in_col(map_2d(1)) = deep_in_col(map_2d(1)) +                   &
                                    it_ind_deep(1,1)*one_over_conv_calls
-      end if
-      if (.not. associated(shallow_in_col, empty_real_data) ) then
-        shallow_in_col(map_2d(1)) = shallow_in_col(map_2d(1)) +             &
-                                      it_ind_shall(1,1)*one_over_conv_calls
-      end if
-      if (.not. associated(mid_in_col, empty_real_data) ) then
-        if (it_mid_level(1,1)) then
-          mid_in_col(map_2d(1)) = mid_in_col(map_2d(1)) + one_over_conv_calls
         end if
-      end if
-      if (.not. associated(freeze_level, empty_real_data) ) then
-        freeze_level(map_2d(1)) = freeze_level(map_2d(1)) +                 &
-                                  real(freeze_lev(1,1)) *one_over_conv_calls
-      end if
-      if (.not. associated(deep_prec, empty_real_data) ) then
-        deep_prec(map_2d(1)) = deep_prec(map_2d(1)) +                       &
-                                 it_precip_dp(1,1) *one_over_conv_calls
-      end if
-      if (.not. associated(shallow_prec, empty_real_data) ) then
-        shallow_prec(map_2d(1)) = shallow_prec(map_2d(1)) +                 &
-                                    it_precip_sh(1,1) *one_over_conv_calls
-      end if
-      if (.not. associated(mid_prec, empty_real_data) ) then
-        mid_prec(map_2d(1)) = mid_prec(map_2d(1)) +                         &
-                              it_precip_md(1,1) *one_over_conv_calls
-      end if
-      if (.not. associated(deep_term, empty_real_data) ) then
-        deep_term(map_2d(1)) = deep_term(map_2d(1)) +                       &
-                               real(it_kterm_deep(1,1)) *one_over_conv_calls
-      end if
-      if (.not. associated(cape_timescale, empty_real_data) ) then
-        cape_timescale(map_2d(1)) =cape_timescale(map_2d(1)) +              &
-                                   cape_ts_used(1,1) *one_over_conv_calls
-      end if
-      if (.not. associated(deep_cfl_limited, empty_real_data) ) then
-        deep_cfl_limited(map_2d(1)) = deep_cfl_limited(map_2d(1)) +         &
-                                it_dp_cfl_limited(1,1) *one_over_conv_calls
-      end if
-      if (.not. associated(mid_cfl_limited, empty_real_data) ) then
-        mid_cfl_limited(map_2d(1)) = mid_cfl_limited(map_2d(1)) +           &
-                                it_md_cfl_limited(1,1) *one_over_conv_calls
-      end if
-
-      ! Frequency of deep convection terminating on level k
-      if (.not. associated(deep_tops, empty_real_data) ) then
-        if (it_ind_deep(1,1) == 1.0_r_um) then
-          k = it_kterm_deep(1,1)
-          if (k > 0) then  ! in case still get a zero value
-            deep_tops(map_wth(1)+k) = deep_tops(map_wth(1)+k) + one_over_conv_calls
+        if (.not. associated(shallow_in_col, empty_real_data) ) then
+          shallow_in_col(map_2d(1)) = shallow_in_col(map_2d(1)) +             &
+                                      it_ind_shall(1,1)*one_over_conv_calls
+        end if
+        if (.not. associated(mid_in_col, empty_real_data) ) then
+          if (it_mid_level(1,1)) then
+            mid_in_col(map_2d(1)) = mid_in_col(map_2d(1)) + one_over_conv_calls
           end if
         end if
-      end if
+        if (.not. associated(freeze_level, empty_real_data) ) then
+          freeze_level(map_2d(1)) = freeze_level(map_2d(1)) +                 &
+                                  real(freeze_lev(1,1)) *one_over_conv_calls
+        end if
+        if (.not. associated(deep_prec, empty_real_data) ) then
+          deep_prec(map_2d(1)) = deep_prec(map_2d(1)) +                       &
+                                 it_precip_dp(1,1) *one_over_conv_calls
+        end if
+        if (.not. associated(shallow_prec, empty_real_data) ) then
+          shallow_prec(map_2d(1)) = shallow_prec(map_2d(1)) +                 &
+                                    it_precip_sh(1,1) *one_over_conv_calls
+        end if
+        if (.not. associated(mid_prec, empty_real_data) ) then
+          mid_prec(map_2d(1)) = mid_prec(map_2d(1)) +                         &
+                              it_precip_md(1,1) *one_over_conv_calls
+        end if
+        if (.not. associated(deep_term, empty_real_data) ) then
+          deep_term(map_2d(1)) = deep_term(map_2d(1)) +                       &
+                               real(it_kterm_deep(1,1)) *one_over_conv_calls
+        end if
+        if (.not. associated(cape_timescale, empty_real_data) ) then
+          cape_timescale(map_2d(1)) =cape_timescale(map_2d(1)) +              &
+                                   cape_ts_used(1,1) *one_over_conv_calls
+        end if
+        if (.not. associated(deep_cfl_limited, empty_real_data) ) then
+          deep_cfl_limited(map_2d(1)) = deep_cfl_limited(map_2d(1)) +         &
+                                it_dp_cfl_limited(1,1) *one_over_conv_calls
+        end if
+        if (.not. associated(mid_cfl_limited, empty_real_data) ) then
+          mid_cfl_limited(map_2d(1)) = mid_cfl_limited(map_2d(1)) +           &
+                                it_md_cfl_limited(1,1) *one_over_conv_calls
+        end if
+
+        ! Frequency of deep convection terminating on level k
+        if (.not. associated(deep_tops, empty_real_data) ) then
+          if (it_ind_deep(1,1) == 1.0_r_um) then
+            k = it_kterm_deep(1,1)
+            if (k > 0) then  ! in case still get a zero value
+              deep_tops(map_wth(1)+k) = deep_tops(map_wth(1)+k) + one_over_conv_calls
+            end if
+          end if
+        end if
+      end if ! outer_iterations
 
       ! update input fields *_conv for next substep
       do k = 1, n_conv_levels
@@ -1323,108 +1329,110 @@ contains
       end do
 
         ! Update optional diagnostics
-      if (.not. associated(entrain_up, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          entrain_up(map_wth(1) + k) = entrain_up(map_wth(1) + k) +            &
+      if (outer == outer_iterations) then
+        if (.not. associated(entrain_up, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            entrain_up(map_wth(1) + k) = entrain_up(map_wth(1) + k) +          &
                                          it_entrain_up(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(entrain_down, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          entrain_down(map_wth(1) + k) = entrain_down(map_wth(1) + k) +        &
+          end do
+        end if
+        if (.not. associated(entrain_down, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            entrain_down(map_wth(1) + k) = entrain_down(map_wth(1) + k) +      &
                                          it_entrain_dwn(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(detrain_up, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          detrain_up(map_wth(1) + k) = detrain_up(map_wth(1) + k) +            &
+          end do
+        end if
+        if (.not. associated(detrain_up, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            detrain_up(map_wth(1) + k) = detrain_up(map_wth(1) + k) +          &
                                          it_detrain_up(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(detrain_down, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          detrain_down(map_wth(1) + k) = detrain_down(map_wth(1) + k) +        &
+          end do
+        end if
+        if (.not. associated(detrain_down, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            detrain_down(map_wth(1) + k) = detrain_down(map_wth(1) + k) +      &
                                          it_detrain_dwn(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(dd_dt, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          dd_dt(map_wth(1) + k) = dd_dt(map_wth(1) + k) +                      &
+          end do
+        end if
+        if (.not. associated(dd_dt, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            dd_dt(map_wth(1) + k) = dd_dt(map_wth(1) + k) +                    &
                                          it_dt_dd(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(dd_dq, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          dd_dq(map_wth(1) + k) = dd_dq(map_wth(1) + k) +                      &
+          end do
+        end if
+        if (.not. associated(dd_dq, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            dd_dq(map_wth(1) + k) = dd_dq(map_wth(1) + k) +                    &
                                          it_dq_dd(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(deep_massflux, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          deep_massflux(map_wth(1) + k) = deep_massflux(map_wth(1) + k) +      &
+          end do
+        end if
+        if (.not. associated(deep_massflux, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            deep_massflux(map_wth(1) + k) = deep_massflux(map_wth(1) + k) +    &
                                          it_mf_deep(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(deep_dt, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          deep_dt(map_wth(1) + k) = deep_dt(map_wth(1) + k) +                  &
+          end do
+        end if
+        if (.not. associated(deep_dt, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            deep_dt(map_wth(1) + k) = deep_dt(map_wth(1) + k) +                &
                                          it_dt_deep(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(deep_dq, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          deep_dq(map_wth(1) + k) = deep_dq(map_wth(1) + k) +                  &
+          end do
+        end if
+        if (.not. associated(deep_dq, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            deep_dq(map_wth(1) + k) = deep_dq(map_wth(1) + k) +                &
                                          it_dq_deep(1,1,k)*one_over_conv_calls
-         end do
-     end if
-      if (.not. associated(shallow_massflux, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          shallow_massflux(map_wth(1) + k) = shallow_massflux(map_wth(1) + k) +&
+          end do
+        end if
+        if (.not. associated(shallow_massflux, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            shallow_massflux(map_wth(1) + k) = shallow_massflux(map_wth(1) + k) + &
                                          it_mf_shall(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(shallow_dt, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          shallow_dt(map_wth(1) + k) = shallow_dt(map_wth(1) + k) +            &
+          end do
+        end if
+        if (.not. associated(shallow_dt, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            shallow_dt(map_wth(1) + k) = shallow_dt(map_wth(1) + k) +          &
                                          it_dt_shall(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(shallow_dq, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          shallow_dq(map_wth(1) + k) = shallow_dq(map_wth(1) + k) +            &
+          end do
+        end if
+        if (.not. associated(shallow_dq, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            shallow_dq(map_wth(1) + k) = shallow_dq(map_wth(1) + k) +          &
                                          it_dq_shall(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(mid_massflux, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          mid_massflux(map_wth(1) + k) = mid_massflux(map_wth(1) + k) +        &
+          end do
+        end if
+        if (.not. associated(mid_massflux, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            mid_massflux(map_wth(1) + k) = mid_massflux(map_wth(1) + k) +      &
                                          it_mf_midlev(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(mid_dt, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          mid_dt(map_wth(1) + k) = mid_dt(map_wth(1) + k) +                    &
+          end do
+        end if
+        if (.not. associated(mid_dt, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            mid_dt(map_wth(1) + k) = mid_dt(map_wth(1) + k) +                  &
                                          it_dt_midlev(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(mid_dq, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          mid_dq(map_wth(1) + k) = mid_dq(map_wth(1) + k) +                    &
+          end do
+        end if
+        if (.not. associated(mid_dq, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            mid_dq(map_wth(1) + k) = mid_dq(map_wth(1) + k) +                  &
                                          it_dq_midlev(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(cca_unadjusted, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          cca_unadjusted(map_wth(1) + k) = cca_unadjusted(map_wth(1) + k) +    &
+          end do
+        end if
+        if (.not. associated(cca_unadjusted, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            cca_unadjusted(map_wth(1) + k) = cca_unadjusted(map_wth(1) + k) +  &
                                          it_cca(1,1,k)*one_over_conv_calls
-        end do
-      end if
-      if (.not. associated(massflux_up_half, empty_real_data) ) then
-        do k = 1, n_conv_levels
-          massflux_up_half(map_w3(1) + k-1) = massflux_up_half(map_w3(1) + k-1) +&
+          end do
+        end if
+        if (.not. associated(massflux_up_half, empty_real_data) ) then
+          do k = 1, n_conv_levels
+            massflux_up_half(map_w3(1) + k-1) = massflux_up_half(map_w3(1) + k-1) +&
                                          it_up_flux_half(1,1,k)*one_over_conv_calls
-        end do
-      end if
+          end do
+        end if
+      end if ! outer_iterations
 
       if (l_mom) then
         do k = 1, n_conv_levels
@@ -1508,65 +1516,78 @@ contains
       ccw(map_wth(1) + k) =  ccw_3d(1,1,k)
     end do
 
-    ! Copy integers into real diagnostic arrays
-    if (.not. associated(cv_top, empty_real_data) ) then
-      cv_top(map_2d(1))        = real(cct(1,1))
-    end if
-    if (.not. associated(cv_base, empty_real_data) ) then
-      cv_base(map_2d(1))       = real(ccb(1,1))
-    end if
-    if (.not. associated(lowest_cv_top, empty_real_data) ) then
-      lowest_cv_top(map_2d(1)) = real(lctop(1,1))
-    end if
-    if (.not. associated(lowest_cv_base, empty_real_data) ) then
-      lowest_cv_base(map_2d(1)) = real(lcbase(1,1))
-    end if
-
-    ! pressure at cv top/base
-    if (.not. associated(pres_cv_top, empty_real_data) ) then
-      if (cct(1,1) > 0) then
-        pres_cv_top(map_2d(1)) = p_rho_levels(1,1,cct(1,1))
-      else
-        pres_cv_top(map_2d(1)) = 0.0_r_def
+    if (outer == outer_iterations) then
+     ! Copy integers into real diagnostic arrays
+     if (.not. associated(cv_top, empty_real_data) ) then
+        cv_top(map_2d(1))        = real(cct(1,1))
       end if
-    end if
-    if (.not. associated(pres_cv_base, empty_real_data) ) then
-      if (ccb(1,1) > 0) then
-        pres_cv_base(map_2d(1)) = p_rho_levels(1,1,ccb(1,1))
-      else
-        pres_cv_base(map_2d(1))= 0.0_r_def
+      if (.not. associated(cv_base, empty_real_data) ) then
+        cv_base(map_2d(1))       = real(ccb(1,1))
       end if
-    end if
+      if (.not. associated(lowest_cv_top, empty_real_data) ) then
+        lowest_cv_top(map_2d(1)) = real(lctop(1,1))
+      end if
+      if (.not. associated(lowest_cv_base, empty_real_data) ) then
+        lowest_cv_base(map_2d(1)) = real(lcbase(1,1))
+      end if
 
-    ! component A of upward mass flux
-    if (.not. associated(massflux_up_cmpta, empty_real_data) ) then
-      do k = 1, n_conv_levels - 1
-        if ( (1.0 - max_mf_fall) * massflux_up_half(map_w3(1) + k-1) < &
-                                   massflux_up_half(map_w3(1) + k) ) then
-          massflux_up_cmpta(map_w3(1) + k-1) = massflux_up_half(map_w3(1) + k-1) &
-                                             * (1.0 - shallow_in_col(map_2d(1)))
+      ! pressure at cv top/base
+      if (.not. associated(pres_cv_top, empty_real_data) ) then
+        if (cct(1,1) > 0) then
+          pres_cv_top(map_2d(1)) = p_rho_levels(1,1,cct(1,1))
         else
-          massflux_up_cmpta(map_w3(1) + k-1) = 0.0_r_def
+          pres_cv_top(map_2d(1)) = 0.0_r_def
         end if
-      end do
-    end if
+      end if
+      if (.not. associated(pres_cv_base, empty_real_data) ) then
+        if (ccb(1,1) > 0) then
+          pres_cv_base(map_2d(1)) = p_rho_levels(1,1,ccb(1,1))
+        else
+          pres_cv_base(map_2d(1))= 0.0_r_def
+        end if
+      end if
 
-    ! Convection theta increment without shallow for VAR
-    if (.not. associated(dth_conv_noshal, empty_real_data) ) then
-      do k = 0, nlayers
-        dth_conv_noshal(map_wth(1) + k) = dt_conv(map_wth(1) + k) / &
+      ! component A of upward mass flux
+      if (.not. associated(massflux_up_cmpta, empty_real_data) ) then
+        do k = 1, n_conv_levels - 1
+          if ( (1.0 - max_mf_fall) * massflux_up_half(map_w3(1) + k-1) < &
+                                     massflux_up_half(map_w3(1) + k) ) then
+            massflux_up_cmpta(map_w3(1) + k-1) = massflux_up_half(map_w3(1) + k-1) &
+                                             * (1.0 - shallow_in_col(map_2d(1)))
+          else
+            massflux_up_cmpta(map_w3(1) + k-1) = 0.0_r_def
+          end if
+        end do
+      end if
+
+      ! Convection theta increment without shallow for VAR
+      if (.not. associated(dth_conv_noshal, empty_real_data) ) then
+        do k = 0, nlayers
+          dth_conv_noshal(map_wth(1) + k) = dt_conv(map_wth(1) + k) / &
                                           exner_in_wth(map_wth(1) + k) * &
                                          (1.0_r_def - shallow_in_col(map_2d(1)))
-      end do
-    end if
+        end do
+      end if
 
-    ! Convection mixing ratio increment without shallow for VAR
-    if (.not. associated(dmv_conv_noshal, empty_real_data) ) then
-      do k = 0, nlayers
-        dmv_conv_noshal(map_wth(1) + k) = dmv_conv(map_wth(1) + k) * &
+      ! Convection mixing ratio increment without shallow for VAR
+      if (.not. associated(dmv_conv_noshal, empty_real_data) ) then
+        do k = 0, nlayers
+          dmv_conv_noshal(map_wth(1) + k) = dmv_conv(map_wth(1) + k) * &
                                          (1.0_r_def - shallow_in_col(map_2d(1)))
+        end do
+      end if
+
+      ! provide some estimate of TKE in convective plumes, based on
+      ! the mass flux and convective cloud area
+      do k = 1, bl_levels
+        tke_bl(map_wth(1)+k) = MIN(max_tke,MAX(tke_bl(map_wth(1)+k),         &
+               ( massflux_up(map_wth(1)+k) / ( g*rho_wet_tq(1,1,k)*          &
+                 MIN(0.5,MAX(0.05,cca_2d(map_2d(1)))) ) )**2))
+                 ! 0.5 and 0.05 are used here as plausible max and min
+                 ! values of CCA to prevent numerical problems
       end do
-    end if
+
+    end if ! outer_iterations
 
     ! Copy tracers back to LFRic fields
     if ( outer == outer_iterations .AND. l_tracer ) then

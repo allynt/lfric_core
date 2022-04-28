@@ -32,7 +32,7 @@ module jules_extra_kernel_mod
   !>
   type, public, extends(kernel_type) :: jules_extra_kernel_type
     private
-    type(arg_type) :: meta_args(58) = (/                                       &
+    type(arg_type) :: meta_args(57) = (/                                       &
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! ls_rain
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! conv_rain
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! ls_snow
@@ -51,7 +51,6 @@ module jules_extra_kernel_mod
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! soil_thermal_cond
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! soil_suction_sat
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! clapp_horn_b
-         arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! soil_carbon_content
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! soil_roughness
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! mean_topog_index
          arg_type(GH_FIELD, GH_REAL, GH_READ,      ANY_DISCONTINUOUS_SPACE_1), & ! a_sat_frac
@@ -126,7 +125,6 @@ contains
   !> @param[in]     soil_thermal_cond      Soil thermal conductivity (W m-1 K-1)
   !> @param[in]     soil_suction_sat       Saturated soil water suction (m)
   !> @param[in]     clapp_horn_b           Clapp and Hornberger b coefficient
-  !> @param[in]     soil_carbon_content    Soil carbon content (kg m-2)
   !> @param[in]     soil_roughness         Bare soil surface roughness length (m)
   !> @param[in]     mean_topog_index       Mean topographic index
   !> @param[in]     a_sat_frac             a gridbox saturated fraction
@@ -201,7 +199,6 @@ contains
                soil_thermal_cond,          &
                soil_suction_sat,           &
                clapp_horn_b,               &
-               soil_carbon_content,        &
                soil_roughness,             &
                mean_topog_index,           &
                a_sat_frac,                 &
@@ -332,7 +329,6 @@ contains
     real(kind=r_def), intent(in)    :: water_extraction(undf_soil)
 
     real(kind=r_def), intent(in)    :: soil_thermal_cond(undf_2d)
-    real(kind=r_def), intent(in)    :: soil_carbon_content(undf_2d)
     real(kind=r_def), intent(in)    :: soil_roughness(undf_2d)
     real(kind=r_def), intent(in)    :: mean_topog_index(undf_2d)
     real(kind=r_def), intent(in)    :: a_sat_frac(undf_2d)

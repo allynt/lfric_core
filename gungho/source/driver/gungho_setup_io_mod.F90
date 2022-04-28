@@ -77,7 +77,8 @@ module gungho_setup_io_mod
   use derived_config_mod,        only: l_esm_couple
 #ifdef UM_PHYSICS
   use surface_config_mod,        only: sea_alb_var_chl, albedo_obs
-  use aerosol_config_mod,        only: glomap_mode, glomap_mode_ukca
+  use aerosol_config_mod,        only: glomap_mode, glomap_mode_ukca, &
+                                       glomap_mode_climatology
 #endif
 
   implicit none
@@ -217,13 +218,17 @@ module gungho_setup_io_mod
       call tmp_file%init_xios_file("surface_frac_ancil", path=ancil_fname)
       call append_file_to_list(tmp_file, files_list)
 
+    end if
+
+    if (glomap_mode == glomap_mode_climatology .and. &
+         ancil_option == ancil_option_fixed) then
       ! Set aerosol ancil filename from namelist
       write(ancil_fname,'(A)') trim(ancil_directory)//'/'// &
                                trim(aerosols_ancil_path)
       call tmp_file%init_xios_file("aerosols_ancil", path=ancil_fname)
       call append_file_to_list(tmp_file, files_list)
-
     end if
+
     if ( glomap_mode == glomap_mode_ukca   .and.            &
          ancil_option == ancil_option_updating ) then
 

@@ -47,7 +47,7 @@ contains
     use level_heights_mod, only: r_theta_levels, r_rho_levels, eta_theta_levels
     use model_domain_mod, only: model_type, mt_single_column
     use nlsizes_namelist_mod, only: model_levels, cloud_levels, n_cca_lev, &
-         bl_levels, row_length, rows, tr_vars
+         row_length, rows, tr_vars
     use timestep_mod, only: timestep
     use trignometric_mod, only: cos_theta_latitude
 
@@ -72,7 +72,6 @@ contains
     model_levels = number_of_layers
     cloud_levels = number_of_layers
     n_cca_lev    = number_of_layers
-    bl_levels    = number_of_layers-1
     ! Horizontal dimensions set to the value passed into this routine.
     ! This needs to match the number of cells passed to physics kernels.
     row_length = int( ncells, i_um )

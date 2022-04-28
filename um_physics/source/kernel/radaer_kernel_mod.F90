@@ -490,7 +490,7 @@ subroutine radaer_code( nlayers,                                               &
   logical, parameter :: l_glomap_clim_tune_bc = .false.
   logical, parameter :: l_nitrate = .false. ! Make this a namelist option later
   logical, parameter :: l_sustrat = .true.  ! Make this a namelist option later
-                                            ! l_sustrat=.true. for ga7
+                                            ! l_sustrat=.true. for ga9
 
   integer(i_um) :: ncp_max_x_nmodes
   integer(i_um) :: i_cpnt_index( ncp_max, nmodes )

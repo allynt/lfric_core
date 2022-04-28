@@ -100,7 +100,6 @@ contains
                   pc2_conv_coupling_kernel_type ( theta_star,      &
                                                   mr(imr_v),       &
                                                   mr(imr_cl),      &
-                                                  mr(imr_ci),      &
                                                   liquid_fraction, &
                                                   frozen_fraction, &
                                                   bulk_fraction,   &
@@ -108,7 +107,6 @@ contains
                                                   dt_conv,         &
                                                   dmv_conv,        &
                                                   dmcl_conv,       &
-                                                  dmci_conv,       &
                                                   dcfl_conv,       &
                                                   dcff_conv,       &
                                                   dbcf_conv, dt),  &

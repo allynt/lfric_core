@@ -37,6 +37,8 @@ module um_physics_init_mod
                                         free_atm_mix, free_atm_mix_to_sharp,  &
                                         free_atm_mix_ntml_corrected,          &
                                         free_atm_mix_free_trop_layer,         &
+                                        interp_local, interp_local_gradients, &
+                                        interp_local_cf_dbdz,                 &
                                         new_kcloudtop, p_unstable,            &
                                         reduce_fa_mix, noice_in_turb,         &
                                         reduce_fa_mix_inv_and_cu_lcl,         &
@@ -47,7 +49,8 @@ module um_physics_init_mod
                                         sg_orog_mixing_in => sg_orog_mixing,  &
                                         sg_orog_mixing_none,                  &
                                         sg_orog_mixing_shear_plus_lambda,     &
-                                        zhloc_depth_fac_in => zhloc_depth_fac
+                                        zhloc_depth_fac_in => zhloc_depth_fac,&
+                                        bl_levels_in => bl_levels
 
   use cloud_config_mod,          only : scheme, scheme_smith, scheme_pc2,     &
                                         scheme_bimodal,                       &
@@ -123,7 +126,7 @@ module um_physics_init_mod
                                          include_moisture_dry
 
   ! Other LFRic modules used
-  use constants_mod,        only : i_def, l_def, r_um, i_um, rmdi
+  use constants_mod,        only : i_def, l_def, r_um, i_um, rmdi, r_def
   use log_mod,              only : log_event,         &
                                    log_scratch_space, &
                                    LOG_LEVEL_ERROR,   &
@@ -133,6 +136,7 @@ module um_physics_init_mod
   ! UM modules used
   use cderived_mod,         only : delta_lambda, delta_phi
   use nlsizes_namelist_mod, only : bl_levels, row_length, rows
+  use level_heights_mod,    only : eta_theta_levels
 
   implicit none
 
@@ -156,7 +160,6 @@ contains
   !>          from the UM code.
   !>        Other parameters and switches which are genuinely input variables,
   !>         via the LFRic namelists, are also set here for the UM code.
-  !>       Where possible, all values are taken from GA7 science settings.
   !>@param[in] ncells  The number of cells in the horizontal domain that
   !>                   the UM code should loop over (i.e. not including halos)
 
@@ -176,14 +179,15 @@ contains
          ntml_level_corrn, free_trop_layers, sharpest, sg_shear_enh_lambda,&
          l_new_kcloudtop, buoy_integ, l_reset_dec_thres, DynDiag_ZL_CuOnly,&
          var_diags_opt, i_interp_local, i_interp_local_gradients,          &
-         original_vars, l_noice_in_turb
+         split_tke_and_inv, l_noice_in_turb, l_use_var_fixes,              &
+         i_interp_local_cf_dbdz, tke_diag_fac
     use cloud_inputs_mod, only: i_cld_vn, forced_cu, i_rhcpt, i_cld_area,  &
          rhcrit, ice_fraction_method,falliceshear_method, cff_spread_rate, &
          l_subgrid_qv, ice_width, min_liq_overlap, i_eacf, not_mixph,      &
          i_pc2_checks_cld_frac_method, l_ensure_min_in_cloud_qcf,          &
          i_pc2_init_logic, dbsdtbs_turb_0,                                 &
          i_pc2_erosion_method, i_pc2_homog_g_method, i_pc2_init_method,    &
-         check_run_cloud,                                                  &
+         check_run_cloud, l_pc2_implicit_erosion,                          &
          forced_cu_fac, i_pc2_conv_coupling, allicetdegc, starticetkelvin, &
          l_bm_ez_subcrit_only, ez_max_bm
     use cloud_config_mod, only: cld_fsd_hill
@@ -197,7 +201,7 @@ contains
          ent_fac_md, iconv_deep, iconv_mid, iconv_shallow,l_3d_cca,        &
          l_anvil, l_cmt_heating, l_cv_conserve_check, l_safe_conv,         &
          mdet_opt_dp, mdet_opt_md, mid_cnv_pmin, mparwtr, qlmin,           &
-         n_conv_calls,                                                     &
+         n_conv_calls, efrac,                                              &
          qstice, r_det, sh_pert_opt,t_melt_snow, termconv, tice,           &
          thpixs_mid,                                                       &
          tower_factor,ud_factor, fdet_opt, anv_opt, cape_timescale,        &
@@ -212,7 +216,7 @@ contains
          cpress_term, pr_melt_frz_opt, llcs_opt_crit_condens,              &
          llcs_detrain_coef, l_prog_pert, md_pert_opt, l_jules_flux,        &
          l_reset_neg_delthvu
-    use cv_param_mod, only: mtrig_ntmlplus2, md_pert_orig
+    use cv_param_mod, only: mtrig_ntml, md_pert_efrac
     use cv_stash_flg_mod, only: set_convection_output_flags
     use cv_set_dependent_switches_mod, only: cv_set_dependent_switches
     use dust_parameters_mod, only: i_dust, i_dust_off, i_dust_flux,        &
@@ -246,7 +250,8 @@ contains
          l_pc2_homog_turb_q_neg, l_fix_ccb_cct, l_fix_conv_precip_evap,     &
          l_fix_dyndiag, l_fix_pc2_cnv_mix_phase, l_fix_riming,              &
          l_fix_tidy_rainfracs, l_fix_zh, l_fix_incloud_qcf,                 &
-         l_fix_mcr_frac_ice
+         l_fix_mcr_frac_ice, l_fix_gr_autoc, l_improve_cv_cons,             &
+         l_pc2_checks_sdfix
     use tuning_segments_mod, only: bl_segment_size, precip_segment_size, &
          ussp_seg_size, gw_seg_size
     use turb_diff_ctl_mod, only: visc_m, visc_h, max_diff, delta_smag,   &
@@ -261,6 +266,7 @@ contains
     implicit none
 
     integer(i_def), intent(in) :: ncells
+    integer(i_def) :: k
     logical(l_def) :: dust_loaded = .false.
 
     ! ----------------------------------------------------------------
@@ -343,6 +349,7 @@ contains
       end if
 
       a_ent_shr_nml = real(a_ent_shr, r_um)
+      bl_levels     = bl_levels_in
       if(allocated(alpha_cd))deallocate(alpha_cd)
       allocate(alpha_cd(bl_levels))
       alpha_cd      = 1.5_r_um
@@ -386,7 +393,12 @@ contains
 
       ! Interpolate the vertical gradients of sl,qw and calculate
       ! stability dbdz and Kh on theta-levels
-      i_interp_local = i_interp_local_gradients
+      select case (interp_local)
+        case(interp_local_gradients)
+          i_interp_local = i_interp_local_gradients
+        case(interp_local_cf_dbdz)
+          i_interp_local = i_interp_local_cf_dbdz
+        end select
 
       select case (reduce_fa_mix)
         case(reduce_fa_mix_inv_and_cu_lcl)
@@ -397,9 +409,6 @@ contains
 
       kprof_cu = buoy_integ
       l_noice_in_turb = noice_in_turb
-      ! l_bl_mix_qcf = .true should be set here, but code is complicated
-      !  to implement in LFRic, and since it moves to false at GA8
-      !  we don't plan on implementing it...
       l_new_kcloudtop   = new_kcloudtop
       l_reset_dec_thres = .true.
       lambda_min_nml    = 40.0_r_um
@@ -438,11 +447,16 @@ contains
           sg_orog_mixing = sg_shear_enh_lambda
       end select
 
-      ! Not GA7 - should be 6km - I think we'll leave like this for now
-      ! as it should help stability - reducing it is just for optimisation
-      nl_bl_levels    = bl_levels
+      k = 1
+      do while ( k < bl_levels .and. &
+        domain_top * eta_theta_levels(k) < 6000.0_r_def )
+        k = k+1
+      end do
+      nl_bl_levels = k
       ! Switch for alternative TKE and variance diagnostics
-      var_diags_opt = original_vars
+      var_diags_opt = split_tke_and_inv
+      tke_diag_fac  = 1.0_r_def
+      l_use_var_fixes = .true.
       zhloc_depth_fac = real(zhloc_depth_fac_in, r_um)
 
     end if
@@ -453,7 +467,7 @@ contains
 
     ! The following are needed by conv_diag regardless of whether
     ! convection is actually called or not
-    ! GA7 but possibly these should vary with vertical level set??
+    ! Possibly these should vary with vertical level set??
     cape_bottom          = 5
     cape_top             = 50
     cldbase_opt_dp       = 8
@@ -461,9 +475,9 @@ contains
     cvdiag_inv           = 0
     cvdiag_sh_wtest      = 0.02_r_um
     dil_plume_water_load = 0
-    ent_fac_dp           = 1.13_r_um
+    ent_fac_dp           = 1.0_r_um
     iconv_congestus      = 0
-    iconv_deep           = 1
+    iconv_deep           = 0
     icvdiag              = 1
     l_jules_flux         = use_jules_flux
     limit_pert_opt       = 2
@@ -476,9 +490,9 @@ contains
 
       ! Options needed by all convection schemes
       l_param_conv = .true.
-      fac_qsat     = 0.500_r_um
-      mparwtr      = 1.5000e-3_r_um
-      qlmin        = 3.0000e-4_r_um
+      fac_qsat     = 0.350_r_um
+      mparwtr      = 1.0000e-3_r_um
+      qlmin        = 4.0000e-4_r_um
 
       ! Options which are bespoke to the choice of scheme
       select case (cv_scheme)
@@ -492,38 +506,39 @@ contains
       end if
 
         i_convection_vn     = i_convection_vn_6a
-        adapt               = 7
+        adapt               = 8
         amdet_fac           = 3.0_r_um
         anv_opt             = 0
         anvil_factor        = 1.0000_r_um
         bl_cnv_mix          = 1
         cape_min            = 0.5_r_um
-        cape_timescale      = 3600
+        cape_timescale      = 1800.0_r_um
         cape_ts_max         = 14400.0_r_um
-        cape_ts_min         = 0.0_r_um
-        cca2d_dp_opt        = 1
-        cca2d_md_opt        = 1
+        cape_ts_min         = 1800.0_r_um
+        cca2d_dp_opt        = 2
+        cca2d_md_opt        = 2
         cca2d_sh_opt        = 2
-        cca_dp_knob         = 0.10_r_um
-        cca_md_knob         = 0.10_r_um
-        cca_sh_knob         = 0.20_r_um
+        cca_dp_knob         = 0.80_r_um
+        cca_md_knob         = 0.80_r_um
+        cca_sh_knob         = 0.40_r_um
         ccw_dp_knob         = 1.00_r_um
         ccw_for_precip_opt  = 4
         ccw_md_knob         = 1.00_r_um
         ccw_sh_knob         = 1.00_r_um
-        cldbase_opt_md      = 7
+        cldbase_opt_md      = 2
         cnv_cold_pools      = 0
         cnv_wat_load_opt    = 0
-        cpress_term         = 0.7_r_um
+        cpress_term         = 0.3_r_um
         dd_opt              = 1
-        deep_cmt_opt        = 5
-        eff_dcff            = 1.0_r_um
+        deep_cmt_opt        = 6
+        eff_dcff            = 3.0_r_um
         eff_dcfl            = 1.0_r_um
+        efrac               = 1.0_r_um
         ent_dp_power        = 1.00_r_um
-        ent_fac_md          = 0.90_r_um
+        ent_fac_md          = 1.00_r_um
         ent_opt_dp          = 3
         ent_opt_md          = 0
-        fdet_opt            = 0
+        fdet_opt            = 2
         iconv_mid           = 1
         iconv_shallow       = 1
         l_cloud_deep        = .true.
@@ -532,26 +547,26 @@ contains
         l_ccrad             = .true.
         l_cmt_heating       = .true.
         l_cv_conserve_check = .true.
-        l_fcape             = .false.
+        l_fcape             = .true.
         l_mom               = .true.
         l_prog_pert         = .false.
         l_safe_conv         = .true.
-        md_pert_opt         = md_pert_orig
+        md_pert_opt         = md_pert_efrac
         mdet_opt_dp         = 1
         mdet_opt_md         = 0
-        mid_cmt_opt         = 0
+        mid_cmt_opt         = 2
         mid_cnv_pmin        = 10000.00_r_um
-        midtrig_opt         = mtrig_ntmlplus2
+        midtrig_opt         = mtrig_ntml
         n_conv_calls        = number_of_convection_substeps
-        pr_melt_frz_opt     = 0
+        pr_melt_frz_opt     = 2
         qstice              = 3.5000e-3_r_um
-        r_det               = 0.8000_r_um
+        r_det               = 0.5000_r_um
         rad_cloud_decay_opt = 0
         sh_pert_opt         = 1
-        t_melt_snow         = 274.15_r_um
-        termconv            = 1
+        t_melt_snow         = 276.15_r_um
+        termconv            = 2
         tice                = 263.1500_r_um
-        thpixs_mid          = 0.2_r_um
+        thpixs_mid          = 0.5_r_um
         tower_factor        = 1.0000_r_um
         ud_factor           = 1.0000_r_um
 
@@ -662,12 +677,12 @@ contains
         i_pc2_conv_coupling          = 3
         i_pc2_erosion_method         = pc2eros_hybrid_sidesonly
         i_pc2_homog_g_method         = i_pc2_homog_g_cf
-        i_pc2_init_method            = pc2init_smith
         l_ensure_min_in_cloud_qcf    = .false.
         i_pc2_init_logic             = pc2init_logic_original
         starticetkelvin              = 263.15_r_um
         if (pc2ini == pc2ini_smith)   i_pc2_init_method = pc2init_smith
         if (pc2ini == pc2ini_bimodal) i_pc2_init_method = pc2init_bimodal
+        l_pc2_implicit_erosion       = .true.
 
       case(scheme_bimodal)
         i_cld_vn   = i_cld_bimodal
@@ -698,7 +713,6 @@ contains
     ! Hence its inputs and options need setting according to the
     ! scheme being either off or running in diagnostic mode to calculate
     ! dust emissions only if these are potentially required by UKCA.
-    ! Dust parameter values are taken from GA7.
 
     if (aerosol == aerosol_um .and. glomap_mode == glomap_mode_ukca) THEN
       i_dust = i_dust_flux
@@ -765,7 +779,7 @@ contains
       l_shape_rime   = shape_rime
       l_subgrid_qcl_mp = turb_gen_mixph
       l_warm_new     = .true.
-      mp_dz_scal     = 1.0_r_um
+      mp_dz_scal     = 2.0_r_um
       ndrop_surf     = real(ndrop_surf_in, r_um)
       qclrime        = real(qcl_rime, r_um)
       sediment_loc   = all_sed_start
@@ -783,7 +797,7 @@ contains
       ! Options for the subgrid cloud variability parametrization used
       ! in microphysics and radiation but living elsewhere in the UM
       ! ... contained in rad_input_mod
-      two_d_fsd_factor = 1.5_r_um
+      two_d_fsd_factor = 1.65_r_um
       ! ... contained in fsd_parameters_mod
       if (use_fsd_eff_res) then
         ! In UM GA8, the fixed effective resolution was N96: 1.875 x 1.25 degrees
@@ -840,17 +854,19 @@ contains
     ! ----------------------------------------------------------------
     i_fix_mphys_drop_settle = second_fix ! This is a better fix than the
                                          ! original one.
-    l_pc2_homog_turb_q_neg  = .true.
-    ! The following aren't strictly GA7, but seem sensible to include
     l_fix_ccb_cct           = .true.
     l_fix_conv_precip_evap  = .true.
     l_fix_dyndiag           = .true.
+    l_fix_gr_autoc          = .true.
+    l_fix_incloud_qcf       = .true.
+    l_fix_mcr_frac_ice      = .true.
     l_fix_pc2_cnv_mix_phase = .true.
     l_fix_riming            = .true.
     l_fix_tidy_rainfracs    = .true.
     l_fix_zh                = .true.
-    l_fix_incloud_qcf       = .true.
-    l_fix_mcr_frac_ice      = .true.
+    l_improve_cv_cons       = .true.
+    l_pc2_checks_sdfix      = .true.
+    l_pc2_homog_turb_q_neg  = .true.
 
     ! ----------------------------------------------------------------
     ! Segment sizes for UM physics - contained in tuning_segments_mod

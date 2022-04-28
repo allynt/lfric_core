@@ -206,6 +206,8 @@ module um_ukca_init_mod
   ! Emissions-related drivers (real)
   character(len=*), parameter, public :: fldname_u_scalar_10m =                &
                                          'u_scalar_10m'
+  character(len=*), parameter, public :: fldname_chloro_sea =                  &
+                                         'chloro_sea'
   character(len=*), parameter, public :: fldname_dms_sea_conc =                &
                                          'dms_sea_conc'
   character(len=*), parameter, public :: fldname_dust_flux_div1 =              &
@@ -222,6 +224,8 @@ module um_ukca_init_mod
                                          'dust_flux_div6'
   character(len=*), parameter, public :: fldname_zhsc =                        &
                                          'zhsc'
+  character(len=*), parameter, public :: fldname_surf_wetness =                &
+                                         'surf_wetness'
   ! General purpose drivers (logical)
   character(len=*), parameter, public :: fldname_l_land = 'land_sea_mask'
 
@@ -379,8 +383,8 @@ contains
 
 
   !> @brief Set up UKCA for GLOMAP-mode with Offline Oxidants chemistry
-  !> @details Configure UKCA using options generally consistent with a GA7 run.
-  !>          Where possible, all values are taken from GA7 science settings.
+  !> @details Configure UKCA using options generally consistent with a GA9 run.
+  !>          Where possible, all values are taken from GA9 science settings.
   !>          Also register each emission field to be supplied to UKCA and
   !>          obtain lists of UKCA tracers, non-transported prognostics and
   !>          environmental drivers required for the selected configuration.
@@ -464,14 +468,14 @@ contains
     character(len=ukca_maxlen_message) :: ukca_errmsg
     character(len=ukca_maxlen_procname) :: ukca_errproc
 
-    ! Set up proto-GA configuration based on GA7.
+    ! Set up proto-GA configuration based on GA9.
     ! The ASAD Newton-Raphson Offline Oxidants scheme (ukca_chem_offline)
-    ! is substituted for the Explicit backward-Euler scheme used in GA7
+    ! is substituted for the Explicit backward-Euler scheme used in GA9
     ! which cannot be called by columns. Hence, configuration values for
     ! nrsteps and l_ukca_asad_columns are included.
     ! Other configuration values, with the exception of temporary logicals
-    ! specifiying fixes, are set to match GA7 science settings or taken
-    ! from the LFRic context. Unlike GA7, all fixes that are controlled by
+    ! specifiying fixes, are set to match GA9 science settings or taken
+    ! from the LFRic context. Unlike GA9, all fixes that are controlled by
     ! temporary logicals will be on. (i.e. the defaults for these
     ! logicals, .true. by convention in UKCA, are not overridden.)
 
@@ -501,14 +505,14 @@ contains
            l_fix_tropopause_level=.true.,                                      &
            l_ukca_persist_off=.true.,                                          &
            ! Chemistry configuration options
-           i_ukca_chem_version=117,                                            &
+           i_ukca_chem_version=111,                                            &
            chem_timestep=3600,                                                 &
            nrsteps=45,                                                         &
            l_ukca_asad_columns=.true.,                                         &
            l_ukca_intdd=.true.,                                                &
            l_ukca_ddep_lev1=.false.,                                           &
            l_ukca_ddepo3_ocean=.false.,                                        &
-           l_ukca_dry_dep_so2wet=.false.,                                      &
+           l_ukca_dry_dep_so2wet=.true.,                                       &
            ! UKCA emissions configuration options
            mode_parfrac=2.5_r_um,                                              &
            l_ukca_enable_seadms_ems=.true.,                                    &
@@ -529,12 +533,13 @@ contains
            mode_activation_dryr=37.5_r_um,                                     &
            mode_incld_so2_rfrac=0.25_r_um,                                     &
            l_cv_rainout=.not.(l_ukca_plume_scav),                              &
-           l_dust_slinn_impc_scav=.false.,                                     &
+           l_dust_slinn_impc_scav=.true.,                                      &
            ! GLOMAP emissions configuration options
            l_ukca_primsu=.true.,                                               &
            l_ukca_primss=.true.,                                               &
            l_ukca_primdu=.true.,                                               &
            l_ukca_primbcoc=.true.,                                             &
+           l_ukca_prim_moc=.true.,                                             &
            l_bcoc_bf=.true.,                                                   &
            l_bcoc_bm=.true.,                                                   &
            l_bcoc_ff=.true.,                                                   &
@@ -542,6 +547,7 @@ contains
            biom_aer_ems_scaling=2.0_r_um,                                      &
            ! GLOMAP feedback configuration options
            l_ukca_radaer=.true.,                                               &
+           l_ukca_tune_bc=.true.,                                              &
            i_ukca_activation_scheme=ukca_activation_arg,                       &
            i_ukca_nwbins=20,                                                   &
            ! Return status information
@@ -587,7 +593,7 @@ contains
 
     ! Emissions registration:
     ! One emission field is provided for each active emission species (as for
-    ! GA7).
+    ! GA9).
     ! Register 2D emissions first, followed by 3D emissions; emissions
     ! must be registered in order of dimensionality for compatibility with
     ! the UKCA time step call which expects an array of 2D emission fields
@@ -608,7 +614,7 @@ contains
                  emiss_names(i) == 'OM_biomass' )) then
         field_varname = 'emissions_' // emiss_names(i)
         l_three_dim = .false.
-        ! Assign long name as in GA7 ancil file.
+        ! Assign long name as in GA9 ancil file.
         ! *** WARNING ***
         ! This is currently hard-wired in the absence of functionality
         ! to handle the NetCDF variable attributes that provide the long names
@@ -674,7 +680,7 @@ contains
            emiss_names(i) == 'OM_biomass' ) then
         field_varname = 'emissions_' // emiss_names(i)
         l_three_dim = .true.
-        ! Assign long name as in GA7 ancil file.
+        ! Assign long name as in GA9 ancil file.
         ! *** WARNING ***
         ! This is currently hard-wired in the absence of functionality
         ! to handle the NetCDF variable attributes. There is therefore
@@ -965,7 +971,7 @@ contains
 
     ! Determine number of offline emission entries required.
     ! Allow for one emission field for each active emission species
-    ! (consistent with GA7 requirements).
+    ! (consistent with GA9 requirements).
     n_emiss_slots = 0
     do i = 1, size(emiss_names)
       n_emiss_slots = n_emiss_slots + n_slots(i) 

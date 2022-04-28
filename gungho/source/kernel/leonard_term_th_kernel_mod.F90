@@ -61,7 +61,7 @@ contains
 !!                                 of the column for wtheta
 !! @param[in] map_wth_stencil  Array holding the dofmap for the stencil at the
 !!                            base of the column for wtheta
-!! @param[in] w_physics  w component of u_physics
+!! @param[in] velocity_w2v  velocity normal to cell top/bottom
 !! @param[in] map_wt_stencil_size  Number of cells in the stencil at the base
 !!                                 of the column for Wtheta
 !! @param[in] map_wt_stencil  Array holding the dofmap for the stencil at the
@@ -82,7 +82,7 @@ subroutine leonard_term_th_code( nlayers,                               &
                                  field_inc,                             &
                                  field,                                 &
                                  map_wth_stencil_size, map_wth_stencil, &
-                                 w_physics,                             &
+                                 velocity_w2v,                          &
                                  map_wt_stencil_size, map_wt_stencil,   &
                                  dtrdz_tq_bl,                           &
                                  kl,                                    &
@@ -108,7 +108,7 @@ subroutine leonard_term_th_code( nlayers,                               &
 
   real(kind=r_def), dimension(undf_wt),  intent(inout) :: field_inc
   real(kind=r_def), dimension(undf_wt),  intent(in)    :: field
-  real(kind=r_def), dimension(undf_wt),  intent(in)    :: w_physics
+  real(kind=r_def), dimension(undf_wt),  intent(in)    :: velocity_w2v
   real(kind=r_def), dimension(undf_wt),  intent(in)    :: dtrdz_tq_bl
   real(kind=r_def), dimension(undf_w3),  intent(in)    :: kl
   real(kind=r_def), dimension(undf_w3),  intent(in)    :: rho
@@ -148,40 +148,40 @@ subroutine leonard_term_th_code( nlayers,                               &
             ! from wth-point below:
               ( field(map_wth_stencil(1,1) + k) -                 &
                 field(map_wth_stencil(1,2) + k) )                 &
-            * ( w_physics(map_wt_stencil(1,1) + k) -              &
-                w_physics(map_wt_stencil(1,2) + k) )              &
+            * ( velocity_w2v(map_wt_stencil(1,1) + k) -           &
+                velocity_w2v(map_wt_stencil(1,2) + k) )           &
             + ( field(map_wth_stencil(1,4) + k) -                 &
                 field(map_wth_stencil(1,1) + k) )                 &
-            * ( w_physics(map_wt_stencil(1,4) + k) -              &
-                w_physics(map_wt_stencil(1,1) + k) )              &
+            * ( velocity_w2v(map_wt_stencil(1,4) + k) -           &
+                velocity_w2v(map_wt_stencil(1,1) + k) )           &
             ! from wth-point above:
             + ( field(map_wth_stencil(1,1) + kp) -                &
                 field(map_wth_stencil(1,2) + kp) )                &
-            * ( w_physics(map_wt_stencil(1,1) + kp) -             &
-                w_physics(map_wt_stencil(1,2) + kp) )             &
+            * ( velocity_w2v(map_wt_stencil(1,1) + kp) -          &
+                velocity_w2v(map_wt_stencil(1,2) + kp) )          &
             + ( field(map_wth_stencil(1,4) + kp) -                &
                 field(map_wth_stencil(1,1) + kp) )                &
-            * ( w_physics(map_wt_stencil(1,4) + kp) -             &
-                w_physics(map_wt_stencil(1,1) + kp) )             &
+            * ( velocity_w2v(map_wt_stencil(1,4) + kp) -          &
+                velocity_w2v(map_wt_stencil(1,1) + kp) )          &
             ! Terms from gradient in y-direction...
             ! from wth-point below:
             + ( field(map_wth_stencil(1,1) + k) -                 &
                 field(map_wth_stencil(1,3) + k) )                 &
-            * ( w_physics(map_wt_stencil(1,1) + k) -              &
-                w_physics(map_wt_stencil(1,3) + k) )              &
+            * ( velocity_w2v(map_wt_stencil(1,1) + k) -           &
+                velocity_w2v(map_wt_stencil(1,3) + k) )           &
             + ( field(map_wth_stencil(1,5) + k) -                 &
                 field(map_wth_stencil(1,1) + k) )                 &
-            * ( w_physics(map_wt_stencil(1,5) + k) -              &
-                w_physics(map_wt_stencil(1,1) + k) )              &
+            * ( velocity_w2v(map_wt_stencil(1,5) + k) -           &
+                velocity_w2v(map_wt_stencil(1,1) + k) )           &
             ! from wth-point above:
             + ( field(map_wth_stencil(1,1) + kp) -                &
                 field(map_wth_stencil(1,3) + kp) )                &
-            * ( w_physics(map_wt_stencil(1,1) + kp) -             &
-                w_physics(map_wt_stencil(1,3) + kp) )             &
+            * ( velocity_w2v(map_wt_stencil(1,1) + kp) -          &
+                velocity_w2v(map_wt_stencil(1,3) + kp) )          &
             + ( field(map_wth_stencil(1,5) + kp) -                &
                 field(map_wth_stencil(1,1) + kp) )                &
-            * ( w_physics(map_wt_stencil(1,5) + kp) -             &
-                w_physics(map_wt_stencil(1,1) + kp) ) )           &
+            * ( velocity_w2v(map_wt_stencil(1,5) + kp) -          &
+                velocity_w2v(map_wt_stencil(1,1) + kp) ) )        &
             * rho_rsq(k)
             ! Flux now includes density * r^2 factor
   end do

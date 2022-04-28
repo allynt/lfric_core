@@ -62,7 +62,7 @@ contains
                                exner_wth,        &
                                cld_fraction_wth, &
                                condensate_wth,   &
-                               w_physics_wth,    &
+                               w_in_wth,         &
                                height_wth,       &
                                ndf_wth,          &
                                undf_wth,         &
@@ -84,7 +84,7 @@ contains
     real(kind=r_def), intent(in), dimension(undf_wth)   :: exner_wth
     real(kind=r_def), intent(in), dimension(undf_wth)   :: cld_fraction_wth
     real(kind=r_def), intent(in), dimension(undf_wth)   :: condensate_wth
-    real(kind=r_def), intent(in), dimension(undf_wth)   :: w_physics_wth
+    real(kind=r_def), intent(in), dimension(undf_wth)   :: w_in_wth
     real(kind=r_def), intent(in), dimension(undf_wth)   :: height_wth
 
     integer(kind=i_def) :: k
@@ -115,7 +115,7 @@ contains
         temp         = theta_wth(map_wth(1) + k) * &
                        exner_wth(map_wth(1) + k)
         lwc          = condensate_wth(map_wth(1) + k)
-        w_wind       = w_physics_wth(map_wth(1) + k)
+        w_wind       = w_in_wth(map_wth(1) + k)
         cld_fraction = cld_fraction_wth(map_wth(1) + k)
         !
         ! Simplified Forecast Icing Potential (SFIP) based on
