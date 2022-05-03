@@ -19,6 +19,17 @@
  # *.rc files.
  #}
 {%- set target = {
+    'user-local' : {
+        'hostname': ROSE_ORIG_HOST,
+        'batcher': 'background',
+        'build_root': '/var/tmp/${USER}',
+        'queue': {
+            'tech': {
+                'launcher': '',
+                'directives': []
+            }
+        }
+    },
     'meto-spice' : {
         'hostname' : ROSE_ORIG_HOST,
         'batcher' : 'slurm',
