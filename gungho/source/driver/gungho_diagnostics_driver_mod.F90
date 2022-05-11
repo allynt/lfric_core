@@ -97,6 +97,12 @@ contains
     type( field_type), pointer :: height_w3 => null()
     type( field_type), pointer :: height_wth => null()
     type( field_type), pointer :: exner_in_wth => null()
+    type( field_type), pointer :: lbc_u => null()
+    type( field_type), pointer :: lbc_theta => null()
+    type( field_type), pointer :: lbc_rho => null()
+    type( field_type), pointer :: lbc_exner => null()
+    type( field_type), pointer :: lbc_m_v=> null()
+    type( field_type), pointer :: lbc_q=> null()
     type( field_type), pointer :: theta_in_w3 => null()
     type( field_type), pointer :: u_in_w2h => null()
     type( field_type), pointer :: v_in_w2h => null()
@@ -184,38 +190,38 @@ contains
 
     if (limited_area) then
       if (output_lbcs) then
-        theta => lbc_fields%get_field('lbc_theta')
-        u => lbc_fields%get_field('lbc_u')
-        rho => lbc_fields%get_field('lbc_rho')
-        exner => lbc_fields%get_field('lbc_exner')
+        lbc_theta => lbc_fields%get_field('lbc_theta')
+        lbc_u => lbc_fields%get_field('lbc_u')
+        lbc_rho => lbc_fields%get_field('lbc_rho')
+        lbc_exner => lbc_fields%get_field('lbc_exner')
 
         h_u => lbc_fields%get_field('lbc_h_u')
         v_u => lbc_fields%get_field('lbc_v_u')
 
         ! Scalar fields
-        call write_scalar_diagnostic('lbc_rho', rho, &
+        call write_scalar_diagnostic('lbc_rho', lbc_rho, &
                                  clock, mesh, nodal_output_on_w3)
-        call write_scalar_diagnostic('lbc_theta', theta, &
+        call write_scalar_diagnostic('lbc_theta', lbc_theta, &
                                  clock, mesh, nodal_output_on_w3)
-        call write_scalar_diagnostic('lbc_exner', exner, &
+        call write_scalar_diagnostic('lbc_exner', lbc_exner, &
                                  clock, mesh, nodal_output_on_w3)
         call write_scalar_diagnostic('readlbc_v_u', v_u, &
                                  clock, mesh, nodal_output_on_w3)
 
         if ( moisture_formulation /= moisture_formulation_dry ) then
-          theta => lbc_fields%get_field('lbc_m_v')
-          call write_scalar_diagnostic('lbc_m_v', theta, &
+          lbc_m_v => lbc_fields%get_field('lbc_m_v')
+          call write_scalar_diagnostic('lbc_m_v', lbc_m_v, &
                                    clock, mesh, nodal_output_on_w3)
-          theta => lbc_fields%get_field('lbc_q')
-          call write_scalar_diagnostic('lbc_q', theta, &
+          lbc_q => lbc_fields%get_field('lbc_q')
+          call write_scalar_diagnostic('lbc_q', lbc_q, &
                                    clock, mesh, nodal_output_on_w3)
-          rho => lbc_fields%get_field('lbc_rho_r2')
-          call write_scalar_diagnostic('lbc_rho_r2', rho, &
+          lbc_rho => lbc_fields%get_field('lbc_rho_r2')
+          call write_scalar_diagnostic('lbc_rho_r2', lbc_rho, &
                                    clock, mesh, nodal_output_on_w3)
         end if
 
         ! Vector fields
-        call write_vector_diagnostic('lbc_u', u, &
+        call write_vector_diagnostic('lbc_u', lbc_u, &
                                  clock, mesh, nodal_output_on_w3)
         call write_vector_diagnostic('readlbc_h_u', h_u, &
                                  clock, mesh, nodal_output_on_w3)

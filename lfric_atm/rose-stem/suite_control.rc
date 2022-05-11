@@ -393,7 +393,7 @@
   'basic-ral-demo': [
    'run_application("lfric_atm", "basic_ral_nemo_1p5km", checkkgo=False,
  		    resolutions=[("point_nemo_1p5km",30.,)],
- 		    env={"crun":6, "nrun":60,
+ 		    env={"crun":6, "nrun":120,
  		    "directives":{"default":{"mpi_parts":972,
  		                             "threads":1,
                                              "xios_nodes":4,
