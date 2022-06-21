@@ -29,7 +29,7 @@ module gw_pressure_precon_alg_mod
                                               LOG_LEVEL_ERROR, &
                                               log_scratch_space
   use columnwise_operator_mod,         only : columnwise_operator_type
-  use constants_mod,                   only : i_def, r_def
+  use constants_mod,                   only : i_def, r_def, r_solver
   use operator_mod,                    only : operator_type
 
   ! Columnwise operator kernels
@@ -43,9 +43,9 @@ module gw_pressure_precon_alg_mod
      integer(kind=i_def) :: level
      integer(kind=i_def) :: mesh_id
      !> Constant \f$\omega_c^2 = (\alpha\Delta t c)^2\f$
-     real(kind=r_def) :: omega2_c
+     real(kind=r_solver) :: omega2_c
      !> Constant \f$\omega_N^2 = (\alpha\Delta t N)^2\f$
-     real(kind=r_def) :: omega2_N
+     real(kind=r_solver) :: omega2_N
      !> vertical Helmholtz operator
      type(columnwise_operator_type) :: Hz_cma
 
@@ -94,8 +94,8 @@ contains
          LOG_LEVEL_INFO )
 
     ! Set scaling constants
-    self%omega2_c = alpha**2*dt**2*cs_square
-    self%omega2_N = alpha**2*dt**2*bvf_square
+    self%omega2_c = real(alpha**2*dt**2*cs_square, r_solver)
+    self%omega2_N = real(alpha**2*dt**2*bvf_square, r_solver)
     self%level = level
     self%mesh_id = get_hierarchical_mesh_id(level)
 
@@ -149,7 +149,7 @@ contains
     type(columnwise_operator_type) :: diag_DhMDht_cma
     type(columnwise_operator_type) :: tmp_1, tmp_2, tmp_3, tmp_4
     ! Scaling constants for invoke calls
-    real(kind=r_def)    :: alpha, beta
+    real(kind=r_solver) :: alpha, beta
     integer(kind=i_def) :: mesh_id
 
     mesh_id = self%mesh_id
@@ -227,7 +227,7 @@ contains
     self%Hz_cma = mm_w3_inv_cma%columnwise_operator_product( tmp_4 )
     ! Calculate scaling constants (can not use expressions in invoke call)
     alpha = self%omega2_c
-    beta = self%omega2_c/(1.0_r_def + self%omega2_N)
+    beta = self%omega2_c/(1.0_r_solver + self%omega2_N)
     ! Populate CMAs and construct vertical Helmholtz operator
     call invoke(                                                            &
                  ! STEP 1
@@ -248,8 +248,8 @@ contains
                  columnwise_op_scaledadd_kernel_type ( mm_w3_cma,           &
                                                        tmp_3,               &
                                                        tmp_4,               &
-                                                       1.0_r_def,           &
-                                                       1.0_r_def ),         &
+                                                       1.0_r_solver,        &
+                                                       1.0_r_solver ),      &
                  ! STEP 5
                  columnwise_op_mul_kernel_type (       mm_w3_inv_cma,       &
                                                        tmp_4,               &

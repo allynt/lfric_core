@@ -178,7 +178,7 @@ subroutine init_mesh( local_rank, total_ranks,        &
   if ( present(use_multigrid) ) then
     create_multigrid = use_multigrid
     if ( create_multigrid ) then
-      n_chain_meshes = size(chain_mesh_tags)    
+      n_chain_meshes = size(chain_mesh_tags)
       if ( present(multigrid_mesh_ids) ) then
         create_multigrid_meshes    = .true.
         if (allocated(multigrid_mesh_ids)) deallocate(multigrid_mesh_ids)

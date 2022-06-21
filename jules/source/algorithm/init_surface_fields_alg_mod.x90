@@ -77,7 +77,7 @@ contains
     surface_conductance => surface_fields%get_field('surface_conductance')
     canopy_water        => surface_fields%get_field('canopy_water')
 
-    call invoke(                                                              & 
+    call invoke(                                                              &
                  ! Set sea/land surface prognostics for use in SCM testing
                  ! or when no values are provided by the um2lfric dump
                  setval_c(z0m,                 1.5e-4_r_def),                 &

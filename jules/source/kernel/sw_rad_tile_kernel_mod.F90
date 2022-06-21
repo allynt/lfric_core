@@ -215,7 +215,7 @@ subroutine sw_rad_tile_code(nlayers,                                &
                                       fluxes_alloc, fluxes_assoc,             &
                                       fluxes_nullify, fluxes_dealloc
   use cable_fields_mod,         only: progs_cbl_vars
-  
+
   use tilepts_mod, only: tilepts
   use sparm_mod, only: sparm
   use surf_couple_radiation_mod, only: surf_couple_radiation

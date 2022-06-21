@@ -6,8 +6,8 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Kernel which adds a columnwise operator to another one
-!> @details Calculates C = alpha*A+beta*B.
+!> @brief Kernel which adds a columnwise operator to another one.
+!> @details Calculates C = alpha * A + beta * B.
 
 module columnwise_op_scaledadd_kernel_mod
 
@@ -18,7 +18,7 @@ use argument_mod,            only : arg_type,                          &
                                     ANY_SPACE_1, ANY_SPACE_2,          &
                                     CELL_COLUMN
 
-use constants_mod,           only : r_def, i_def
+use constants_mod,           only : r_def, r_solver, i_def
 
 implicit none
 
@@ -49,8 +49,8 @@ public :: columnwise_op_scaledadd_kernel_code
 
 contains
 
-  !> @brief The subroutine which is called directly from the PSY layer and
-  !> calculate operation \f$C = \alpha A + \beta B\f$
+  !> @brief The subroutine which is called directly from the PSy layer and
+  !!        calculates operation \f$C = \alpha A + \beta B\f$.
   !>
   !> @param[in] cell the horizontal cell index
   !> @param[in] ncell_2d total number of cells in 2d grid
@@ -112,22 +112,22 @@ contains
     implicit none
 
     ! Arguments
-    integer(kind=i_def), intent(in) :: cell,  ncell_2d
+    integer(kind=i_def), intent(in) :: cell, ncell_2d
     integer(kind=i_def), intent(in) :: nrow_A, ncol_A
     integer(kind=i_def), intent(in) :: nrow_B, ncol_B
     integer(kind=i_def), intent(in) :: nrow_C, ncol_C
     integer(kind=i_def), intent(in) :: bandwidth_A, bandwidth_B, bandwidth_C
-    real(kind=r_def), dimension(bandwidth_A,nrow_A,ncell_2d), intent(in) :: columnwise_matrix_A
-    real(kind=r_def), dimension(bandwidth_B,nrow_B,ncell_2d), intent(in) :: columnwise_matrix_B
-    real(kind=r_def), dimension(bandwidth_C,nrow_C,ncell_2d), intent(inout) :: columnwise_matrix_C
+    real(kind=r_solver), dimension(bandwidth_A,nrow_A,ncell_2d), intent(in)    :: columnwise_matrix_A
+    real(kind=r_solver), dimension(bandwidth_B,nrow_B,ncell_2d), intent(in)    :: columnwise_matrix_B
+    real(kind=r_solver), dimension(bandwidth_C,nrow_C,ncell_2d), intent(inout) :: columnwise_matrix_C
 
     integer(kind=i_def), intent(in) :: alpha_A, beta_A, gamma_m_A, gamma_p_A
     integer(kind=i_def), intent(in) :: alpha_B, beta_B, gamma_m_B, gamma_p_B
     integer(kind=i_def), intent(in) :: alpha_C, beta_C, gamma_m_C, gamma_p_C
-    real(kind=r_def), intent(in) :: alpha, beta
+    real(kind=r_solver), intent(in) :: alpha, beta
 
     ! Internal parameters
-    integer(kind=i_def) :: i,j ! Row and column index index
+    integer(kind=i_def) :: i, j ! Row and column index index
     ! Smallest index in a particular row
     integer(kind=i_def) :: j_minus_A, j_minus_B, j_minus_C, j_plus_A, j_plus_B
 
@@ -141,20 +141,20 @@ contains
 
     i = bandwidth_B + gamma_m_B + ncol_B
     nrow = nrow_A
-    columnwise_matrix_C(:,:,cell) = 0.0_r_def
+    columnwise_matrix_C(:,:,cell) = 0.0_r_solver
     ! Add matrix A
-    do i=1, nrow
-       j_minus_A = ceiling((alpha_A*i-gamma_p_A)/(1.0_r_def*beta_A),i_def)
-       j_plus_A = floor((alpha_A*i+gamma_m_A)/(1.0_r_def*beta_A),i_def)
-       j_minus_B = ceiling((alpha_B*i-gamma_p_B)/(1.0_r_def*beta_B),i_def)
-       j_plus_B = floor((alpha_B*i+gamma_m_B)/(1.0_r_def*beta_B),i_def)
-       j_minus_C = ceiling((alpha_C*i-gamma_p_C)/(1.0_r_def*beta_C),i_def)
-       do j=MAX(1,j_minus_A), MIN(ncol_A,j_plus_A)
+    do i = 1, nrow
+       j_minus_A = ceiling((alpha_A*i-gamma_p_A)/(1.0_r_solver*beta_A), i_def)
+       j_plus_A = floor((alpha_A*i+gamma_m_A)/(1.0_r_solver*beta_A), i_def)
+       j_minus_B = ceiling((alpha_B*i-gamma_p_B)/(1.0_r_solver*beta_B), i_def)
+       j_plus_B = floor((alpha_B*i+gamma_m_B)/(1.0_r_solver*beta_B), i_def)
+       j_minus_C = ceiling((alpha_C*i-gamma_p_C)/(1.0_r_solver*beta_C), i_def)
+       do j = MAX(1,j_minus_A), MIN(ncol_A,j_plus_A)
           columnwise_matrix_C(j-j_minus_C+1,i,cell)             &
             = columnwise_matrix_C(j-j_minus_C+1,i,cell)         &
             + alpha * columnwise_matrix_A(j-j_minus_A+1,i,cell)
        end do
-       do j=MAX(1,j_minus_B), MIN(ncol_A,j_plus_B)
+       do j = MAX(1,j_minus_B), MIN(ncol_A,j_plus_B)
           columnwise_matrix_C(j-j_minus_C+1,i,cell)             &
             = columnwise_matrix_C(j-j_minus_C+1,i,cell)         &
             + beta * columnwise_matrix_B(j-j_minus_B+1,i,cell)

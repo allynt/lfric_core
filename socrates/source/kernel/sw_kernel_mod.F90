@@ -594,12 +594,12 @@ subroutine sw_code(nlayers,                                                    &
     if (rad_this_tstep) then
       swinc_diag%heating_rate(1:1,1:nlayers) => &
         sw_heating_rate_rtsi(wth_1:wth_nlayers)
-      
+
       swinc_diag%flux_up_tile(1:1,1:n_surf_tile) => &
         sw_up_tile_rtsi(tile_1:tile_last)
       swinc_diag%flux_up_blue_tile(1:1,1:n_surf_tile) => &
         sw_up_blue_tile_rtsi(tile_1:tile_last)
-      
+
       swinc_diag%flux_direct_blue_surf(1:1) => &
         sw_direct_blue_surf_rtsi(map_2d(1):map_2d(1))
       swinc_diag%flux_down_blue_surf(1:1) => &
@@ -681,7 +681,7 @@ subroutine sw_code(nlayers,                                                    &
         - sw_heating_rate_rtsi(wth_1:wth_nlayers) &
         + swinc_diag%heating_rate(1, 1:nlayers), &
         spread(0.0_r_def, 1, nlayers) )
-      
+
       sw_up_tile_rts(tile_1:tile_last) = max( &
           sw_up_tile_rts(tile_1:tile_last) &
         - sw_up_tile_rtsi(tile_1:tile_last) &

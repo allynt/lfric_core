@@ -20,7 +20,7 @@ module process_inputs_alg_mod
                                         first_sea_tile, n_sea_tile, &
                                         first_sea_ice_tile, n_sea_ice_tile
   use multi_insert_kernel_mod,    only: multi_insert_kernel_type
-  use int_multi_insert_kernel_mod, only: int_multi_insert_kernel_type   
+  use int_multi_insert_kernel_mod, only: int_multi_insert_kernel_type
   use derived_config_mod,         only: l_esm_couple
 
   implicit none

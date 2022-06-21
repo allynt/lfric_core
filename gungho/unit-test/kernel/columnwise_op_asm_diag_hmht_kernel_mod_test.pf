@@ -9,7 +9,7 @@
 !>
 module columnwise_op_asm_diag_hmht_kernel_mod_test
 
-  use constants_mod,                 only : i_def, r_def
+  use constants_mod,                 only : i_def, r_def, r_solver
   use get_unit_test_m3x3_q3x3x3_sizes_mod, &
                                      only : get_w3_m3x3_q3x3x3_size, &
                                             get_w2h_m3x3_q3x3x3_size
@@ -64,22 +64,22 @@ contains
 
     class(columnwise_op_asm_diag_hmht_test_type), intent(inout) :: this
 
-    real(kind=r_def), parameter :: tol = 1.0e-6_r_def
-    integer(kind=i_def)         :: i, j, k, cell
-    integer(kind=i_def)         :: ndf_w3, ndf_w2h, unused
-    integer(kind=i_def)         :: nlayers, ncell_2d, ncell_3d
-    integer(kind=i_def)         :: alpha,beta,g_m, g_p, bw, ncol, nrow
+    real(kind=r_solver), parameter :: tol = 1.0e-6_r_solver
+    integer(kind=i_def)            :: i, j, k, cell
+    integer(kind=i_def)            :: ndf_w3, ndf_w2h, unused
+    integer(kind=i_def)            :: nlayers, ncell_2d, ncell_3d
+    integer(kind=i_def)            :: alpha,beta,g_m, g_p, bw, ncol, nrow
 
     integer(kind=i_def), allocatable, dimension(:,:)   :: map
     integer(kind=i_def), allocatable, dimension(:)     :: ind_map
     integer(kind=i_def), allocatable, dimension(:,:)   :: col_map
-    real(kind=r_def),    allocatable, dimension(:,:,:) :: col_mat_diag_hmht
+    real(kind=r_solver), allocatable, dimension(:,:,:) :: col_mat_diag_hmht
 
     real(kind=r_def), allocatable, dimension(:,:,:) :: local_stencil_div
     real(kind=r_def), allocatable, dimension(:,:,:) :: local_stencil_M2h
     real(kind=r_def),              dimension(4)     :: rho
     real(kind=r_def),              dimension(4)     :: sigma
-    real(kind=r_def)                                :: answer
+    real(kind=r_solver)                             :: answer
 
     rho(1) = 2.0_r_def
     rho(2) = 3.0_r_def
@@ -98,7 +98,7 @@ contains
                                   unused, unused, nlayers=nlayers)
     call get_w3_m3x3_dofmap( map )
 
-    ! set ncell_3d to be 1*nlayers, as only a single column is required for the test.
+    ! Set ncell_3d to be 1*nlayers, as only a single column is required for the test.
     ncell_2d = 1
     ncell_3d = ncell_2d * nlayers
     allocate(local_stencil_div(ndf_w3, ndf_w2h,ncell_3d))
@@ -141,9 +141,9 @@ contains
                                                  col_map,                                  &
                                                  ndf_w2h)
 
-    answer = 0.0_r_def
-    do i=1,4
-       answer = answer + rho(i)**2/sigma(i)
+    answer = 0.0_r_solver
+    do i = 1, 4
+       answer = answer + real(rho(i)**2/sigma(i), r_solver)
     end do
 
     do i = 1, nrow

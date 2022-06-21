@@ -7,7 +7,7 @@
 !> Test the Wtheta mass columnwise matrix computation
 !>
 module columnwise_op_asm_kernel_mod_test
-  use constants_mod,                 only : i_def, r_def
+  use constants_mod,                 only : i_def, r_def, r_solver
 
   use get_unit_test_m3x3_dofmap_mod, only : get_wtheta_m3x3_dofmap
   use get_unit_test_m3x3_q3x3x3_sizes_mod, &
@@ -60,19 +60,19 @@ contains
 
     class(columnwise_op_asm_test_type), intent(inout) :: this
 
-    real(r_def), parameter :: tol = 1.0e-6_r_def
+    real(kind=r_solver), parameter :: tol = 1.0e-6_r_solver
 
-    real(kind=r_def) :: answer
+    real(kind=r_solver) :: answer
 
-    integer :: i, j, k, cell
+    integer(kind=i_def) :: i, j, k, cell
 
-    integer :: nlayers, ndf, undf, ncells, ncell_3d, unused
-    integer, allocatable :: map(:,:), indirection_map(:), column_banded_map(:,:)
-    integer :: alpha, beta, g_m, g_p, bw
-    integer :: ncol, nrow
+    integer(kind=i_def) :: nlayers, ndf, undf, ncells, ncell_3d, unused
+    integer(kind=i_def), allocatable :: map(:,:), indirection_map(:), column_banded_map(:,:)
+    integer(kind=i_def) :: alpha, beta, g_m, g_p, bw
+    integer(kind=i_def) :: ncol, nrow
 
-    real(kind=r_def), allocatable :: columnwise_mm(:,:,:)
-    real(kind=r_def), allocatable :: local_stencil(:,:,:)
+    real(kind=r_solver), allocatable :: columnwise_mm(:,:,:)
+    real(kind=r_def),    allocatable :: local_stencil(:,:,:)
 
     ! Test mass matrix kernel
 
@@ -86,7 +86,7 @@ contains
     ncell_3d = nlayers * ncells
     allocate(local_stencil(ndf,ndf,ncell_3d))
     allocate(columnwise_mm(bw, nrow, ncells))
-    columnwise_mm(:,:,:) = 0.0_r_def
+    columnwise_mm(:,:,:) = 0.0_r_solver
 
     cell = 1
 
@@ -95,44 +95,44 @@ contains
                                  1.0_r_def/6.0_r_def, 1.0_r_def/3.0_r_def /), (/2, 2/))
     end do
 
-    call columnwise_op_asm_kernel_code(cell,                      &
-                                       nlayers,                   &
-                                       ncells,  &
-                                       ncell_3d,             &
-                                       local_stencil,             &
-                                       columnwise_mm,    &
-                                       nrow,      &
-                                       ncol,      &
-                                       bw, &
-                                       alpha,     &
-                                       beta,      &
-                                       g_m,   &
-                                       g_p,   &
-                                       ndf,                       &
+    call columnwise_op_asm_kernel_code(cell,              &
+                                       nlayers,           &
+                                       ncells,            &
+                                       ncell_3d,          &
+                                       local_stencil,     &
+                                       columnwise_mm,     &
+                                       nrow,              &
+                                       ncol,              &
+                                       bw,                &
+                                       alpha,             &
+                                       beta,              &
+                                       g_m,               &
+                                       g_p,               &
+                                       ndf,               &
                                        column_banded_map, &
-                                       ndf,                       &
+                                       ndf,               &
                                        column_banded_map)
-    do i=1, nrow
+    do i = 1, nrow
       if (i == 1) then
          ! First row should be ( *, 1/3, 1/6 )
-         answer = (1.0_r_def/3.0_r_def)
+         answer = (1.0_r_solver/3.0_r_solver)
          @assertEqual(answer, columnwise_mm(2,i,1), tol)
-         answer = (1.0_r_def/6.0_r_def)
+         answer = (1.0_r_solver/6.0_r_solver)
          @assertEqual(answer, columnwise_mm(3,i,1), tol)
       else if (i == nrow) then
          ! Final row should be ( 1/6, 1/3, * )
-         answer = (1.0_r_def/6.0_r_def)
+         answer = (1.0_r_solver/6.0_r_solver)
          @assertEqual(answer, columnwise_mm(1,i,1), tol)
-         answer = (1.0_r_def/3.0_r_def)
+         answer = (1.0_r_solver/3.0_r_solver)
          @assertEqual(answer, columnwise_mm(2,i,1), tol)
       else
          ! All other rows should be ( 1/6, 2/3, 1/6 )
 
-         answer = (1.0_r_def/6.0_r_def)
+         answer = (1.0_r_solver/6.0_r_solver)
          @assertEqual(answer, columnwise_mm(1,i,1), tol)
-         answer = (2.0_r_def/3.0_r_def)
+         answer = (2.0_r_solver/3.0_r_solver)
          @assertEqual(answer, columnwise_mm(2,i,1), tol)
-         answer = (1.0_r_def/6.0_r_def)
+         answer = (1.0_r_solver/6.0_r_solver)
          @assertEqual(answer, columnwise_mm(3,i,1), tol)
       end if
     end do

@@ -6,11 +6,12 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Kernel which calculates the diagonal contribution to the term D_h*M_{2v,lumped,inv}*D_h.
-!> @details Takes the operator D_h in LMA representation and the field representation of
-!> the diagonally lumped horizontal velocity mass matrix. Based on this, the kernel
-!> assembles a CMA which contains the diagonal couplings of the term
-!> D_h*M_{2v,lumped,inv}*D_h^T
+!> @brief Kernel which calculates the diagonal contribution to the term
+!!        D_h*M_{2v,lumped,inv}*D_h.
+!> @details Takes the operator D_h in LMA representation and the field
+!!          representation of the diagonally lumped horizontal velocity mass
+!!          matrix. Based on this, the kernel assembles a CMA which contains
+!!          the diagonal couplings of the term D_h*M_{2v,lumped,inv}*D_h^T.
 
 module columnwise_op_asm_diag_hmht_kernel_mod
 
@@ -22,7 +23,7 @@ use argument_mod,            only : arg_type,                 &
                                     ANY_SPACE_1, ANY_SPACE_2, &
                                     CELL_COLUMN
 
-use constants_mod,           only : r_def, i_def
+use constants_mod,           only : r_def, r_solver, i_def
 
 implicit none
 
@@ -51,15 +52,15 @@ public :: columnwise_op_asm_diag_hmht_kernel_code
 
 contains
 
-!> @brief The subroutine which is called directly from the PSY layer and
-!> assembles the LMA into a CMA
+!> @brief The subroutine which is called directly from the PSy layer and
+!!        assembles the LMA into a CMA operator.
 !> @details Given an LMA representation of the operator mapping between two
-!> horizontally discontinuous spaces, assemble the columnwise matrix
-!> representation of the operator.
+!!          horizontally discontinuous spaces, assemble the columnwise matrix
+!!          representation of the operator.
 !>
 !> @param[in]  cell Horizontal cell index
 !> @param[in]  nlayers Number of vertical layers
-!> @param[in]  ncell_2d Number of cells in 2d grid
+!> @param[in]  ncell_2d Number of cells in 2D grid
 !> @param[in]  ncell_3d Total number of cells
 !> @param[in]  local_stencil_Dh Locally assembled matrix for \f$D_h\f$
 !> @param[in]  ncell_3d_tmp Total number of cells (unused duplicate)
@@ -95,23 +96,23 @@ subroutine columnwise_op_asm_diag_hmht_kernel_code(cell,                 &
   implicit none
 
   ! Arguments
-  integer(kind=i_def),                                     intent(in)  :: cell
-  integer(kind=i_def),                                     intent(in)  :: nlayers
-  integer(kind=i_def),                                     intent(in)  :: ncell_3d
-  integer(kind=i_def),                                     intent(in)  :: ncell_3d_tmp
-  integer(kind=i_def),                                     intent(in)  :: ncell_2d
-  integer(kind=i_def),                                     intent(in)  :: alpha
-  integer(kind=i_def),                                     intent(in)  :: beta
-  integer(kind=i_def),                                     intent(in)  :: gamma_m
-  integer(kind=i_def),                                     intent(in)  :: gamma_p
-  integer(kind=i_def),                                     intent(in)  :: nrow
-  integer(kind=i_def),                                     intent(in)  :: bandwidth
-  integer(kind=i_def),                                     intent(in)  :: ndf_w3
-  integer(kind=i_def),                                     intent(in)  :: ndf_w2h
-  integer(kind=i_def), dimension(ndf_w3,nlayers),          intent(in)  :: column_banded_dofmap
-  real   (kind=r_def), dimension(ndf_w3,ndf_w2h,ncell_3d), intent(in)  :: local_stencil_Dh
-  real   (kind=r_def), dimension(ndf_w2h,ndf_w2h,ncell_3d),intent(in)  :: local_stencil_M2h
-  real   (kind=r_def), dimension(bandwidth,nrow,ncell_2d), intent(inout) :: columnwise_matrix
+  integer(kind=i_def),                                        intent(in)  :: cell
+  integer(kind=i_def),                                        intent(in)  :: nlayers
+  integer(kind=i_def),                                        intent(in)  :: ncell_3d
+  integer(kind=i_def),                                        intent(in)  :: ncell_3d_tmp
+  integer(kind=i_def),                                        intent(in)  :: ncell_2d
+  integer(kind=i_def),                                        intent(in)  :: alpha
+  integer(kind=i_def),                                        intent(in)  :: beta
+  integer(kind=i_def),                                        intent(in)  :: gamma_m
+  integer(kind=i_def),                                        intent(in)  :: gamma_p
+  integer(kind=i_def),                                        intent(in)  :: nrow
+  integer(kind=i_def),                                        intent(in)  :: bandwidth
+  integer(kind=i_def),                                        intent(in)  :: ndf_w3
+  integer(kind=i_def),                                        intent(in)  :: ndf_w2h
+  integer(kind=i_def), dimension(ndf_w3,nlayers),             intent(in)  :: column_banded_dofmap
+  real   (kind=r_def), dimension(ndf_w3,ndf_w2h,ncell_3d),    intent(in)  :: local_stencil_Dh
+  real   (kind=r_def), dimension(ndf_w2h,ndf_w2h,ncell_3d),   intent(in)  :: local_stencil_M2h
+  real   (kind=r_solver), dimension(bandwidth,nrow,ncell_2d), intent(inout) :: columnwise_matrix
 
 
   ! Internal parameters
@@ -119,30 +120,30 @@ subroutine columnwise_op_asm_diag_hmht_kernel_code(cell,                 &
   integer(kind=i_def) :: i,j            ! Row and column index index
   integer(kind=i_def) :: j_minus        ! First column in a row
   integer(kind=i_def) :: ik             ! ncell3d counter
-  integer(kind=i_def) :: k              ! nlayers  counter
+  integer(kind=i_def) :: k              ! nlayers counter
   real   (kind=r_def) :: tmp            ! Local contribution
 
   k = gamma_m
 
   ! Initialise matrix to zero
-  columnwise_matrix( :, :, cell ) = 0.0_r_def
+  columnwise_matrix( :, :, cell ) = 0.0_r_solver
   ! Loop over all vertical layers
   do k = 1, nlayers
-    ik = (cell-1)*nlayers + k ! cell index in 3d
+    ik = (cell-1)*nlayers + k ! Cell index in 3D
     do df1 = 1, ndf_w3
       i = column_banded_dofmap( df1, k )
-      j_minus = ceiling((alpha*i-gamma_p)/(1.0_8*beta),i_def)
+      j_minus = ceiling((alpha*i-gamma_p)/(1.0_r_solver*beta), i_def)
       do df2 = 1, ndf_w3
         tmp = 0.0_r_def
         do df3 = 1, ndf_w2h
-          tmp = tmp                           &
+          tmp = tmp                               &
               + local_stencil_Dh ( df1 ,df3, ik ) &
               * local_stencil_Dh ( df2 ,df3, ik ) &
               / local_stencil_M2h( df3 ,df3, ik )
         end do
         j = column_banded_dofmap( df2, k )
-        columnwise_matrix( j-j_minus+1, i, cell )      &
-           = columnwise_matrix( j-j_minus+1, i, cell ) + tmp
+        columnwise_matrix( j-j_minus+1, i, cell ) &
+           = columnwise_matrix( j-j_minus+1, i, cell ) + real(tmp, r_solver)
       end do
     end do
   end do

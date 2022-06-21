@@ -9,7 +9,7 @@
 !> has the same entries as the corresponding dense matrix.
 module columnwise_op_scaledadd_kernel_mod_test
 
-  use constants_mod,                 only : i_def, r_def
+  use constants_mod,                 only : i_def, r_def, r_solver
 
   use get_unit_test_m3x3_cma_data_mod, &
        only : get_cma_size, get_cma_prod_size
@@ -71,21 +71,21 @@ contains
     integer(kind=i_def) :: alpha_T3, beta_T3, bw_T3, g_m_T3, g_p_T3, nrow_T3, ncol_T3
     integer(kind=i_def) :: alpha_3T, beta_3T, bw_3T, g_m_3T, g_p_3T, nrow_3T, ncol_3T
 
-    ! scaling factor
-    real(kind=r_def) :: mu, nu
+    ! Scaling factors
+    real(kind=r_solver) :: mu, nu
 
-    ! dense representations of the operators mass, D^T.D and
+    ! Dense representations of the operators mass, D^T.D and
     ! mass + beta*D^T.D
-    real(kind=r_def), allocatable, dimension(:,:) :: densematrix_mass,     &
-                                                     densematrix_DT_D,     &
+    real(kind=r_def), allocatable, dimension(:,:) :: densematrix_mass, &
+                                                     densematrix_DT_D, &
                                                      densematrix_mass_DT_D
 
-    real(kind=r_def), allocatable, dimension(:,:,:) :: clm_mat_M, &
-                                                       clm_mat_DTD, &
-                                                       clm_mat_DTD_M
+    real(kind=r_solver), allocatable, dimension(:,:,:) :: clm_mat_M,   &
+                                                          clm_mat_DTD, &
+                                                          clm_mat_DTD_M
 
     integer(kind=i_def) :: j_minus, j_plus
-    real(kind=r_def) :: matrixentry ! sparse matrix entry to compare in test
+    real(kind=r_def) :: matrixentry ! Sparse matrix entry to compare in test
 
     ! set some sizes - no maps are required
     nlayers         = 3_i_def
@@ -114,8 +114,8 @@ contains
                            alpha_T3, beta_T3, g_m_T3, g_p_T3, nrow_T3, &
                            alpha_prod, beta_prod, g_m_prod, g_p_prod, bw_prod, nrow_prod, ncol_prod)
     cell = 1_i_def
-    mu = 2.4_r_def
-    nu = 3.7_r_def
+    mu = 2.4_r_solver
+    nu = 3.7_r_solver
 
     ! Spaces for operators
     ! mass matrix is W3W3
@@ -133,25 +133,25 @@ contains
     densematrix_DT_D(:,:) = 0.0_r_def
     densematrix_mass_DT_D(:,:) = 0.0_r_def
 
-    allocate(clm_mat_M(bw_33,nrow_33, ncell_2d))
-    allocate(clm_mat_DTD(bw_prod,nrow_33, ncell_2d))
-    allocate(clm_mat_DTD_M(bw_prod,nrow_33, ncell_2d))
+    allocate(clm_mat_M(bw_33, nrow_33, ncell_2d))
+    allocate(clm_mat_DTD(bw_prod, nrow_33, ncell_2d))
+    allocate(clm_mat_DTD_M(bw_prod, nrow_33, ncell_2d))
 
-    clm_mat_M(:,:,:)   = 0.0_r_def
-    clm_mat_DTD(:,:,:) = 0.0_r_def
+    clm_mat_M(:,:,:)   = 0.0_r_solver
+    clm_mat_DTD(:,:,:) = 0.0_r_solver
 
     ! Populate matrix entries
     do i = 1_i_def, nrow_33
-       clm_mat_DTD(1,i,cell) = +1.0_r_def
-       clm_mat_DTD(2,i,cell) = +2.0_r_def
-       clm_mat_DTD(3,i,cell) = +1.0_r_def
-       clm_mat_M(1,i,cell)   = +1.0_r_def
-       densematrix_mass(i,i) = +1.0_r_def
-       if (i>1_i_def) then
+       clm_mat_DTD(1,i,cell) = +1.0_r_solver
+       clm_mat_DTD(2,i,cell) = +2.0_r_solver
+       clm_mat_DTD(3,i,cell) = +1.0_r_solver
+       clm_mat_M(1,i,cell)   = +1.0_r_solver
+       densematrix_mass(i,i) = +1.0_r_solver
+       if (i > 1_i_def) then
           densematrix_DT_D(i,i-1_i_def) = +1.0_r_def
        end if
-       densematrix_DT_D(i,i)   = +2.0_r_def
-       if (i<nrow_33) then
+       densematrix_DT_D(i,i) = +2.0_r_def
+       if (i < nrow_33) then
           densematrix_DT_D(i,i+1_i_def) = +1.0_r_def
        end if
     end do
@@ -180,19 +180,19 @@ contains
                                              alpha_prod,                  &
                                              beta_prod,                   &
                                              g_m_prod,                    &
-                                             g_p_prod,                      &
+                                             g_p_prod,                    &
                                              mu,                          &
                                              nu)
 
     ! Same calculation with dense matrices
     ! Mass matrix is smaller, DT_D is larger but final column should be zero
-    ! and tested. Adding explicit looping
+    ! and tested. Adding explicit looping.
     do i = 1_i_def, ncol_33
-       densematrix_mass_DT_D(:,i) = mu * densematrix_mass(:,i) &
-            + nu  * densematrix_DT_D(:,i)
+       densematrix_mass_DT_D(:,i) = real(mu, r_def) * densematrix_mass(:,i) &
+            + real(nu, r_def)  * densematrix_DT_D(:,i)
     end do
     do i = ncol_33+1_i_def, ncol_prod
-       densematrix_mass_DT_D(:,i) = nu  * densematrix_DT_D(:,i)
+       densematrix_mass_DT_D(:,i) = real(nu, r_def)  * densematrix_DT_D(:,i)
     end do
 
     ! Check result by comparing non-zero matrix entries in columnwise and
@@ -202,7 +202,7 @@ contains
        j_plus = floor( ( alpha_prod*i + g_m_prod) / (1.0_r_def*beta_prod),i_def )
        do j = MAX(1,j_minus), MIN( ncol_prod, j_plus)
     matrixentry &
-             = clm_mat_DTD_M(j-j_minus+1,i,cell)
+             = real(clm_mat_DTD_M(j-j_minus+1,i,cell), r_def)
           @assertEqual( densematrix_mass_DT_D(i,j), matrixentry, tol )
 
        end do

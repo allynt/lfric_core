@@ -6,7 +6,8 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Kernel which (incrementally) applies a columnwise assembled operator to a field
+!> @brief Kernel which (incrementally) applies a columnwise assembled operator
+!!        to a field.
 
 module columnwise_op_app_kernel_mod
 
@@ -17,7 +18,7 @@ use argument_mod,            only : arg_type, func_type,              &
                                     ANY_SPACE_1, ANY_SPACE_2,         &
                                     CELL_COLUMN
 
-use constants_mod,           only : r_def, i_def
+use constants_mod,           only : r_def, r_solver, i_def
 
 implicit none
 
@@ -46,11 +47,11 @@ public :: columnwise_op_app_kernel_code
 
 contains
 
-  !> @brief The subroutine which is called directly from the PSY layer and
-  !> applies the operator as lhs += A.x
+  !> @brief The subroutine which is called directly from the PSy layer and
+  !!        applies the operator as lhs += A.x.
   !>
   !> @param[in] cell The horizontal cell index
-  !> @param[in] ncell_2d Number of cells in 2d grid
+  !> @param[in] ncell_2d Number of cells in 2D grid
   !> @param[in,out] lhs Resulting field lhs += A.x
   !> @param[in] x Input field
   !> @param[in] columnwise_matrix Banded matrix to assemble into
@@ -94,7 +95,7 @@ contains
     integer(kind=i_def), intent(in) :: undf2, ndf2
     real(kind=r_def), dimension(undf1), intent(inout) :: lhs
     real(kind=r_def), dimension(undf2), intent(in) :: x
-    real(kind=r_def), dimension(bandwidth,nrow,ncell_2d), intent(in) :: columnwise_matrix
+    real(kind=r_solver), dimension(bandwidth,nrow,ncell_2d), intent(in) :: columnwise_matrix
     integer(kind=i_def), dimension(ndf1), intent(in) :: map1
     integer(kind=i_def), dimension(ndf2), intent(in) :: map2
 
@@ -108,15 +109,15 @@ contains
     ! Smallest/largest index in a particular row
     integer(kind=i_def) :: j_minus, j_plus
 
-    do i=1, nrow
+    do i = 1, nrow
        ! Assumes that the first entry in the dofmaps is the smallest
        mu_i = map1(1) + indirection_dofmap_to(i) - 1
-       j_minus = ceiling((alpha*i-gamma_p)/(1.0_r_def*beta),i_def)
-       j_plus = floor((alpha*i+gamma_m)/(1.0_r_def*beta),i_def)
-       do j=MAX(1,j_minus), MIN(ncol,j_plus)
+       j_minus = ceiling((alpha*i-gamma_p)/(1.0_r_solver*beta), i_def)
+       j_plus = floor((alpha*i+gamma_m)/(1.0_r_solver*beta), i_def)
+       do j = MAX(1,j_minus), MIN(ncol,j_plus)
           mu_j = map2(1) + indirection_dofmap_from(j) - 1
           lhs(mu_i) = lhs(mu_i) &
-                    + columnwise_matrix(j-j_minus+1,i,cell) * x(mu_j)
+                    + real(columnwise_matrix(j-j_minus+1,i,cell), r_def) * x(mu_j)
        end do
     end do
 

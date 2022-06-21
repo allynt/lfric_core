@@ -72,16 +72,16 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load environment/lfric/ifort/17.0_64/4'
+                    'module load environment/lfric/ifort/17.0_64/5'
                 ],
                 'gnu' : [
                     'module use /project/ukmo/rhel7/fortran/opt/gfortran/modulefiles',
-                    'module load environment/lfric/gcc/6.1.0/4'
+                    'module load environment/lfric/gcc/6.1.0/5'
                 ]
             },
-            'plot' : ['module load scitools/production-os43-2'],
+            'plot' : ['module load scitools/production-os45-1'],
             'reveal' : ['module list 2>&1', 'export'],
-            'tech' : ['module load environment/lfric/common/8'],
+            'tech' : ['module load environment/lfric/common/9'],
             'run'  : ['ulimit -s unlimited'],
         },
         'teardown' : {
@@ -129,15 +129,15 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/3'
+                    'module load meto-environment/lfric/intel/17.0.0.098/4'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cce/8.7.0/2'
+                    'module load meto-environment/lfric/cce/8.7.0/3'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
             'run' : [],
-            'tech' : ['module load meto-common/lfric/13',
+            'tech' : ['module load meto-common/lfric/14',
                       'module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
@@ -165,8 +165,8 @@
             'tech' : {
                 'launcher' : 'mpiexec',
                 'directives' : [
-                    '-l select=1:ncpus=1:mem=1GB:tmpsize=1GB',
-                    '-l walltime=00:15:00',
+                    '-l select=1:ncpus=1:mem=3GB:tmpsize=3GB',
+                    '-l walltime=00:20:00',
                     '-q=shared'
                 ],
             }
@@ -187,15 +187,15 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/2'
+                    'module load meto-environment/lfric/intel/17.0.0.098/3'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cray/8.7.0/2'
+                    'module load meto-environment/lfric/cray/8.7.0/3'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
             'run' : [],
-            'tech' : ['module load meto-common-environment/lfric/13',
+            'tech' : ['module load meto-common-environment/lfric/14',
                       'module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
@@ -223,8 +223,8 @@
             'tech' : {
                 'launcher' : 'mpiexec',
                 'directives' : [
-                    '-l select=1:ncpus=1:mem=1GB',
-                    '-l walltime=00:15:00',
+                    '-l select=1:ncpus=1:mem=3GB',
+                    '-l walltime=00:20:00',
                     '-q=shared'
                 ]
             }
@@ -245,10 +245,10 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/2'
+                    'module load meto-environment/lfric/intel/17.0.0.098/3'
                 ],
                 'cray' : [
-                    'module load meto-environment/lfric/cray/8.7.0/2'
+                    'module load meto-environment/lfric/cray/8.7.0/3'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
@@ -286,8 +286,8 @@
                 'directives' : [
                     '-A=' + get_accountname(),
                     '-P=' + get_accountname(),
-                    '-l select=1:ncpus=1:mem=1GB',
-                    '-l walltime=00:15:00',
+                    '-l select=1:ncpus=1:mem=3GB',
+                    '-l walltime=00:20:00',
                     '-q=shared'
                 ]
             }
@@ -304,7 +304,7 @@
                 'module use /g/data/dk92/apps/Modules/modulefiles',
                 'module use /g/data/access/projects/access/modules',
                 'module load xconv/1.94 hdf5/1.10.5p netcdf/4.7.4p zlib/1.2.11 python3/3.10.0',
-                'module load jinja2/3.0.1 psyclone/2.1.0 rose-picker/2.0',
+                'module load jinja2/3.0.1 psyclone/2.3.0 rose-picker/2.0',
                 'module unload python2-as-python',
                 'ln -fs /apps/python3/3.10.0/bin/python3 python',
                 'export PATH=$PWD:$PATH'
@@ -422,7 +422,7 @@
             'build' : [],
             'compiler' : {
                 'intel' : [
-                    'module swap NeSI NIWA; module load YAXT/0.9.0-CrayIntel-19.04b XIOS/r2279-CrayIntel-19.04b-NC4PAR pfunit/3.2.9-CrayIntel-19.04b PSyclone/2.1.0-Python-3.6 Jinja2/3.0.3-Python-3.6 Rose_Picker/1.0.0; export FC=ftn FPP=\"cpp -P -x f95-cpp-input\" LDMPI=ftn PFUNIT=$EBROOTPFUNIT FFLAGS=\"-I$EBROOTXIOS/inc -real-size 64\"'
+                    'module swap NeSI NIWA; module load YAXT/0.9.0-CrayIntel-19.04b XIOS/r2279-CrayIntel-19.04b-NC4PAR pfunit/3.2.9-CrayIntel-19.04b PSyclone/2.3.0-Python-3.6 Jinja2/3.0.3-Python-3.6 Rose_Picker/1.0.0; export FC=ftn FPP=\"cpp -P -x f95-cpp-input\" LDMPI=ftn PFUNIT=$EBROOTPFUNIT FFLAGS=\"-I$EBROOTXIOS/inc -real-size 64\"'
                 ],
             },
             'plot' : [],

@@ -6,16 +6,17 @@
 !
 !-------------------------------------------------------------------------------
 
-!> @brief Kernel which applies the inverse of a columnwise assembled operator
+!> @brief Kernel which applies the inverse of a columnwise assembled operator.
 !>
 !> @details Given a field \f$x\f$, this calculates \f$y+=A^{-1}x\f$, i.e.
-!> solves \f$A\delta y=x\f$ for \f$\delta y\f$ and adds this to \f$y\f$.
-!> Only works if the assembled matrix is square and tridiagonal, and the
-!> Thomas algorithm can be used. The PSY layer should check whether the
-!> matrix has the correct properties.
-!>
-!> Reference for Thomas algorithm:
-!>   Numerical Recipes, Second Edition, CAMBRIDGE UNIVERSITY PRESS (1992)
+!!          solves \f$A\delta y=x\f$ for \f$\delta y\f$ and adds this to
+!!          \f$y\f$.
+!!          Only works if the assembled matrix is square and tridiagonal,
+!!          and the Thomas algorithm can be used. The PSy layer should check
+!!          whether the matrix has the correct properties.
+!!
+!! Reference for Thomas algorithm:
+!!   Numerical Recipes, Second Edition, CAMBRIDGE UNIVERSITY PRESS (1992).
 
 module columnwise_op_appinv_kernel_mod
 
@@ -26,7 +27,7 @@ use argument_mod,            only : arg_type,                         &
                                     ANY_SPACE_1,                      &
                                     CELL_COLUMN
 
-use constants_mod,           only : r_def, i_def
+use constants_mod,           only : r_def, r_solver, i_def
 
 implicit none
 
@@ -55,11 +56,11 @@ public :: columnwise_op_appinv_kernel_code
 
 contains
 
-  !> @brief The subroutine which is called directly from the PSY layer and
-  !> applies the operator as lhs += A^{-1}.x
+  !> @brief The subroutine which is called directly from the PSy layer and
+  !!        applies the operator as lhs += A^{-1}.x.
   !>
   !> @param[in] cell The horizontal cell index
-  !> @param[in] ncell_2d Number of cells in 2d grid
+  !> @param[in] ncell_2d Number of cells in 2D grid
   !> @param[in,out] lhs Resulting field lhs += A^{-1}.x
   !> @param[in] x Input field
   !> @param[in] columnwise_matrix Banded matrix to assemble into
@@ -94,7 +95,7 @@ contains
     integer(kind=i_def), intent(in) :: undf, ndf
     real(kind=r_def), dimension(undf), intent(inout) :: lhs
     real(kind=r_def), dimension(undf), intent(in) :: x
-    real(kind=r_def), dimension(bandwidth,nrow,ncell_2d), intent(in) :: columnwise_matrix
+    real(kind=r_solver), dimension(bandwidth,nrow,ncell_2d), intent(in) :: columnwise_matrix
     integer(kind=i_def), dimension(ndf), intent(in) :: map
 
     integer(kind=i_def), intent(in) :: alpha, beta, gamma_m, gamma_p
@@ -112,30 +113,30 @@ contains
     i = alpha + beta + gamma_m + gamma_p
 
     ! Step 1: Forward sweep, loop over all rows
-    do i=1, nrow
+    do i = 1, nrow
        mu_i = map(1) + indirection_dofmap(i) - 1
        if (i == 1) then
           ! First row
-          inv_denom = 1.0_r_def/columnwise_matrix(2,i,cell)
-          c_prime(i) = inv_denom * columnwise_matrix(3,i,cell)
+          inv_denom = 1.0_r_def / real(columnwise_matrix(2,i,cell), r_def)
+          c_prime(i) = inv_denom * real(columnwise_matrix(3,i,cell), r_def)
           d_prime(i) = inv_denom * x(mu_i)
        else
           ! Subsequent rows 2,...,nrow-1
-          inv_denom = 1.0_r_def / ( columnwise_matrix(2,i,cell) &
-                    - columnwise_matrix(1,i,cell) * c_prime(i-1) )
+          inv_denom = 1.0_r_def / ( real(columnwise_matrix(2,i,cell), r_def) &
+                    - real(columnwise_matrix(1,i,cell), r_def) * c_prime(i-1) )
           if (i < nrow) then
              ! We don't need c' in the last row
-             c_prime(i) = inv_denom * columnwise_matrix(3,i,cell)
+             c_prime(i) = inv_denom * real(columnwise_matrix(3,i,cell), r_def)
           end if
           d_prime(i) = inv_denom * ( x(mu_i) &
-                     - columnwise_matrix(1,i,cell) * d_prime(i-1) )
+                     - real(columnwise_matrix(1,i,cell), r_def) * d_prime(i-1) )
        end if
     end do
     ! Step 2: Backward sweep (substitution), loop over all rows backwards
-    do i=nrow,1,-1
+    do i = nrow, 1, -1
        ! Overwrite d' with solution and then copy to correct position in vector
        mu_i = map(1) + indirection_dofmap(i) - 1
-       if (i<nrow) then
+       if (i < nrow) then
           d_prime(i) = d_prime(i) - c_prime(i) * d_prime(i+1)
        end if
        lhs(mu_i) = d_prime(i)
