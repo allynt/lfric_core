@@ -22,7 +22,7 @@ use argument_mod,      only : arg_type, func_type,         &
                               GH_LOGICAL,                  &
                               GH_INC, GH_READ, GH_BASIS,   &
                               CELL_COLUMN, GH_EVALUATOR
-use constants_mod,     only : r_def, i_def, l_def, tiny_eps
+use constants_mod,     only : r_def, i_def, l_def, tiny_eps, EPS
 use fs_continuity_mod, only : W2, W3
 use kernel_mod,        only : kernel_type
 
@@ -139,7 +139,7 @@ subroutine polyv_w3_koren_code( nlayers,                           &
   ! If using the logspace option, the tracer is forced to be positive
   if (logspace) then
       do k = 1-ext,nlayers+ext
-         tracer_1d(k) = log(abs(tracer_1d(k)))
+         tracer_1d(k) = log(max(EPS,abs(tracer_1d(k))))
       end do
   end if
 

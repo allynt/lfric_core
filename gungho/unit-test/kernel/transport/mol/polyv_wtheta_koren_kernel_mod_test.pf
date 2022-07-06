@@ -7,7 +7,7 @@
 !> Test the wtheta_adv_inc computation using the Koren scheme
 module polyv_wtheta_koren_kernel_mod_test
 
-  use constants_mod, only : i_def, r_def, l_def
+  use constants_mod, only : i_def, r_def, l_def, EPS
   use pFUnit_Mod
 
   implicit none
@@ -215,6 +215,44 @@ contains
     do k = 1, undf_wt
       @assertEqual(adv_inc_answer2(k), adv_inc(k), use_tol)
     end do
+
+    ! ------------------------------------------------------------------------ !
+    ! Test that zero values don't cause blow up
+    ! ------------------------------------------------------------------------ !
+
+    ! Do reconstruction with zero density
+    density(:) = 0.0_r_def
+    adv_inc(:) = 0.0_r_def
+    call polyv_wtheta_koren_code( nlayers,              &
+                                  adv_inc,              &
+                                  wind,                 &
+                                  density,              &
+                                  ndata,                &
+                                  logspace,             &
+                                  ndf_wt,               &
+                                  undf_wt,              &
+                                  map_wt,               &
+                                  ndf_w2,               &
+                                  undf_w2,              &
+                                  map_w2                )
+
+    ! Now do reconstruction with tiny density as a control
+    density(:) = EPS
+    adv_inc_answer2(:) = 0.0_r_def
+    call polyv_wtheta_koren_code( nlayers,              &
+                                  adv_inc_answer2,      &
+                                  wind,                 &
+                                  density,              &
+                                  ndata,                &
+                                  logspace,             &
+                                  ndf_wt,               &
+                                  undf_wt,              &
+                                  map_wt,               &
+                                  ndf_w2,               &
+                                  undf_w2,              &
+                                  map_w2                )
+
+    @assertEqual(adv_inc_answer2, adv_inc, use_tol)
 
   end subroutine test_all
 

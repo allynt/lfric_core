@@ -21,7 +21,7 @@ use argument_mod,         only : arg_type, GH_FIELD,     &
                                  GH_INTEGER, GH_LOGICAL, &
                                  GH_READWRITE,           &
                                  GH_READ, CELL_COLUMN
-use constants_mod,        only : r_def, i_def, l_def, tiny_eps
+use constants_mod,        only : r_def, i_def, l_def, tiny_eps, EPS
 use fs_continuity_mod,    only : W2, Wtheta
 use kernel_mod,           only : kernel_type
 
@@ -132,7 +132,7 @@ subroutine polyv_wtheta_koren_code( nlayers,              &
   ! If using the logspace option, the tracer is forced to be positive
   if (logspace) then
       do k=0,nlayers+2
-         tracer_1d(k) = log(abs(tracer_1d(k)))
+         tracer_1d(k) = log(max(EPS,abs(tracer_1d(k))))
       end do
   end if
 

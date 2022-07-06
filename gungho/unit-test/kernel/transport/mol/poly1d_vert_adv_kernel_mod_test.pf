@@ -7,7 +7,7 @@
 !> Test the flux computation using 1d polynomials
 module poly1d_vert_adv_kernel_mod_test
 
-  use constants_mod, only : i_def, r_def, l_def
+  use constants_mod, only : i_def, r_def, l_def, EPS
   use pFUnit_Mod
 
   implicit none
@@ -78,6 +78,7 @@ contains
     integer(i_def), dimension(ndf_c)  :: map_c
 
     real(r_def), dimension(undf_wt) :: flux
+    real(r_def), dimension(undf_wt) :: flux_answer
     real(r_def), dimension(undf_w2) :: wind
     real(r_def), dimension(undf_wt) :: density
     real(r_def), dimension(undf_c)  :: coeff
@@ -174,6 +175,53 @@ contains
       answer = -density(map_wt(1)+k)
       @assertEqual(answer, flux(map_wt(1)+k), use_tol)
     end do
+
+    ! ------------------------------------------------------------------------ !
+    ! Test that zero values don't cause blow up
+    ! ------------------------------------------------------------------------ !
+
+    ! Do reconstruction with zero density
+    density(:) = 0.0_r_def
+    flux(:) = 0.0_r_def
+    call poly1d_vert_adv_code( nlayers,              &
+                               flux,                 &
+                               wind,                 &
+                               density,              &
+                               coeff,                &
+                               ndata,                &
+                               mol_order,            &
+                               logspace,             &
+                               ndf_wt,               &
+                               undf_wt,              &
+                               map_wt,               &
+                               ndf_w2,               &
+                               undf_w2,              &
+                               map_w2,               &
+                               ndf_c,                &
+                               undf_c,               &
+                               map_c )
+    ! Now do reconstruction with tiny density as a control
+    density(:) = EPS
+    flux_answer(:) = 0.0_r_def
+    call poly1d_vert_adv_code( nlayers,              &
+                               flux_answer,          &
+                               wind,                 &
+                               density,              &
+                               coeff,                &
+                               ndata,                &
+                               mol_order,            &
+                               logspace,             &
+                               ndf_wt,               &
+                               undf_wt,              &
+                               map_wt,               &
+                               ndf_w2,               &
+                               undf_w2,              &
+                               map_w2,               &
+                               ndf_c,                &
+                               undf_c,               &
+                               map_c )
+
+    @assertEqual(flux_answer, flux, use_tol)
 
   end subroutine test_all
 

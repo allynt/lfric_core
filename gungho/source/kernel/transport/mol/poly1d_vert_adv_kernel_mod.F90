@@ -25,7 +25,7 @@ use argument_mod,         only : arg_type, func_type,   &
                                  GH_BASIS, CELL_COLUMN, &
                                  GH_EVALUATOR,          &
                                  ANY_DISCONTINUOUS_SPACE_1
-use constants_mod,        only : r_def, i_def, l_def
+use constants_mod,        only : r_def, i_def, l_def, EPS
 use fs_continuity_mod,    only : W2, Wtheta
 use kernel_mod,           only : kernel_type
 
@@ -138,7 +138,7 @@ subroutine poly1d_vert_adv_code( nlayers,              &
   ! TODO #3290: if tracer is zero this could cause problems
   if ( logspace ) then
     do k = 0, nlayers
-      log_tracer(k) = log(abs(tracer(ij+k)))
+      log_tracer(k) = log(max(EPS,abs(tracer(ij+k))))
     end do
   end if
 

@@ -7,7 +7,7 @@
 !> Test the vertical edge_values computed for a w3-field using the Koren scheme
 module polyv_w3_koren_kernel_mod_test
 
-  use constants_mod, only : i_def, r_def, l_def
+  use constants_mod, only : i_def, r_def, l_def, EPS
   use pFUnit_Mod
 
   implicit none
@@ -142,7 +142,7 @@ contains
 
     logspace = .true.
     density(:) = exp(density(:))
-    edge_density(:)=exp(edge_density(:))
+    edge_density(:) = exp(edge_density(:))
     edge_values_answer(:) =  0.0_r_def
     do k = 0, nlayers
        edge_values_answer(map_w2(5)+k) = edge_density(k+1)
@@ -173,6 +173,46 @@ contains
       answerk =        edge_values(map_w2(5)+k)
       @assertEqual(answerh, answerk, use_tol )
     end do
+
+    ! ------------------------------------------------------------------------ !
+    ! Test that zero values don't cause blow up
+    ! ------------------------------------------------------------------------ !
+
+    ! Do reconstruction with zero density
+    density(:) = 0.0_r_def
+    edge_values(:) = 0.0_r_def
+    call polyv_w3_koren_code( nlayers,            &
+                              edge_values,        &
+                              wind,               &
+                              density,            &
+                              ndata,              &
+                              logspace,           &
+                              ndf_w2,             &
+                              undf_w2,            &
+                              map_w2,             &
+                              basis_w2,           &
+                              ndf_w3,             &
+                              undf_w3,            &
+                              map_w3              )
+
+    ! Now do reconstruction with tiny density as a control
+    density(:) = EPS
+    edge_values_answer(:) = 0.0_r_def
+    call polyv_w3_koren_code( nlayers,            &
+                              edge_values_answer, &
+                              wind,               &
+                              density,            &
+                              ndata,              &
+                              logspace,           &
+                              ndf_w2,             &
+                              undf_w2,            &
+                              map_w2,             &
+                              basis_w2,           &
+                              ndf_w3,             &
+                              undf_w3,            &
+                              map_w3              )
+
+    @assertEqual(edge_values_answer, edge_values, use_tol )
 
   end subroutine test_all
 

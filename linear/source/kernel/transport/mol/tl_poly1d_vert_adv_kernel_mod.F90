@@ -14,7 +14,7 @@ use argument_mod,         only : arg_type, CELL_COLUMN, &
                                  GH_LOGICAL,            &
                                  GH_READWRITE, GH_READ, &
                                  ANY_DISCONTINUOUS_SPACE_1
-use constants_mod,        only : r_def, i_def, l_def
+use constants_mod,        only : r_def, i_def, l_def, EPS
 use fs_continuity_mod,    only : W2, Wtheta
 use kernel_mod,           only : kernel_type
 
@@ -126,7 +126,7 @@ subroutine tl_poly1d_vert_adv_code( nlayers,              &
 
   integer(kind=i_def), dimension(global_order+1) :: stencil
 
-  real(kind=r_def) :: dpdz, ls_dpdz
+  real(kind=r_def) :: dpdz, ls_dpdz, safe_ls_tracer
   real(kind=r_def), dimension(0:nlayers) :: ls_log_tracer
 
   ij = map_wt(1)
@@ -143,7 +143,7 @@ subroutine tl_poly1d_vert_adv_code( nlayers,              &
   ! in the haloes
   if ( logspace ) then
     do k = 0, nlayers
-      ls_log_tracer(k) = log(abs(ls_tracer(ij+k)))
+      ls_log_tracer(k) = log(max(EPS,abs(ls_tracer(ij+k))))
     end do
   end if
 
@@ -183,11 +183,15 @@ subroutine tl_poly1d_vert_adv_code( nlayers,              &
       ! dp/dz = p * d(log(p))/dz
       do p = 1, vertical_order + 1
         ik = p + upwind_offset*(global_order+1) + k*ndata + map_c(1) - 1
-        dpdz = dpdz + coeff(ik)*tracer(ij + stencil(p))/ls_tracer(ij + stencil(p))
+        dpdz = dpdz + coeff(ik)*tracer(ij + stencil(p)) / &
+          ! This is a safe version of ls_tracer
+          sign(max(EPS,abs(ls_tracer(ij + stencil(p)))), ls_tracer(ij + stencil(p)))
         ls_dpdz = ls_dpdz + coeff(ik)*ls_log_tracer(stencil(p))
       end do
-      dpdz = ls_tracer(ij + k)*dpdz + tracer(ij + k)*ls_dpdz
-      ls_dpdz = ls_tracer(ij + k)*ls_dpdz
+      ! Need to use same safe ls_tracer here
+      safe_ls_tracer = sign(max(EPS,abs(ls_tracer(ij + k))), ls_tracer(ij + k))
+      dpdz = safe_ls_tracer*dpdz + tracer(ij + k)*ls_dpdz
+      ls_dpdz = safe_ls_tracer*ls_dpdz
     else
       do p = 1, vertical_order + 1
         ik = p + upwind_offset*(global_order+1) + k*ndata + map_c(1) - 1

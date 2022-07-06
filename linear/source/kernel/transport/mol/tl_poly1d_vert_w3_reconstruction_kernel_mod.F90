@@ -21,7 +21,7 @@ use argument_mod,      only : arg_type, func_type,         &
                               GH_INC, GH_READ, GH_BASIS,   &
                               CELL_COLUMN,                 &
                               ANY_DISCONTINUOUS_SPACE_1
-use constants_mod,     only : r_def, i_def, l_def
+use constants_mod,     only : r_def, i_def, l_def, EPS
 use fs_continuity_mod, only : W2, W3
 use kernel_mod,        only : kernel_type
 
@@ -181,9 +181,11 @@ subroutine tl_poly1d_vert_w3_reconstruction_code(                      &
       do p = 1, vertical_order + 1
         ik = p + upwind_offset*(global_order+1) + k*ndata + map_c(1) - 1
         polynomial_tracer = polynomial_tracer &
-                          + coeff(ik)*tracer(ij + stencil(p))/ls_tracer(ij + stencil(p))
+          + coeff(ik)*tracer(ij + stencil(p)) / &
+            sign(max(EPS,ls_tracer(ij + stencil(p))),ls_tracer(ij + stencil(p)))
 
-        ls_polynomial_tracer = ls_polynomial_tracer * abs(ls_tracer(ij + stencil(p)))**coeff(ik)
+        ls_polynomial_tracer = ls_polynomial_tracer * &
+            max(EPS,abs(ls_tracer(ij + stencil(p))))**coeff(ik)
       end do
       polynomial_tracer = polynomial_tracer * ls_polynomial_tracer
 

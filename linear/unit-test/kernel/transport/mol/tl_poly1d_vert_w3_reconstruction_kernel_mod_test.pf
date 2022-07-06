@@ -7,7 +7,7 @@
 !>@brief Test the TL vertical reconstruction using 1d polynomials
 module tl_poly1d_vert_w3_reconstruction_kernel_mod_test
 
-  use constants_mod, only : i_def, r_def, l_def
+  use constants_mod, only : i_def, r_def, l_def, EPS
   use pFUnit_Mod
 
   use, intrinsic :: iso_fortran_env,  only: real64
@@ -18,7 +18,8 @@ module tl_poly1d_vert_w3_reconstruction_kernel_mod_test
 
   private
   public :: test_standard, &
-            test_logspace
+            test_logspace, &
+            test_log_zero
 
   @TestCase
   type, extends(TestCase), public :: tl_poly1d_vert_w3_reconstruction_test_type
@@ -35,12 +36,14 @@ module tl_poly1d_vert_w3_reconstruction_kernel_mod_test
     real(r_def), allocatable :: ls_wind(:)
     real(r_def), allocatable :: ls_density(:)
     real(r_def), allocatable :: coeff(:)
+    real(r_def), allocatable :: recon_answer(:)
 
   contains
     procedure setUp
     procedure tearDown
     procedure test_standard
     procedure test_logspace
+    procedure test_log_zero
 
   end type tl_poly1d_vert_w3_reconstruction_test_type
 
@@ -73,6 +76,7 @@ contains
     allocate(this%map_w3(ndf_w3))
     allocate(this%map_c(ndf_c))
     allocate(this%recon(undf_w2))
+    allocate(this%recon_answer(undf_w2))
     allocate(this%density(undf_w3))
     allocate(this%ls_wind(undf_w2))
     allocate(this%ls_density(undf_w3))
@@ -123,6 +127,7 @@ contains
     deallocate(this%ls_wind)
     deallocate(this%ls_density)
     deallocate(this%coeff)
+    deallocate(this%recon_answer)
 
   end subroutine tearDown
 
@@ -233,5 +238,83 @@ contains
     end if
 
   end subroutine test_logspace
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  @Test
+  subroutine test_log_zero( this )
+
+    implicit none
+
+    class(tl_poly1d_vert_w3_reconstruction_test_type), intent(inout) :: this
+
+    integer(i_def) :: df, k
+    logical(l_def) :: logspace
+
+    ! Test interpolation in log-space with zero values doesn't cause problems
+
+    this%recon = 0.0_r_def
+    this%recon_answer = 0.0_r_def
+
+    this%ls_wind(:) = 1.0_r_def
+
+    do k = 1,nlayers
+      this%density(k) = exp(-real(k,r_def)+0.5_r_def)
+    end do
+
+    logspace = .true.
+    this%ls_density(:) = 0.0_r_def
+
+    call tl_poly1d_vert_w3_reconstruction_code(                       &
+                                   nlayers,                           &
+                                   this%recon,                        &
+                                   this%density,                      &
+                                   this%ls_wind,                      &
+                                   this%ls_density,                   &
+                                   this%coeff,                        &
+                                   ndata,                             &
+                                   mol_order,                         &
+                                   logspace,                          &
+                                   ndf_w2,                            &
+                                   undf_w2,                           &
+                                   this%map_w2,                       &
+                                   ndf_w3,                            &
+                                   undf_w3,                           &
+                                   this%map_w3,                       &
+                                   ndf_c,                             &
+                                   undf_c,                            &
+                                   this%map_c)
+
+    this%ls_density(:) = EPS
+
+    call tl_poly1d_vert_w3_reconstruction_code(                       &
+                                   nlayers,                           &
+                                   this%recon_answer,                 &
+                                   this%density,                      &
+                                   this%ls_wind,                      &
+                                   this%ls_density,                   &
+                                   this%coeff,                        &
+                                   ndata,                             &
+                                   mol_order,                         &
+                                   logspace,                          &
+                                   ndf_w2,                            &
+                                   undf_w2,                           &
+                                   this%map_w2,                       &
+                                   ndf_w3,                            &
+                                   undf_w3,                           &
+                                   this%map_w3,                       &
+                                   ndf_c,                             &
+                                   undf_c,                            &
+                                   this%map_c)
+
+    if ( r_def == real64 ) then
+      this%use_tol = tol
+    else
+      this%use_tol = 10.0_r_def*spacing( this%recon_answer(this%map_w2(5)+2) )
+    end if
+
+    @assertEqual(this%recon_answer, this%recon, this%use_tol)
+
+  end subroutine test_log_zero
 
 end module tl_poly1d_vert_w3_reconstruction_kernel_mod_test

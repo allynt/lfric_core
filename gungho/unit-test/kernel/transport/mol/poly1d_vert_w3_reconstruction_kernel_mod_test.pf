@@ -8,7 +8,7 @@
 !> (valid for lowest order quadrilateral elements)
 module poly1d_vert_w3_reconstruction_kernel_mod_test
 
-  use constants_mod, only : i_def, r_def, l_def
+  use constants_mod, only : i_def, r_def, l_def, EPS
   use pFUnit_Mod
 
   implicit none
@@ -58,6 +58,7 @@ contains
 
 
     real(r_def), dimension(undf_w2) :: reconstruction
+    real(r_def), dimension(undf_w2) :: reconstruct_answer
     real(r_def), dimension(undf_w2) :: wind
     real(r_def), dimension(undf_w3) :: density
     real(r_def), dimension(undf_c)  :: coeff
@@ -159,6 +160,54 @@ contains
     @assertEqual(answer, reconstruction(map_w2(5)+1), use_tol)
     answer = exp(-2.0_r_def)
     @assertEqual(answer, reconstruction(map_w2(5)+2), use_tol)
+
+    ! ------------------------------------------------------------------------ !
+    ! Test that zero values don't cause blow up
+    ! ------------------------------------------------------------------------ !
+
+    ! Do reconstruction with zero density
+    density(:) = 0.0_r_def
+    reconstruction(:) = 0.0_r_def
+    call poly1d_vert_w3_reconstruction_code( nlayers,                          &
+                                             reconstruction,                   &
+                                             wind,                             &
+                                             density,                          &
+                                             coeff,                            &
+                                             ndata,                            &
+                                             mol_order,                        &
+                                             logspace,                         &
+                                             ndf_w2,                           &
+                                             undf_w2,                          &
+                                             map_w2,                           &
+                                             ndf_w3,                           &
+                                             undf_w3,                          &
+                                             map_w3,                           &
+                                             ndf_c,                            &
+                                             undf_c,                           &
+                                             map_c)
+
+    ! Now do reconstruction with tiny density as a control
+    density(:) = EPS
+    reconstruct_answer(:) = 0.0_r_def
+    call poly1d_vert_w3_reconstruction_code( nlayers,                          &
+                                             reconstruct_answer,               &
+                                             wind,                             &
+                                             density,                          &
+                                             coeff,                            &
+                                             ndata,                            &
+                                             mol_order,                        &
+                                             logspace,                         &
+                                             ndf_w2,                           &
+                                             undf_w2,                          &
+                                             map_w2,                           &
+                                             ndf_w3,                           &
+                                             undf_w3,                          &
+                                             map_w3,                           &
+                                             ndf_c,                            &
+                                             undf_c,                           &
+                                             map_c)
+
+    @assertEqual(reconstruction, reconstruct_answer, use_tol)
 
   end subroutine test_all
 

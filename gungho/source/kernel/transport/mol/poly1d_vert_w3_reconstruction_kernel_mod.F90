@@ -27,7 +27,7 @@ use argument_mod,      only : arg_type,                    &
                               GH_INC, GH_READ,             &
                               CELL_COLUMN,                 &
                               ANY_DISCONTINUOUS_SPACE_1
-use constants_mod,     only : r_def, i_def, l_def
+use constants_mod,     only : r_def, i_def, l_def, EPS
 use fs_continuity_mod, only : W2, W3
 use kernel_mod,        only : kernel_type
 
@@ -180,7 +180,7 @@ subroutine poly1d_vert_w3_reconstruction_code( nlayers,                         
       ! in the haloes
       do p = 1, vertical_order + 1
         ik = p + upwind_offset*(global_order+1) + k*ndata + map_c(1) - 1
-        new_tracer = new_tracer * abs(tracer(ij + stencil(p)))**coeff(ik)
+        new_tracer = new_tracer * max(EPS,abs(tracer(ij + stencil(p))))**coeff(ik)
       end do
     else
       new_tracer = 0.0_r_def
