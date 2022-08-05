@@ -11,6 +11,9 @@
 
 module gungho_step_mod
 
+  use checks_config_mod,              only : energy_correction,      &
+                                             energy_correction_none, &
+                                             correction_hours
   use clock_mod,                      only : clock_type
   use conservation_algorithm_mod,     only : conservation_algorithm
   use constants_mod,                  only : i_def, r_def, l_def
@@ -23,24 +26,31 @@ module gungho_step_mod
   use gungho_model_data_mod,          only : model_data_type
   use io_config_mod,                  only : write_conservation_diag, &
                                              write_minmax_tseries
-  use log_mod,                        only : LOG_LEVEL_INFO
-  use log_mod,                        only : log_event, &
+  use log_mod,                        only : log_event,         &
                                              log_scratch_space, &
-                                             LOG_LEVEL_INFO, &
+                                             LOG_LEVEL_DEBUG,   &
+                                             LOG_LEVEL_INFO,    &
                                              LOG_LEVEL_TRACE
 
   use mesh_mod,                       only : mesh_type
   use minmax_tseries_mod,             only : minmax_tseries
   use mr_indices_mod,                 only : nummr
   use semi_implicit_timestep_alg_mod, only : semi_implicit_alg_step
+  use sum_fluxes_alg_mod,             only : sum_fluxes_alg
   use moist_dyn_mod,                  only : num_moist_factors
   use moisture_conservation_alg_mod,  only : moisture_conservation_alg
   use moisture_fluxes_alg_mod,        only : moisture_fluxes_alg
+  use planet_config_mod,              only : radius
   use rk_alg_timestep_mod,            only : rk_alg_step
   use timestepping_config_mod,        only : method, &
                                              method_semi_implicit, &
                                              method_rk,            &
                                              method_no_timestepping
+  use update_energy_correction_alg_mod,                                   &
+                                      only : update_energy_correction_alg
+  use scalar_to_field_alg_mod,        only : scalar_to_field_alg
+  use calc_total_energy_alg_mod,      only : calc_total_energy_alg
+  use calc_total_mass_alg_mod,        only : calc_total_mass_alg
 
   implicit none
 
@@ -91,9 +101,11 @@ module gungho_step_mod
     type( field_type), pointer :: rho => null()
     type( field_type), pointer :: exner => null()
     type( field_type), pointer :: dA => null()  ! Areas of faces
+    type( field_type), pointer :: accumulated_fluxes => null()
+    type( field_type), pointer :: temp_correction_field => null()
 
-    real(r_def) :: dt
-
+    real( r_def )      :: dt
+    real( r_def )      :: dtemp_encorr
     logical(l_def) :: use_moisture
 
     write( log_scratch_space, '("/", A, "\ ")' ) repeat( "*", 76 )
@@ -136,6 +148,9 @@ module gungho_step_mod
     ! Get timestep parameters from clock
     dt = real(clock%get_seconds_per_step(), r_def)
 
+    ! Get temperature increment for energy correction
+    dtemp_encorr = dt * model_data%temperature_correction_rate
+
     select case( method )
       case( method_semi_implicit )  ! Semi-Implicit
         call semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn,       &
@@ -147,7 +162,7 @@ module gungho_step_mod
                                     cloud_fields, surface_fields,              &
                                     soil_fields, snow_fields,                  &
                                     chemistry_fields, aerosol_fields,          &
-                                    lbc_fields, clock, mesh,                   &
+                                    lbc_fields, clock, dtemp_encorr, mesh,   &
                                     twod_mesh)
       case( method_rk )             ! RK
         call rk_alg_step(u, rho, theta, moist_dyn, exner, mr, dt )
@@ -159,7 +174,45 @@ module gungho_step_mod
 
     end select
 
+    if ( energy_correction /= energy_correction_none ) then
+      accumulated_fluxes => derived_fields%get_field('accumulated_fluxes')
+      ! temperature_correction_rate is stored in this field so that it
+      ! maybe written to checkpoint file
+      temp_correction_field => derived_fields%get_field('temp_correction_field')
+      call sum_fluxes_alg( accumulated_fluxes,         &
+                           radiation_fields,     &
+                           turbulence_fields,    &
+                           convection_fields,    &
+                           microphysics_fields )
+      if ( mod( nint( dt * clock%get_step() ),              &
+                3600_i_def * correction_hours ) == 0 ) then
+
+        ! Total mass of dry atmosphere
+        call calc_total_mass_alg( model_data%total_dry_mass, rho, &
+                                  mesh, twod_mesh )
+
+        call calc_total_energy_alg( model_data%derived_fields, exner, rho, mr, &
+                                    mesh, twod_mesh, model_data%total_energy )
+
+        call update_energy_correction_alg(                                     &
+                                       model_data%temperature_correction_rate, &
+                                       accumulated_fluxes,                     &
+                                       model_data%total_dry_mass, dt,          &
+                                       mesh, twod_mesh,                        &
+                                       model_data%total_energy,                &
+                                       model_data%total_energy_previous )
+
+        call scalar_to_field_alg(model_data%temperature_correction_rate, &
+                                 temp_correction_field)
+      end if
+
+    end if
+
     if ( write_conservation_diag ) then
+
+      write(log_scratch_space, '(''fd total_mass = '', E32.24)') model_data%total_dry_mass
+      call log_event( log_scratch_space, LOG_LEVEL_DEBUG )
+
       call conservation_algorithm( rho,              &
                                    u,                &
                                    theta,            &

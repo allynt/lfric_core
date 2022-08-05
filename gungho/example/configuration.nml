@@ -344,6 +344,8 @@ phi_centre_dec      = 0.0
 /
 
 &checks
+  correction_hours = 24
+  energy_correction = 'none'
   limit_cfl = .false.
   max_cfl   = 0.75
 /

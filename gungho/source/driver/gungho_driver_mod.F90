@@ -94,7 +94,7 @@ contains
     call create_model_data( model_data, mesh, twod_mesh )
 
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data )
+    call initialise_model_data( model_data, mesh, twod_mesh )
 
     ! Initial output
     io_context => get_io_context()

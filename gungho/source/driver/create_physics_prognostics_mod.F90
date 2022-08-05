@@ -7,6 +7,8 @@
 !> @details Creates the physics prognostic fields
 module create_physics_prognostics_mod
 
+  use checks_config_mod,              only : energy_correction,     &
+                                             energy_correction_none
   use clock_mod,                      only : clock_type
   use constants_mod,                  only : i_def, l_def
   use field_mod,                      only : field_type
@@ -135,7 +137,6 @@ contains
     ! pointers to vector spaces
 #ifdef UM_PHYSICS
     type(function_space_type), pointer :: vector_space => null()
-    type(function_space_type), pointer :: twod_space => null()
     type(function_space_type), pointer :: surft_space => null()
     type(function_space_type), pointer :: pft_space => null()
     type(function_space_type), pointer :: soil_space => null()
@@ -144,6 +145,7 @@ contains
     type(function_space_type), pointer :: h_ang_space => null()
     type(function_space_type), pointer :: h_asp_space => null()
 #endif
+    type(function_space_type), pointer :: twod_space => null()
     type(function_space_type), pointer :: wtheta_space => null()
     type(function_space_type), pointer :: w3_space => null()
     type(function_space_type), pointer :: w2_space => null()
@@ -178,8 +180,8 @@ contains
     w3_space => function_space_collection%get_fs(mesh, 0, W3)
     w2_space => function_space_collection%get_fs(mesh, 0, W2)
     w2h_space => function_space_collection%get_fs(mesh, 0, W2H)
-#ifdef UM_PHYSICS
     twod_space  => function_space_collection%get_fs(twod_mesh, 0, W3)
+#ifdef UM_PHYSICS
     surft_space => function_space_collection%get_fs(twod_mesh, 0, W3,          &
          get_ndata_val('surface_tiles'))
     pft_space   => function_space_collection%get_fs(twod_mesh, 0, W3,          &
@@ -284,6 +286,20 @@ contains
     call add_physics_field( derived_fields, depository, prognostic_fields,     &
       adv_fields_last_outer, &
       'v_in_w2h',      w2h_space )
+
+    ! 2D fields
+    if ( energy_correction /= energy_correction_none ) then
+      call add_physics_field( derived_fields, depository,               &
+                              prognostic_fields, adv_fields_last_outer, &
+                              'temp_correction_field',                  &
+                              twod_space, twod = .true.,                &
+                              checkpoint_flag = .true. )
+
+      call add_physics_field( derived_fields, depository,               &
+                              prognostic_fields, adv_fields_last_outer, &
+                              'accumulated_fluxes',                     &
+                              twod_space, twod = .true. )
+    end if
 
 #ifdef UM_PHYSICS
     !========================================================================

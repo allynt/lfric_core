@@ -118,6 +118,7 @@ module tl_test_semi_imp_alg_mod
     real(r_def) :: norm_diff, norm_diff_prev
 
     real(r_def), parameter :: tol = 5.e-1_r_def
+    real(r_def), parameter :: dtemp_encorr = 0.0_r_def
 
     integer :: n, i
 
@@ -238,7 +239,7 @@ module tl_test_semi_imp_alg_mod
                                 soil_fields, snow_fields,                    &
                                 chemistry_fields,                            &
                                 aerosol_fields, lbc_fields,                  &
-                                clock, mesh, twod_mesh)
+                                clock, dtemp_encorr, mesh, twod_mesh)
 
     call semi_implicit_alg_final()
 
@@ -297,7 +298,7 @@ module tl_test_semi_imp_alg_mod
                                   soil_fields, snow_fields,                   &
                                   chemistry_fields,                           &
                                   aerosol_fields, lbc_fields,                 &
-                                  clock, mesh, twod_mesh)
+                                  clock, dtemp_encorr, mesh, twod_mesh)
 
       call semi_implicit_alg_final()
 

@@ -22,7 +22,10 @@ module gungho_model_data_mod
   use log_mod,                            only : log_event,       &
                                                  LOG_LEVEL_INFO,  &
                                                  LOG_LEVEL_ERROR, &
+                                                 LOG_LEVEL_DEBUG, &
                                                  log_scratch_space
+  use base_mesh_config_mod,               only : geometry,          &
+                                                 geometry_spherical
   use mesh_mod,                           only : mesh_type
   use files_config_mod,                   only : checkpoint_stem_name
   use formulation_config_mod,             only : use_physics
@@ -77,6 +80,16 @@ module gungho_model_data_mod
   use linked_list_mod,                    only : linked_list_type, &
                                                  linked_list_item_type
   use driver_io_mod,                      only : get_clock
+  use checks_config_mod,                  only : energy_correction,      &
+                                                 energy_correction_none
+  use calc_total_energy_alg_mod,          only : calc_total_energy_alg
+  use calc_total_mass_alg_mod,            only : calc_total_mass_alg
+  use compute_column_integral_kernel_mod,                                            &
+                                          only : compute_column_integral_kernel_type
+  use geometric_constants_mod,            only : get_height
+  use planet_config_mod,                  only : radius
+  use scalar_to_field_alg_mod,            only : scalar_to_field_alg
+  use field_to_scalar_alg_mod,            only : field_to_scalar_alg
 
   implicit none
 
@@ -157,6 +170,15 @@ module gungho_model_data_mod
     !> Linked list of time axis objects used to update time-varying
     !> linearisation state
     type( linked_list_type ),      public   :: ls_times_list
+
+    !> Rate of temperature adjustment for energy correction
+    real( kind=r_def ), public :: temperature_correction_rate
+    !> Total mass of dry atmosphere used for energy correction
+    real( kind=r_def ), public :: total_dry_mass
+    !> Total energy of moist atmosphere for calculating energy correction
+    real( kind=r_def ), public :: total_energy
+    !> Total energy of moist atmosphere at previous energy correction step
+    real( kind=r_def ), public :: total_energy_previous
 
     contains
 
@@ -280,11 +302,13 @@ contains
   !-------------------------------------------------------------------------------
   !> @brief Initialises the working data set dependent of namelist configuration
   !> @param [inout] model_data The working data set for a model run
-  subroutine initialise_model_data( model_data )
+  subroutine initialise_model_data( model_data, mesh, twod_mesh )
 
     implicit none
 
     type( model_data_type ), intent(inout) :: model_data
+    type( mesh_type ), intent(in), pointer :: mesh
+    type( mesh_type ), intent(in), pointer :: twod_mesh
 
     class(clock_type), pointer :: clock => null()
 
@@ -292,6 +316,8 @@ contains
     type( field_type ), pointer :: rho   => null()
     type( field_type ), pointer :: u     => null()
     type( field_type ), pointer :: exner => null()
+    type( field_type ), pointer :: temp_correction_field => null()
+    type( field_type ), pointer :: accumulated_fluxes    => null()
 
     clock => get_clock()
 
@@ -405,6 +431,17 @@ contains
       theta  => model_data%prognostic_fields%get_field('theta')
       exner  => model_data%prognostic_fields%get_field('exner')
       rho    => model_data%prognostic_fields%get_field('rho')
+
+      if ( energy_correction /= energy_correction_none ) then
+        if ( geometry /= geometry_spherical ) then
+          write(log_scratch_space, '(a)')                       &
+          'Energy correction valid for spherical geometry only.'
+          call log_event(log_scratch_space, log_level_error)
+        end if
+        temp_correction_field => model_data%derived_fields%get_field('temp_correction_field')
+        accumulated_fluxes => model_data%derived_fields%get_field('accumulated_fluxes')
+      end if
+
       if (clock%is_spinning_up()) then
         call set_any_dof_alg(u, T, 0.0_r_def)
       end if
@@ -442,6 +479,35 @@ contains
           call log_event("Gungho: No valid ancillary initialisation option selected, "// &
                           "stopping program! ",LOG_LEVEL_ERROR)
       end select
+
+      ! Initialise energy correction
+      if ( energy_correction /= energy_correction_none ) then
+
+        ! Total mass of dry atmosphere
+        call calc_total_mass_alg( model_data%total_dry_mass, rho, &
+                                  mesh, twod_mesh )
+
+        ! Total energy
+        call calc_total_energy_alg( model_data%derived_fields, exner, rho,              &
+                                    model_data%mr,                                      &
+                                    mesh, twod_mesh, model_data%total_energy_previous )
+
+        ! Initialise flux sum to zero
+        call scalar_to_field_alg(0.0_r_def, accumulated_fluxes)
+
+        if ( checkpoint_read ) then
+          ! Read scalar temperature_correction_rate from checkponted field
+          ! temp_correction_field
+          call field_to_scalar_alg(model_data%temperature_correction_rate, &
+                                   temp_correction_field)
+          write(log_scratch_space, '(''restart_temperature_correction_rate = '', e30.22)') &
+               model_data%temperature_correction_rate
+          call log_event(log_scratch_space, LOG_LEVEL_DEBUG)
+        else
+          model_data%temperature_correction_rate = 0.0_r_def
+        end if
+
+      end if
 
     end if
 

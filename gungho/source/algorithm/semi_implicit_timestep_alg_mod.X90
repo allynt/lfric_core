@@ -306,6 +306,8 @@ contains
   !> @param[in,out] aerosol_fields         Fields for aerosol scheme
   !> @param[in,out] lbc_fields             Fields for lateral boundaries
   !> @param[in]     clock                  Model time
+  !> @param[in]     dtemp_encorr           Temperature increment for energy
+  !>                                       correction
   !> @param[in]     mesh                   The current mesh
   !> @param[in]     twod_mesh              The current 2d mesh
   subroutine semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn,       &
@@ -316,7 +318,7 @@ contains
                                     cloud_fields, surface_fields, soil_fields, &
                                     snow_fields, chemistry_fields,             &
                                     aerosol_fields, lbc_fields,                &
-                                    clock, mesh, twod_mesh)
+                                    clock, dtemp_encorr, mesh, twod_mesh)
 
     implicit none
 
@@ -342,6 +344,8 @@ contains
     type( field_collection_type ), intent( inout ) :: lbc_fields
 
     class(clock_type), intent(in) :: clock
+
+    real(kind=r_def), intent(in)  :: dtemp_encorr
 
     type(mesh_type), intent(in), pointer :: mesh
     type(mesh_type), intent(in), pointer :: twod_mesh
@@ -431,7 +435,7 @@ contains
                         turbulence_fields, convection_fields, cloud_fields,    &
                         surface_fields, soil_fields, snow_fields,              &
                         chemistry_fields, aerosol_fields, clock, dt,           &
-                        mesh, twod_mesh )
+                        dtemp_encorr, mesh, twod_mesh )
       call invoke(name="update_from_slow_physics",                             &
                   inc_X_plus_Y(state_after_slow(igh_t), dtheta),               &
                   inc_X_plus_Y(state_after_slow(igh_u), du)                    &

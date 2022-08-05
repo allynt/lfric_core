@@ -313,6 +313,8 @@
 	<field id="w_in_w3_star" name="w_in_w3_star" long_name="physics_predictor_upward_air_velocity_at_cell_centres" unit="ms-1" grid_ref="half_level_face_grid" />
 	<field id="height_w3" name="height_w3" long_name="height_of_cell_centres_above_earth_radius" unit="m" grid_ref="half_level_face_grid" />
 	<field id="height_wth" name="height_wth" long_name="height_of_cell_interfaces_above_earth_radius" unit="m" grid_ref="full_level_face_grid" />
+	<field id="t_rate_encorr" name="t_rate_encorr" long_name="temperature_rate_for_energy_correction" unit="K s-1" domain_ref="face" />
+	<field id="accumulated_fluxes" name="accumulated_fluxes" long_name="accumulated_energy_fluxes" unit="W m-2" domain_ref="face" />
 	<!-- chemistry diagnostics -->
 	<field id="chemistry__h2o2" name="h2o2" long_name="hydrogen_peroxide_mmr" unit="kg kg-1" grid_ref="full_level_face_grid" />
 	<field id="chemistry__dms" name="dms" long_name="dimethyl_sulfide_mmr" unit="kg kg-1" grid_ref="full_level_face_grid" />
@@ -1087,6 +1089,8 @@
 	<field field_ref="v_in_w3" />
 	<field field_ref="w_in_wth" />
 	<field field_ref="divergence" />
+        <field field_ref="t_rate_encorr" />
+        <field field_ref="accumulated_fluxes" />
 	<field field_ref="cloud__cloud_amount_maxrnd" />
 	<field field_ref="cloud__combined_cloud_amount" />
 	<field field_ref="surface__tile_fraction" />

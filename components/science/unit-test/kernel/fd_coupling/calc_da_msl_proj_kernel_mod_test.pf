@@ -1,0 +1,106 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2022 Met Office. All rights reserved.
+! For further details please refer to the file COPYRIGHT.txt
+! which you should have received as part of this distribution.
+!-----------------------------------------------------------------------------
+
+!> Tests the calc_da_msl_proj kernel
+module calc_da_msl_proj_kernel_mod_test
+
+  use constants_mod,         only : i_def, r_def
+  use pFUnit_Mod
+
+  implicit none
+
+  private
+  public :: test_all
+
+  @TestCase
+  type, extends(TestCase), public :: calc_da_msl_proj_kernel_test_type
+    private
+  contains
+    procedure test_all
+  end type calc_da_msl_proj_kernel_test_type
+
+contains
+
+  @test
+  subroutine test_all( this )
+
+    use, intrinsic :: iso_fortran_env, only : real64
+    use calc_da_msl_proj_kernel_mod,   only : calc_da_msl_proj_code
+
+    implicit none
+
+    class(calc_da_msl_proj_kernel_test_type), intent(inout) :: this
+
+    real(kind=r_def), parameter :: tol = 1.0e-9_r_def   ! r_def 64bit
+    real(kind=r_def), parameter :: tol32 = 1.0e-4_r_def ! r_def 32bit
+    real(r_def)                 :: use_tol
+
+    ! Mesh
+    integer(kind=i_def), parameter         :: nlayers = 3_i_def
+    integer(kind=i_def), parameter         :: ndf_w2 = 5_i_def
+    integer(kind=i_def), parameter         :: ndf_2d = 1_i_def
+    integer(kind=i_def), parameter         :: undf_w2 = nlayers + 1_i_def
+    integer(kind=i_def), parameter         :: undf_2d = 1_i_def
+    integer(kind=i_def), dimension(ndf_2d) :: map_2d
+    integer(kind=i_def), dimension(ndf_w2) :: map_w2
+    real(kind=r_def),    dimension(undf_w2):: dA_at_w2
+    real(kind=r_def),    dimension(undf_2d):: dA_msl_proj
+
+    integer(kind=i_def) :: k, geometry
+    real(kind=r_def)    :: dz, ans_a_msl_proj
+
+    integer(kind=i_def), parameter :: geometry_spherical = 1
+    real(kind=r_def),    parameter :: domain_top = 100.0e3_r_def
+    real(kind=r_def),    parameter :: radius = 6000.0e3_r_def
+    real(kind=r_def),    parameter :: four_pi = 12.0_r_def
+
+    map_2d = 1_i_def
+    map_w2(0:4) = 0_i_def
+    map_w2(5) = 1_i_def
+
+    dz = domain_top / nlayers
+
+    ! Test spherical geometry
+    geometry = geometry_spherical
+    do k = 0, nlayers
+      dA_at_w2(k+1) = four_pi * (radius + k * dz ) ** 2_i_def
+    end do
+
+    call calc_da_msl_proj_code( nlayers,                      &
+                                dA_at_w2, dA_msl_proj,        &
+                                radius, domain_top,           &
+                                geometry, geometry_spherical, &
+                                ndf_w2, undf_w2, map_w2,      &
+                                ndf_2d, undf_2d, map_2d )
+
+    ans_a_msl_proj = four_pi * radius ** 2_i_def
+
+    if ( r_def == real64 ) then
+      use_tol = tol * ans_a_msl_proj
+    else
+      use_tol = tol32 * ans_a_msl_proj
+    end if
+
+    @assertEqual(ans_a_msl_proj, dA_msl_proj(map_2d(1)), use_tol)
+
+    ! Test Cartesian geometry
+    geometry = geometry_spherical + 1_i_def
+    ! Use a smaller area, to distinguish this test from the one above
+    dA_at_w2(:) = four_pi
+
+    call calc_da_msl_proj_code( nlayers,                      &
+                                dA_at_w2, dA_msl_proj,        &
+                                radius, domain_top,           &
+                                geometry, geometry_spherical, &
+                                ndf_w2, undf_w2, map_w2,      &
+                                ndf_2d, undf_2d, map_2d )
+
+    ans_a_msl_proj = four_pi
+    @assertEqual(ans_a_msl_proj, dA_msl_proj(map_2d(1)), use_tol)
+
+  end subroutine test_all
+
+end module calc_da_msl_proj_kernel_mod_test

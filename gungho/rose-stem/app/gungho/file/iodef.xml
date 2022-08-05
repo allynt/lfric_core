@@ -236,7 +236,6 @@
        </file>
 
       <file id="lfric_diag" name="lfric_diag" output_freq="6h" convention="UGRID" enabled=".TRUE.">
-	<field_group group_ref="derived_fields" />
         <field field_ref="theta"/>
         <field field_ref="m_v"/>
         <field field_ref="m_cl"/>

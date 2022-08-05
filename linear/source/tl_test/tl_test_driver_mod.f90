@@ -107,7 +107,7 @@ contains
 
     ! Initialise the fields stored in the model_data prognostics. This needs
     ! to be done before initialise_model.
-    call initialise_model_data( model_data )
+    call initialise_model_data( model_data, mesh, twod_mesh )
 
     ! Model configuration initialisation
     call initialise_model( mesh,  &

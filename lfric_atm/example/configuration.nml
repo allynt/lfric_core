@@ -34,6 +34,7 @@ sg_orog_mixing='none',
 limited_area=.false.,
 /
 &checks
+energy_correction='none',
 limit_cfl=.false.,
 /
 &section_choice

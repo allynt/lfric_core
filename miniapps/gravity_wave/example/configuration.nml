@@ -8,6 +8,11 @@ fplane = .false.
 f_lat_deg = 45.0
 /
 
+&checks
+correction_hours=24
+energy_correction='none'
+/
+
 &section_choice
 dynamics = 'none'
 /

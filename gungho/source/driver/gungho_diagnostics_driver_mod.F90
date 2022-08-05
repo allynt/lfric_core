@@ -96,17 +96,19 @@ contains
     type( field_type), pointer :: panel_id => null()
     type( field_type), pointer :: height_w3 => null()
     type( field_type), pointer :: height_wth => null()
-    type( field_type), pointer :: exner_in_wth => null()
     type( field_type), pointer :: lbc_u => null()
     type( field_type), pointer :: lbc_theta => null()
     type( field_type), pointer :: lbc_rho => null()
     type( field_type), pointer :: lbc_exner => null()
     type( field_type), pointer :: lbc_m_v=> null()
     type( field_type), pointer :: lbc_q=> null()
-    type( field_type), pointer :: theta_in_w3 => null()
     type( field_type), pointer :: u_in_w2h => null()
     type( field_type), pointer :: v_in_w2h => null()
     type( field_type), pointer :: w_in_wth => null()
+
+#ifdef UM_PHYSICS
+    type( field_type), pointer :: theta_in_w3 => null()
+    type( field_type), pointer :: exner_in_wth => null()
 
     ! Iterator for field collection
     type(field_collection_iterator_type)  :: iterator
@@ -115,11 +117,15 @@ contains
     ! when iterating over them
     class( field_parent_type ), pointer :: field_ptr  => null()
 
-    procedure(write_interface), pointer  :: tmp_write_ptr => null()
-
     character(str_def) :: name
 
-    integer :: i, fs
+    integer :: fs
+#endif
+
+    procedure(write_interface), pointer  :: tmp_write_ptr => null()
+
+
+    integer :: i
 
     if ( subroutine_timers ) call timer('gungho_diagnostics_driver')
 
@@ -228,6 +234,7 @@ contains
       endif
     endif
 
+#ifdef UM_PHYSICS
     ! Derived physics fields (only those on W3 or Wtheta)
     if (use_physics .and. .not. clock%is_initialisation()) then
 
@@ -240,9 +247,7 @@ contains
             fs = field_ptr%which_function_space()
             if ( fs == W3 .or. fs == Wtheta ) then
               name = trim(adjustl( field_ptr%get_name() ))
-              call write_scalar_diagnostic( trim(name), field_ptr, &
-                                            clock,                 &
-                                            mesh, nodal_output_on_w3 )
+              call field_ptr%write_field(trim(name))
             end if
         end select
       end do
@@ -259,15 +264,14 @@ contains
       exner_in_wth => derived_fields%get_field('exner_in_wth')
       call pressure_diag_alg(exner_in_wth)
 
-#ifdef UM_PHYSICS
       ! Call PMSL algorithm
       theta => prognostic_fields%get_field('theta')
       call pmsl_alg(exner, derived_fields, theta, twod_mesh)
-#endif
       theta_in_w3 => derived_fields%get_field('theta_in_w3')
       call column_total_diagnostics_alg(rho, mr, theta_in_w3, exner, mesh, twod_mesh)
 
     end if
+#endif
 
     if (ls_option /= ls_option_file .and. ls_option /= ls_option_analytic) then
       ! Other derived diagnostics with special pre-processing

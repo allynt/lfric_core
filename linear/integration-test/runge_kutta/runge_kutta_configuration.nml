@@ -16,6 +16,7 @@ vertical_method='trapezoidal',
 limited_area=.false.,
 /
 &checks
+energy_correction='none',
 limit_cfl=.false.,
 /
 &section_choice

@@ -129,8 +129,12 @@ contains
 
 
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( dynamics_mesh_model_data )
-    call initialise_model_data( physics_mesh_model_data )
+    call initialise_model_data( dynamics_mesh_model_data, &
+                                dynamics_mesh,            &
+                                dynamics_2D_mesh )
+    call initialise_model_data( physics_mesh_model_data, &
+                                physics_mesh,            &
+                                physics_2D_mesh )
 
    ! Initial output
    ! We only want these once at the beginning of a run

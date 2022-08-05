@@ -18,6 +18,11 @@ prime_mesh_name='dynamics',
   limited_area    = .false.
 /
 
+&checks
+  correction_hours=24,
+  energy_correction='none'
+/
+
 &extrusion
   method           = 'dcmip'
   domain_top       = 30000.0

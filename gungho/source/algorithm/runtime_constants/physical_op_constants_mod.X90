@@ -26,6 +26,7 @@ module physical_op_constants_mod
   use mesh_mod,                           only: mesh_type
   use mesh_collection_mod,                only: mesh_collection
   use extrusion_mod,                      only: TWOD
+  use extrusion_config_mod,               only: domain_top
 
   use operator_mod,                       only: operator_type
   use quadrature_xyoz_mod,                only: quadrature_xyoz_type
@@ -39,7 +40,7 @@ module physical_op_constants_mod
   use mixing_config_mod,                  only: smagorinsky
   use planet_config_mod,                  only: radius, gravity, &
                                                 scaled_omega, scaled_radius
-  use base_mesh_config_mod,               only: f_lat
+  use base_mesh_config_mod,               only: f_lat, geometry, geometry_spherical
 
   ! Other algorithms
   use geometric_constants_mod,            only: get_dA_at_w2, get_height, &
@@ -52,6 +53,7 @@ module physical_op_constants_mod
   use calc_delta_at_wtheta_kernel_mod,    only: calc_delta_at_wtheta_kernel_type
   use calc_dz_centre_kernel_mod,          only: calc_dz_centre_kernel_type
   use calc_dz_face_kernel_mod,            only: calc_dz_face_kernel_type
+  use calc_da_msl_proj_kernel_mod,        only: calc_da_msl_proj_kernel_type
   use compute_coriolis_matrix_kernel_mod, only: compute_coriolis_matrix_kernel_type
   use compute_geopotential_kernel_mod,    only: compute_geopotential_kernel_type
   use compute_map_u_operators_kernel_mod, only: compute_map_u_operators_kernel_type
@@ -75,6 +77,7 @@ module physical_op_constants_mod
   type(field_collection_type) :: rdz_fd1_collection
   type(field_collection_type) :: dz_at_wtheta_collection
   type(field_collection_type) :: max_diff_wtheta_collection
+  type(field_collection_type) :: dA_msl_proj_collection
 #ifdef UM_PHYSICS
   type(field_collection_type) :: Pnm_star_collection
 #endif
@@ -101,6 +104,7 @@ module physical_op_constants_mod
   public :: get_u_lon_map
   public :: get_u_lat_map
   public :: get_u_up_map
+  public :: get_dA_msl_proj
 #ifdef UM_PHYSICS
   public :: get_Pnm_star
 #endif
@@ -132,6 +136,7 @@ contains
     type(function_space_type),  pointer :: w2_k0_fs  => null()
     type(function_space_type),  pointer :: w2_fs     => null()
     type(function_space_type),  pointer :: w3_fs     => null()
+    type(function_space_type),  pointer :: w3_2d_k0_fs => null()
     type(function_space_type),  pointer :: wtheta_fs => null()
     type(function_space_type),  pointer :: wtheta_k0_fs => null()
     type(quadrature_xyoz_type), pointer :: qr => null()
@@ -149,10 +154,11 @@ contains
     type(field_type)                    :: rdz_fd1
     type(field_type)                    :: dz_at_wtheta
     type(field_type)                    :: max_diff_wtheta
+    type(field_type)                    :: dA_msl_proj
+    type(mesh_type),            pointer :: twod_mesh => null()
 #ifdef UM_PHYSICS
     type(function_space_type),  pointer :: w_Pnm_star_fs => null()
     type(field_type),           pointer :: latitude => null()
-    type(mesh_type),            pointer :: twod_mesh => null()
     type(field_type)                    :: Pnm_star
 #endif
 
@@ -252,7 +258,6 @@ contains
         call invoke(X_divideby_Y(dx_at_w2, detj_at_w2, dA_at_w2))
         call dx_at_w2_collection%add_field( dx_at_w2 )
         nullify( detj_at_w2 )
-        nullify( dA_at_w2 )
 
         if ( use_physics ) then
 
@@ -332,12 +337,24 @@ contains
           nullify( height_w3 )
           nullify( height_wth )
 
+          ! Only done on the prime 2D mesh
+          twod_mesh => mesh_collection%get_mesh( mesh, TWOD )
+          write(mesh_number, '(I8)') twod_mesh%get_id()
+
+          ! ====== Calculate dA projected to mean sea level ==========
+          call dA_msl_proj_collection%initialise(name="dA_msl_proj", table_len=100)
+          w3_2d_k0_fs  => function_space_collection%get_fs( twod_mesh, 0, W3 )
+          field_name = trim("dA_msl_proj_") // adjustl(mesh_number)
+          call dA_msl_proj%initialise(vector_space = w3_2d_k0_fs, name=field_name)
+          call invoke(calc_da_msl_proj_kernel_type(dA_at_w2, dA_msl_proj, &
+                                                   radius, domain_top,    &
+                                                   geometry, geometry_spherical))
+          call dA_msl_proj_collection%add_field( dA_msl_proj )
+          nullify( w3_2d_k0_fs )
+
           ! ================= Add Pnm_star for stochastic physics ==============
 #ifdef UM_PHYSICS
           if (use_spt) then
-            ! Only done on the prime 2D mesh
-            twod_mesh => mesh_collection%get_mesh( mesh, TWOD )
-            write(mesh_number, '(I8)') twod_mesh%get_id()
 
             call Pnm_star_collection%initialise(name="Pnm_star", table_len=100)
             w_Pnm_star_fs => function_space_collection%get_fs(twod_mesh, 0, W3, spt_spectral_dim)
@@ -352,12 +369,15 @@ contains
 
             nullify( latitude )
             nullify( w_Pnm_star_fs )
-            nullify( twod_mesh )
 
           end if
 #endif
 
+          nullify( twod_mesh )
+
         end if ! Physics
+
+        nullify( dA_at_w2 )
 
       end if ! Mesh label
 
@@ -491,6 +511,23 @@ contains
     dz => dz_at_wtheta_collection%get_field(field_name)
 
   end function get_dz_at_wtheta
+
+  !> @brief Returns the surface area of a cell projected to mean sea level
+  !>        i.e. ignoring the orographic effect on the area
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The dA_msl_proj field
+  function get_dA_msl_proj(mesh_id) result(dA)
+    implicit none
+    integer(kind=i_def), intent(in) :: mesh_id
+    type(field_type),       pointer :: dA
+    character(len=str_short)        :: mesh_number
+    character(len=str_def)          :: field_name
+
+    write(mesh_number, '(I8)') mesh_id
+    field_name = trim('dA_msl_proj_') // adjustl(mesh_number)
+    dA => dA_msl_proj_collection%get_field(field_name)
+
+  end function get_dA_msl_proj
 #ifdef UM_PHYSICS
   !> @brief Returns the Legendre Polynomials times the SH amplitude
   !> @param[in] mesh_id The ID of the mesh to get the object for

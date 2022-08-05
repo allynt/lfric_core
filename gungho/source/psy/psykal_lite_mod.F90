@@ -1851,4 +1851,20 @@ end subroutine invoke_calc_deppts
       !
     END SUBROUTINE invoke_momentum_viscosity_kernel_type
 
+  !-------------------------------------------------------------------------------
+  !> This PSyKAl-lite code is required because, currently, PSYclone does not support
+  !> the output of scalar variables from kernels.(See PSyclone issue #1818)
+  !> This subroutine recovers a scalar value from a field. This is required
+  !> as scalars can't currently be written to checkpoint files. The workaround is to
+  !> copy the scalar to a field, which may then be checkpointed. On a restart the
+  !> scalar value needs to be recovered from the checkpointed field.
+    subroutine invoke_getvalue(field, val)
+      implicit none
+      real(r_def), intent(out)     :: val
+      type(field_type), intent(in) :: field
+      type(field_proxy_type)       :: field_proxy
+      field_proxy = field%get_proxy()
+      val = field_proxy%data(1)
+    end subroutine invoke_getvalue
+
 end module psykal_lite_mod
