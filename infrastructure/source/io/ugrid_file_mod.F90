@@ -325,7 +325,7 @@ abstract interface
     integer(i_def),     intent(in) :: num_targets
     character(str_def), intent(in), allocatable :: target_mesh_names(:)
     type(global_mesh_map_collection_type), &
-                        intent(in) :: target_global_mesh_maps
+                        intent(in), pointer :: target_global_mesh_maps
 
 
   end subroutine write_mesh_interface

@@ -1830,7 +1830,7 @@ subroutine write_mesh( self, mesh_name, geometry, topology, coord_sys,      &
 
   character(str_def),  intent(in), allocatable :: target_mesh_names(:)
   type(global_mesh_map_collection_type), &
-                       intent(in) :: target_global_mesh_maps
+                       intent(in), pointer :: target_global_mesh_maps
 
   ! Information about the mesh rotation
   real(r_def),         intent(in) :: north_pole(2)
@@ -2109,7 +2109,7 @@ subroutine append_mesh( self, mesh_name, geometry, topology, coord_sys,    &
   character(str_def),      intent(in),    &
                            allocatable :: target_mesh_names(:)
   type(global_mesh_map_collection_type),  &
-                           intent(in)  :: target_global_mesh_maps
+                           intent(in), pointer  :: target_global_mesh_maps
 
   ! Information about the domain orientation
   real(r_def),         intent(in) :: north_pole(2)
