@@ -109,7 +109,7 @@ build: export MOD_DIR     ?= $(PROJECT_DIR)/mod
 build: export CXX_LINK     = TRUE
 build: export PROGRAMS    := da_dev
 build: export PROJECT      = $(PROJECT_NAME)
-build: export WORKING_DIR := $(WORKING_DIR)
+build: export WORKING_DIR := $(WORKING_DIR)/da-dev
 ifeq "$(PROFILE)" "full-debug"
 build: export FFLAG_GROUPS = DEBUG WARNINGS INIT RUNTIME NO_OPTIMISATION FORTRAN_STANDARD
 else ifeq "$(PROFILE)" "fast-debug"

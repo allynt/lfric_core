@@ -73,14 +73,16 @@ include $(LFRIC_BUILD)/cxx.mk
 -include $(COMPILE_OPTIONS)
 
 BIN_DIR ?= $(ROOT)/bin
-LIB_DIR ?= .
-MOD_DIR ?= .
+LIB_DIR ?= lib
+MOD_DIR ?= mod
 
 # If the compiler produces module files, tell it where to put them
 #
 ifdef F_MOD_DESTINATION_ARG
   MODULE_DESTINATION_ARGUMENT = $(F_MOD_DESTINATION_ARG)$(MOD_DIR)
   MODULE_SOURCE_ARGUMENT = $(F_MOD_SOURCE_ARG)$(MOD_DIR)
+else
+$(error Compilers which do not produce module files are not currently supported)
 endif
 
 ifdef CXX_LINK
@@ -125,14 +127,14 @@ $(LIB_DIR)/lib%.a: $$($$(shell basename $$* | tr a-z A-Z)_OBJS) | $(LIB_DIR)
 	$(call MESSAGE,Compile,$<)
 	$(Q)$(FC) $(FFLAGS) \
 	          $(MODULE_DESTINATION_ARGUMENT) \
-			  $(MODULE_SOURCE_ARGUMENT) \
+	          $(MODULE_SOURCE_ARGUMENT) \
 	          $(INCLUDE_ARGS) -c -o $(basename $@).o $<
 
 %.o: %.F90 | $(MOD_DIR)
 	$(call MESSAGE,Pre-process and compile,$<)
 	$(Q)$(FC) $(FFLAGS) \
 	          $(MODULE_DESTINATION_ARGUMENT) \
-			  $(MODULE_SOURCE_ARGUMENT) \
+	          $(MODULE_SOURCE_ARGUMENT) \
 	          $(INCLUDE_ARGS) $(MACRO_ARGS) -c -o $(basename $@).o $<
 
 

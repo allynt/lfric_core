@@ -18,6 +18,7 @@ import os
 import sys
 import traceback
 from time import time
+from typing import List
 
 import dependerator.database as database
 import dependerator.process as process
@@ -89,10 +90,16 @@ if __name__ == '__main__':
         with open(args.output, 'wt') as listFile:
             print('# Object dependencies', file=listFile)
 
-            for filenames, prerequisites in fileStore.getDependencies():
-
-                prereq_strings = [str(prereq) for prereq in prerequisites]
-                print('{} : {}'.format(filenames, ' '.join(prereq_strings)),
+            for filename, prerequisites in fileStore.getDependencies():
+                if filename.suffix == '.mod':
+                    filename = f'$(MOD_DIR)/{filename.name}'
+                prereq_strings: List[str] = []
+                for prereq in prerequisites:
+                    if prereq.suffix == '.mod':
+                        prereq_strings.append(f'$(MOD_DIR)/{prereq.name}')
+                    else:
+                        prereq_strings.append(str(prereq))
+                print(f'{filename} : {" ".join(prereq_strings)}',
                       file=listFile)
     except:
         os.unlink(args.output)
