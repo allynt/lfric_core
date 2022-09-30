@@ -276,9 +276,9 @@ contains
       type is(field_vector_type)
 
         ! Get pointers to y abstract type
-        y_vec_u => y%get_field(isw_u)
-        y_vec_g => y%get_field(isw_g)
-        y_vec_b => y%get_field(isw_b)
+        y_vec_u => y%get_field_from_position(isw_u)
+        y_vec_g => y%get_field_from_position(isw_g)
+        y_vec_b => y%get_field_from_position(isw_b)
 
         call invoke( setval_c( y_vec_u, 0.0_r_def ), &
                      setval_c( y_vec_g, 0.0_r_def ), &

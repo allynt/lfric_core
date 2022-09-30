@@ -73,17 +73,17 @@ contains
 
         if (prognostic_fields%field_exists( &
                 prognostics_meta%red%get_unique_id() )) then
-            red => prognostic_fields%get_field( prognostics_meta%red%get_unique_id() )
+            call prognostic_fields%get_field( prognostics_meta%red%get_unique_id(), red )
             call spread_alg(red)
         end if
         if (prognostic_fields%field_exists( &
                 prognostics_meta%green%get_unique_id() )) then
-            green => prognostic_fields%get_field( prognostics_meta%green%get_unique_id() )
+            call prognostic_fields%get_field( prognostics_meta%green%get_unique_id(), green )
             call spread_alg(green)
         end if
         if (prognostic_fields%field_exists( &
                 prognostics_meta%blue%get_unique_id() )) then
-            blue => prognostic_fields%get_field( prognostics_meta%blue%get_unique_id() )
+            call prognostic_fields%get_field( prognostics_meta%blue%get_unique_id(), blue )
             call spread_alg(blue)
         end if
 
@@ -92,7 +92,7 @@ contains
         ! they are present
         hex_id = diagnostics_meta%hex%get_unique_id()
         if (model_data%depository%field_exists(hex_id)) then
-            hex => model_data%depository%get_field( hex_id )
+          call model_data%depository%get_field( hex_id, hex )
           call hex_alg(red, green, blue, hex)
         end if
 
@@ -125,9 +125,9 @@ contains
             if (non_spatial_fields%field_exists(non_spatial_meta%mutable_categories%get_unique_id()) .and. &
                     non_spatial_fields%field_exists(non_spatial_meta%mutable_numbers%get_unique_id()) .and. &
                     non_spatial_fields%field_exists(non_spatial_meta%immutable_both%get_unique_id())) then
-                mutable_categories => non_spatial_fields%get_field( non_spatial_meta%mutable_categories%get_unique_id() )
-                mutable_numbers => non_spatial_fields%get_field( non_spatial_meta%mutable_numbers%get_unique_id() )
-                immutable_both => non_spatial_fields%get_field( non_spatial_meta%immutable_both%get_unique_id() )
+                call non_spatial_fields%get_field( non_spatial_meta%mutable_categories%get_unique_id(), mutable_categories )
+                call non_spatial_fields%get_field( non_spatial_meta%mutable_numbers%get_unique_id(), mutable_numbers )
+                call non_spatial_fields%get_field( non_spatial_meta%immutable_both%get_unique_id(), immutable_both )
 
                 ! Call the algorithm
                 call non_spatial_alg(&

@@ -294,8 +294,8 @@ contains
       select type(y)
       type is(r_solver_field_vector_type)
         ! Get pointers to x and y abstract types
-        x_vec => x%get_field(1)
-        y_vec => y%get_field(1)
+        x_vec => x%get_field_from_position(1)
+        y_vec => y%get_field_from_position(1)
         ! Multiply by inverse of vertical operator \f$ H_z \f$
         call invoke( setval_c(y_vec, 0.0_r_solver),           &
                      columnwise_op_appinv_kernel_type( y_vec, &

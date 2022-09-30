@@ -349,9 +349,9 @@ contains
       type is(r_solver_field_vector_type)
 
         ! Get pointers to y abstract types
-        y_vec_u => y%get_field(igw_u)
-        y_vec_p => y%get_field(igw_p)
-        y_vec_b => y%get_field(igw_b)
+        y_vec_u => y%get_field_from_position(igw_u)
+        y_vec_p => y%get_field_from_position(igw_p)
+        y_vec_b => y%get_field_from_position(igw_b)
 
         call invoke( setval_c( y_vec_u, 0.0_r_solver ), &
                      setval_c( y_vec_p, 0.0_r_solver ), &

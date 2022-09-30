@@ -85,36 +85,36 @@ contains
 
     mesh => u%get_mesh()
 
-    theta_in_w3 => derived_fields%get_field('theta_in_w3')
+    call derived_fields%get_field('theta_in_w3', theta_in_w3)
     call map_physics_scalars(theta_in_w3, theta)
 
-    rho_in_wth => derived_fields%get_field('rho_in_wth')
-    exner_in_wth => derived_fields%get_field('exner_in_wth')
+    call derived_fields%get_field('rho_in_wth', rho_in_wth)
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
     call map_physics_scalars(rho_in_wth,   rho)
     call map_physics_scalars(exner_in_wth, exner)
 
     ! create wetrho which is needed by the physics
-    wetrho_in_wth => derived_fields%get_field('wetrho_in_wth')
+    call derived_fields%get_field('wetrho_in_wth', wetrho_in_wth)
     call invoke(X_times_Y(wetrho_in_wth, rho_in_wth, moist_dyn(total_mass)))
-    wetrho_in_w3 => derived_fields%get_field('wetrho_in_w3')
+    call derived_fields%get_field('wetrho_in_w3', wetrho_in_w3)
     call map_physics_scalars(wetrho_in_w3, wetrho_in_wth)
 
     ! Now the winds (NB if sample_physics_winds=.false. then the winds are
     ! not re-oriented and so they are not necessarily perpendicular or
     ! aligned lat-lon)
-    u_in_w3 => derived_fields%get_field('u_in_w3')
-    v_in_w3 => derived_fields%get_field('v_in_w3')
-    w_in_w3 => derived_fields%get_field('w_in_w3')
+    call derived_fields%get_field('u_in_w3', u_in_w3)
+    call derived_fields%get_field('v_in_w3', v_in_w3)
+    call derived_fields%get_field('w_in_w3', w_in_w3)
     call map_physics_winds(u_in_w3, v_in_w3, w_in_w3, u)
 
-    u_in_w2h => derived_fields%get_field('u_in_w2h')
-    v_in_w2h => derived_fields%get_field('v_in_w2h')
-    w_in_wth => derived_fields%get_field('w_in_wth')
+    call derived_fields%get_field('u_in_w2h', u_in_w2h)
+    call derived_fields%get_field('v_in_w2h', v_in_w2h)
+    call derived_fields%get_field('w_in_wth', w_in_wth)
     call split_wind_alg(u_in_w2h, v_in_w2h, w_in_wth, &
                         u, mesh)
 
-    u_physics => derived_fields%get_field('u_physics')
-    velocity_w2v => derived_fields%get_field('velocity_w2v')
+    call derived_fields%get_field('u_physics', u_physics)
+    call derived_fields%get_field('velocity_w2v', velocity_w2v)
     ! map dynamics winds into physics space
     dA => get_da_at_w2(mesh%get_id())
     call invoke(         X_divideby_Y(u_physics, u, dA), &
@@ -132,7 +132,7 @@ contains
 
       call log_event( 'Calculate 3D shear', LOG_LEVEL_INFO )
       ! Calculate 3D shear
-      shear => derived_fields%get_field('shear')
+      call derived_fields%get_field('shear', shear)
       height_wth => get_height(Wtheta, mesh%get_id())
       height_w3 => get_height(W3, mesh%get_id())
       dx_at_w2 => get_dx_at_w2(mesh%get_id())
@@ -147,10 +147,10 @@ contains
     if (blayer_placement == blayer_placement_slow .or.                        &
          convection_placement == convection_placement_slow) then
       ! Set up predictors with start of timestep variables
-      theta_star => derived_fields%get_field('theta_star')
-      u_physics_star => derived_fields%get_field('u_physics_star')
-      u_in_w3_star => derived_fields%get_field('u_in_w3_star')
-      v_in_w3_star => derived_fields%get_field('v_in_w3_star')
+      call derived_fields%get_field('theta_star', theta_star)
+      call derived_fields%get_field('u_physics_star', u_physics_star)
+      call derived_fields%get_field('u_in_w3_star', u_in_w3_star)
+      call derived_fields%get_field('v_in_w3_star', v_in_w3_star)
       call invoke(setval_X(theta_star, theta),                                &
                   setval_X(u_physics_star, u_physics),                        &
                   setval_X(u_in_w3_star, u_in_w3),                          &

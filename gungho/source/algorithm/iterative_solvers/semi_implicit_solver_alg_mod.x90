@@ -583,14 +583,14 @@ contains
     if ( subroutine_timers ) call timer('mixed_solver')
 
     ! Get the pressure increment
-    inc_exner_rsol => vector_inc%get_field(isol_p)
+    inc_exner_rsol => vector_inc%get_field_from_position(isol_p)
     call inc_exner_rsol%log_minmax(LOG_LEVEL_INFO, 'exner_inc')
 
     ! Get the velocity increments and if necessary combine them
     call inc_uvw_rsol%initialise( vector_space = rhs_rsol(igh_u)%get_function_space() )
     if ( split_w ) then
-      inc_uv_rsol => vector_inc%get_field(isol_uv)
-      inc_w_rsol  => vector_inc%get_field(isol_w)
+      inc_uv_rsol => vector_inc%get_field_from_position(isol_uv)
+      inc_w_rsol  => vector_inc%get_field_from_position(isol_w)
       call invoke( combine_w2_field_kernel_type( inc_uvw_rsol, inc_uv_rsol, inc_w_rsol ) )
       call inc_uv_rsol%log_minmax(LOG_LEVEL_INFO, 'uv_inc')
       call inc_w_rsol%log_minmax(LOG_LEVEL_INFO, 'w_inc')

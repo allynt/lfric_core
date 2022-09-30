@@ -116,60 +116,60 @@ contains
 
 
     if (surface == surface_jules) then
-      land_area_fraction => ancil_fields%get_field('land_area_fraction')
-      land_tile_fraction => ancil_fields%get_field('land_tile_fraction')
+      call ancil_fields%get_field('land_area_fraction', land_area_fraction)
+      call ancil_fields%get_field('land_tile_fraction', land_tile_fraction)
 
       ! For coupled models the sea ice fraction comes from the input
       ! dump but for atmosphere only models they are provided by an
       ! ancillary file
       if (l_esm_couple) then
-        sea_ice_fraction   => fd_fields%get_field('sea_ice_fraction')
+        call fd_fields%get_field('sea_ice_fraction', sea_ice_fraction)
       else
-        sea_ice_fraction   => ancil_fields%get_field('sea_ice_fraction')
+        call ancil_fields%get_field('sea_ice_fraction', sea_ice_fraction)
       endif
-      tile_fraction      => surface_fields%get_field('tile_fraction')
+      call surface_fields%get_field('tile_fraction', tile_fraction)
 
-      tstar_sea        => ancil_fields%get_field('tstar_sea')
-      tstar_sea_ice    => fd_fields%get_field('tstar_sea_ice')
-      land_tile_temp   => fd_fields%get_field('land_tile_temp')
-      tile_temperature => surface_fields%get_field('tile_temperature')
+      call ancil_fields%get_field('tstar_sea', tstar_sea)
+      call fd_fields%get_field('tstar_sea_ice', tstar_sea_ice)
+      call fd_fields%get_field('land_tile_temp', land_tile_temp)
+      call surface_fields%get_field('tile_temperature', tile_temperature)
 
-      can_water_in     => fd_fields%get_field('can_water_in')
-      canopy_water     => surface_fields%get_field('canopy_water')
+      call fd_fields%get_field('can_water_in', can_water_in)
+      call surface_fields%get_field('canopy_water', canopy_water)
 
-      soil_moist_sat    => soil_fields%get_field('soil_moist_sat')
-      soil_moist_wilt   => soil_fields%get_field('soil_moist_wilt')
-      mean_topog_index  => soil_fields%get_field('mean_topog_index')
-      stdev_topog_index => ancil_fields%get_field('stdev_topog_index')
-      a_sat_frac        => soil_fields%get_field('a_sat_frac')
-      c_sat_frac        => soil_fields%get_field('c_sat_frac')
-      a_wet_frac        => soil_fields%get_field('a_wet_frac')
-      c_wet_frac        => soil_fields%get_field('c_wet_frac')
+      call soil_fields%get_field('soil_moist_sat', soil_moist_sat)
+      call soil_fields%get_field('soil_moist_wilt', soil_moist_wilt)
+      call soil_fields%get_field('mean_topog_index', mean_topog_index)
+      call ancil_fields%get_field('stdev_topog_index', stdev_topog_index)
+      call soil_fields%get_field('a_sat_frac', a_sat_frac)
+      call soil_fields%get_field('c_sat_frac', c_sat_frac)
+      call soil_fields%get_field('a_wet_frac', a_wet_frac)
+      call soil_fields%get_field('c_wet_frac', c_wet_frac)
 
-      soil_suction_sat => soil_fields%get_field('soil_suction_sat')
-      clapp_horn_b     => soil_fields%get_field('clapp_horn_b')
-      soil_temperature => soil_fields%get_field('soil_temperature')
-      soil_moisture    => soil_fields%get_field('soil_moisture')
-      unfrozen_soil_moisture => soil_fields%get_field('unfrozen_soil_moisture')
-      frozen_soil_moisture   => soil_fields%get_field('frozen_soil_moisture')
+      call soil_fields%get_field('soil_suction_sat', soil_suction_sat)
+      call soil_fields%get_field('clapp_horn_b', clapp_horn_b)
+      call soil_fields%get_field('soil_temperature', soil_temperature)
+      call soil_fields%get_field('soil_moisture', soil_moisture)
+      call soil_fields%get_field('unfrozen_soil_moisture', unfrozen_soil_moisture)
+      call soil_fields%get_field('frozen_soil_moisture', frozen_soil_moisture)
 
-      tile_snow_mass       => snow_fields%get_field('tile_snow_mass')
-      tile_snow_rgrain     => snow_fields%get_field('tile_snow_rgrain')
-      n_snow_layers        => snow_fields%get_integer_field('n_snow_layers')
-      snow_depth           => snow_fields%get_field('snow_depth')
-      snow_under_canopy    => snow_fields%get_field('snow_under_canopy')
-      snowpack_density     => snow_fields%get_field('snowpack_density')
-      snow_layer_thickness => snow_fields%get_field('snow_layer_thickness')
-      snow_layer_ice_mass  => snow_fields%get_field('snow_layer_ice_mass')
-      snow_layer_liq_mass  => snow_fields%get_field('snow_layer_liq_mass')
-      snow_layer_temp      => snow_fields%get_field('snow_layer_temp')
-      snow_layer_rgrain    => snow_fields%get_field('snow_layer_rgrain')
-      tile_snow_mass_in    => fd_fields%get_field('tile_snow_mass_in')
-      tile_snow_rgrain_in  => fd_fields%get_field('tile_snow_rgrain_in')
-      n_snow_layers_in     => fd_fields%get_field('n_snow_layers_in')
-      snow_depth_in        => fd_fields%get_field('snow_depth_in')
-      snow_under_canopy_in => fd_fields%get_field('snow_under_canopy_in')
-      snowpack_density_in  => fd_fields%get_field('snowpack_density_in')
+      call snow_fields%get_field('tile_snow_mass', tile_snow_mass)
+      call snow_fields%get_field('tile_snow_rgrain', tile_snow_rgrain)
+      call snow_fields%get_field('n_snow_layers', n_snow_layers)
+      call snow_fields%get_field('snow_depth', snow_depth)
+      call snow_fields%get_field('snow_under_canopy', snow_under_canopy)
+      call snow_fields%get_field('snowpack_density', snowpack_density)
+      call snow_fields%get_field('snow_layer_thickness', snow_layer_thickness)
+      call snow_fields%get_field('snow_layer_ice_mass', snow_layer_ice_mass)
+      call snow_fields%get_field('snow_layer_liq_mass', snow_layer_liq_mass)
+      call snow_fields%get_field('snow_layer_temp', snow_layer_temp)
+      call snow_fields%get_field('snow_layer_rgrain', snow_layer_rgrain)
+      call fd_fields%get_field('tile_snow_mass_in', tile_snow_mass_in)
+      call fd_fields%get_field('tile_snow_rgrain_in', tile_snow_rgrain_in)
+      call fd_fields%get_field('n_snow_layers_in', n_snow_layers_in)
+      call fd_fields%get_field('snow_depth_in', snow_depth_in)
+      call fd_fields%get_field('snow_under_canopy_in', snow_under_canopy_in)
+      call fd_fields%get_field('snowpack_density_in', snowpack_density_in)
 
       ! Surface fields
       call invoke(process_land_kernel_type( land_area_fraction,               &
@@ -227,13 +227,13 @@ contains
     if (radiation == radiation_socrates .and. &
         topography /= topography_flat) then
 
-      grad_x_orog    => ancil_fields%get_field('grad_x_orog')
-      grad_y_orog    => ancil_fields%get_field('grad_y_orog')
-      slope_angle    => radiation_fields%get_field('slope_angle')
-      slope_aspect   => radiation_fields%get_field('slope_aspect')
-      skyview        => radiation_fields%get_field('skyview')
-      horizon_angle  => radiation_fields%get_field('horizon_angle')
-      horizon_aspect => radiation_fields%get_field('horizon_aspect')
+      call ancil_fields%get_field('grad_x_orog', grad_x_orog)
+      call ancil_fields%get_field('grad_y_orog', grad_y_orog)
+      call radiation_fields%get_field('slope_angle', slope_angle)
+      call radiation_fields%get_field('slope_aspect', slope_aspect)
+      call radiation_fields%get_field('skyview', skyview)
+      call radiation_fields%get_field('horizon_angle', horizon_angle)
+      call radiation_fields%get_field('horizon_aspect', horizon_aspect)
       
       if (topography == topography_horizon) then
         n_horizon_angle = n_horiz_ang

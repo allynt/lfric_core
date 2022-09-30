@@ -151,10 +151,10 @@ contains
        select type (y)
        type is (field_vector_type)
           call y%set_scalar(0.0_r_def)
-          x_field1 => x%get_field(1)
-          y_field1 => y%get_field(1)
-          x_field2 => x%get_field(2)
-          y_field2 => y%get_field(2)
+          x_field1 => x%get_field_from_position(1)
+          y_field1 => y%get_field_from_position(1)
+          x_field2 => x%get_field_from_position(2)
+          y_field2 => y%get_field_from_position(2)
           call invoke(   &
                matrix_vector_kernel_type(y_field1,x_field1,self%mass_w0), &
                dg_inc_matrix_vector_kernel_type(y_field2,x_field2,self%mass_w3)  &

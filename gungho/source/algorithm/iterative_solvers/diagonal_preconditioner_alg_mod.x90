@@ -88,8 +88,8 @@ contains
          nfields = size(x%vector)
          do i = 1, nfields
            ! Get pointers to x and y abstract types
-           x_vec => x%get_field(i)
-           y_vec => y%get_field(i)
+           x_vec => x%get_field_from_position(i)
+           y_vec => y%get_field_from_position(i)
            call invoke( X_divideby_Y( y_vec, x_vec, self%mass_matrix_diagonal%vector(i) ) )
          end do
          nullify( x_vec, y_vec )

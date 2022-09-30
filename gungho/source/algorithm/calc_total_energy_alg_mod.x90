@@ -72,10 +72,10 @@ contains
 
     Lcf = Lc + Lf
 
-    theta_in_w3 => derived_fields%get_field('theta_in_w3')
-    u_in_w3     => derived_fields%get_field('u_in_w3')
-    v_in_w3     => derived_fields%get_field('v_in_w3')
-    w_in_w3     => derived_fields%get_field('w_in_w3')
+    call derived_fields%get_field('theta_in_w3', theta_in_w3)
+    call derived_fields%get_field('u_in_w3', u_in_w3)
+    call derived_fields%get_field('v_in_w3', v_in_w3)
+    call derived_fields%get_field('w_in_w3', w_in_w3)
     phi         => get_geopotential(mesh%get_id())
     dA          => get_da_msl_proj( twod_mesh%get_id() )
     height_w3   => get_height( W3, mesh%get_id() )

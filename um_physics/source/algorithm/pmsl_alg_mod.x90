@@ -73,7 +73,7 @@ contains
     if ( subroutine_timers ) call timer('pmsl_alg')
 
     ! Unpack fields
-    exner_wth       => derived_fields%get_field('exner_in_wth')
+    call derived_fields%get_field('exner_in_wth', exner_wth)
     height_w3       => get_height(W3, exner_w3%get_mesh_id())
     height_wth      => get_height(Wtheta, theta_wth%get_mesh_id())
 

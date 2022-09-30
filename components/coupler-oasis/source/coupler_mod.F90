@@ -391,7 +391,7 @@ module coupler_mod
      cfield_iter => iter%next()
      select type(cfield_iter)
        type is (field_type)
-          cfield => dcpl_rcv%get_field(trim(cfield_iter%get_name()))
+          call dcpl_rcv%get_field(trim(cfield_iter%get_name()), cfield)
           write(log_scratch_space,'(2A)') &
                 "cpl_init_fields: set initial value for ", &
                 trim(adjustl(cfield%get_name()))
@@ -470,7 +470,9 @@ module coupler_mod
    !number of data levls
    integer(i_def)                              :: ndata
    !pointer to a field from depository
-   class(pure_abstract_field_type), pointer    :: field => null()
+   type(field_type), pointer                   :: field => null()
+   !pointer to a field to add a reference to a collection
+   class(pure_abstract_field_type), pointer    :: tmp_ptr => null()
    !pointer to a field type
    class( field_parent_type ), pointer         :: field_itr => null()
    !pointer to a field
@@ -574,12 +576,14 @@ module coupler_mod
            ind01 = index(namsrcfld(nv), cpl_flev)
            if (ind01 > 0) then
               rvar_name = trim(namsrcfld(nv))
-              field => depository%get_field(rvar_name(1:indc-1))
-              call dcpl_snd%add_reference_to_field(field)
+              call depository%get_field(rvar_name(1:indc-1), field)
+              tmp_ptr => field
+              call dcpl_snd%add_reference_to_field(tmp_ptr)
            endif
         else    ! single category
-           field => depository%get_field(trim(namsrcfld(nv)))
-           call dcpl_snd%add_reference_to_field(field)
+           call depository%get_field(trim(namsrcfld(nv)), field)
+           tmp_ptr => field
+           call dcpl_snd%add_reference_to_field(tmp_ptr)
         endif
       endif
 
@@ -599,12 +603,14 @@ module coupler_mod
            ind01 = index(namdstfld(nv), cpl_flev)
            if (ind01 > 0) then
               svar_name = trim(namdstfld(nv))
-              field => depository%get_field(svar_name(1:indc-1))
-              call dcpl_rcv%add_reference_to_field(field)
+              call depository%get_field(svar_name(1:indc-1), field)
+              tmp_ptr => field
+              call dcpl_rcv%add_reference_to_field(tmp_ptr)
            endif
         else
-              field => depository%get_field(trim(namdstfld(nv)))
-              call dcpl_rcv%add_reference_to_field(field)
+              call depository%get_field(trim(namdstfld(nv)), field)
+              tmp_ptr => field
+              call dcpl_rcv%add_reference_to_field(tmp_ptr)
         endif
       endif
    enddo
@@ -614,7 +620,7 @@ module coupler_mod
       if (.not.iter%has_next())exit
       field_itr => iter%next()
       rvar_name     = trim(adjustl(field_itr%get_name()))
-      field_ptr => dcpl_rcv%get_field(rvar_name)
+      call dcpl_rcv%get_field(rvar_name, field_ptr)
       field_proxy = field_ptr%get_proxy()
       ndata = field_proxy%vspace%get_ndata()
       if (ndata > 1) then
@@ -633,7 +639,7 @@ module coupler_mod
       else
          call oasis_def_var( oasis_rvar_id, rvar_name, il_comp_id, &
                il_var_nodims, oasis_in, var_shape, prism_real, ierror)
-         field_ptr => dcpl_rcv%get_field(rvar_name)
+         call dcpl_rcv%get_field(rvar_name, field_ptr)
          call field_ptr%set_cpl_id(oasis_rvar_id, 1)
 
          write(log_scratch_space, '(A)' ) &
@@ -650,7 +656,7 @@ module coupler_mod
       if (.not.iter%has_next())exit
       field_itr => iter%next()
       svar_name     = trim(adjustl(field_itr%get_name()))
-      field_ptr => dcpl_snd%get_field(svar_name)
+      call dcpl_snd%get_field(svar_name, field_ptr)
       field_proxy = field_ptr%get_proxy()
       ndata = field_proxy%vspace%get_ndata()
       if (ndata > 1) then
@@ -1044,7 +1050,7 @@ module coupler_mod
       do
          if(.not.iter%has_next())exit
          field => iter%next()
-         field_ptr => dcpl_rcv%get_field(trim(field%get_name()))
+         call dcpl_rcv%get_field(trim(field%get_name()), field_ptr)
          call field_ptr%write_field(trim(field%get_name()))
          call coupler_update_prognostics(field_ptr, depository)
       end do
@@ -1092,7 +1098,8 @@ module coupler_mod
    !field to initialize
    type(field_type)                               :: new_field
    !pointer to a field
-   class(pure_abstract_field_type), pointer       :: field_ptr => null()
+   type(field_type), pointer                      :: field_ptr => null()
+   class(pure_abstract_field_type), pointer       :: tmp_ptr => null()
    !flag for single level field
    logical(l_def)                                 :: twod_field
    !flag for field checkpoint
@@ -1142,11 +1149,12 @@ module coupler_mod
 
    ! Add the field to the depository
    call depository%add_field(new_field)
-   field_ptr => depository%get_field(name)
+   call depository%get_field(name, field_ptr)
    ! If checkpointing the field, put a pointer to it
    ! in the prognostics collection
    if ( checkpointed ) then
-     call prognostic_fields%add_reference_to_field( field_ptr )
+     tmp_ptr => field_ptr
+     call prognostic_fields%add_reference_to_field( tmp_ptr )
    endif
 
   end subroutine add_cpl_field

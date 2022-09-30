@@ -114,7 +114,7 @@ true_cbool = LOGICAL(.TRUE., KIND=C_BOOL)
 !-------------------------------------------------------------------------------
 DO i_field = 1, um2lfric_config%num_fields
   stashcode = um2lfric_config%stash_list(i_field)
-  lfric_field => lfric_fields % get_field(get_field_name(stashcode))
+  call lfric_fields % get_field(get_field_name(stashcode), lfric_field)
   lfric_field_proxy = lfric_field % get_proxy()
   lfric_field_proxy % data(:) = 0.0
   lfric_field => NULL()
@@ -161,7 +161,7 @@ DO i_field = 1, um2lfric_config%num_fields
     !---------------------------------------------------------------------------
     ! Create pointers to lfric field and function space field lives on
     !---------------------------------------------------------------------------
-    lfric_field => lfric_fields % get_field(get_field_name(stashcode))
+    call lfric_fields % get_field(get_field_name(stashcode), lfric_field)
     lfric_field_fs => lfric_field % get_function_space()
 
     !---------------------------------------------------------------------------

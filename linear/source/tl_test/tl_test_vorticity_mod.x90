@@ -104,8 +104,8 @@ module tl_test_vorticity_mod
     ls_fields         => model_data%ls_fields
 
     ! Input
-    n_u => prognostic_fields%get_field('u')
-    ls_u => ls_fields%get_field('ls_u')
+    call prognostic_fields%get_field('u', n_u)
+    call ls_fields%get_field('ls_u', ls_u)
     call p_u%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, W2) )
 

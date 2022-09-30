@@ -274,16 +274,16 @@ contains
     end select
 
     ! Print the min and max values of the linearisation fields.
-    ls_field => model_data%ls_fields%get_field("ls_u")
+    call model_data%ls_fields%get_field("ls_u", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_INFO,'ls_u')
 
-    ls_field => model_data%ls_fields%get_field("ls_rho")
+    call model_data%ls_fields%get_field("ls_rho", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_INFO,'ls_rho')
 
-    ls_field => model_data%ls_fields%get_field("ls_exner")
+    call model_data%ls_fields%get_field("ls_exner", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_INFO,'ls_exner')
 
-    ls_field => model_data%ls_fields%get_field("ls_theta")
+    call model_data%ls_fields%get_field("ls_theta", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_INFO,'ls_theta')
 
     ls_field => model_data%ls_mr(1)

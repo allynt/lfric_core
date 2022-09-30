@@ -165,34 +165,34 @@ subroutine rad_tile_alg(tile_sw_direct_albedo, tile_sw_diffuse_albedo,       &
 
   else if (surface == surface_jules) then
 
-    sd_orog           => orography_fields%get_field('sd_orog')
+    call orography_fields%get_field('sd_orog', sd_orog)
 
-    tile_fraction     => surface_fields%get_field('tile_fraction')
-    leaf_area_index   => surface_fields%get_field('leaf_area_index')
-    canopy_height     => surface_fields%get_field('canopy_height')
-    tile_temperature  => surface_fields%get_field('tile_temperature')
-    albedo_obs_scaling => surface_fields%get_field('albedo_obs_scaling')
-    chloro_sea        => surface_fields%get_field('chloro_sea')
-    sea_ice_thickness => surface_fields%get_field('sea_ice_thickness')
-    melt_pond_fraction => surface_fields%get_field('melt_pond_fraction')
-    melt_pond_depth   => surface_fields%get_field('melt_pond_depth')
-    z0msea            => surface_fields%get_field('z0msea')
+    call surface_fields%get_field('tile_fraction', tile_fraction)
+    call surface_fields%get_field('leaf_area_index', leaf_area_index)
+    call surface_fields%get_field('canopy_height', canopy_height)
+    call surface_fields%get_field('tile_temperature', tile_temperature)
+    call surface_fields%get_field('albedo_obs_scaling', albedo_obs_scaling)
+    call surface_fields%get_field('chloro_sea', chloro_sea)
+    call surface_fields%get_field('sea_ice_thickness', sea_ice_thickness)
+    call surface_fields%get_field('melt_pond_fraction', melt_pond_fraction)
+    call surface_fields%get_field('melt_pond_depth', melt_pond_depth)
+    call surface_fields%get_field('z0msea', z0msea)
 
-    soil_albedo       => soil_fields%get_field('soil_albedo')
-    soil_roughness    => soil_fields%get_field('soil_roughness')
+    call soil_fields%get_field('soil_albedo', soil_albedo)
+    call soil_fields%get_field('soil_roughness', soil_roughness)
 
-    albedo_obs_vis    => radiation_fields%get_field('albedo_obs_vis')
-    albedo_obs_nir    => radiation_fields%get_field('albedo_obs_nir')
-    cos_zenith_angle_rts => radiation_fields%get_field('cos_zenith_angle_rts')
+    call radiation_fields%get_field('albedo_obs_vis', albedo_obs_vis)
+    call radiation_fields%get_field('albedo_obs_nir', albedo_obs_nir)
+    call radiation_fields%get_field('cos_zenith_angle_rts', cos_zenith_angle_rts)
 
-    tile_snow_mass    => snow_fields%get_field('tile_snow_mass')
-    tile_snow_rgrain  => snow_fields%get_field('tile_snow_rgrain')
-    snow_depth        => snow_fields%get_field('snow_depth')
-    snowpack_density  => snow_fields%get_field('snowpack_density')
-    snow_soot         => snow_fields%get_field('snow_soot')
+    call snow_fields%get_field('tile_snow_mass', tile_snow_mass)
+    call snow_fields%get_field('tile_snow_rgrain', tile_snow_rgrain)
+    call snow_fields%get_field('snow_depth', snow_depth)
+    call snow_fields%get_field('snowpack_density', snowpack_density)
+    call snow_fields%get_field('snow_soot', snow_soot)
 
-    u_in_w3          => derived_fields%get_field('u_in_w3')
-    v_in_w3          => derived_fields%get_field('v_in_w3')
+    call derived_fields%get_field('u_in_w3', u_in_w3)
+    call derived_fields%get_field('v_in_w3', v_in_w3)
 
     dz_wth            => get_dz_at_wtheta(u_in_w3%get_mesh_id())
 

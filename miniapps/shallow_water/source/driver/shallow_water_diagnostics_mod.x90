@@ -72,10 +72,10 @@ contains
     ! Can't just iterate through the collection as some fields are scalars
     ! and some fields are vectors, so explicitly extract all fields from
     ! the collection and output each of them
-    wind     => prognostic_fields%get_field('wind')
-    buoyancy => prognostic_fields%get_field('buoyancy')
-    geopot   => prognostic_fields%get_field('geopot')
-    q        => prognostic_fields%get_field('q')
+    call prognostic_fields%get_field('wind', wind)
+    call prognostic_fields%get_field('buoyancy', buoyancy)
+    call prognostic_fields%get_field('geopot', geopot)
+    call prognostic_fields%get_field('q', q)
 
     ! Calculation and output of diagnostics
     call total_geopot%initialise( vector_space=geopot%get_function_space() )

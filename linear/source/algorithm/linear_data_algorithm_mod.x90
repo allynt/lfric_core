@@ -94,16 +94,16 @@ module linear_data_algorithm_mod
     call combine_ls_winds( ls_fields )
     call moist_dyn_factors_alg( ls_moist_dyn, ls_mr )
 
-    ls_field => ls_fields%get_field("ls_u")
+    call ls_fields%get_field("ls_u", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_DEBUG,'ls_u')
 
-    ls_field => ls_fields%get_field("ls_rho")
+    call ls_fields%get_field("ls_rho", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_DEBUG,'ls_rho')
 
-    ls_field => ls_fields%get_field("ls_exner")
+    call ls_fields%get_field("ls_exner", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_DEBUG,'ls_exner')
 
-    ls_field => ls_fields%get_field("ls_theta")
+    call ls_fields%get_field("ls_theta", ls_field)
     call ls_field%log_minmax(LOG_LEVEL_DEBUG,'ls_theta')
 
     nullify( ls_field )
@@ -129,9 +129,9 @@ module linear_data_algorithm_mod
     write(log_scratch_space,'(A)') "Combining winds "
     call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
-    h_wind => fields%get_field("ls_h_u")
-    v_wind => fields%get_field("ls_v_u")
-    wind => fields%get_field("ls_u")
+    call fields%get_field("ls_h_u", h_wind)
+    call fields%get_field("ls_v_u", v_wind)
+    call fields%get_field("ls_u", wind)
 
     call invoke( combine_w2_field_kernel_type(wind, h_wind, v_wind) )
 
@@ -163,23 +163,23 @@ module linear_data_algorithm_mod
     ls_fields => model_data%ls_fields
     prognostics => model_data%prognostic_fields
 
-    l_field => ls_fields%get_field("ls_u")
-    n_field => prognostics%get_field("u")
+    call ls_fields%get_field("ls_u", l_field)
+    call prognostics%get_field("u", n_field)
     call invoke( setval_X( l_field, n_field), &
                  setval_C( n_field, 0.0_r_def) )
 
-    l_field => ls_fields%get_field("ls_exner")
-    n_field => prognostics%get_field("exner")
+    call ls_fields%get_field("ls_exner", l_field)
+    call prognostics%get_field("exner", n_field)
     call invoke( setval_X( l_field, n_field) , &
                  setval_C( n_field, 0.0_r_def) )
 
-    l_field => ls_fields%get_field("ls_rho")
-    n_field => prognostics%get_field("rho")
+    call ls_fields%get_field("ls_rho", l_field)
+    call prognostics%get_field("rho", n_field)
     call invoke( setval_X( l_field, n_field) , &
                  setval_C( n_field, 0.0_r_def) )
 
-    l_field => ls_fields%get_field("ls_theta")
-    n_field => prognostics%get_field("theta")
+    call ls_fields%get_field("ls_theta", l_field)
+    call prognostics%get_field("theta", n_field)
     call invoke( setval_X( l_field, n_field) , &
                  setval_C( n_field, 0.0_r_def) )
 
@@ -233,16 +233,16 @@ module linear_data_algorithm_mod
     gamma_moist_dyn = 1.e-1
     gamma_mr = 1.e-1
 
-    field => model_data%prognostic_fields%get_field("u")
+    call model_data%prognostic_fields%get_field("u", field)
     call invoke( assign_field_random_kernel_type( field, gamma_u))
 
-    field => model_data%prognostic_fields%get_field("rho")
+    call model_data%prognostic_fields%get_field("rho", field)
     call invoke( assign_field_random_kernel_type( field, gamma_rho ))
 
-    field => model_data%prognostic_fields%get_field("theta")
+    call model_data%prognostic_fields%get_field("theta", field)
     call invoke( assign_field_random_kernel_type( field, gamma_theta ))
 
-    field => model_data%prognostic_fields%get_field("exner")
+    call  model_data%prognostic_fields%get_field("exner", field)
     call invoke( assign_field_random_kernel_type( field, gamma_exner ))
 
     moist_dyn => model_data%moist_dyn
@@ -295,15 +295,15 @@ module linear_data_algorithm_mod
     ls_fields => model_data%ls_fields
     prognostic_fields => model_data%prognostic_fields
 
-    ls_theta => ls_fields%get_field('ls_theta')
-    ls_u => ls_fields%get_field('ls_u')
-    ls_rho => ls_fields%get_field('ls_rho')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call ls_fields%get_field('ls_theta', ls_theta)
+    call ls_fields%get_field('ls_u', ls_u)
+    call ls_fields%get_field('ls_rho', ls_rho)
+    call ls_fields%get_field('ls_exner', ls_exner)
 
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
 
     moist_dyn => model_data%moist_dyn
     mr => model_data%mr
@@ -361,10 +361,10 @@ module linear_data_algorithm_mod
 
     ls_fields => model_data%ls_fields
 
-    ls_theta => ls_fields%get_field('ls_theta')
-    ls_u => ls_fields%get_field('ls_u')
-    ls_rho => ls_fields%get_field('ls_rho')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call ls_fields%get_field('ls_theta', ls_theta)
+    call ls_fields%get_field('ls_u', ls_u)
+    call ls_fields%get_field('ls_rho', ls_rho)
+    call ls_fields%get_field('ls_exner', ls_exner)
 
     ls_moist_dyn => model_data%ls_moist_dyn
     ls_mr => model_data%ls_mr

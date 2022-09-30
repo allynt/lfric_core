@@ -167,7 +167,7 @@ contains
 
     call log_event( 'Create physics prognostics', LOG_LEVEL_INFO )
 
-    theta => prognostic_fields%get_field('theta')
+    call prognostic_fields%get_field('theta', theta)
     theta_space = theta%which_function_space()
 
     if (theta_space /= Wtheta)then
@@ -1817,7 +1817,8 @@ contains
     logical(l_def), optional, intent(in)           :: advection_flag
     !Local variables
     type(field_type)                               :: new_field
-    class(pure_abstract_field_type), pointer       :: field_ptr => null()
+    type(field_type), pointer                      :: field_ptr => null()
+    class(pure_abstract_field_type), pointer       :: tmp_ptr => null()
     logical(l_def)                                 :: twod_field, checkpointed
     logical(l_def)                                 :: advected
 
@@ -1871,16 +1872,17 @@ contains
 
     ! Add the field to the depository
     call depository%add_field(new_field)
-    field_ptr => depository%get_field(name)
+    call depository%get_field(name, field_ptr)
+    tmp_ptr => field_ptr
     ! Put a pointer to the field in the required collection
-    call field_collection%add_reference_to_field( field_ptr )
+    call field_collection%add_reference_to_field( tmp_ptr )
     ! If checkpointing the field, put a pointer to it in the prognostics collection
     if ( checkpointed ) then
-      call prognostic_fields%add_reference_to_field( field_ptr )
+      call prognostic_fields%add_reference_to_field( tmp_ptr )
     endif
     ! If advecting the field, put a pointer to it in the advected collection
     if ( advected ) then
-      call advected_fields%add_reference_to_field( field_ptr )
+      call advected_fields%add_reference_to_field( tmp_ptr )
     endif
 
   end subroutine add_physics_field
@@ -1926,7 +1928,8 @@ contains
     logical(l_def), optional, intent(in)           :: advection_flag
     !Local variables
     type(integer_field_type)                       :: new_field
-    class(pure_abstract_field_type), pointer       :: field_ptr => null()
+    type(integer_field_type), pointer              :: field_ptr => null()
+    class(pure_abstract_field_type), pointer       :: tmp_ptr => null()
     logical(l_def)                                 :: twod_field, checkpointed
     logical(l_def)                                 :: advected
 
@@ -1980,16 +1983,17 @@ contains
 
     ! Add the field to the depository
     call depository%add_field(new_field)
-    field_ptr => depository%get_integer_field(name)
+    call depository%get_field(name, field_ptr)
     ! Put a pointer to the field in the required collection
-    call field_collection%add_reference_to_field( field_ptr )
+    tmp_ptr => field_ptr
+    call field_collection%add_reference_to_field( tmp_ptr )
     ! If checkpointing the field, put a pointer to it in the prognostics collection
     if ( checkpointed ) then
-      call prognostic_fields%add_reference_to_field( field_ptr )
+      call prognostic_fields%add_reference_to_field( tmp_ptr )
     endif
     ! If advecting the field, put a pointer to it in the advected collection
     if ( advected ) then
-      call advected_fields%add_reference_to_field( field_ptr )
+      call advected_fields%add_reference_to_field( tmp_ptr )
     endif
 
   end subroutine add_integer_field

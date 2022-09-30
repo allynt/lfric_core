@@ -70,6 +70,7 @@ module create_shallow_water_prognostics_mod
     type(field_type) :: geopot
     type(field_type) :: q
 
+    type(field_type), pointer                 :: tmp_field_ptr => null()
     class(pure_abstract_field_type), pointer  :: tmp_ptr => null()
 
     integer(i_def) :: buoyancy_space
@@ -152,15 +153,20 @@ module create_shallow_water_prognostics_mod
     call depository%add_field(s_geopot)
 
     ! Put pointers to the prognostic fields into the prognostic collection
-    tmp_ptr => depository%get_field('wind')
+    call depository%get_field('wind', tmp_field_ptr)
+    tmp_ptr => tmp_field_ptr
     call prognostics%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('geopot')
+    call depository%get_field('geopot', tmp_field_ptr)
+    tmp_ptr => tmp_field_ptr
     call prognostics%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('buoyancy')
+    call depository%get_field('buoyancy', tmp_field_ptr)
+    tmp_ptr => tmp_field_ptr
     call prognostics%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('q')
+    call depository%get_field('q', tmp_field_ptr)
+    tmp_ptr => tmp_field_ptr
     call prognostics%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('s_geopot')
+    call depository%get_field('s_geopot', tmp_field_ptr)
+    tmp_ptr => tmp_field_ptr
     call prognostics%add_reference_to_field(tmp_ptr)
 
   end subroutine create_shallow_water_prognostics

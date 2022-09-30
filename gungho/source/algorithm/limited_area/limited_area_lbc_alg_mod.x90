@@ -62,8 +62,8 @@ contains
     mesh => lam_wind_field%get_mesh()
     mask => get_boundary_mask( W2, mesh%get_id() )
 
-    boundary_u_driving => lbc_fields%get_field( 'boundary_u_driving' )
-    boundary_u_diff    => lbc_fields%get_field( 'boundary_u_diff' )
+    call lbc_fields%get_field( 'boundary_u_driving', boundary_u_driving )
+    call lbc_fields%get_field( 'boundary_u_diff', boundary_u_diff )
 
     call boundary_u_driving%copy_field_properties( boundary_u_lam )
 
@@ -231,7 +231,7 @@ contains
     fs_enum = lam_field%which_function_space()
     mesh    => lam_field%get_mesh()
 
-    driving_field => lbc_fields%get_field( name )
+    call lbc_fields%get_field( name, driving_field )
     blend_mask    => get_blend_mask( fs_enum, mesh%get_id() )
     lbc_mask      => get_lbc_mask( fs_enum, mesh%get_id() )
 

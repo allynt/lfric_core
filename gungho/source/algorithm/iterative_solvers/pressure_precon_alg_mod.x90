@@ -116,8 +116,8 @@ contains
        type is(r_solver_field_vector_type)
           ! Multiply by inverse of vertical operator \f$ H_z \f$
           tri => get_tri_precon(self%level)
-          x_vec => x%get_field(1)
-          y_vec => y%get_field(1)
+          x_vec => x%get_field_from_position(1)
+          y_vec => y%get_field_from_position(1)
           call invoke( tri_solve_kernel_type(y_vec, x_vec, tri) )
        class default
           write(log_scratch_space, '(A)') &

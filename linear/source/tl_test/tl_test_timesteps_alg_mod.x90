@@ -139,15 +139,15 @@ module tl_test_timesteps_alg_mod
     ls_mr             => model_data%ls_mr
 
     ! Input
-    ls_u => ls_fields%get_field('ls_u')
-    ls_rho => ls_fields%get_field('ls_rho')
-    ls_theta => ls_fields%get_field('ls_theta')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call ls_fields%get_field('ls_u', ls_u)
+    call ls_fields%get_field('ls_rho', ls_rho)
+    call ls_fields%get_field('ls_theta', ls_theta)
+    call ls_fields%get_field('ls_exner', ls_exner)
 
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    theta => prognostic_fields%get_field('theta')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('exner', exner)
 
     call r_u%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, W2) )

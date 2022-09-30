@@ -117,7 +117,7 @@ contains
 
     clock => get_clock()
     running = clock%tick()
-    working_field => model_data%depository%get_field( 'da_dev_field' )
+    call  model_data%depository%get_field( 'da_dev_field', working_field )
 
     ! Call an algorithm
     call da_dev_alg( working_field )
@@ -141,7 +141,7 @@ contains
 
     type(field_type), pointer :: working_field => null()
 
-    working_field => model_data%depository%get_field( 'da_dev_field' )
+    call model_data%depository%get_field( 'da_dev_field', working_field )
 
     !---------------------------------------------------------------------------
     ! Model finalise

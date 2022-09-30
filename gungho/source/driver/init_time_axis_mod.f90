@@ -72,7 +72,8 @@ module init_time_axis_mod
     integer(i_def),       optional,     intent(in)    :: imr
 
     type(function_space_type),       pointer :: field_space => null()
-    class(pure_abstract_field_type), pointer :: field_ptr => null()
+    type(field_type),                pointer :: field_ptr => null()
+    class(pure_abstract_field_type), pointer :: tmp_ptr => null()
     type(field_type)                         :: new_field
 
     procedure(write_interface), pointer :: write_diag_behaviour => null()
@@ -174,12 +175,13 @@ module init_time_axis_mod
       call depository%add_field( new_field )
     endif
 
-    field_ptr => depository%get_field( name )
+    call depository%get_field( name, field_ptr )
 
-    call collection%add_reference_to_field( field_ptr )
+    tmp_ptr => field_ptr
+    call collection%add_reference_to_field( tmp_ptr )
 
     if ( checkpoint_restart_flag ) then
-      call prognostic_fields%add_reference_to_field( field_ptr )
+      call prognostic_fields%add_reference_to_field( tmp_ptr )
     endif
 
     ! Nullify pointers

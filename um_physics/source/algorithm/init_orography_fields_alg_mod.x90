@@ -42,21 +42,21 @@ contains
     type( field_type ), pointer :: peak_to_trough_orog  => null()
 
     ! Standard deviation of orography
-    sd_orog      => orography_fields%get_field('sd_orog')
+    call orography_fields%get_field('sd_orog', sd_orog)
     ! (dh/dx) of orography
-    grad_x_orog => orography_fields%get_field('grad_x_orog')
+    call orography_fields%get_field('grad_x_orog', grad_x_orog)
     ! (dh/dy) of orography
-    grad_y_orog => orography_fields%get_field('grad_y_orog')
+    call orography_fields%get_field('grad_y_orog', grad_y_orog)
     ! (dh/dx)*(dh/dx) of orography
-    grad_xx_orog => orography_fields%get_field('grad_xx_orog')
+    call orography_fields%get_field('grad_xx_orog', grad_xx_orog)
     ! (dh/dx)*(dh/dy) of orography
-    grad_xy_orog => orography_fields%get_field('grad_xy_orog')
+    call orography_fields%get_field('grad_xy_orog', grad_xy_orog)
     ! (dh/dy)*(dh/dy) of orography
-    grad_yy_orog => orography_fields%get_field('grad_yy_orog')
+    call orography_fields%get_field('grad_yy_orog', grad_yy_orog)
     ! Silhouette area of orography
-    silhouette_area_orog => orography_fields%get_field('silhouette_area_orog')
+    call orography_fields%get_field('silhouette_area_orog', silhouette_area_orog)
     ! Half of peak-to-trough height over root(2) of orography
-    peak_to_trough_orog  => orography_fields%get_field('peak_to_trough_orog')
+    call orography_fields%get_field('peak_to_trough_orog', peak_to_trough_orog)
 
     ! Initialise the orography fields to fixed values for use in SCM
     ! testing or when no ancil file is read

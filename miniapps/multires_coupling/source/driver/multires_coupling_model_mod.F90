@@ -390,16 +390,16 @@ contains
     physics_mr  => physics_model_data%mr
 
     prognostic_fields => dynamics_model_data%prognostic_fields
-    dynamics_theta    => prognostic_fields%get_field('theta')
-    dynamics_u        => prognostic_fields%get_field('u')
-    dynamics_rho      => prognostic_fields%get_field('rho')
-    dynamics_exner    => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', dynamics_theta)
+    call prognostic_fields%get_field('u', dynamics_u)
+    call prognostic_fields%get_field('rho', dynamics_rho)
+    call prognostic_fields%get_field('exner', dynamics_exner)
 
     prognostic_fields => physics_model_data%prognostic_fields
-    physics_theta     => prognostic_fields%get_field('theta')
-    physics_u         => prognostic_fields%get_field('u')
-    physics_rho       => prognostic_fields%get_field('rho')
-    physics_exner     => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', physics_theta)
+    call prognostic_fields%get_field('u', physics_u)
+    call prognostic_fields%get_field('rho', physics_rho)
+    call prognostic_fields%get_field('exner', physics_exner)
 
     if (write_minmax_tseries) then
       call minmax_tseries_init('u')
@@ -536,16 +536,16 @@ contains
     physics_mr => physics_model_data%mr
 
     prognostic_fields => dynamics_model_data%prognostic_fields
-    dynamics_theta    => prognostic_fields%get_field('theta')
-    dynamics_u        => prognostic_fields%get_field('u')
-    dynamics_rho      => prognostic_fields%get_field('rho')
-    dynamics_exner    => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', dynamics_theta)
+    call prognostic_fields%get_field('u', dynamics_u)
+    call prognostic_fields%get_field('rho', dynamics_rho)
+    call prognostic_fields%get_field('exner', dynamics_exner)
 
     prognostic_fields => physics_model_data%prognostic_fields
-    physics_theta     => prognostic_fields%get_field('theta')
-    physics_u         => prognostic_fields%get_field('u')
-    physics_rho       => prognostic_fields%get_field('rho')
-    physics_exner     => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', physics_theta)
+    call prognostic_fields%get_field('u', physics_u)
+    call prognostic_fields%get_field('rho', physics_rho)
+    call prognostic_fields%get_field('exner', physics_exner)
 
     ! Log fields
     call dynamics_rho%log_field(   LOG_LEVEL_DEBUG, 'rho' )

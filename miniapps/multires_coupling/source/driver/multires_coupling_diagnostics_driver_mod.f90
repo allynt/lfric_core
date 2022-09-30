@@ -67,10 +67,10 @@ contains
     ! Can't just iterate through the collection as some fields are scalars
     ! and some fields are vectors, so explicitly extract all fields from
     ! the collection and output each of them
-    dynamics_u => dynamics_prognostic_fields%get_field('u')
-    dynamics_rho => dynamics_prognostic_fields%get_field('rho')
-    dynamics_theta => dynamics_prognostic_fields%get_field('theta')
-    dynamics_exner => dynamics_prognostic_fields%get_field('exner')
+    call dynamics_prognostic_fields%get_field('u', dynamics_u)
+    call dynamics_prognostic_fields%get_field('rho', dynamics_rho)
+    call dynamics_prognostic_fields%get_field('theta', dynamics_theta)
+    call dynamics_prognostic_fields%get_field('exner', dynamics_exner)
 
     if (use_physics) then
       call map_physics_fields_alg(dynamics_u, dynamics_exner,      &

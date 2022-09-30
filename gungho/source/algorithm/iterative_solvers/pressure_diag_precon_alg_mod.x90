@@ -87,8 +87,8 @@ contains
        type is(r_solver_field_vector_type)
           ! Multiply by inverse of mass matrix
           m3_inv => get_inverse_w3_mass_matrix_r_solver(y%vector(1)%get_mesh_id())
-          x_vec => x%get_field(1)
-          y_vec => y%get_field(1)
+          x_vec => x%get_field_from_position(1)
+          y_vec => y%get_field_from_position(1)
           call invoke( dg_matrix_vector_kernel_type(y_vec, x_vec, m3_inv) )
           nullify( x_vec, y_vec )
        class default

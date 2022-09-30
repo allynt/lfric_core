@@ -138,7 +138,7 @@ contains
 
     if (wind_forcing /= wind_forcing_none) then
 
-      u_physics => derived_fields%get_field('u_physics')
+      call derived_fields%get_field('u_physics', u_physics)
       w2_rmultiplicity => get_rmultiplicity( W2, mesh%get_id() ) ! 1/multiplicity of w2
       dA => get_da_at_w2( mesh%get_id() )
 

@@ -140,10 +140,10 @@ module gungho_step_mod
 
     ! Get pointers to fields in the prognostic/diagnostic field collections
     ! for use downstream
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
 
     ! Get timestep parameters from clock
     dt = real(clock%get_seconds_per_step(), r_def)
@@ -175,10 +175,10 @@ module gungho_step_mod
     end select
 
     if ( energy_correction /= energy_correction_none ) then
-      accumulated_fluxes => derived_fields%get_field('accumulated_fluxes')
+      call derived_fields%get_field('accumulated_fluxes', accumulated_fluxes)
       ! temperature_correction_rate is stored in this field so that it
       ! maybe written to checkpoint file
-      temp_correction_field => derived_fields%get_field('temp_correction_field')
+      call derived_fields%get_field('temp_correction_field', temp_correction_field)
       call sum_fluxes_alg( accumulated_fluxes,         &
                            radiation_fields,     &
                            turbulence_fields,    &

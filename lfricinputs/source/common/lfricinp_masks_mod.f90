@@ -79,7 +79,7 @@ IF (err /= 0 .OR. .NOT. l_land_area_fraction) THEN
 ELSE
 
   ! Set up LFRic mask dimension size
-  ancil_field => ancil_fields%get_field("land_area_fraction")
+  call ancil_fields%get_field("land_area_fraction", ancil_field)
   CALL ancil_field%read_field(ancil_field%get_name())
   ancil_field_proxy = ancil_field%get_proxy()
   dim_1d = SIZE(ancil_field_proxy%data)

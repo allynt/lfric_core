@@ -58,10 +58,10 @@ contains
 
     real(kind=r_def)     :: initial_time
 
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
 
     !=== Initialise global prognostic fields ==================================!
 

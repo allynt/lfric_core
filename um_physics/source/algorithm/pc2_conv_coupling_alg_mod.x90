@@ -72,20 +72,20 @@ contains
 
     if ( subroutine_timers ) call timer ("pc2_conv_coupling_alg")
 
-    exner_wth       => derived_fields%get_field('exner_in_wth')
-    theta_star      => derived_fields%get_field('theta_star')
+    call derived_fields%get_field('exner_in_wth', exner_wth)
+    call derived_fields%get_field('theta_star', theta_star)
 
-    liquid_fraction => cloud_fields%get_field('liquid_fraction')
-    frozen_fraction => cloud_fields%get_field('frozen_fraction')
-    bulk_fraction   => cloud_fields%get_field('bulk_fraction')
+    call cloud_fields%get_field('liquid_fraction', liquid_fraction)
+    call cloud_fields%get_field('frozen_fraction', frozen_fraction)
+    call cloud_fields%get_field('bulk_fraction', bulk_fraction)
 
-    dt_conv         => convection_fields%get_field('dt_conv')
-    dmv_conv        => convection_fields%get_field('dmv_conv')
-    dmcl_conv       => convection_fields%get_field('dmcl_conv')
-    dmci_conv       => convection_fields%get_field('dmci_conv')
-    dcfl_conv       => convection_fields%get_field('dcfl_conv')
-    dcff_conv       => convection_fields%get_field('dcff_conv')
-    dbcf_conv       => convection_fields%get_field('dbcf_conv')
+    call convection_fields%get_field('dt_conv', dt_conv)
+    call convection_fields%get_field('dmv_conv', dmv_conv)
+    call convection_fields%get_field('dmcl_conv', dmcl_conv)
+    call convection_fields%get_field('dmci_conv', dmci_conv)
+    call convection_fields%get_field('dcfl_conv', dcfl_conv)
+    call convection_fields%get_field('dcff_conv', dcff_conv)
+    call convection_fields%get_field('dbcf_conv', dbcf_conv)
 
     ! Re-initialise UM to work on whole domain (i-first)
     mesh => exner_wth%get_mesh()

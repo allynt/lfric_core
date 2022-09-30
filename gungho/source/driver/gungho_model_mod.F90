@@ -372,10 +372,10 @@ contains
 
     ! Get pointers to fields in the prognostic/diagnostic field collections
     ! for use downstream
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
 
     if (write_minmax_tseries) then
       call minmax_tseries_init('u')
@@ -518,10 +518,10 @@ contains
 
     ! Get pointers to fields in the prognostic/diagnostic field collections
     ! for use downstream
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
 
     ! Log fields
     call rho%log_field(   LOG_LEVEL_DEBUG, 'rho' )

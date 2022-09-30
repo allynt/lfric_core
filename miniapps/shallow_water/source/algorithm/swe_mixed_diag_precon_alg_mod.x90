@@ -128,12 +128,12 @@ contains
       type is(field_vector_type)
 
         ! Get pointers to x and y abstract types
-        x_vec_u => x%get_field(isw_u)
-        x_vec_g => x%get_field(isw_g)
-        x_vec_b => x%get_field(isw_b)
-        y_vec_u => y%get_field(isw_u)
-        y_vec_g => y%get_field(isw_g)
-        y_vec_b => y%get_field(isw_b)
+        x_vec_u => x%get_field_from_position(isw_u)
+        x_vec_g => x%get_field_from_position(isw_g)
+        x_vec_b => x%get_field_from_position(isw_b)
+        y_vec_u => y%get_field_from_position(isw_u)
+        y_vec_g => y%get_field_from_position(isw_g)
+        y_vec_b => y%get_field_from_position(isw_b)
 
         call invoke( X_divideby_Y(y_vec_u,             &
                                   x_vec_u,             &

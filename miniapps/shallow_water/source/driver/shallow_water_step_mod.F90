@@ -59,10 +59,10 @@ module shallow_water_step_mod
 
     prognostic_fields => model_data%prognostic_fields
 
-    wind     => prognostic_fields%get_field('wind')
-    geopot   => prognostic_fields%get_field('geopot')
-    buoyancy => prognostic_fields%get_field('buoyancy')
-    q        => prognostic_fields%get_field('q')
+    call prognostic_fields%get_field('wind', wind)
+    call prognostic_fields%get_field('geopot', geopot)
+    call prognostic_fields%get_field('buoyancy', buoyancy)
+    call prognostic_fields%get_field('q', q)
 
     write( log_scratch_space, &
            '(A,I0)' ) 'Start of timestep ', clock%get_step()

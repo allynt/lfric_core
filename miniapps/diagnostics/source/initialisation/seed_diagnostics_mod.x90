@@ -55,21 +55,21 @@ contains
 
         if (prognostic_fields%field_exists( &
                 prognostics_meta%red%get_unique_id() )) then
-            red => prognostic_fields%get_field( prognostics_meta%red%get_unique_id() )
+            call prognostic_fields%get_field( prognostics_meta%red%get_unique_id(), red )
             do i=1, size(seed_red)
                 call invoke_set_target_data_point_kernel(red, seed_red(i), 1, max) !bottom layer
             end do
         end if
         if (prognostic_fields%field_exists( &
                 prognostics_meta%green%get_unique_id() )) then
-            green => prognostic_fields%get_field( prognostics_meta%green%get_unique_id() )
+            call prognostic_fields%get_field( prognostics_meta%green%get_unique_id(), green )
             do i=1, size(seed_green)
                 call invoke_set_target_data_point_kernel(green, seed_green(i), 2, max) !middle layer
             end do
         end if
         if (prognostic_fields%field_exists( &
                 prognostics_meta%blue%get_unique_id() )) then
-            blue => prognostic_fields%get_field( prognostics_meta%blue%get_unique_id() )
+            call prognostic_fields%get_field( prognostics_meta%blue%get_unique_id(), blue )
             do i=1, size(seed_blue)
                 call invoke_set_target_data_point_kernel(blue, seed_blue(i), 3, max) !top layer
             end do

@@ -101,14 +101,14 @@ module linear_step_mod
 
     ! Get pointers to fields in the prognostic/diagnostic field collections
     ! for use downstream
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
-    ls_theta =>ls_fields%get_field('ls_theta')
-    ls_u => ls_fields%get_field('ls_u')
-    ls_rho => ls_fields%get_field('ls_rho')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
+    call ls_fields%get_field('ls_theta', ls_theta)
+    call ls_fields%get_field('ls_u', ls_u)
+    call ls_fields%get_field('ls_rho', ls_rho)
+    call ls_fields%get_field('ls_exner', ls_exner)
     dA => get_da_at_w2( mesh%get_id() )
 
     select case( method )

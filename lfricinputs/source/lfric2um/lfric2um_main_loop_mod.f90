@@ -62,7 +62,7 @@ DO i_stash = 1, lfric2um_config%num_fields
   weights => get_weights(stashcode)
 
   ! Get pointer to lfric field + read
-  lfric_field => lfric_fields%get_field(get_field_name(stashcode))
+  call lfric_fields%get_field(get_field_name(stashcode), lfric_field)
   CALL lfric_field%read_field("read_"//lfric_field%get_name())
 
   ! Allocate space for global data, only need full field on rank 0

@@ -82,7 +82,7 @@ module stph_fp_main_alg_mod
   if ( subroutine_timers ) call timer("stph_fp_main_alg")
 
   ! Get LS rain as a 2D field to build a field with lats and lons
-  ls_rain => microphysics_fields%get_field('ls_rain')
+  call microphysics_fields%get_field('ls_rain', ls_rain)
 
   ! Get latitudes and longitudes over the cubedsphere
   ! with the FP mesh_id

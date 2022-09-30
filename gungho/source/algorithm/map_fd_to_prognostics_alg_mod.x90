@@ -90,25 +90,25 @@ contains
 
     !FD (source) fields
     if ( read_w2h_wind ) then
-      h_wind_in_w2h       => fd_fields%get_field('h_wind')
+      call fd_fields%get_field('h_wind', h_wind_in_w2h)
     else
-      ew_wind_in_w3       => fd_fields%get_field('ew_wind_in_w3')
-      ns_wind_in_w3       => fd_fields%get_field('ns_wind_in_w3')
+      call fd_fields%get_field('ew_wind_in_w3', ew_wind_in_w3)
+      call fd_fields%get_field('ns_wind_in_w3', ns_wind_in_w3)
     end if
 
-    dry_rho_in_w3         => fd_fields%get_field('dry_rho_in_w3')
-    upward_wind_in_wtheta => fd_fields%get_field('upward_wind_in_wtheta')
-    theta_in_wtheta       => fd_fields%get_field('theta_in_wtheta')
-    mv_in_wtheta          => fd_fields%get_field('mv_in_wtheta')
-    mcl_in_wtheta         => fd_fields%get_field('mcl_in_wtheta')
-    mcf_in_wtheta         => fd_fields%get_field('mcf_in_wtheta')
-    mr_in_wtheta          => fd_fields%get_field('mr_in_wtheta')
+    call fd_fields%get_field('dry_rho_in_w3', dry_rho_in_w3)
+    call fd_fields%get_field('upward_wind_in_wtheta', upward_wind_in_wtheta)
+    call fd_fields%get_field('theta_in_wtheta', theta_in_wtheta)
+    call fd_fields%get_field('mv_in_wtheta', mv_in_wtheta)
+    call fd_fields%get_field('mcl_in_wtheta', mcl_in_wtheta)
+    call fd_fields%get_field('mcf_in_wtheta', mcf_in_wtheta)
+    call fd_fields%get_field('mr_in_wtheta', mr_in_wtheta)
 
     !Prognostic (target) fields
-    u                     => prognostic_fields%get_field('u')
-    theta                 => prognostic_fields%get_field('theta')
-    exner                 => prognostic_fields%get_field('exner')
-    rho                   => prognostic_fields%get_field('rho')
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('exner', exner)
+    call prognostic_fields%get_field('rho', rho)
 
     ! Some variables should coming in from the restart file, but currently
     ! they are not output by UM2LFRIC and are set to zero or a default value

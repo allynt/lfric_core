@@ -147,32 +147,32 @@ contains
                  setval_c(dtheta_mphys, 0.0_r_def) )
 
     ! Unpack fields
-    exner_in_wth       => derived_fields%get_field('exner_in_wth')
-    u_in_w3            => derived_fields%get_field('u_in_w3')
-    v_in_w3            => derived_fields%get_field('v_in_w3')
-    w_in_wth           => derived_fields%get_field('w_in_wth')
-    wetrho_in_w3       => derived_fields%get_field('wetrho_in_w3')
-    rho_in_wth         => derived_fields%get_field('rho_in_wth')
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
+    call derived_fields%get_field('u_in_w3', u_in_w3)
+    call derived_fields%get_field('v_in_w3', v_in_w3)
+    call derived_fields%get_field('w_in_wth', w_in_wth)
+    call derived_fields%get_field('wetrho_in_w3', wetrho_in_w3)
+    call derived_fields%get_field('rho_in_wth', rho_in_wth)
 
-    bcf_in             => cloud_fields%get_field('bulk_fraction')
-    cfl_in             => cloud_fields%get_field('liquid_fraction')
-    cff_in             => cloud_fields%get_field('frozen_fraction')
+    call cloud_fields%get_field('bulk_fraction', bcf_in)
+    call cloud_fields%get_field('liquid_fraction', cfl_in)
+    call cloud_fields%get_field('frozen_fraction', cff_in)
 
-    ls_rain            => microphysics_fields%get_field('ls_rain')
-    ls_snow            => microphysics_fields%get_field('ls_snow')
-    lsca_2d            => microphysics_fields%get_field('lsca_2d')
-    ls_rain_3d         => microphysics_fields%get_field('ls_rain_3d')
-    ls_snow_3d         => microphysics_fields%get_field('ls_snow_3d')
-    autoconv           => microphysics_fields%get_field('autoconv')
-    accretion          => microphysics_fields%get_field('accretion')
-    rim_cry            => microphysics_fields%get_field('rim_cry')
-    rim_agg            => microphysics_fields%get_field('rim_agg')
+    call microphysics_fields%get_field('ls_rain', ls_rain)
+    call microphysics_fields%get_field('ls_snow', ls_snow)
+    call microphysics_fields%get_field('lsca_2d', lsca_2d)
+    call microphysics_fields%get_field('ls_rain_3d', ls_rain_3d)
+    call microphysics_fields%get_field('ls_snow_3d', ls_snow_3d)
+    call microphysics_fields%get_field('autoconv', autoconv)
+    call microphysics_fields%get_field('accretion', accretion)
+    call microphysics_fields%get_field('rim_cry', rim_cry)
+    call microphysics_fields%get_field('rim_agg', rim_agg)
 
-    cloud_drop_no_conc => aerosol_fields%get_field('cloud_drop_no_conc')
+    call aerosol_fields%get_field('cloud_drop_no_conc', cloud_drop_no_conc)
 
-    wvar               => turbulence_fields%get_field('wvar')
+    call turbulence_fields%get_field('wvar', wvar)
 
-    sd_orog            => orography_fields%get_field('sd_orog')
+    call orography_fields%get_field('sd_orog', sd_orog)
 
 
     ! Initialise diagnostics
@@ -236,7 +236,7 @@ contains
     end if
 
     ! Save mv increment for stochastic physics
-    dmv_mphys => microphysics_fields%get_field('dmv_mphys')
+    call microphysics_fields%get_field('dmv_mphys', dmv_mphys)
     call invoke(setval_X(dmv_mphys, dmr_mphys(imr_v)))
 
     if ( subroutine_timers ) call timer("mphys_alg")

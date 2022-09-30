@@ -76,8 +76,8 @@ contains
           if ( .not. iterator%has_next() ) exit
 
           single_field_in => iterator%next()
-          single_field_out => &
-                   fields_out%get_field( trim(single_field_in%get_name() ) )
+          call fields_out%get_field( trim(single_field_in%get_name() ), &
+                                     single_field_out )
 
           call log_event( "Advecting "//  trim(single_field_in%get_name()), &
                            LOG_LEVEL_INFO)

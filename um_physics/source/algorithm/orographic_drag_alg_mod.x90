@@ -105,16 +105,16 @@ contains
     height_w3  => get_height(W3, mesh%get_id())
 
     ! Unpack fields
-    u_in_w3 => derived_fields%get_field('u_in_w3')
-    v_in_w3 => derived_fields%get_field('v_in_w3')
-    exner_in_wth => derived_fields%get_field('exner_in_wth')
-    wetrho_in_w3 => derived_fields%get_field('wetrho_in_w3')
+    call derived_fields%get_field('u_in_w3', u_in_w3)
+    call derived_fields%get_field('v_in_w3', v_in_w3)
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
+    call derived_fields%get_field('wetrho_in_w3', wetrho_in_w3)
 
     ! Unpack orography fields
-    sd_orog      => orography_fields%get_field('sd_orog')
-    grad_xx_orog => orography_fields%get_field('grad_xx_orog')
-    grad_xy_orog => orography_fields%get_field('grad_xy_orog')
-    grad_yy_orog => orography_fields%get_field('grad_yy_orog')
+    call orography_fields%get_field('sd_orog', sd_orog)
+    call orography_fields%get_field('grad_xx_orog', grad_xx_orog)
+    call orography_fields%get_field('grad_xy_orog', grad_xy_orog)
+    call orography_fields%get_field('grad_yy_orog', grad_yy_orog)
 
     ! Local increments
     call u_in_w3%copy_field_properties(du_orographic_drag)

@@ -80,11 +80,11 @@ contains
     if ( subroutine_timers ) call timer('moisture_fluxes_alg')
 
     mesh = area%get_mesh_id()
-    ls_rain => microphysics_fields%get_field('ls_rain')
-    ls_snow => microphysics_fields%get_field('ls_snow')
-    conv_rain => convection_fields%get_field('conv_rain')
-    conv_snow => convection_fields%get_field('conv_snow')
-    moist_flux_bl => turbulence_fields%get_field('moist_flux_bl')
+    call microphysics_fields%get_field('ls_rain', ls_rain)
+    call microphysics_fields%get_field('ls_snow', ls_snow)
+    call convection_fields%get_field('conv_rain', conv_rain)
+    call convection_fields%get_field('conv_snow', conv_snow)
+    call turbulence_fields%get_field('moist_flux_bl', moist_flux_bl)
     fs_2d => ls_rain%get_function_space()
 
     call ls_rain%copy_field_properties(fqw_total)

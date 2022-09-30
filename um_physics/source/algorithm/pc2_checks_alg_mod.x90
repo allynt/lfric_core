@@ -82,11 +82,11 @@ contains
     if ( subroutine_timers ) call timer("pc2_checks_alg")
 
     ! Unpack fields
-    exner_in_wth    => derived_fields%get_field('exner_in_wth')
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
 
-    bulk_fraction   => cloud_fields%get_field('bulk_fraction')
-    liquid_fraction => cloud_fields%get_field('liquid_fraction')
-    frozen_fraction => cloud_fields%get_field('frozen_fraction')
+    call cloud_fields%get_field('bulk_fraction', bulk_fraction)
+    call cloud_fields%get_field('liquid_fraction', liquid_fraction)
+    call cloud_fields%get_field('frozen_fraction', frozen_fraction)
 
     call theta%copy_field_properties(dtheta_pc2_inc)
     call theta%copy_field_properties(dmv_pc2_inc)

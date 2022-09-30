@@ -65,16 +65,16 @@ contains
     call log_event( 'Running LL convection scheme', LOG_LEVEL_INFO )
 
     ! Unpack fields
-    exner_in_wth => derived_fields%get_field('exner_in_wth')
-    theta_star => derived_fields%get_field('theta_star')
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
+    call derived_fields%get_field('theta_star', theta_star)
 
-    dt_conv => convection_fields%get_field('dt_conv')
-    dmv_conv => convection_fields%get_field('dmv_conv')
-    dmcl_conv => convection_fields%get_field('dmcl_conv')
-    dcfl_conv => convection_fields%get_field('dcfl_conv')
-    dbcf_conv => convection_fields%get_field('dbcf_conv')
-    conv_rain => convection_fields%get_field('conv_rain')
-    conv_snow => convection_fields%get_field('conv_snow')
+    call convection_fields%get_field('dt_conv', dt_conv)
+    call convection_fields%get_field('dmv_conv', dmv_conv)
+    call convection_fields%get_field('dmcl_conv', dmcl_conv)
+    call convection_fields%get_field('dcfl_conv', dcfl_conv)
+    call convection_fields%get_field('dbcf_conv', dbcf_conv)
+    call convection_fields%get_field('conv_rain', conv_rain)
+    call convection_fields%get_field('conv_snow', conv_snow)
 
     call invoke(conv_ll_kernel_type(dt_conv, dmv_conv, dmcl_conv, dcfl_conv,  &
                                     theta_star, mr(imr_v), mr(imr_cl),        &

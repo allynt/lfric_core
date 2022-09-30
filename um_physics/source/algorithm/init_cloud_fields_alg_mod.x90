@@ -42,12 +42,12 @@ contains
     type( field_type ), pointer :: rh_crit         => null()
     type( field_type ), pointer :: sigma_mc        => null()
 
-    area_fraction   => cloud_fields%get_field('area_fraction')
-    frozen_fraction => cloud_fields%get_field('frozen_fraction')
-    liquid_fraction => cloud_fields%get_field('liquid_fraction')
-    bulk_fraction   => cloud_fields%get_field('bulk_fraction')
-    rh_crit         => cloud_fields%get_field('rh_crit')
-    sigma_mc        => cloud_fields%get_field('sigma_mc')
+    call cloud_fields%get_field('area_fraction', area_fraction)
+    call cloud_fields%get_field('frozen_fraction', frozen_fraction)
+    call cloud_fields%get_field('liquid_fraction', liquid_fraction)
+    call cloud_fields%get_field('bulk_fraction', bulk_fraction)
+    call cloud_fields%get_field('rh_crit', rh_crit)
+    call cloud_fields%get_field('sigma_mc', sigma_mc)
 
     ! Initialise cloud fractions to zero so other schemes will use them
     ! correctly if the cloud scheme is off or no values are provided

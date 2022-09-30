@@ -145,10 +145,10 @@ contains
     ! Can't just iterate through the prognostic/diagnostic collections as
     ! some fields are scalars and some fields are vectors, so explicitly
     ! extract all fields from the collections and output each of them in turn
-    theta => prognostic_fields%get_field('theta')
-    u => prognostic_fields%get_field('u')
-    rho => prognostic_fields%get_field('rho')
-    exner => prognostic_fields%get_field('exner')
+    call prognostic_fields%get_field('theta', theta)
+    call prognostic_fields%get_field('u', u)
+    call prognostic_fields%get_field('rho', rho)
+    call prognostic_fields%get_field('exner', exner)
 
     ! Scalar fields
     call write_scalar_diagnostic('rho', rho, &
@@ -165,9 +165,9 @@ contains
     ! Vector fields
     if (use_physics .and. use_xios_io .and. .not. write_fluxes) then
       ! These have already been calculated, so no need to recalculate them
-      u_in_w2h => derived_fields%get_field('u_in_w2h')
-      v_in_w2h => derived_fields%get_field('v_in_w2h')
-      w_in_wth => derived_fields%get_field('w_in_wth')
+      call derived_fields%get_field('u_in_w2h', u_in_w2h)
+      call derived_fields%get_field('v_in_w2h', v_in_w2h)
+      call derived_fields%get_field('w_in_wth', w_in_wth)
       tmp_write_ptr => write_field_edge
       call u_in_w2h%set_write_behaviour(tmp_write_ptr)
       call v_in_w2h%set_write_behaviour(tmp_write_ptr)
@@ -196,13 +196,13 @@ contains
 
     if (limited_area) then
       if (output_lbcs) then
-        lbc_theta => lbc_fields%get_field('lbc_theta')
-        lbc_u => lbc_fields%get_field('lbc_u')
-        lbc_rho => lbc_fields%get_field('lbc_rho')
-        lbc_exner => lbc_fields%get_field('lbc_exner')
+        call lbc_fields%get_field('lbc_theta', lbc_theta)
+        call lbc_fields%get_field('lbc_u', lbc_u)
+        call lbc_fields%get_field('lbc_rho', lbc_rho)
+        call lbc_fields%get_field('lbc_exner', lbc_exner)
 
-        h_u => lbc_fields%get_field('lbc_h_u')
-        v_u => lbc_fields%get_field('lbc_v_u')
+        call lbc_fields%get_field('lbc_h_u', h_u)
+        call lbc_fields%get_field('lbc_v_u', v_u)
 
         ! Scalar fields
         call write_scalar_diagnostic('lbc_rho', lbc_rho, &
@@ -215,13 +215,13 @@ contains
                                  clock, mesh, nodal_output_on_w3)
 
         if ( moisture_formulation /= moisture_formulation_dry ) then
-          lbc_m_v => lbc_fields%get_field('lbc_m_v')
+          call lbc_fields%get_field('lbc_m_v', lbc_m_v)
           call write_scalar_diagnostic('lbc_m_v', lbc_m_v, &
                                    clock, mesh, nodal_output_on_w3)
-          lbc_q => lbc_fields%get_field('lbc_q')
+          call lbc_fields%get_field('lbc_q', lbc_q)
           call write_scalar_diagnostic('lbc_q', lbc_q, &
                                    clock, mesh, nodal_output_on_w3)
-          lbc_rho => lbc_fields%get_field('lbc_rho_r2')
+          call lbc_fields%get_field('lbc_rho_r2', lbc_rho)
           call write_scalar_diagnostic('lbc_rho_r2', lbc_rho, &
                                    clock, mesh, nodal_output_on_w3)
         end if
@@ -254,20 +254,20 @@ contains
       field_ptr => null()
 
       ! Get w_in_wth for WBig calculation
-      w_in_wth => derived_fields%get_field('w_in_wth')
+      call derived_fields%get_field('w_in_wth', w_in_wth)
       call calc_wbig_diagnostic_alg(w_in_wth, mesh)
 
       ! Pressure diagnostics
-      exner => prognostic_fields%get_field('exner')
+      call prognostic_fields%get_field('exner', exner)
       call pressure_diag_alg(exner)
 
-      exner_in_wth => derived_fields%get_field('exner_in_wth')
+      call derived_fields%get_field('exner_in_wth', exner_in_wth)
       call pressure_diag_alg(exner_in_wth)
 
       ! Call PMSL algorithm
-      theta => prognostic_fields%get_field('theta')
+      call prognostic_fields%get_field('theta', theta)
       call pmsl_alg(exner, derived_fields, theta, twod_mesh)
-      theta_in_w3 => derived_fields%get_field('theta_in_w3')
+      call derived_fields%get_field('theta_in_w3', theta_in_w3)
       call column_total_diagnostics_alg(rho, mr, theta_in_w3, exner, mesh, twod_mesh)
 
     end if

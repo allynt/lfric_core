@@ -261,8 +261,8 @@ contains
     !--------------------------------------------------------------------
     call invoke( setval_c(dtheta, 0.0_r_def), &
                  setval_c(du, 0.0_r_def) )
-    exner_in_wth => derived_fields%get_field('exner_in_wth')
-    exner_wth_n => derived_fields%get_field('exner_wth_n')
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
+    call derived_fields%get_field('exner_wth_n', exner_wth_n)
     call invoke( setval_X(exner_wth_n,exner_in_wth) )
     theta_forcing_done   = .false.
     energy_correction_done = .false.
@@ -350,7 +350,7 @@ contains
     !--------------------------------------------------------------------
     ! UM microphysics scheme
     !--------------------------------------------------------------------
-    dtheta_mphys => microphysics_fields%get_field('dtheta_mphys')
+    call microphysics_fields%get_field('dtheta_mphys', dtheta_mphys)
     call clone_bundle(mr_n, dmr_mphys, nummr)
     call set_bundle_scalar(0.0_r_def, dmr_mphys, nummr)
     if ( microphysics == microphysics_um .and. &
@@ -415,8 +415,8 @@ contains
                         surface_fields, soil_fields, snow_fields,            &
                         twod_mesh, clock%get_step())
 
-      dtheta_rad => radiation_fields%get_field('dtheta_rad')
-      dmv_pc2_rad => radiation_fields%get_field('dmv_pc2_rad')
+      call radiation_fields%get_field('dtheta_rad', dtheta_rad)
+      call radiation_fields%get_field('dmv_pc2_rad', dmv_pc2_rad)
       call radiation_alg( dtheta_rad, theta, exner, mr_n,                      &
                           derived_fields, radiation_fields, cloud_fields,      &
                           convection_fields, aerosol_fields, surface_fields,   &
@@ -506,8 +506,8 @@ contains
 
     if (leonard_term .and. boundary_layer == boundary_layer_um ) then
       call u%copy_field_properties(u_inc_leonard)
-      mt_inc_leonard     => turbulence_fields%get_field('mt_inc_leonard')
-      thetal_inc_leonard => turbulence_fields%get_field('thetal_inc_leonard')
+      call turbulence_fields%get_field('mt_inc_leonard', mt_inc_leonard)
+      call turbulence_fields%get_field('thetal_inc_leonard', thetal_inc_leonard)
       call leonard_term_alg(mt_inc_leonard, thetal_inc_leonard,           &
                             u_inc_leonard, mr_n, theta, u, rho,           &
                             turbulence_fields, derived_fields,            &
@@ -552,7 +552,7 @@ contains
                                     convection_fields, cloud_fields, dt)
       else
         ! Without PC2, just update vapour field
-        dmv_conv => convection_fields%get_field('dmv_conv')
+        call convection_fields%get_field('dmv_conv', dmv_conv)
         call invoke( inc_X_plus_Y(mr(imr_v), dmv_conv) )
       end if
 
@@ -598,9 +598,9 @@ contains
     end if
 
     if (cloud == cloud_um .and. scheme == scheme_pc2) then
-        liquid_fraction => cloud_fields%get_field('liquid_fraction')
-        frozen_fraction => cloud_fields%get_field('frozen_fraction')
-        bulk_fraction   => cloud_fields%get_field('bulk_fraction')
+        call cloud_fields%get_field('liquid_fraction', liquid_fraction)
+        call cloud_fields%get_field('frozen_fraction', frozen_fraction)
+        call cloud_fields%get_field('bulk_fraction', bulk_fraction)
     end if
 
     if (microphysics_done) then
@@ -658,7 +658,7 @@ contains
     if (cloud == cloud_um .and. scheme == scheme_pc2) then
 
       ! Make a copy of exner to be advected
-      departure_exner_wth => cloud_fields%get_field('departure_exner_wth')
+      call cloud_fields%get_field('departure_exner_wth', departure_exner_wth)
       call invoke( setval_X(departure_exner_wth,exner_in_wth) )
 
       if (microphysics_done .or. radiation_done) then

@@ -197,10 +197,10 @@ module shallow_water_model_mod
     prognostic_fields => model_data%prognostic_fields
     diagnostic_fields => model_data%diagnostic_fields
 
-    wind     => prognostic_fields%get_field("wind")
-    buoyancy => prognostic_fields%get_field("buoyancy")
-    geopot   => prognostic_fields%get_field("geopot")
-    q        => prognostic_fields%get_field("q")
+    call prognostic_fields%get_field("wind", wind)
+    call prognostic_fields%get_field("buoyancy", buoyancy)
+    call prognostic_fields%get_field("geopot", geopot)
+    call prognostic_fields%get_field("q", q)
 
     ! Initialise transport and shallow water model
     call swe_timestep_alg_init( mesh, wind, geopot, buoyancy, q )
@@ -290,9 +290,9 @@ module shallow_water_model_mod
 
     prognostic_fields => model_data%prognostic_fields
 
-    wind   => prognostic_fields%get_field('wind')
-    geopot => prognostic_fields%get_field('geopot')
-    q      => prognostic_fields%get_field('q')
+    call prognostic_fields%get_field('wind', wind)
+    call prognostic_fields%get_field('geopot', geopot)
+    call prognostic_fields%get_field('q', q)
 
     ! Checksums
     call checksum_alg( program_name, wind, 'wind', geopot, 'geopot', q, 'q' )

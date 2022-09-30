@@ -55,9 +55,9 @@ contains
     if ( subroutine_timers ) call timer("fsd_condensate_alg")
 
     ! Unpack fields
-    area_fraction   => cloud_fields%get_field('area_fraction')
-    sigma_mc        => cloud_fields%get_field('sigma_mc')
-    cca             => convection_fields%get_field('cca')
+    call cloud_fields%get_field('area_fraction', area_fraction)
+    call cloud_fields%get_field('sigma_mc', sigma_mc)
+    call convection_fields%get_field('cca', cca)
 
     mesh => area_fraction%get_mesh()
 

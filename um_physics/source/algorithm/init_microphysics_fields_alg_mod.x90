@@ -43,17 +43,17 @@ contains
     type( field_type ), pointer :: dtheta_mphys => null()
     type( field_type ), pointer :: dmv_mphys    => null()
 
-    dtheta_mphys => microphysics_fields%get_field('dtheta_mphys')
-    dmv_mphys    => microphysics_fields%get_field('dmv_mphys')
-    ls_rain      => microphysics_fields%get_field('ls_rain')
-    ls_snow      => microphysics_fields%get_field('ls_snow')
-    lsca_2d      => microphysics_fields%get_field('lsca_2d')
-    ls_rain_3d   => microphysics_fields%get_field('ls_rain_3d')
-    ls_snow_3d   => microphysics_fields%get_field('ls_snow_3d')
-    autoconv     => microphysics_fields%get_field('autoconv')
-    accretion    => microphysics_fields%get_field('accretion')
-    rim_cry      => microphysics_fields%get_field('rim_cry')
-    rim_agg      => microphysics_fields%get_field('rim_agg')
+    call microphysics_fields%get_field('dtheta_mphys', dtheta_mphys)
+    call microphysics_fields%get_field('dmv_mphys', dmv_mphys)
+    call microphysics_fields%get_field('ls_rain', ls_rain)
+    call microphysics_fields%get_field('ls_snow', ls_snow)
+    call microphysics_fields%get_field('lsca_2d', lsca_2d)
+    call microphysics_fields%get_field('ls_rain_3d', ls_rain_3d)
+    call microphysics_fields%get_field('ls_snow_3d', ls_snow_3d)
+    call microphysics_fields%get_field('autoconv', autoconv)
+    call microphysics_fields%get_field('accretion', accretion)
+    call microphysics_fields%get_field('rim_cry', rim_cry)
+    call microphysics_fields%get_field('rim_agg', rim_agg)
 
     ! Set microphysics output fields to zero for use when scheme is off
     call invoke( setval_c(dtheta_mphys, 0.0_r_def), &

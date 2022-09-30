@@ -45,8 +45,8 @@ contains
     type( field_type ), pointer :: tile_temperature => null()
     type( field_type ), pointer :: tstar => null()
 
-    tile_temperature => surface_fields%get_field('tile_temperature')
-    tstar => fd_fields%get_field('tstar')
+    call surface_fields%get_field('tile_temperature', tile_temperature)
+    call fd_fields%get_field('tstar', tstar)
 
     if ( put_field) then
       ! Put tstar into tile_temperature

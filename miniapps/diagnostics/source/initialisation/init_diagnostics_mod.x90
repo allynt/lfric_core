@@ -149,7 +149,7 @@ contains
             call log_event("Add to depository", LOG_LEVEL_INFO)
             call model_data%depository%add_field(new_field)
 
-            tmp_field => model_data%depository%get_field(fieldspec%get_unique_id())
+            call model_data%depository%get_field(fieldspec%get_unique_id(), tmp_field)
             tmp_field_ptr => tmp_field
 
             ! Add field collection to model data if necessary

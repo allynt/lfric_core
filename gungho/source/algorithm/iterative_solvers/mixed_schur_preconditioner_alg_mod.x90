@@ -265,22 +265,22 @@ contains
     type is(r_solver_field_vector_type)
        select type(y)
        type is(r_solver_field_vector_type)
-         y_p =>  y%get_field(isol_p)
+         y_p =>  y%get_field_from_position(isol_p)
          call invoke( setval_c( y_p, 0.0_r_solver ) )
          if ( eliminate_variables == eliminate_variables_none ) then
-           y_t =>  y%get_field(isol_t)
-           y_d =>  y%get_field(isol_d)
+           y_t =>  y%get_field_from_position(isol_t)
+           y_d =>  y%get_field_from_position(isol_d)
            call invoke( setval_c( y_t, 0.0_r_solver ),  &
                         setval_c( y_d, 0.0_r_solver ) )
          end if
 
          if (split_w)then
-           y_uv =>  y%get_field(isol_uv)
-           y_w  =>  y%get_field(isol_w)
+           y_uv =>  y%get_field_from_position(isol_uv)
+           y_w  =>  y%get_field_from_position(isol_w)
            call invoke( setval_c( y_uv, 0.0_r_solver ),  &
                         setval_c( y_w, 0.0_r_solver ) )
          else
-           y_uv =>  y%get_field(isol_u)
+           y_uv =>  y%get_field_from_position(isol_u)
            call invoke( setval_c( y_uv, 0.0_r_solver ) )
          end if
 
@@ -292,7 +292,7 @@ contains
          if ( subroutine_timers ) call timer('mixed_schur solve')
 
          ! Create exner_inc r_def field
-         x_p => self%pressure_x%get_field(1)
+         x_p => self%pressure_x%get_field_from_position(1)
          call x_p%initialise( vector_space = y%vector(isol_p)%get_function_space() )
          call invoke( setval_c(x_p, 0.0_r_solver) )
 
@@ -578,8 +578,8 @@ contains
       call theta_inc%initialise( vector_space = self%rhs_t%get_function_space() )
       call rr_inc%initialise( vector_space = self%rhs_d%get_function_space() )
       call flux%initialise( vector_space = self%rhs_u%get_function_space() )
-      rhs_t => rhs%get_field(isol_t)
-      rhs_d => rhs%get_field(isol_d)
+      rhs_t => rhs%get_field_from_position(isol_t)
+      rhs_d => rhs%get_field_from_position(isol_d)
       tau_dt = -real(tau_r*dt, kind=r_solver)
       call invoke( setval_c(theta_inc,  0.0_r_solver),                          &
                    dg_inc_matrix_vector_kernel_type(theta_inc, u_inc, ptheta2), &
@@ -597,22 +597,22 @@ contains
         call invoke( inc_X_times_Y(theta_inc, wtheta_mask), &
                      inc_X_times_Y(rho_inc,   w3_mask) )
       end if
-      state_t => state%get_field(isol_t)
-      state_d => state%get_field(isol_d)
+      state_t => state%get_field_from_position(isol_t)
+      state_d => state%get_field_from_position(isol_d)
       call invoke( inc_X_plus_Y(state_t, theta_inc), &
                    inc_X_plus_Y(state_d, rho_inc) )
     end if
 
-    state_p => state%get_field(isol_p)
+    state_p => state%get_field_from_position(isol_p)
     call invoke( inc_X_plus_Y(state_p, exner_inc) )
 
     if ( split_w )then
-      state_uv => state%get_field( isol_uv )
-      state_w  => state%get_field( isol_w )
+      state_uv => state%get_field_from_position( isol_uv )
+      state_w  => state%get_field_from_position( isol_w )
       call invoke( name="split_wind", &
                    split_w2_field_kernel_type( state_uv, state_w, u_inc ) )
     else
-      state_uv => state%get_field( isol_u )
+      state_uv => state%get_field_from_position( isol_u )
       call invoke( setval_X( state_uv, u_inc ) )
     end if
 

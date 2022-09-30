@@ -118,7 +118,7 @@ contains
     mesh_id = rhs(igh_u)%get_mesh_id()
 
     ! Get the LBC data
-    boundary_u => lbc_fields%get_field('boundary_u_diff')
+    call lbc_fields%get_field('boundary_u_diff', boundary_u)
 
     ! LAM Masks
     w2_mask     => get_mask(W2, mesh_id)

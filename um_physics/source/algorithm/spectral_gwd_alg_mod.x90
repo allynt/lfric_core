@@ -93,15 +93,15 @@ contains
     call log_event( 'slow_physics: Running spectral gravity wave drag', LOG_LEVEL_INFO )
 
     ! Unpack fields
-    u_in_w3 => derived_fields%get_field('u_in_w3')
-    v_in_w3 => derived_fields%get_field('v_in_w3')
-    exner_in_wth => derived_fields%get_field('exner_in_wth')
-    wetrho_in_w3 => derived_fields%get_field('wetrho_in_w3')
+    call derived_fields%get_field('u_in_w3', u_in_w3)
+    call derived_fields%get_field('v_in_w3', v_in_w3)
+    call derived_fields%get_field('exner_in_wth', exner_in_wth)
+    call derived_fields%get_field('wetrho_in_w3', wetrho_in_w3)
 
-    ls_rain => microphysics_fields%get_field('ls_rain')
-    ls_snow => microphysics_fields%get_field('ls_snow')
-    conv_rain => convection_fields%get_field('conv_rain')
-    conv_snow => convection_fields%get_field('conv_snow')
+    call microphysics_fields%get_field('ls_rain', ls_rain)
+    call microphysics_fields%get_field('ls_snow', ls_snow)
+    call convection_fields%get_field('conv_rain', conv_rain)
+    call convection_fields%get_field('conv_snow', conv_snow)
 
 
     mesh      => theta%get_mesh()

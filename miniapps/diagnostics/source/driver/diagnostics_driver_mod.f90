@@ -178,10 +178,10 @@ contains
     implicit none
 
     type(field_collection_type), pointer :: depository
-    class(field_type), pointer :: hex
-    class(field_type), pointer :: mutable_numbers
-    class(field_type), pointer :: mutable_categories
-    class(field_type), pointer :: immutable_both
+    type(field_type), pointer :: hex
+    type(field_type), pointer :: mutable_numbers
+    type(field_type), pointer :: mutable_categories
+    type(field_type), pointer :: immutable_both
 
     !----------------------------------------------------------------------
     ! Model finalise
@@ -192,10 +192,10 @@ contains
     depository => model_data%depository
     ! as with the run step this could use a specific checksum collection to
     ! control if it outputs a checksum for a given field
-    hex => depository%get_field("colours__hex")
-    mutable_numbers => depository%get_field("colours__mutable_numbers")
-    mutable_categories => depository%get_field("colours__mutable_categories")
-    immutable_both => depository%get_field("colours__immutable_both")
+    call depository%get_field("colours__hex", hex)
+    call depository%get_field("colours__mutable_numbers", mutable_numbers)
+    call depository%get_field("colours__mutable_categories", mutable_categories)
+    call depository%get_field("colours__immutable_both", immutable_both)
     call checksum_alg('diagnostics', &
             hex, trim(hex%get_name()), &
             mutable_numbers, trim(mutable_numbers%get_name()), &

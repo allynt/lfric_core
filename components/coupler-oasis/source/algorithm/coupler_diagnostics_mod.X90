@@ -130,16 +130,16 @@ module coupler_diagnostics_mod
 
       select case(fld%get_name())
          case ("lf_taux")
-            fld_ptr1 => depository%get_field("taux_ssi")
+            call depository%get_field("taux_ssi", fld_ptr1)
             call invoke(inc_X_plus_Y( fld, fld_ptr1 ))
             fld_ptr1 => null()
          case ("lf_tauy")
-            fld_ptr1 => depository%get_field("tauy_ssi")
+            call depository%get_field("tauy_ssi", fld_ptr1)
             call invoke(inc_X_plus_Y( fld, fld_ptr1 ))
             fld_ptr1 => null()
          case ("lf_solar")
-            fld_ptr1 => depository%get_field("sw_up_tile")
-            fld_ptr2 => depository%get_field("sw_down_surf")
+            call depository%get_field("sw_up_tile", fld_ptr1)
+            call depository%get_field("sw_down_surf", fld_ptr2)
             call invoke(                                                       &
 
                   ! Extract SW up (SW_up = cpl_field1)
@@ -165,10 +165,10 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
             fld_ptr2 => null()
          case ("lf_heatflux")
-            fld_ptr1 => depository%get_field("lw_up_tile")
-            fld_ptr2 => depository%get_field("lw_down_surf")
-            fld_ptr3 => depository%get_field("tile_heat_flux")
-            fld_ptr4 => depository%get_field("tile_moisture_flux")
+            call depository%get_field("lw_up_tile", fld_ptr1)
+            call depository%get_field("lw_down_surf", fld_ptr2)
+            call depository%get_field("tile_heat_flux", fld_ptr3)
+            call depository%get_field("tile_moisture_flux", fld_ptr4)
 
             ! Concoct our heatflux value from various contributing fields.
             call invoke(                                                       &
@@ -216,11 +216,11 @@ module coupler_diagnostics_mod
             fld_ptr4 => null()
          case ("lf_train")
             !large scale rain
-            fld_ptr1 => depository%get_field("ls_rain")
+            call depository%get_field("ls_rain", fld_ptr1)
 
             if(l_param_conv) then
                !convective rain
-               fld_ptr2 => depository%get_field("conv_rain")
+               call depository%get_field("conv_rain", fld_ptr2)
                !total
                call invoke(X_plus_Y( cpl_field1, fld_ptr1, fld_ptr2),          &
                            inc_X_plus_Y( fld, cpl_field1 ))
@@ -232,11 +232,11 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
          case ("lf_tsnow")
             !large scale snow
-            fld_ptr1 => depository%get_field("ls_snow")
+            call depository%get_field("ls_snow", fld_ptr1)
 
             if(l_param_conv) then
                !convective snow
-               fld_ptr2 => depository%get_field("conv_snow")
+               call depository%get_field("conv_snow", fld_ptr2)
                !total
                call invoke(X_plus_Y( cpl_field1, fld_ptr1, fld_ptr2),          &
                            inc_X_plus_Y( fld, cpl_field1 ))
@@ -248,11 +248,11 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
          case ("lf_w10")
             !10m wind
-            fld_ptr1 => depository%get_field("wspd10m")
+            call depository%get_field("wspd10m", fld_ptr1)
             call invoke(inc_X_plus_Y( fld, fld_ptr1 ))
             fld_ptr1 => null()
          case ("lf_evap")
-            fld_ptr1 => depository%get_field("tile_moisture_flux")
+            call depository%get_field("tile_moisture_flux", fld_ptr1)
 
             ! Extract the oceanic evaporation from the ocean tile
             call invoke( multi_extract_kernel_type(cpl_field1, fld_ptr1,       &
@@ -270,7 +270,7 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
 
          case ("lf_topmelt")
-            fld_ptr1 => depository%get_field("snowice_melt")
+            call depository%get_field("snowice_melt", fld_ptr1)
 
             ! Extract the sea ice top melt from the snowice_melt which is on
             ! all tiles
@@ -298,7 +298,7 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
 
          case ("lf_iceheatflux")
-            fld_ptr1 => depository%get_field("surf_ht_flux")
+            call depository%get_field("surf_ht_flux", fld_ptr1)
 
             ! Extract the sea ice surface to sub-surface heat flux from the
             ! surf_ht_flux which is on all tiles
@@ -319,7 +319,7 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
 
          case ("lf_sublimation")
-            fld_ptr1 => depository%get_field("snowice_sublimation")
+            call depository%get_field("snowice_sublimation", fld_ptr1)
 
             ! Extract the sea ice sublimation from the snowice_sublimation
             ! which is on all tiles
@@ -340,7 +340,7 @@ module coupler_diagnostics_mod
             fld_ptr1 => null()
 
          case ("lf_iceskint")
-            fld_ptr1 => depository%get_field('tile_temperature')
+            call depository%get_field('tile_temperature', fld_ptr1)
 
             ! Extract the sea ice skin temperature from the tile temperature
             call invoke( multi_extract_kernel_type(cpl_field1_si, fld_ptr1,    &
@@ -450,7 +450,7 @@ module coupler_diagnostics_mod
     !local variables
     type( field_type ), pointer :: tile_fraction_ptr       => null()
 
-    tile_fraction_ptr => depository%get_field('tile_fraction')
+    call depository%get_field('tile_fraction', tile_fraction_ptr)
     call invoke(convert_to_marine_fraction_type(sea_ice_frac_previous,         &
                                           sea_frac_previous, tile_fraction_ptr))
 

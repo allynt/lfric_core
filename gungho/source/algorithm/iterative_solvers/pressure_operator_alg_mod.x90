@@ -174,8 +174,8 @@ contains
       select type (y)
       type is (r_solver_field_vector_type)
         ! Compute M3*p + H[ D{\theta*}*p ]
-        x_vec => x%get_field(1)
-        y_vec => y%get_field(1)
+        x_vec => x%get_field_from_position(1)
+        y_vec => y%get_field_from_position(1)
         if ( element_order == 0 ) then
           Helmholtz_operator => get_helmholtz_operator(self%level)
 

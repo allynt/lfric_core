@@ -196,7 +196,7 @@ contains
                                     convection_fields, cloud_fields, dt )
       else
         ! Without PC2, just update vapour field
-        dmv_conv => convection_fields%get_field('dmv_conv')
+        call convection_fields%get_field('dmv_conv', dmv_conv)
         call invoke( inc_X_plus_Y(mr(imr_v), dmv_conv) )
       end if
 
@@ -261,8 +261,8 @@ contains
     end if
 
     if (smagorinsky .and. smagorinsky_placement == smagorinsky_placement_fast) then
-      theta_star => derived_fields%get_field('theta_star')
-      u_star => derived_fields%get_field('u_star')
+      call derived_fields%get_field('theta_star', theta_star)
+      call derived_fields%get_field('u_star', u_star)
       call smagorinsky_alg(dtheta, du, mr, theta_star, u_star, &
                            visc_m, visc_h, derived_fields, rho, dt)
     end if

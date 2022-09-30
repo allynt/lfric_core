@@ -95,10 +95,10 @@ contains
 
     ! Get references out of the prognostic collection for the prognostic
     ! variables
-    wind     => prognostics%get_field("wind")
-    buoyancy => prognostics%get_field("buoyancy")
-    geopot   => prognostics%get_field("geopot")
-    q        => prognostics%get_field("q")
+    call prognostics%get_field("wind", wind)
+    call prognostics%get_field("buoyancy", buoyancy)
+    call prognostics%get_field("geopot", geopot)
+    call prognostics%get_field("q", q)
 
     ! Get coordinates and set up quadrature
     chi => get_coordinates(mesh%get_id())

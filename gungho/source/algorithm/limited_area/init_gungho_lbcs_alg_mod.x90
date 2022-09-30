@@ -80,10 +80,10 @@ module init_gungho_lbcs_alg_mod
     integer(i_def)              :: imr
     type(mesh_type), pointer    :: mesh => null()
 
-    theta => prognostic_fields%get_field( 'theta' )
-    u     => prognostic_fields%get_field( 'u' )
-    rho   => prognostic_fields%get_field( 'rho' )
-    exner => prognostic_fields%get_field( 'exner' )
+    call prognostic_fields%get_field( 'theta', theta )
+    call prognostic_fields%get_field( 'u', u )
+    call prognostic_fields%get_field( 'rho', rho )
+    call prognostic_fields%get_field( 'exner', exner )
 
     mesh => theta%get_mesh()
     w2_lbc_mask      => get_lbc_mask( W2, mesh%get_id() )
@@ -91,11 +91,11 @@ module init_gungho_lbcs_alg_mod
     wtheta_lbc_mask  => get_lbc_mask( wtheta, mesh%get_id() )
     w2_boundary_mask => get_boundary_mask( W2, mesh%get_id() )
 
-    lbc_theta  => lbc_fields%get_field( 'lbc_theta' )
-    lbc_u      => lbc_fields%get_field( 'lbc_u' )
-    lbc_rho    => lbc_fields%get_field( 'lbc_rho' )
-    lbc_exner  => lbc_fields%get_field( 'lbc_exner' )
-    boundary_u => lbc_fields%get_field( 'boundary_u_driving' )
+    call lbc_fields%get_field( 'lbc_theta', lbc_theta )
+    call lbc_fields%get_field( 'lbc_u', lbc_u )
+    call lbc_fields%get_field( 'lbc_rho', lbc_rho )
+    call lbc_fields%get_field( 'lbc_exner', lbc_exner )
+    call lbc_fields%get_field( 'boundary_u_driving', boundary_u )
 
     call invoke( X_times_Y( lbc_u,      u,     w2_lbc_mask ),     &
                  X_times_Y( lbc_rho,    rho,   w3_lbc_mask ),     &
@@ -107,8 +107,8 @@ module init_gungho_lbcs_alg_mod
       do imr = 1, nummr
 
         lbc_name = trim( 'lbc_' // adjustl(mr_names(imr)) )
-        mr => prognostic_fields%get_field( mr_names(imr) )
-        lbc_mr => lbc_fields%get_field( lbc_name )
+        call prognostic_fields%get_field( mr_names(imr), mr )
+        call lbc_fields%get_field( lbc_name, lbc_mr )
 
         call invoke( X_times_Y( lbc_mr, mr, wtheta_lbc_mask ) )
 
@@ -223,9 +223,9 @@ module init_gungho_lbcs_alg_mod
     write(log_scratch_space,'(A)') "Combining winds "
     call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
-    h_wind => fields%get_field("lbc_h_u")
-    v_wind => fields%get_field("lbc_v_u")
-    wind => fields%get_field("lbc_u")
+    call fields%get_field("lbc_h_u", h_wind)
+    call fields%get_field("lbc_v_u", v_wind)
+    call fields%get_field("lbc_u", wind)
 
     if (extensive)then
       call invoke( combine_w2_field_kernel_type(wind, h_wind, v_wind))
@@ -253,8 +253,8 @@ module init_gungho_lbcs_alg_mod
 
     type( mesh_type ), pointer :: mesh => null()
 
-    lbc_field  => lbc_fields%get_field( 'lbc_u' )
-    boundary_u => lbc_fields%get_field( 'boundary_u_driving' )
+    call lbc_fields%get_field( 'lbc_u', lbc_field )
+    call lbc_fields%get_field( 'boundary_u_driving', boundary_u )
 
     mesh => lbc_field%get_mesh()
     w2_boundary_mask => get_boundary_mask( W2, mesh%get_id() )
@@ -262,16 +262,16 @@ module init_gungho_lbcs_alg_mod
     call invoke( X_times_Y( boundary_u, lbc_field, w2_boundary_mask ) )
 
     ! Print max and min
-    lbc_field  => lbc_fields%get_field( 'lbc_u' )
+    call lbc_fields%get_field( 'lbc_u', lbc_field )
     call lbc_field%log_minmax(LOG_LEVEL_INFO, 'lbc_u')
 
-    lbc_field      => lbc_fields%get_field( 'lbc_theta' )
+    call lbc_fields%get_field( 'lbc_theta', lbc_field )
     call lbc_field%log_minmax(LOG_LEVEL_INFO, 'lbc_theta')
 
-    lbc_field      => lbc_fields%get_field( 'lbc_rho' )
+    call lbc_fields%get_field( 'lbc_rho', lbc_field )
     call lbc_field%log_minmax(LOG_LEVEL_INFO, 'lbc_rho')
 
-    lbc_field      => lbc_fields%get_field( 'lbc_exner' )
+    call lbc_fields%get_field( 'lbc_exner', lbc_field )
     call lbc_field%log_minmax(LOG_LEVEL_INFO, 'lbc_exner')
 
     nullify( boundary_u, lbc_field, w2_boundary_mask, mesh )
@@ -328,19 +328,19 @@ module init_gungho_lbcs_alg_mod
     write(log_scratch_space,'(A)') 'Recovering density, and mixing ratios for LBCs. '
     call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
-    lbc_rho_r2 => lbc_fields%get_field( 'lbc_rho_r2' )
-    lbc_rho    => lbc_fields%get_field( 'lbc_rho' )
-    lbc_q      => lbc_fields%get_field( 'lbc_q' )
-    lbc_qcl    => lbc_fields%get_field( 'lbc_qcl' )
-    lbc_qcf    => lbc_fields%get_field( 'lbc_qcf' )
-    lbc_qrain  => lbc_fields%get_field( 'lbc_qrain' )
-    lbc_m_v    => lbc_fields%get_field( 'lbc_m_v' )
-    lbc_m_ci   => lbc_fields%get_field( 'lbc_m_ci' )
-    lbc_m_cl   => lbc_fields%get_field( 'lbc_m_cl' )
-    lbc_m_r    => lbc_fields%get_field( 'lbc_m_r' )
-    lbc_theta  => lbc_fields%get_field( 'lbc_theta' )
-    lbc_exner  => lbc_fields%get_field( 'lbc_exner' )
-    lbc_v_u    => lbc_fields%get_field( 'lbc_v_u' )
+    call lbc_fields%get_field( 'lbc_rho_r2', lbc_rho_r2 )
+    call lbc_fields%get_field( 'lbc_rho', lbc_rho )
+    call lbc_fields%get_field( 'lbc_q', lbc_q )
+    call lbc_fields%get_field( 'lbc_qcl', lbc_qcl )
+    call lbc_fields%get_field( 'lbc_qcf', lbc_qcf )
+    call lbc_fields%get_field( 'lbc_qrain', lbc_qrain )
+    call lbc_fields%get_field( 'lbc_m_v', lbc_m_v )
+    call lbc_fields%get_field( 'lbc_m_ci', lbc_m_ci )
+    call lbc_fields%get_field( 'lbc_m_cl', lbc_m_cl )
+    call lbc_fields%get_field( 'lbc_m_r', lbc_m_r )
+    call lbc_fields%get_field( 'lbc_theta', lbc_theta )
+    call lbc_fields%get_field( 'lbc_exner', lbc_exner )
+    call lbc_fields%get_field( 'lbc_v_u', lbc_v_u )
 
     mesh        => lbc_exner%get_mesh()
     height_w3   => get_height(W3, mesh%get_id())

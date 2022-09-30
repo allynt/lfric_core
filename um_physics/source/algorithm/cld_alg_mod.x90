@@ -143,12 +143,12 @@ contains
     height_wth => get_height(Wtheta, mesh%get_id())
 
     ! Map updated pressure into wtheta space
-    exner_wth => derived_fields%get_field('exner_in_wth')
+    call derived_fields%get_field('exner_in_wth', exner_wth)
     call map_physics_scalars(exner_wth, exner)
 
-    cf_bulk => cloud_fields%get_field('bulk_fraction')
-    cf_area => cloud_fields%get_field('area_fraction')
-    zh      => turbulence_fields%get_field('zh')
+    call cloud_fields%get_field('bulk_fraction', cf_bulk)
+    call cloud_fields%get_field('area_fraction', cf_area)
+    call turbulence_fields%get_field('zh', zh)
 
     call initialise_diags_for_cld( cld_amount_max,                             &
                                    cld_amount_rnd,                             &
@@ -168,11 +168,11 @@ contains
 
     if (scheme == scheme_smith) then
 
-      cf_fro  => cloud_fields%get_field('frozen_fraction')
-      cf_liq  => cloud_fields%get_field('liquid_fraction')
-      rh_crit => cloud_fields%get_field('rh_crit')
-      ntml    => turbulence_fields%get_integer_field('ntml')
-      cumulus => turbulence_fields%get_integer_field('cumulus')
+      call cloud_fields%get_field('frozen_fraction', cf_fro)
+      call cloud_fields%get_field('liquid_fraction', cf_liq)
+      call cloud_fields%get_field('rh_crit', rh_crit)
+      call turbulence_fields%get_field('ntml', ntml)
+      call turbulence_fields%get_field('cumulus', cumulus)
 
       call invoke( smith_kernel_type( theta, exner , exner_wth, rh_crit,       &
                                        ntml, cumulus, mr(imr_v), mr(imr_cl),   &
@@ -181,23 +181,23 @@ contains
 
     else if (scheme == scheme_bimodal) then
 
-      cf_fro      => cloud_fields%get_field('frozen_fraction')
-      cf_liq      => cloud_fields%get_field('liquid_fraction')
+      call cloud_fields%get_field('frozen_fraction', cf_fro)
+      call cloud_fields%get_field('liquid_fraction', cf_liq)
 
-      dsldzm      => turbulence_fields%get_field('dsldzm')
-      wvar        => turbulence_fields%get_field('wvar')
-      gradrinr    => turbulence_fields%get_field('gradrinr')
-      zhsc        => turbulence_fields%get_field('zhsc')
-      inv_depth   => turbulence_fields%get_field('inv_depth')
-      bl_type_ind => turbulence_fields%get_integer_field('bl_type_ind')
+      call turbulence_fields%get_field('dsldzm', dsldzm)
+      call turbulence_fields%get_field('wvar', wvar)
+      call turbulence_fields%get_field('gradrinr', gradrinr)
+      call turbulence_fields%get_field('zhsc', zhsc)
+      call turbulence_fields%get_field('inv_depth', inv_depth)
+      call turbulence_fields%get_field('bl_type_ind', bl_type_ind)
 
-      tau_dec_bm => cloud_fields%get_field('tau_dec_bm')
-      tau_hom_bm => cloud_fields%get_field('tau_hom_bm')
-      tau_mph_bm => cloud_fields%get_field('tau_mph_bm')
+      call cloud_fields%get_field('tau_dec_bm', tau_dec_bm)
+      call cloud_fields%get_field('tau_hom_bm', tau_hom_bm)
+      call cloud_fields%get_field('tau_mph_bm', tau_mph_bm)
 
-      sskew_bm   => cloud_fields%get_field('sskew_bm')
-      svar_bm    => cloud_fields%get_field('svar_bm')
-      svar_tb    => cloud_fields%get_field('svar_tb')
+      call cloud_fields%get_field('sskew_bm', sskew_bm)
+      call cloud_fields%get_field('svar_bm', svar_bm)
+      call cloud_fields%get_field('svar_tb', svar_tb)
 
       call invoke( bm_kernel_type(  theta, exner , exner_wth, dsldzm,          &
                                     wvar, tau_dec_bm, tau_hom_bm, tau_mph_bm,  &

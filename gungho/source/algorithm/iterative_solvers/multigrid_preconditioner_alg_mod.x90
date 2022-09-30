@@ -203,7 +203,7 @@ contains
          self%mask_mg(level) = r_solver_field_vector_type( 1 )
          call self%mask_mg(level)%initialise_field( 1,fs )
          mask => get_mask_r_solver( W3, self%mesh_id(level) )
-         mask_mg_ptr => self%mask_mg(level)%get_field(1)
+         mask_mg_ptr => self%mask_mg(level)%get_field_from_position(1)
          call invoke( setval_X( mask_mg_ptr, mask ))
        end if
        ! If we are not yet on the coarsest level point the function space
@@ -254,14 +254,14 @@ contains
       call self%linear_operators(level)%H_operator%apply(self%u_mg(level), &
                                                          self%r_mg(level) )
 
-      rvec_mg => self%r_mg(level)%get_field(1)
-      bvec_mg => self%b_mg(level)%get_field(1)
-      bvec_mg_coarse => self%b_mg(level+1)%get_field(1)
+      rvec_mg => self%r_mg(level)%get_field_from_position(1)
+      bvec_mg => self%b_mg(level)%get_field_from_position(1)
+      bvec_mg_coarse => self%b_mg(level+1)%get_field_from_position(1)
 
       call invoke( inc_aX_plus_y (-1.0_r_solver, rvec_mg, bvec_mg) )
       ! Restrict b^{(ell+1)} = R r^{(ell)}
       if (limited_area) then
-        mask => self%mask_mg(level)%get_field(1)
+        mask => self%mask_mg(level)%get_field_from_position(1)
         call invoke( restrict_masked_kernel_type(bvec_mg_coarse, &
                                                  rvec_mg,        &
                                                  mask ))
@@ -274,10 +274,10 @@ contains
 
       ! Prolong and add solution from coarser level
       ! u^{(ell)} = u^{(ell)} + P u^{(ell+1)}
-      uvec_mg => self%u_mg(level)%get_field(1)
-      uvec_mg_coarse => self%u_mg(level+1)%get_field(1)
+      uvec_mg => self%u_mg(level)%get_field_from_position(1)
+      uvec_mg_coarse => self%u_mg(level+1)%get_field_from_position(1)
       if (limited_area) then
-        mask => self%mask_mg(level)%get_field(1)
+        mask => self%mask_mg(level)%get_field_from_position(1)
         call invoke( prolong_masked_kernel_type(uvec_mg,        &
                                                 uvec_mg_coarse, &
                                                 mask ) )
@@ -314,14 +314,14 @@ contains
        select type(y)
        type is(r_solver_field_vector_type)
           ! Copy in RHS on finest level
-          x_vec => x%get_field(1)
-          bvec_mg => self%b_mg(1)%get_field(1)
+          x_vec => x%get_field_from_position(1)
+          bvec_mg => self%b_mg(1)%get_field_from_position(1)
           call invoke(setval_X(bvec_mg, x_vec ))
           ! Solve using a multigrid V-cycle
           call self%vcycle(1, .true.)
           ! Copy out solution on finest level
-          y_vec => y%get_field(1)
-          uvec_mg => self%u_mg(1)%get_field(1)
+          y_vec => y%get_field_from_position(1)
+          uvec_mg => self%u_mg(1)%get_field_from_position(1)
           call invoke(setval_X(y_vec, uvec_mg ))
        class default
           write(log_scratch_space, '(A)') &
@@ -378,8 +378,8 @@ contains
        call self%linear_operators(level)%Hz_preconditioner%apply(self%b_mg(level), &
                                                                  self%r_mg(level))
        const = self%rho_smooth
-       uvec_mg => self%u_mg(level)%get_field(1)
-       rvec_mg => self%r_mg(level)%get_field(1)
+       uvec_mg => self%u_mg(level)%get_field_from_position(1)
+       rvec_mg => self%r_mg(level)%get_field_from_position(1)
        call invoke(a_times_X(uvec_mg, const, rvec_mg))
        i_first = 2
     else
@@ -392,14 +392,14 @@ contains
     do i = i_first, nsmooth
        ! Calculate res = H.u^{(ell)} - b^{(ell)}
        call self%linear_operators(level)%H_operator%apply(self%u_mg(level), res)
-       bvec_mg => self%b_mg(level)%get_field(1)
-       rvec_mg => res%get_field(1)
+       bvec_mg => self%b_mg(level)%get_field_from_position(1)
+       rvec_mg => res%get_field_from_position(1)
        call invoke( inc_X_minus_Y (rvec_mg, bvec_mg))
             ! Calculate r^{(ell)} = H_z^{-1}.(H.u^{(ell)} - b^{(ell)})
        call self%linear_operators(level)%Hz_preconditioner%apply(res, self%r_mg(level))
             ! Calculate u^{(ell)} = u^{(ell)} - rho*H_z^{-1}.(H.u^{(ell)} - b^{(ell)})
-       uvec_mg => self%u_mg(level)%get_field(1)
-       rvec_mg => self%r_mg(level)%get_field(1)
+       uvec_mg => self%u_mg(level)%get_field_from_position(1)
+       rvec_mg => self%r_mg(level)%get_field_from_position(1)
        call invoke(inc_X_plus_bY (uvec_mg, const, rvec_mg) )
     end do
 

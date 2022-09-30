@@ -109,16 +109,16 @@ contains
     ls_fields         => model_data%ls_fields
 
     ! Input fields
-    n_exner => prognostic_fields%get_field('exner')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call prognostic_fields%get_field('exner', n_exner)
+    call ls_fields%get_field('ls_exner', ls_exner)
     call p_exner%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, W3) )
-    n_rho => prognostic_fields%get_field('rho')
-    ls_rho => ls_fields%get_field('ls_rho')
+    call prognostic_fields%get_field('rho', n_rho)
+    call ls_fields%get_field('ls_rho', ls_rho)
     call p_rho%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, W3) )
-    n_theta => prognostic_fields%get_field('theta')
-    ls_theta => ls_fields%get_field('ls_theta')
+    call prognostic_fields%get_field('theta', n_theta)
+    call ls_fields%get_field('ls_theta', ls_theta)
     call p_theta%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, Wtheta) )
     n_moist_dyn => model_data%moist_dyn

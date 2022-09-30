@@ -552,9 +552,9 @@ contains
 
       ! If time axis field has a counterpart in model data field collection
       if ( model_fields%field_exists(trim(field_next%get_name())) ) then
-        model_field => model_fields%get_field(trim(field_next%get_name()))
+        call model_fields%get_field(trim(field_next%get_name()), model_field)
         model_proxy = model_field%get_proxy()
-        data_field => self%fields%get_field(trim(field_next%get_name()))
+        call self%fields%get_field(trim(field_next%get_name()), data_field)
         data_proxy = data_field%get_proxy()
 
          call log_event( &

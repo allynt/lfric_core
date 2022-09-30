@@ -66,10 +66,10 @@ contains
     ls_fields => model_data%ls_fields
     ls_mr => model_data%ls_mr
 
-    ls_theta => ls_fields%get_field('ls_theta')
-    ls_u => ls_fields%get_field('ls_u')
-    ls_rho => ls_fields%get_field('ls_rho')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call ls_fields%get_field('ls_theta', ls_theta)
+    call ls_fields%get_field('ls_u', ls_u)
+    call ls_fields%get_field('ls_rho', ls_rho)
+    call ls_fields%get_field('ls_exner', ls_exner)
 
     ! Scalar fields
     call write_scalar_diagnostic('ls_rho', ls_rho, &
@@ -87,8 +87,8 @@ contains
     ! Fluxes - horizontal and vertical (if reading linearisation
     ! state from file)
     if (ls_option == ls_option_file) then
-      ls_v_u => ls_fields%get_field('ls_v_u')
-      ls_h_u => ls_fields%get_field('ls_h_u')
+      call ls_fields%get_field('ls_v_u', ls_v_u)
+      call ls_fields%get_field('ls_h_u', ls_h_u)
       call write_scalar_diagnostic('readls_v_u', ls_v_u, &
                                    clock, mesh, nodal_output_on_w3)
       call write_vector_diagnostic('readls_h_u', ls_h_u, &

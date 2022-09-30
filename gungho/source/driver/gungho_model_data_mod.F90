@@ -427,10 +427,10 @@ contains
     if (use_physics) then
 
       ! Initial derived fields
-      u      => model_data%prognostic_fields%get_field('u')
-      theta  => model_data%prognostic_fields%get_field('theta')
-      exner  => model_data%prognostic_fields%get_field('exner')
-      rho    => model_data%prognostic_fields%get_field('rho')
+      call model_data%prognostic_fields%get_field('u',u)
+      call model_data%prognostic_fields%get_field('theta',theta)
+      call model_data%prognostic_fields%get_field('exner',exner)
+      call model_data%prognostic_fields%get_field('rho',rho)
 
       if ( energy_correction /= energy_correction_none ) then
         if ( geometry /= geometry_spherical ) then
@@ -438,8 +438,8 @@ contains
           'Energy correction valid for spherical geometry only.'
           call log_event(log_scratch_space, log_level_error)
         end if
-        temp_correction_field => model_data%derived_fields%get_field('temp_correction_field')
-        accumulated_fluxes => model_data%derived_fields%get_field('accumulated_fluxes')
+        call model_data%derived_fields%get_field('temp_correction_field',temp_correction_field)
+        call model_data%derived_fields%get_field('accumulated_fluxes',accumulated_fluxes)
       end if
 
       if (clock%is_spinning_up()) then

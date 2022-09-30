@@ -170,21 +170,21 @@ module spt_main_alg_mod
   if ( subroutine_timers ) call timer("spt_main_alg")
 
   !!!! Unpack tendencies
-  dt_conv              => convection_fields%get_field('dt_conv')
-  dmv_conv             => convection_fields%get_field('dmv_conv')
-  dtheta_rad           => radiation_fields%get_field('dtheta_rad')
-  dmv_pc2_rad          => radiation_fields%get_field('dmv_pc2_rad')
-  dtheta_mphys         => microphysics_fields%get_field('dtheta_mphys')
-  dmv_mphys            => microphysics_fields%get_field('dmv_mphys')
+  call convection_fields%get_field('dt_conv', dt_conv)
+  call convection_fields%get_field('dmv_conv', dmv_conv)
+  call radiation_fields%get_field('dtheta_rad', dtheta_rad)
+  call radiation_fields%get_field('dmv_pc2_rad', dmv_pc2_rad)
+  call microphysics_fields%get_field('dtheta_mphys', dtheta_mphys)
+  call microphysics_fields%get_field('dmv_mphys', dmv_mphys)
   ! Unpack std dev of orography
-  sd_orog              => orography_fields%get_field('sd_orog')
+  call orography_fields%get_field('sd_orog', sd_orog)
   ! Unpack exner and rho in theta levels
-  exner_wth            => derived_fields%get_field('exner_in_wth')
-  rho_in_wth           => derived_fields%get_field('rho_in_wth')
+  call derived_fields%get_field('exner_in_wth', exner_wth)
+  call derived_fields%get_field('rho_in_wth', rho_in_wth)
   ! Unpack convection mass flux
-  massflux_up          => convection_fields%get_field('massflux_up')
+  call convection_fields%get_field('massflux_up', massflux_up)
   ! theta
-  theta_star           => derived_fields%get_field('theta_star')
+  call derived_fields%get_field('theta_star', theta_star)
 
   !!!!  Set dX_spt forcing
   call dtheta%copy_field_properties(dtheta_spt)

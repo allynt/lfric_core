@@ -56,30 +56,30 @@ contains
 
     real( r_def ), parameter :: pi_by_two = pi / 2.0_r_def
 
-    dtheta_rad        => radiation_fields%get_field('dtheta_rad')
-    dmv_pc2_rad       => radiation_fields%get_field('dmv_pc2_rad')
-    sw_heating_rate   => radiation_fields%get_field('sw_heating_rate')
-    lw_heating_rate   => radiation_fields%get_field('lw_heating_rate')
-    sw_up_tile        => radiation_fields%get_field('sw_up_tile')
-    ozone             => radiation_fields%get_field('ozone')
+    call radiation_fields%get_field('dtheta_rad', dtheta_rad)
+    call radiation_fields%get_field('dmv_pc2_rad', dmv_pc2_rad)
+    call radiation_fields%get_field('sw_heating_rate', sw_heating_rate)
+    call radiation_fields%get_field('lw_heating_rate', lw_heating_rate)
+    call radiation_fields%get_field('sw_up_tile', sw_up_tile)
+    call radiation_fields%get_field('ozone', ozone)
 
-    cos_zenith_angle  => radiation_fields%get_field('cos_zenith_angle')
-    lw_down_surf      => radiation_fields%get_field('lw_down_surf')
-    sw_down_surf      => radiation_fields%get_field('sw_down_surf')
-    sw_down_blue_surf => radiation_fields%get_field('sw_down_blue_surf')
+    call radiation_fields%get_field('cos_zenith_angle', cos_zenith_angle)
+    call radiation_fields%get_field('lw_down_surf', lw_down_surf)
+    call radiation_fields%get_field('sw_down_surf', sw_down_surf)
+    call radiation_fields%get_field('sw_down_blue_surf', sw_down_blue_surf)
 
-    sin_stellar_declination_rts => &
-                      radiation_fields%get_field('sin_stellar_declination_rts')
-    stellar_eqn_of_time_rts     => &
-                      radiation_fields%get_field('stellar_eqn_of_time_rts')
-    orographic_correction_rts   => &
-                      radiation_fields%get_field('orographic_correction_rts')
+    call radiation_fields%get_field('sin_stellar_declination_rts', &
+                                    sin_stellar_declination_rts)
+    call radiation_fields%get_field('stellar_eqn_of_time_rts', &
+                                    stellar_eqn_of_time_rts)
+    call radiation_fields%get_field('orographic_correction_rts', &
+                                    orographic_correction_rts)
 
-    slope_angle    => radiation_fields%get_field('slope_angle')
-    slope_aspect   => radiation_fields%get_field('slope_aspect')
-    skyview        => radiation_fields%get_field('skyview')
-    horizon_angle  => radiation_fields%get_field('horizon_angle')
-    horizon_aspect => radiation_fields%get_field('horizon_aspect')
+    call radiation_fields%get_field('slope_angle', slope_angle)
+    call radiation_fields%get_field('slope_aspect', slope_aspect)
+    call radiation_fields%get_field('skyview', skyview)
+    call radiation_fields%get_field('horizon_angle', horizon_angle)
+    call radiation_fields%get_field('horizon_aspect', horizon_aspect)
 
     ! Initialise the increments to 0 for use when the scheme isn't called
     call invoke( setval_c(dtheta_rad,        0.0_r_def),   &

@@ -214,19 +214,19 @@ contains
          ! If x%vector or y%vector is used in invokes psyclone assumes they are
          ! of type field_type so instead we use pointers of type
          ! r_solver_field_type to force it to generate the correct code
-         xvec_uv => x%get_field(isol_uv)
-         xvec_p  => x%get_field(isol_p)
-         yvec_uv => y%get_field(isol_uv)
-         yvec_p  => y%get_field(isol_p)
+         xvec_uv => x%get_field_from_position(isol_uv)
+         xvec_p  => x%get_field_from_position(isol_p)
+         yvec_uv => y%get_field_from_position(isol_uv)
+         yvec_p  => y%get_field_from_position(isol_p)
          if ( eliminate_variables == eliminate_variables_none ) then
-           xvec_t  => x%get_field(isol_t)
-           xvec_d  => x%get_field(isol_d)
-           yvec_t  => y%get_field(isol_t)
-           yvec_d  => y%get_field(isol_d)
+           xvec_t  => x%get_field_from_position(isol_t)
+           xvec_d  => x%get_field_from_position(isol_d)
+           yvec_t  => y%get_field_from_position(isol_t)
+           yvec_d  => y%get_field_from_position(isol_d)
          end if
          if ( split_w ) then
-           xvec_w  => x%get_field(isol_w)
-           yvec_w  => y%get_field(isol_w)
+           xvec_w  => x%get_field_from_position(isol_w)
+           yvec_w  => y%get_field_from_position(isol_w)
          end if
 
          ! Create fields in 3D W2 space

@@ -123,6 +123,7 @@ contains
     type(model_data_type)                             :: model_data
 
     type(field_type), target                 :: test_field
+    type(field_type), pointer                :: test_field_ptr
     type(field_type), pointer                :: returned_field => null()
     class(pure_abstract_field_type), pointer :: field_ptr => null()
 
@@ -154,14 +155,15 @@ contains
 
     ! Add test_field to depository and a pointer to it to collection_1
     call model_data%depository%add_field(test_field)
-    field_ptr => model_data%depository%get_field("test_field")
+    call model_data%depository%get_field("test_field", test_field_ptr)
+    field_ptr => test_field_ptr
     call returned_collection%add_reference_to_field(field_ptr)
     nullify(returned_collection)
 
     ! Test name and first dof of test_field
     returned_collection => model_data%get_field_collection("collection_1")
     @assertEqual(1, returned_collection%get_length())
-    returned_field => returned_collection%get_field("test_field")
+    call returned_collection%get_field("test_field", returned_field)
     @assertEqual("test_field", returned_field%get_name())
     returned_field_proxy = returned_field%get_proxy()
     @assertEqual(1.0_r_def, returned_field_proxy%data(1))

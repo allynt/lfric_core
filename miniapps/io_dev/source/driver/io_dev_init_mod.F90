@@ -89,7 +89,9 @@ module io_dev_init_mod
     integer(i_def), parameter   :: n_multi_data = 5
 
     ! Pointers
-    class(pure_abstract_field_type), pointer :: tmp_field_ptr => null()
+    type(field_type), pointer                :: tmp_field_ptr => null()
+    type(integer_field_type), pointer        :: tmp_integer_field_ptr => null()
+    class(pure_abstract_field_type), pointer :: tmp_ptr => null()
     procedure(update_interface),     pointer :: tmp_update_ptr => null()
 
     call log_event( 'IO_Dev: creating model data', LOG_LEVEL_INFO )
@@ -182,36 +184,46 @@ module io_dev_init_mod
 
       ! Add fields to dump_fields collection - fields for which read and write
       ! routines will be tested
-      tmp_field_ptr => core_fields%get_field( 'W0_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W0_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W2H_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W2H_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W3_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W3_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W3_2D_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W3_2D_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'multi_data_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'multi_data_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
       ! Add fields to alg_fields collection - fields which can be psycloned
-      tmp_field_ptr => core_fields%get_field( 'W0_field' )
-      call alg_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W0_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call alg_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W2H_field' )
-      call alg_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W2H_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call alg_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W2V_field' )
-      call alg_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W2V_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call alg_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W3_field' )
-      call alg_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W3_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call alg_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_field( 'W3_2D_field' )
-      call alg_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W3_2D_field', tmp_field_ptr )
+      tmp_ptr => tmp_field_ptr
+      call alg_fields%add_reference_to_field( tmp_ptr )
 
 
     else if ( field_kind == field_kind_integer ) then
@@ -230,17 +242,21 @@ module io_dev_init_mod
 
       ! Add fields to dump_fields collection - fields for which read and write
       ! routines will be tested
-      tmp_field_ptr => core_fields%get_integer_field( 'W0_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W0_field', tmp_integer_field_ptr )
+      tmp_ptr => tmp_integer_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_integer_field( 'W2H_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W2H_field', tmp_integer_field_ptr )
+      tmp_ptr => tmp_integer_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_integer_field( 'W3_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W3_field', tmp_integer_field_ptr )
+      tmp_ptr => tmp_integer_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
-      tmp_field_ptr => core_fields%get_integer_field( 'W3_2D_field' )
-      call dump_fields%add_reference_to_field( tmp_field_ptr )
+      call core_fields%get_field( 'W3_2D_field', tmp_integer_field_ptr )
+      tmp_ptr => tmp_integer_field_ptr
+      call dump_fields%add_reference_to_field( tmp_ptr )
 
 
     else

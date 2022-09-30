@@ -56,8 +56,12 @@ module field_collection_mod
     procedure, public :: remove_field
     procedure, public :: field_exists
     procedure, public :: get_next_item
-    procedure, public :: get_field
+    procedure, public :: get_r32_field
+    procedure, public :: get_r64_field
     procedure, public :: get_integer_field
+    generic           :: get_field => get_r32_field, &
+                                      get_r64_field, &
+                                      get_integer_field
     procedure, public :: get_length
     procedure, public :: get_name
     procedure, public :: get_table_len
@@ -426,17 +430,18 @@ function get_next_item(self, start) result(item)
 
 end function get_next_item
 
-!> Access a real field from the collection
-!> @param [in] field_name The name of the real field to be accessed
-!> @return field Pointer to the real field that is extracted
-function get_field(self, field_name) result(field)
+!> Access a 32-bit real field from the collection
+!> @param [in] field_name The name of the 32-bit real field to be accessed
+!> @param [out] field Pointer to the 32-bit real field that is extracted
+subroutine get_r32_field(self, field_name, field)
 
   implicit none
 
   class(field_collection_type), intent(in) :: self
+  type(field_r32_type), pointer, intent(out) :: field
 
   character(*), intent(in) :: field_name
-  type(field_type), pointer :: field
+
 
   ! Pointer to linked list - used for looping through the list
   type(linked_list_item_type), pointer :: loop => null()
@@ -453,7 +458,7 @@ function get_field(self, field_name) result(field)
     ! If list is empty or we're at the end of list and we didn't find the
     ! field, fail with an error
     if ( .not. associated(loop) ) then
-      write(log_scratch_space, '(4A)') 'get_field: No r_def field [', &
+      write(log_scratch_space, '(4A)') 'get_field: No 32-bit field [', &
          trim(field_name), '] in field collection: ', trim(self%name)
       call log_event( log_scratch_space, LOG_LEVEL_ERROR)
     end if
@@ -461,12 +466,12 @@ function get_field(self, field_name) result(field)
 
     ! 'cast' to the field_type
     select type(listfield => loop%payload)
-      type is (field_type)
+      type is (field_r32_type)
       if ( trim(field_name) == trim(listfield%get_name()) ) then
           field => listfield
           exit
       end if
-      type is (field_pointer_type)
+      type is (field_r32_pointer_type)
       if ( trim(field_name) == trim(listfield%field_ptr%get_name()) ) then
           field => listfield%field_ptr
           exit
@@ -476,19 +481,72 @@ function get_field(self, field_name) result(field)
     loop => loop%next
   end do
 
-end function get_field
+end subroutine get_r32_field
 
-!> Access an integer field from the collection
-!> @param [in] field_name The name of the intager field to be accessed
-!> @return field Pointer to the integer field that is extracted
-function get_integer_field(self, field_name) result(field)
+!> Access a 64-bit real field from the collection
+!> @param [in] field_name The name of the 64-bit real field to be accessed
+!> @param [out] field Pointer to the 64-bit real field that is extracted
+subroutine get_r64_field(self, field_name, field)
 
   implicit none
 
   class(field_collection_type), intent(in) :: self
+  type(field_r64_type), pointer, intent(out) :: field
 
   character(*), intent(in) :: field_name
-  type(integer_field_type), pointer :: field
+
+
+  ! Pointer to linked list - used for looping through the list
+  type(linked_list_item_type), pointer :: loop => null()
+
+  integer(i_def) :: hash
+
+  ! Calculate the hash of the field being searched for
+  hash = mod(sum_string(trim(field_name)),self%table_len)
+
+  ! start at the head of the mesh collection linked list
+  loop => self%field_list(hash)%get_head()
+
+  do
+    ! If list is empty or we're at the end of list and we didn't find the
+    ! field, fail with an error
+    if ( .not. associated(loop) ) then
+      write(log_scratch_space, '(4A)') 'get_field: No 64-bit field [', &
+         trim(field_name), '] in field collection: ', trim(self%name)
+      call log_event( log_scratch_space, LOG_LEVEL_ERROR)
+    end if
+    ! otherwise search list for the name of field we want
+
+    ! 'cast' to the field_type
+    select type(listfield => loop%payload)
+      type is (field_r64_type)
+      if ( trim(field_name) == trim(listfield%get_name()) ) then
+          field => listfield
+          exit
+      end if
+      type is (field_r64_pointer_type)
+      if ( trim(field_name) == trim(listfield%field_ptr%get_name()) ) then
+          field => listfield%field_ptr
+          exit
+      end if
+    end select
+
+    loop => loop%next
+  end do
+
+end subroutine get_r64_field
+
+!> Access an integer field from the collection
+!> @param [in] field_name The name of the intager field to be accessed
+!> @param [out] field Pointer to the integer field that is extracted
+subroutine get_integer_field(self, field_name, field)
+
+  implicit none
+
+  class(field_collection_type), intent(in) :: self
+  type(integer_field_type), pointer, intent(out) :: field
+
+  character(*), intent(in) :: field_name
 
   ! Pointer to linked list - used for looping through the list
   type(linked_list_item_type), pointer :: loop => null()
@@ -528,7 +586,7 @@ function get_integer_field(self, field_name) result(field)
     loop => loop%next
   end do
 
-end function get_integer_field
+end subroutine get_integer_field
 
 !> Returns the number of entries in the field collection
 function get_length(self) result(length)

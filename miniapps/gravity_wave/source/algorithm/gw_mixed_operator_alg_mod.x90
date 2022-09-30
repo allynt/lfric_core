@@ -226,12 +226,12 @@ contains
       type is (r_solver_field_vector_type)
 
         ! Get pointers to x and y abstract types
-        x_vec_u => x%get_field( igw_u )
-        x_vec_p => x%get_field( igw_p )
-        x_vec_b => x%get_field( igw_b )
-        y_vec_u => y%get_field( igw_u )
-        y_vec_p => y%get_field( igw_p )
-        y_vec_b => y%get_field( igw_b )
+        x_vec_u => x%get_field_from_position( igw_u )
+        x_vec_p => x%get_field_from_position( igw_p )
+        x_vec_b => x%get_field_from_position( igw_b )
+        y_vec_u => y%get_field_from_position( igw_u )
+        y_vec_p => y%get_field_from_position( igw_p )
+        y_vec_b => y%get_field_from_position( igw_b )
 
         call lhs_p%initialise( x_vec_p%get_function_space() )
 

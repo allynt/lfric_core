@@ -79,6 +79,7 @@ contains
     type( field_type ), intent(inout), target :: mr(nummr)
     type( field_type ), intent(inout)         :: moist_dyn(num_moist_factors)
 
+    type( field_type ), pointer               :: field_ptr => null()
     class(pure_abstract_field_type), pointer  :: tmp_ptr => null()
 
     integer(i_def)                            :: imr
@@ -232,13 +233,17 @@ contains
     call depository%add_field( exner )
 
     ! Populate the prognostic field collection
-    tmp_ptr => depository%get_field('theta')
+    call depository%get_field('theta', field_ptr)
+    tmp_ptr => field_ptr
     call prognostic_fields%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('rho')
+    call depository%get_field('rho', field_ptr)
+    tmp_ptr => field_ptr
     call prognostic_fields%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('u')
+    call depository%get_field('u', field_ptr)
+    tmp_ptr => field_ptr
     call prognostic_fields%add_reference_to_field(tmp_ptr)
-    tmp_ptr => depository%get_field('exner')
+    call depository%get_field('exner', field_ptr)
+    tmp_ptr => field_ptr
     call prognostic_fields%add_reference_to_field(tmp_ptr)
     ! The moisture mixing ratios always need checkpointing otherwise
     ! they are uninitialised on a restart

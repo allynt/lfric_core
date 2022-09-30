@@ -89,7 +89,7 @@ module r_solver_field_vector_mod
      !> @param[in, out] z  vector, an array of fields
      procedure, public  :: axpby => axpby_field_vector
      !> Return a pointer to a specific field
-     procedure, public  :: get_field
+     procedure, public  :: get_field_from_position
 
 !   private procedure of the type which either implement the vector API
      procedure, private :: set_field_vector_scalar
@@ -452,13 +452,13 @@ contains
     n_fields = size(self%vector)
   end function get_size_field_vector
 
-  function get_field(self, idx) result(field)
+  function get_field_from_position(self, idx) result(field)
     implicit none
     class(r_solver_field_vector_type), target, intent(in) :: self
     integer(kind=i_def) :: idx
     type(r_solver_field_type), pointer :: field
 
     field => self%vector(idx)
-  end function get_field
+  end function get_field_from_position
 
 end module r_solver_field_vector_mod

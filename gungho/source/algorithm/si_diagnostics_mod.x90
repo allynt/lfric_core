@@ -151,7 +151,7 @@ contains
       ! Difference between X_after_adv or X_star and X_after_slow
       dtheta_adv_flag = .true.
       if (dtheta_adv_flag) then
-        theta_star => derived_fields%get_field('theta_star')
+        call derived_fields%get_field('theta_star', theta_star)
         call theta_star%copy_field_properties(dtheta_adv)
         call invoke(X_minus_Y(dtheta_adv,theta_star,state_after_slow(igh_t)))
         call dtheta_adv%write_field('advection__dtheta_adv')
@@ -161,7 +161,7 @@ contains
       dv_adv_flag = .true.
       dw_adv_flag = .true.
       if (du_adv_flag .or. dv_adv_flag .or. dw_adv_flag) then
-        u_star => derived_fields%get_field('u_star')
+        call derived_fields%get_field('u_star', u_star)
         call state(igh_u)%copy_field_properties(du_w2_adv)
         call state(igh_p)%copy_field_properties(du_adv)
         call state(igh_p)%copy_field_properties(dv_adv)
@@ -196,8 +196,8 @@ contains
 
       dbcf_adv_flag = .true.
       if (dbcf_adv_flag .and. cloud_fields_after_adv%get_length() > 0) then
-        bcf_after_slow => cloud_fields_after_slow%get_field('bulk_fraction')
-        bcf_after_adv => cloud_fields_after_adv%get_field('bulk_fraction')
+        call cloud_fields_after_slow%get_field('bulk_fraction', bcf_after_slow)
+        call cloud_fields_after_adv%get_field('bulk_fraction', bcf_after_adv)
         call bcf_after_slow%copy_field_properties(dbcf_adv)
         call invoke(X_minus_Y(dbcf_adv,bcf_after_adv,bcf_after_slow))
         call dbcf_adv%write_field('advection__dbcf_adv')
@@ -205,8 +205,8 @@ contains
 
       dcfl_adv_flag = .true.
       if (dcfl_adv_flag .and. cloud_fields_after_adv%get_length() > 0) then
-        cfl_after_slow => cloud_fields_after_slow%get_field('liquid_fraction')
-        cfl_after_adv => cloud_fields_after_adv%get_field('liquid_fraction')
+        call cloud_fields_after_slow%get_field('liquid_fraction', cfl_after_slow)
+        call cloud_fields_after_adv%get_field('liquid_fraction', cfl_after_adv)
         call cfl_after_slow%copy_field_properties(dcfl_adv)
         call invoke(X_minus_Y(dcfl_adv,cfl_after_adv,cfl_after_slow))
         call dcfl_adv%write_field('advection__dcfl_adv')
@@ -214,8 +214,8 @@ contains
 
       dcff_adv_flag = .true.
       if (dcff_adv_flag .and. cloud_fields_after_adv%get_length() > 0) then
-        cff_after_slow => cloud_fields_after_slow%get_field('frozen_fraction')
-        cff_after_adv => cloud_fields_after_adv%get_field('frozen_fraction')
+        call cloud_fields_after_slow%get_field('frozen_fraction', cff_after_slow)
+        call cloud_fields_after_adv%get_field('frozen_fraction', cff_after_adv)
         call cff_after_slow%copy_field_properties(dcff_adv)
         call invoke(X_minus_Y(dcff_adv,cff_after_adv,cff_after_slow))
         call dcff_adv%write_field('advection__dcff_adv')
@@ -225,7 +225,7 @@ contains
       ! Difference between current value (X) and X_star+dX_fast_physics
       dtheta_solv_flag = .true.
       if (dtheta_solv_flag) then
-        theta_star => derived_fields%get_field('theta_star')
+        call derived_fields%get_field('theta_star', theta_star)
         call dtheta_fast%copy_field_properties(dtheta_solv)
         call invoke(X_minus_Y(dtheta_solv,state(igh_t),theta_star), &
                 inc_X_minus_Y(dtheta_solv,dtheta_fast))
@@ -236,7 +236,7 @@ contains
       dv_solv_flag = .true.
       dw_solv_flag = .true.
       if (du_solv_flag .or. dv_solv_flag .or. dw_solv_flag) then
-        u_star => derived_fields%get_field('u_star')
+        call derived_fields%get_field('u_star', u_star)
         call state(igh_u)%copy_field_properties(du_w2_solv)
         call state(igh_p)%copy_field_properties(du_solv)
         call state(igh_p)%copy_field_properties(dv_solv)

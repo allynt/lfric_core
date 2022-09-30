@@ -430,7 +430,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('geopotential_') // adjustl(mesh_number)
-    phi => geopotential_collection%get_field(field_name)
+    call geopotential_collection%get_field(field_name, phi)
 
   end function get_geopotential
 
@@ -446,7 +446,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('delta_at_wtheta_') // adjustl(mesh_number)
-    delta => delta_at_wtheta_collection%get_field(field_name)
+    call delta_at_wtheta_collection%get_field(field_name, delta)
 
   end function get_delta_at_wtheta
 
@@ -462,7 +462,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('dx_at_w2_') // adjustl(mesh_number)
-    delta => dx_at_w2_collection%get_field(field_name)
+    call dx_at_w2_collection%get_field(field_name, delta)
 
   end function get_dx_at_w2
 
@@ -478,7 +478,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('dtrdz_fd2_') // adjustl(mesh_number)
-    dtrdz => dtrdz_fd2_collection%get_field(field_name)
+    call dtrdz_fd2_collection%get_field(field_name, dtrdz)
 
   end function get_dtrdz_fd2
 
@@ -494,7 +494,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('rdz_fd1_') // adjustl(mesh_number)
-    rdz => rdz_fd1_collection%get_field(field_name)
+    call rdz_fd1_collection%get_field(field_name, rdz)
 
   end function get_rdz_fd1
 
@@ -510,7 +510,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('dz_at_wtheta_') // adjustl(mesh_number)
-    dz => dz_at_wtheta_collection%get_field(field_name)
+    call dz_at_wtheta_collection%get_field(field_name, dz)
 
   end function get_dz_at_wtheta
 
@@ -527,7 +527,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('dA_msl_proj_') // adjustl(mesh_number)
-    dA => dA_msl_proj_collection%get_field(field_name)
+    call dA_msl_proj_collection%get_field(field_name, dA)
 
   end function get_dA_msl_proj
 #ifdef UM_PHYSICS
@@ -543,7 +543,7 @@ contains
 
       write(mesh_number, '(I8)') mesh_id
       field_name = trim('Pnm_star_') // adjustl(mesh_number)
-      Pnm_star => Pnm_star_collection%get_field(field_name)
+      call Pnm_star_collection%get_field(field_name, Pnm_star)
   end function get_Pnm_star
 #endif
   !> @brief Returns the max Smagorinsky diffusion allowed in this run at Wtheta
@@ -558,7 +558,7 @@ contains
 
     write(mesh_number, '(I8)') mesh_id
     field_name = trim('max_diff_wtheta_') // adjustl(mesh_number)
-    max_diff_smag => max_diff_wtheta_collection%get_field(field_name)
+    call max_diff_wtheta_collection%get_field(field_name, max_diff_smag)
 
   end function get_max_diff
 

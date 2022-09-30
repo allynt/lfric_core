@@ -89,10 +89,10 @@ module tl_test_rhs_alg_mod
     ls_moist_dyn      => model_data%ls_moist_dyn
 
     ! Input
-    ls_u => ls_fields%get_field('ls_u')
-    ls_rho => ls_fields%get_field('ls_rho')
-    ls_theta => ls_fields%get_field('ls_theta')
-    ls_exner => ls_fields%get_field('ls_exner')
+    call ls_fields%get_field('ls_u', ls_u)
+    call ls_fields%get_field('ls_rho', ls_rho)
+    call ls_fields%get_field('ls_theta', ls_theta)
+    call ls_fields%get_field('ls_exner', ls_exner)
 
 
     call ls_state(igh_u)%initialise( vector_space = ls_u%get_function_space() )

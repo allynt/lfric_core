@@ -278,8 +278,8 @@ contains
 
       type is (r_solver_field_vector_type)
         ! Get pointers to x and y abstract types
-        x_vec => x%get_field(1)
-        y_vec => y%get_field(1)
+        x_vec => x%get_field_from_position(1)
+        y_vec => y%get_field_from_position(1)
 
         mesh   => x%vector(1)%get_mesh()
         div    => get_div_r_solver(mesh%get_id())

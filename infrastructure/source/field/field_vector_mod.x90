@@ -48,7 +48,7 @@ module field_vector_mod
      !> @param[in] self      An instance of a field vector
      !> @param[in] position  The position in the array
      !> @return    field     The field to return
-     procedure, public  :: get_field
+     procedure, public  :: get_field_from_position
 
      ! Public procedures of the API overidden in the type
      !> @brief Set the vector to a scalar value.
@@ -359,14 +359,14 @@ contains
   !> @param[in] position  The position in the field array where the
   !!                      field is located
   !> @return    field     The field to return
-  function get_field(self, position) result(field)
+  function get_field_from_position(self, position) result(field)
     implicit none
     class(field_vector_type), target, intent(in) :: self
     integer(kind=i_def)                          :: position
     type(field_type), pointer                    :: field
 
     field => self%vector(position)
-  end function get_field
+  end function get_field_from_position
 
   ! Allocates the array of fields to the given size
   function field_vector_constructor(nfields) result(self)

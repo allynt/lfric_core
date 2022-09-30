@@ -115,7 +115,7 @@ END IF
 CALL ancil_fields%add_field(new_field)
 
 ! Get a field pointer from the collection
-tgt_ptr => ancil_fields%get_field(name)
+call ancil_fields%get_field(name, tgt_ptr)
 
 ! Set up field read behaviour for 2D and 3D fields
 IF (PRESENT(twod)) THEN

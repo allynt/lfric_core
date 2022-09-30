@@ -55,11 +55,11 @@ contains
     character(str_def)                   :: axis_name
 
     if (surface == surface_jules) then
-      sea_ice_fraction   => ancil_fields%get_field('sea_ice_fraction')
-      tile_fraction      => surface_fields%get_field('tile_fraction')
+      call ancil_fields%get_field('sea_ice_fraction', sea_ice_fraction)
+      call surface_fields%get_field('tile_fraction', tile_fraction)
 
-      tstar_sea        => ancil_fields%get_field('tstar_sea')
-      tile_temperature => surface_fields%get_field('tile_temperature')
+      call ancil_fields%get_field('tstar_sea', tstar_sea)
+      call surface_fields%get_field('tile_temperature', tile_temperature)
 
       ! Start at the head of the time_axis linked list
       loop => time_axis_list%get_head()

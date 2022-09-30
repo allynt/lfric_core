@@ -508,7 +508,7 @@ contains
     type(function_space_type),       pointer :: vec_space => null()
     procedure(read_interface),       pointer :: tmp_read_ptr => null()
     procedure(write_interface),      pointer :: tmp_write_ptr => null()
-    class(field_type),               pointer :: fld_ptr => null()
+    type(field_type),                pointer :: fld_ptr => null()
     class(pure_abstract_field_type), pointer :: abs_fld_ptr => null()
 
     ! Set field ndata if argument is present, else leave as default value
@@ -564,7 +564,7 @@ contains
     end if
 
     ! Get a field pointer from the depository
-    fld_ptr => depository%get_field(name)
+    call depository%get_field(name, fld_ptr)
 
     if (.not. present(time_axis)) then
       !Set up field read behaviour for 2D and 3D fields
@@ -578,7 +578,8 @@ contains
     end if
 
     ! Add the field pointer to the target field collection
-    abs_fld_ptr => depository%get_field(name)
+    call depository%get_field(name, fld_ptr)
+    abs_fld_ptr => fld_ptr
     call ancil_fields%add_reference_to_field(abs_fld_ptr)
 
     ! Nullify pointers

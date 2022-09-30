@@ -8,6 +8,8 @@
 !>
 module field_collection_mod_test
 
+    use, intrinsic :: iso_fortran_env, only : real64, real32
+
     use constants_mod,                 only : i_def, r_def, l_def
     use function_space_mod,            only : function_space_type
     use function_space_collection_mod, only : function_space_collection_type, &
@@ -20,6 +22,10 @@ module field_collection_mod_test
     use halo_routing_collection_mod,   only : halo_routing_collection_type, &
                                               halo_routing_collection
     use field_mod,                     only : field_type,field_proxy_type
+    use field_r32_mod,                 only : field_r32_type, &
+                                              field_r32_proxy_type
+    use field_r64_mod,                 only : field_r64_type, &
+                                              field_r64_proxy_type
     use field_parent_mod,              only : field_parent_type
     use integer_field_mod,             only : integer_field_type, &
                                               integer_field_proxy_type
@@ -142,19 +148,23 @@ contains
     class(field_collection_test_type), intent(inout) :: this
     class(pure_abstract_field_type), pointer         :: field_ptr
 
-    type(field_type)                    :: test_field1
-    type(integer_field_type)            :: test_field2
+    type(field_r64_type)                :: test_field1
+    type(field_r32_type)                :: test_field2
+    type(integer_field_type)            :: test_field3
 
-    type(field_proxy_type)              :: test_field1_p
-    type(integer_field_proxy_type)      :: test_field2_p
+    type(field_r64_proxy_type)          :: test_field1_p
+    type(field_r32_proxy_type)          :: test_field2_p
+    type(integer_field_proxy_type)      :: test_field3_p
 
-    type(field_type), pointer           :: returned_field1
-    type(field_type), pointer           :: returned_field1a
-    type(integer_field_type), pointer   :: returned_field2
+    type(field_r64_type), pointer       :: returned_field1
+    type(field_r64_type), pointer       :: returned_field1a
+    type(field_r32_type), pointer       :: returned_field2
+    type(integer_field_type), pointer   :: returned_field3
 
-    type(field_proxy_type)              :: returned_field1_p
-    type(field_proxy_type)              :: returned_field1a_p
-    type(integer_field_proxy_type)      :: returned_field2_p
+    type(field_r64_proxy_type)          :: returned_field1_p
+    type(field_r64_proxy_type)          :: returned_field1a_p
+    type(field_r32_proxy_type)          :: returned_field2_p
+    type(integer_field_proxy_type)      :: returned_field3_p
     type(linked_list_item_type), pointer &
                                         :: field_item
 
@@ -165,71 +175,97 @@ contains
     integer(i_def)                      :: length
     logical(l_def)                      :: exists
 
-    !------------------- Create real & integer fields ------------------------!
-    ! Create a field object with the name 'test_field1'
+    !------------------- Create 32- and 64-bit real & integer fields ------------------------!
+    ! Create a 64-bit field object with the name 'test_field1'
     ! and put 99.0 in the first dof
     call test_field1%initialise( this%w0_fs, name='test_field1' )
     test_field1_p = test_field1%get_proxy()
-    test_field1_p%data(1) = 99.0_r_def
+    test_field1_p%data(1) = 99.0_real64
 
-    ! Create an integer field object with the name 'test_field2'
-    ! and put 33 in the first dof
-    call test_field2%initialise( this%w2_fs, name='test_field2' )
+    ! Create a 32-bit field object with the name 'test_field2'
+    ! and put 66.0 in the first dof
+    call test_field2%initialise( this%w0_fs, name='test_field2' )
     test_field2_p = test_field2%get_proxy()
-    test_field2_p%data(1) = 33_i_def
+    test_field2_p%data(1) = 66.0_real32
+
+    ! Create an integer field object with the name 'test_field3'
+    ! and put 33 in the first dof
+    call test_field3%initialise( this%w2_fs, name='test_field3' )
+    test_field3_p = test_field3%get_proxy()
+    test_field3_p%data(1) = 33_i_def
 
     !----------------- Create field collection 'A' & test extracts -------------------!
-    ! Create a field_collection_A and put test_field1 and test_field2 in it
+    ! Create a field_collection_A and put the fields created above in it
     call test_field_collectionA%initialise(name="test_field_collectionA1", &
                                            table_len=5)
-    call test_field_collectionA%add_field(test_field1)  ! a real field
-    call test_field_collectionA%add_field(test_field2)  ! an integer field
+    call test_field_collectionA%add_field(test_field1)  ! a 64-bit real field
+    call test_field_collectionA%add_field(test_field2)  ! a 32-bit real field
+    call test_field_collectionA%add_field(test_field3)  ! an integer field
 
     !---Check fields exist in collections
     exists = test_field_collectionA%field_exists('test_field1')
     @assertTrue(exists)
     exists = test_field_collectionA%field_exists('test_field2')
     @assertTrue(exists)
+    exists = test_field_collectionA%field_exists('test_field3')
+    @assertTrue(exists)
 
-    !---Real field extract
-    ! Extract the real field called 'test_field1' into returned_field1
-    returned_field1 => test_field_collectionA%get_field('test_field1')
+    !---64-bit Real field extract
+    ! Extract the 64-bit real field called 'test_field1' into returned_field1
+    call test_field_collectionA%get_field('test_field1', returned_field1)
     returned_field1_p = returned_field1%get_proxy()
     ! Check that test_field1 has 99.0 in the first dof
-    @assertEqual(99.0_r_def, returned_field1_p%data(1), tol)
+    @assertEqual(99.0_real64, returned_field1_p%data(1), real(tol, real64))
+
+    !---32-bit Real field extract
+    ! Extract the 32-bit real field called 'test_field2' into returned_field2
+    call test_field_collectionA%get_field('test_field2', returned_field2)
+    returned_field2_p = returned_field2%get_proxy()
+    ! Check that test_field1 has 66.0 in the first dof
+    @assertEqual(66.0_real32, returned_field2_p%data(1), real(tol, real32))
 
     !---Integer field extract
-    ! Extract the integer field called 'test_field2' into returned_field2
-    returned_field2 => test_field_collectionA%get_integer_field('test_field2')
-    returned_field2_p = returned_field2%get_proxy()
-    ! Check that test_field2 has 33 in the first dof
-    @assertEqual(33_i_def, returned_field2_p%data(1))
+    ! Extract the integer field called 'test_field3' into returned_field3
+    call test_field_collectionA%get_field('test_field3', returned_field3)
+    returned_field3_p = returned_field3%get_proxy()
+    ! Check that test_field3 has 33 in the first dof
+    @assertEqual(33_i_def, returned_field3_p%data(1))
 
     !---Check the order of the fields in the collection.
     !   For a collection with a hash table length of 5 the fields
     !   with the above names should be ordered as follows:
-    !   "test_field_1", "test_field2"
-
-    !---Check that first field is the real field
+    !   "test_field_3", "test_field2", "test_field1"
     nullify(field_item)
-    !---Check that the first field is the real r_def field
-    field_item => test_field_collectionA%get_next_item(field_item)
-    select type(listfield => field_item%payload)
-      type is (field_type)
-        @assertTrue(associated(returned_field1,listfield))
-      class default
-        !If we've got here, there's a problem - throw an assert failure
-        @assertFail('Third field in collection [test_field_collectionA1] is not a real field.')
-    end select
 
-    !---Check that the second field is the integer field
+    !---Check that the first field is the integer field
     field_item => test_field_collectionA%get_next_item(field_item)
     select type(listfield => field_item%payload)
       type is (integer_field_type)
+        @assertTrue(associated(returned_field3,listfield))
+      class default
+        !If we've got here, there's a problem - throw an assert failure
+        @assertFail('First field in collection [test_field_collectionA1] is not an integer field.')
+
+    !---Check that the second field is the 32-bit real field
+    field_item => test_field_collectionA%get_next_item(field_item)
+    select type(listfield => field_item%payload)
+      type is (field_r32_type)
         @assertTrue(associated(returned_field2,listfield))
       class default
         !If we've got here, there's a problem - throw an assert failure
-        @assertFail('Final field in collection [test_field_collectionA1] is not an integer field.')
+        @assertFail('Second field in collection [test_field_collectionA1] is not a 32-bit real field.')
+    end select
+
+    !---Check that final field is the 64-bit real field
+    field_item => test_field_collectionA%get_next_item(field_item)
+    select type(listfield => field_item%payload)
+      type is (field_r64_type)
+        @assertTrue(associated(returned_field1,listfield))
+      class default
+        !If we've got here, there's a problem - throw an assert failure
+        @assertFail('Final field in collection [test_field_collectionA1] is not a 64-bit real field.')
+    end select
+
     end select
 
     !------------------ Check updating of fields in Collection------------------------!
@@ -244,16 +280,16 @@ contains
     returned_field1_p%data(1)=999.0_r_def
 
     ! Check that the reference to that field has been updated
-    returned_field1a => test_field_collectionB%get_field('test_field1')
+    call test_field_collectionB%get_field('test_field1', returned_field1a)
     returned_field1a_p = returned_field1a%get_proxy()
     @assertEqual(999.0_r_def, returned_field1a_p%data(1), tol)
 
 
-    !-------------- Remove and Add Back the Real Field -------------------------!
+    !-------------- Remove and Add Back the 64-bit Real Field ----------------------!
     ! Check we can remove a field from the field collection
     call test_field_collectionA%remove_field("test_field1")
     length=test_field_collectionA%get_length()
-    @assertEqual(1, length)
+    @assertEqual(2, length)
 
     ! Check that test_field1 no longer exists in field_collection
     exists = test_field_collectionA%field_exists('test_field1')
@@ -261,7 +297,7 @@ contains
 
     ! Check we can add the field back into the collection
     call test_field_collectionA%add_field(test_field1)
-    returned_field1 => test_field_collectionA%get_field('test_field1')
+    call test_field_collectionA%get_field('test_field1', returned_field1)
     returned_field1_p = returned_field1%get_proxy()
     @assertEqual(99.0_r_def, returned_field1_p%data(1), tol)
 
@@ -303,7 +339,7 @@ contains
 
     ! Copy the collection, and get hold of the copied field.
     call f_collection%copy_collection(f_collection_copy)
-    returned_field => f_collection_copy % get_field( 'test_field1' )
+    call f_collection_copy%get_field( 'test_field1', returned_field )
 
     ! Check the name is the same, but that changing the data on one field
     ! doesn't change the data in the copy.
@@ -323,11 +359,11 @@ contains
     @assertEqual(f_collection % get_length(), 2)
     @assertEqual(f_collection_copy % get_length(), 1)
 
-    returned_field => f_collection % get_field('test_field2')
+    call f_collection%get_field('test_field2', returned_field)
     ! Check that the field pointer has the same target after copy, but that
     ! the pointer object itself is different.
     call f_collection%copy_collection(f_collection_copy)
-    returned_field => f_collection_copy % get_field('test_field2')
+    call f_collection_copy%get_field('test_field2', returned_field)
     @assertTrue(associated(test_field2_ptr, returned_field))
 
     ! Now if we nullify the original field pointer, we should still be able to use the
@@ -375,7 +411,7 @@ contains
 
     ! Copy the collection, and get hold of the copied field.
     call f_collection%copy_collection(f_collection_copy)
-    returned_field => f_collection_copy % get_integer_field( 'test_field1' )
+    call f_collection_copy%get_field( 'test_field1', returned_field )
 
     ! Check the name is the same, but that changing the data on one field
     ! doesn't change the data in the copy.
@@ -395,11 +431,11 @@ contains
     @assertEqual(f_collection % get_length(), 2)
     @assertEqual(f_collection_copy % get_length(), 1)
 
-    returned_field => f_collection % get_integer_field('test_field2')
+    call f_collection%get_field('test_field2', returned_field)
     ! Check that the field pointer has the same target after copy, but that
     ! the pointer object itself is different.
     call f_collection%copy_collection(f_collection_copy)
-    returned_field => f_collection_copy % get_integer_field('test_field2')
+    call f_collection_copy%get_field('test_field2', returned_field)
     @assertTrue(associated(test_field2_ptr, returned_field))
 
     ! Now if we nullify the original field pointer, we should still be able to use the

@@ -37,7 +37,7 @@ subroutine strat_aerosol_alg( aerosol_fields, trop_level, exner )
 
   if ( subroutine_timers ) call timer("strat_aerosol_alg")
 
-  sulphuric => aerosol_fields%get_field('sulphuric')
+  call aerosol_fields%get_field('sulphuric', sulphuric)
   call invoke( strat_aerosol_kernel_type( sulphuric, trop_level, exner ) )
 
   if ( subroutine_timers ) call timer("strat_aerosol_alg")
