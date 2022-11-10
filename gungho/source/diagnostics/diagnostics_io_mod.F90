@@ -10,7 +10,6 @@
 !-------------------------------------------------------------------------------
 module diagnostics_io_mod
 
-  use clock_mod,                     only: clock_type
   use constants_mod,                 only: i_def, i_timestep, &
                                            r_def, str_max_filename
   use physics_mappings_alg_mod,      only: split_wind_alg
@@ -29,6 +28,7 @@ module diagnostics_io_mod
   use lfric_xios_write_mod,          only: write_field_face, &
                                            write_field_edge
   use mesh_mod,                      only: mesh_type
+  use model_clock_mod,               only: model_clock_type
   use field_mod,                     only: field_type
   use field_parent_mod,              only: write_interface
   use fs_continuity_mod,             only: W3
@@ -56,11 +56,11 @@ subroutine write_scalar_diagnostic( field_name, field, &
                                     clock, mesh, W3_project )
   implicit none
 
-  character(len=*),  intent(in)    :: field_name
-  type(field_type),  intent(in)    :: field
-  class(clock_type), intent(in)    :: clock
-  type(mesh_type),   intent(in), pointer :: mesh
-  logical,           intent(in)    :: W3_project
+  character(len=*),        intent(in)    :: field_name
+  type(field_type),        intent(in)    :: field
+  class(model_clock_type), intent(in)    :: clock
+  type(mesh_type),         intent(in), pointer :: mesh
+  logical,                 intent(in)    :: W3_project
 
   integer(i_def), parameter       :: nodal_output_unit = 21
 
@@ -167,11 +167,11 @@ subroutine write_vector_diagnostic( field_name, field, &
                                     clock, mesh, W3_project )
   implicit none
 
-  character(len=*),  intent(in)    :: field_name
-  type(field_type),  intent(in)    :: field
-  class(clock_type), intent(in)    :: clock
-  type(mesh_type),   intent(in), pointer :: mesh
-  logical,           intent(in)    :: W3_project
+  character(len=*),        intent(in)    :: field_name
+  type(field_type),        intent(in)    :: field
+  class(model_clock_type), intent(in)    :: clock
+  type(mesh_type),         intent(in), pointer :: mesh
+  logical,                 intent(in)    :: W3_project
 
   integer(i_def), parameter       :: nodal_output_unit = 21
 

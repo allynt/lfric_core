@@ -8,9 +8,8 @@
 !!
 module shallow_water_driver_mod
 
-  use clock_mod,                     only: clock_type
   use constants_mod,                 only: i_def, i_native, imdi, r_def
-  use driver_io_mod,                 only: get_clock, get_io_context
+  use driver_io_mod,                 only: get_io_context
   use field_mod,                     only: field_type
   use field_collection_mod,          only: field_collection_type
   use io_config_mod,                 only: write_diag,           &
@@ -19,10 +18,14 @@ module shallow_water_driver_mod
   use io_context_mod,                only: io_context_type
   use log_mod,                       only: log_event,         &
                                            log_scratch_space, &
+                                           log_level_error,   &
                                            LOG_LEVEL_INFO
   use mesh_collection_mod,           only: mesh_collection, &
                                            mesh_collection_type
   use mesh_mod,                      only: mesh_type
+  use model_clock_mod,               only: model_clock_type
+  use runtime_constants_mod,         only: create_runtime_constants, &
+                                           final_runtime_constants
   use shallow_water_mod,             only: program_name
   use shallow_water_diagnostics_mod, only: shallow_water_diagnostics
   use shallow_water_model_mod,       only: initialise_infrastructure, &
@@ -45,7 +48,8 @@ module shallow_water_driver_mod
             finalise
 
   ! Model run working data set
-  type (model_data_type) :: model_data
+  type(model_data_type)  :: model_data
+  type(model_clock_type) :: model_clock
 
   ! Coordinate field
   type(field_type), target :: chi(3)
@@ -66,18 +70,52 @@ contains
   !!
   subroutine initialise()
 
+    use clock_mod,               only : clock_type
+    use constants_mod,           only : r_second
+    use lfric_xios_context_mod,  only : lfric_xios_context_type
+    use step_calendar_mod,       only : step_calendar_type
+    use time_config_mod,         only : timestep_start, timestep_end
+    use timestepping_config_mod, only : dt, spinup_period
+
     implicit none
 
-    class(clock_type), pointer :: clock => null()
+    type(mesh_type),   pointer :: twod_mesh => null()
+    type(field_type)           :: panel_id
+    class(clock_type), pointer :: io_clock => null()
+    type(step_calendar_type)   :: step_calendar
 
     call log_event( 'Initialising Infrastructure ...', LOG_LEVEL_INFO )
     ! Initialise infrastructure (from shallow_water_model_mod.F90) and setup constants
-    call initialise_infrastructure( program_name,       &
-                                    mesh,               &
-                                    chi )
+    call initialise_infrastructure( program_name, &
+                                    mesh,         &
+                                    twod_mesh,    &
+                                    chi,          &
+                                    panel_id )
 
     io_context => get_io_context()
-    clock => get_clock()
+    select type (io_context)
+    class is (lfric_xios_context_type)
+      io_clock => io_context%get_clock()
+      model_clock = model_clock_type( io_clock%get_first_step(),       &
+                                      io_clock%get_last_step(),        &
+                                      io_clock%get_seconds_per_step(), &
+                                      spinup_period )
+      call model_clock%add_clock( io_clock )
+    class default
+      model_clock = model_clock_type(                   &
+        step_calendar%parse_instance( timestep_start ), &
+        step_calendar%parse_instance( timestep_end ),   &
+        real(dt, r_second), real(spinup_period, r_second) )
+    end select
+
+    !-------------------------------------------------------------------------
+    ! Setup constants
+    !-------------------------------------------------------------------------
+
+    ! Create runtime_constants object. This in turn creates various things
+    ! needed by the timestepping algorithms such as mass matrix operators, mass
+    ! matrix diagonal fields and the geopotential field
+    call create_runtime_constants(mesh, twod_mesh, chi, panel_id, model_clock)
 
     call log_event( 'Creating model data ...', LOG_LEVEL_INFO )
     ! Instantiate the fields stored in model_data
@@ -86,15 +124,15 @@ contains
 
     call log_event( 'Initialising model data ...', LOG_LEVEL_INFO )
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, mesh, clock )
+    call initialise_model_data( model_data, mesh, model_clock )
 
     ! Initial output: we only want these once at the beginning of a run
-    if (clock%is_initialisation() .and. write_diag) then
+    if (model_clock%is_initialisation() .and. write_diag) then
       call log_event( 'Output of initial diagnostics ...', LOG_LEVEL_INFO )
       ! Calculation and output of diagnostics
       call shallow_water_diagnostics( mesh,               &
                                       model_data,         &
-                                      clock,              &
+                                      model_clock,        &
                                       nodal_output_on_w3, &
                                       1_i_def )
     end if
@@ -112,30 +150,26 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock => null()
-
-    clock => get_clock()
-
     write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     !--------------------------------------------------------------------------
     ! Model step
     !--------------------------------------------------------------------------
-    do while (clock%tick())
+    do while (model_clock%tick())
 
       call shallow_water_step( model_data, &
-                               clock  )
+                               model_clock  )
 
       ! Use diagnostic output frequency to determine whether to write
       ! diagnostics on this timestep
 
-      if ( ( mod(clock%get_step(), diagnostic_frequency) == 0 ) &
+      if ( ( mod(model_clock%get_step(), diagnostic_frequency) == 0 ) &
            .and. ( write_diag ) ) then
 
         call shallow_water_diagnostics(mesh,               &
                                        model_data,         &
-                                       clock,              &
+                                       model_clock,        &
                                        nodal_output_on_w3, &
                                        0_i_def)
 
@@ -153,14 +187,10 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock => null()
-
-    clock => get_clock()
-
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_INFO )
 
     ! Output the fields stored in the model_data (checkpoint and dump)
-    call output_model_data( model_data, clock )
+    call output_model_data( model_data, model_clock )
 
     ! Model configuration finalisation
     call finalise_model( mesh_id,    &
@@ -169,6 +199,12 @@ contains
 
     ! Destroy the fields stored in model_data
     call finalise_model_data( model_data )
+
+    !-------------------------------------------------------------------------
+    ! Finalise constants
+    !-------------------------------------------------------------------------
+
+    call final_runtime_constants()
 
     ! Finalise infrastructure and constants
     call finalise_infrastructure( program_name )

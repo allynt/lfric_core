@@ -11,7 +11,6 @@ module da_dev_driver_mod
 
   use checksum_alg_mod,           only : checksum_alg
   use cli_mod,                    only : get_initial_filename
-  use clock_mod,                  only : clock_type
   use configuration_mod,          only : final_configuration
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL, r_def
@@ -21,8 +20,7 @@ module da_dev_driver_mod
   use driver_log_mod,             only : init_logger, final_logger
   use driver_mesh_mod,            only : init_mesh, final_mesh
   use driver_fem_mod,             only : init_fem, final_fem
-  use driver_io_mod,              only : init_io, final_io, &
-                                         get_clock
+  use driver_io_mod,              only : init_io, final_io
   use field_mod,                  only : field_type
   use field_collection_mod,       only : field_collection_type
   use init_da_dev_mod,            only : init_da_dev
@@ -32,6 +30,7 @@ module da_dev_driver_mod
                                          LOG_LEVEL_ALWAYS,   &
                                          LOG_LEVEL_INFO
   use mesh_mod,                   only : mesh_type
+  use model_clock_mod,            only : model_clock_type
   use mpi_mod,                    only : get_comm_size, &
                                          get_comm_rank
   use da_dev_mod,                 only : load_configuration
@@ -45,7 +44,8 @@ module da_dev_driver_mod
   character(*), parameter :: program_name = "da_dev"
 
   ! Prognostic fields
-  type(model_data_type)                  :: model_data
+  type(model_data_type)  :: model_data
+  type(model_clock_type) :: model_clock
 
   ! Coordinate field
   type(field_type), target, dimension(3) :: chi
@@ -60,13 +60,15 @@ contains
   !>
   subroutine initialise()
 
+    use step_calendar_mod,       only : step_calendar_type
+    use time_config_mod,         only : timestep_start, timestep_end
+    use timestepping_config_mod, only : dt, spinup_period
+
     implicit none
 
     character(:), allocatable :: filename
-    integer(i_native) :: model_communicator
-
-    class(clock_type),      pointer :: clock => null()
-    real(r_def)                     :: dt_model
+    integer(i_native)         :: model_communicator
+    type(step_calendar_type)  :: calendar
 
     call init_comm( program_name, model_communicator )
 
@@ -95,12 +97,15 @@ contains
     ! Initialise I/O context
     call init_io( program_name, model_communicator, chi, panel_id )
 
-    ! Get dt from model clock
-    clock => get_clock()
-    dt_model = real(clock%get_seconds_per_step(), r_def)
+    !Initialise model clock
+    model_clock = model_clock_type( calendar%parse_instance(timestep_start), &
+                                    calendar%parse_instance(timestep_end),   &
+                                    dt, spinup_period )
 
     ! Create and initialise prognostic fields
-    call init_da_dev(mesh, chi, panel_id, dt_model, model_data)
+    call init_da_dev( mesh, chi, panel_id,                             &
+                      real(model_clock%get_seconds_per_step(), r_def), &
+                      model_data)
 
   end subroutine initialise
 
@@ -111,12 +116,10 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock => null()
     logical                    :: running
     type(field_type), pointer  :: working_field => null()
 
-    clock => get_clock()
-    running = clock%tick()
+    running = model_clock%tick()
     call  model_data%depository%get_field( 'da_dev_field', working_field )
 
     ! Call an algorithm

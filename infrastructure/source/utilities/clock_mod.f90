@@ -21,10 +21,7 @@ module clock_mod
     procedure(get_step_if),           public, deferred :: get_step
     procedure(get_last_if),           public, deferred :: get_last_step
     procedure(tick_if),               public, deferred :: tick
-    procedure(is_init_if),            public, deferred :: is_initialisation
-    procedure(is_spinup_if),          public, deferred :: is_spinning_up
     procedure(seconds_per_step_if),   public, deferred :: get_seconds_per_step
-    procedure(seconds_from_steps_if), public, deferred :: seconds_from_steps
   end type clock_type
 
   abstract interface
@@ -56,20 +53,6 @@ module clock_mod
       logical :: tick_if
     end function tick_if
 
-    function is_init_if( this )
-      import clock_type
-      implicit none
-      class(clock_type), intent(in) :: this
-      logical :: is_init_if
-    end function is_init_if
-
-    function is_spinup_if( this )
-      import clock_type
-      implicit none
-      class(clock_type), intent(in) :: this
-      logical :: is_spinup_if
-    end function is_spinup_if
-
     function seconds_per_step_if( this )
       import clock_type, r_second
       implicit none
@@ -77,13 +60,6 @@ module clock_mod
       real(r_second) :: seconds_per_step_if
     end function seconds_per_step_if
 
-    function seconds_from_steps_if( this, period )
-      import clock_type, i_timestep, r_second
-      implicit none
-      class(clock_type),   intent(in) :: this
-      integer(i_timestep), intent(in) :: period
-      real(r_second) :: seconds_from_steps_if
-    end function seconds_from_steps_if
   end interface
 
 end module clock_mod

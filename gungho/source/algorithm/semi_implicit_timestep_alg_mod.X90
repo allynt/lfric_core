@@ -8,12 +8,12 @@
 !!        3D equations.
 module semi_implicit_timestep_alg_mod
 
-  use clock_mod,                 only: clock_type
   use constants_mod,             only: i_def, r_def, l_def
   use log_mod,                   only: log_event,         &
                                        log_scratch_space, &
                                        LOG_LEVEL_INFO
   use mesh_mod,                  only: mesh_type
+  use model_clock_mod,           only: model_clock_type
   use reference_element_mod,     only: T
 
   ! Configuration options
@@ -307,7 +307,7 @@ contains
   !> @param[in,out] chemistry_fields       Fields for chemistry scheme
   !> @param[in,out] aerosol_fields         Fields for aerosol scheme
   !> @param[in,out] lbc_fields             Fields for lateral boundaries
-  !> @param[in]     clock                  Model time
+  !> @param[in]     model_clock            Time in the model.
   !> @param[in]     dtemp_encorr           Temperature increment for energy
   !>                                       correction
   !> @param[in]     mesh                   The current mesh
@@ -320,7 +320,7 @@ contains
                                     cloud_fields, surface_fields, soil_fields, &
                                     snow_fields, chemistry_fields,             &
                                     aerosol_fields, lbc_fields,                &
-                                    clock, dtemp_encorr, mesh, twod_mesh)
+                                    model_clock, dtemp_encorr, mesh, twod_mesh)
 
     implicit none
 
@@ -345,15 +345,14 @@ contains
     type( field_collection_type ), intent( inout ) :: aerosol_fields
     type( field_collection_type ), intent( inout ) :: lbc_fields
 
-    class(clock_type), intent(in) :: clock
+    class(model_clock_type), intent(in) :: model_clock
 
     real(kind=r_def), intent(in)  :: dtemp_encorr
 
     type(mesh_type), intent(in), pointer :: mesh
     type(mesh_type), intent(in), pointer :: twod_mesh
 
-    real(kind=r_def) :: dt
-
+    real(kind=r_def) :: cast_dt
 
     type(field_type), pointer :: ageofair  => null()
 
@@ -379,7 +378,7 @@ contains
 
     if ( subroutine_timers ) call timer('semi_implicit_timestep_alg')
 
-    dt = real(clock%get_seconds_per_step(), r_def)
+    cast_dt = real(model_clock%get_seconds_per_step(), r_def)
 
     qr => get_qr()
 
@@ -395,7 +394,7 @@ contains
     ! If winds are being spunup overwrite the local copy of the winds
     ! with the driver level representation
     !--------------------------------------------------------------------
-    if (clock%is_spinning_up()) then
+    if (model_clock%is_spinning_up()) then
        if (spinup_winds) then
          call invoke( setval_X(state(igh_u), u ) )
        end if
@@ -404,7 +403,7 @@ contains
     !--------------------------------------------------------------------
     ! If off-centring is being spun up then modify the alpha value
     !--------------------------------------------------------------------
-    if (spinup_alpha .and. clock%is_spinning_up()) then
+    if (spinup_alpha .and. model_clock%is_spinning_up()) then
       varalpha = 1.0_r_def
     else
       varalpha = alpha
@@ -412,7 +411,7 @@ contains
     varbeta = 1.0 - varalpha
 
     ! Perform some checking on the fields.
-    call check_fields(state, dt)
+    call check_fields(state, cast_dt)
 
     !--------------------------------------------------------------------
     ! Update state_n and mr_n with start of timestep values
@@ -428,15 +427,15 @@ contains
     ! Compute slow physic updates
     !--------------------------------------------------------------------
     if (use_physics) then
-      call slow_physics(du, dtheta, mr_after_slow, visc_m, visc_h,             &
-                        state_n(igh_t), state_n(igh_u),                        &
-                        state_n(igh_d), state_n(igh_p),                        &
-                        mr_n, derived_fields, radiation_fields,                &
-                        microphysics_fields, orography_fields,                 &
-                        turbulence_fields, convection_fields, cloud_fields,    &
-                        surface_fields, soil_fields, snow_fields,              &
-                        chemistry_fields, aerosol_fields, clock, dt,           &
-                        dtemp_encorr, mesh, twod_mesh )
+      call slow_physics( du, dtheta, mr_after_slow, visc_m, visc_h,           &
+                         state_n(igh_t), state_n(igh_u),                      &
+                         state_n(igh_d), state_n(igh_p),                      &
+                         mr_n, derived_fields, radiation_fields,              &
+                         microphysics_fields, orography_fields,               &
+                         turbulence_fields, convection_fields, cloud_fields,  &
+                         surface_fields, soil_fields, snow_fields,            &
+                         chemistry_fields, aerosol_fields, model_clock,       &
+                         cast_dt, dtemp_encorr, mesh, twod_mesh )
       call invoke(name="update_from_slow_physics",                             &
                   inc_X_plus_Y(state_after_slow(igh_t), dtheta),               &
                   inc_X_plus_Y(state_after_slow(igh_u), du)                    &
@@ -446,13 +445,13 @@ contains
     !--------------------------------------------------------------------
     ! Compute the time-level n dynamics terms
     !--------------------------------------------------------------------
-    call rhs_alg(rhs_n, varbeta*dt, state_after_slow, state_n, moist_dyn, &
-                 .false., .false., dt)
+    call rhs_alg( rhs_n, varbeta*cast_dt, state_after_slow, state_n, &
+                  moist_dyn, .false., .false. )
 
     call copy_bundle(state_after_slow, advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
-      ! Predictor of the wind field (u-beta*dt*rhs) to be advected if using
-      ! explicit advection
+      ! Predictor of the wind field (u-beta*cast_dt*rhs) to be advected if
+      ! using explicit advection
       call mass_matrix_solver_alg(advected_state(igh_u), rhs_n(igh_u))
     end if
 
@@ -471,15 +470,16 @@ contains
       if (use_wavedynamics) then
         call gungho_transport_control_alg( rhs_adv, advected_state,         &
                                            state(igh_u), state_n(igh_u),    &
-                                           mr, mr_after_slow, dt, outer,    &
+                                           mr, mr_after_slow,               &
+                                           model_clock, outer,              &
                                            adv_fields_all_outer,            &
                                            adv_fields_all_outer_after_slow, &
                                            adv_fields_last_outer,           &
                                            adv_fields_last_outer_after_slow )
 
         ! Compute the time-level n+1 dynamics terms
-        call rhs_alg(rhs_np1, -varalpha*dt, state, state, moist_dyn, .true., &
-                       dlayer_on, dt)
+        call rhs_alg( rhs_np1, -varalpha*cast_dt, state, state, moist_dyn, &
+                      .true., dlayer_on )
       else
         if (use_moisture) call copy_bundle(mr_after_slow, mr, nummr)
       end if
@@ -492,9 +492,9 @@ contains
              convection_placement == convection_placement_fast .or.            &
              stochastic_physics_placement == stochastic_physics_placement_fast)&
              then
-          call calc_phys_predictors_alg(derived_fields, rhs_np1, rhs_adv,      &
-                                        rhs_n, state, state_after_slow,        &
-                                        clock)
+          call calc_phys_predictors_alg( derived_fields, rhs_np1, rhs_adv, &
+                                         rhs_n, state, state_after_slow,   &
+                                         model_clock )
         end if
         if (use_moisture) call copy_bundle(mr, mr_after_adv, nummr)
         call conditional_collection_copy(cloud_fields_after_adv,               &
@@ -511,11 +511,12 @@ contains
                           convection_fields, cloud_fields,                     &
                           surface_fields, soil_fields, snow_fields,            &
                           chemistry_fields, aerosol_fields,                    &
-                          outer, clock, dt)
+                          outer, model_clock, cast_dt)
 
         if (smagorinsky .and. smagorinsky_placement == smagorinsky_placement_outer) then
-          call smagorinsky_alg(dtheta, du, mr, state(igh_t), state(igh_u), &
-                               visc_m, visc_h, derived_fields, state(igh_d), dt)
+          call smagorinsky_alg(dtheta, du, mr, state(igh_t), state(igh_u),   &
+                               visc_m, visc_h, derived_fields, state(igh_d), &
+                               cast_dt)
         end if
 
         if (use_wavedynamics) then
@@ -555,13 +556,15 @@ contains
           ! Reset reference state using latest guess of state
           reset_ref_state = mod(inner + (outer-1)*inner_iterations - 1_i_def, &
                                 reference_reset_freq)
-          if ( reset_ref_state == 0_i_def ) call compute_si_operators(state, dt)
+          if ( reset_ref_state == 0_i_def ) &
+            call compute_si_operators(state, cast_dt)
 
           !--------------------------------------------------------------------
           ! Compute the time-level n+1 dynamics terms
           !--------------------------------------------------------------------
-          if (inner > 1) call rhs_alg(rhs_np1, -varalpha*dt, state, state, &
-               moist_dyn, .true., dlayer_on, dt)
+          if (inner > 1) call rhs_alg( rhs_np1, -varalpha*cast_dt, &
+                                       state, state, moist_dyn,    &
+                                       .true., dlayer_on )
 
           !--------------------------------------------------------------------
           ! Compute the LAM LBCs and RHS
@@ -618,7 +621,7 @@ contains
 
           ! For poorly balanced initial conditions, we set the vertical
           ! component of W2 wind to zero
-          if (spinup_alpha .and. clock%is_spinning_up()) then
+          if (spinup_alpha .and. model_clock%is_spinning_up()) then
             call invoke( set_any_dof_kernel_type(state(igh_u), T, 0.0_r_def) )
           end if
 
@@ -660,7 +663,7 @@ contains
 
     if (transport_ageofair) then
       call adv_fields_last_outer%get_field('ageofair', ageofair)
-      call ageofair_update(ageofair, clock)
+      call ageofair_update(ageofair, model_clock)
     end if
 
     !--------------------------------------------------------------------
@@ -668,7 +671,7 @@ contains
     !--------------------------------------------------------------------
     call mixing_alg(mr, state(igh_t),                             &
                     state(igh_u), visc_m, visc_h, derived_fields, &
-                    state(igh_d), dt )
+                    state(igh_d), cast_dt )
 
     ! ----------------------------------------------------------------------
     ! Call cloud scheme to generate cloud and latent heating after pressure
@@ -681,7 +684,7 @@ contains
                     derived_fields, turbulence_fields,              &
                     cloud_fields, convection_fields,                &
                     state_n(igh_t), mr_n,                           &
-                    clock%get_step(), dt )
+                    model_clock%get_step(), cast_dt )
       call invoke(inc_X_plus_Y(state(igh_t), dtheta_cld))
     end if
 #endif
@@ -706,13 +709,13 @@ contains
                               microphysics_fields, turbulence_fields,    &
                               convection_fields, cloud_fields,           &
                               surface_fields, soil_fields,               &
-                              state, mr, clock%get_step() )
+                              state, mr, model_clock%get_step() )
     end if
 #endif
 
     ! Write diagnostic output
     if (write_diag .and. use_xios_io .and. &
-         mod(clock%get_step(),diagnostic_frequency) == 0 ) then
+         mod(model_clock%get_step(),diagnostic_frequency) == 0 ) then
       call output_diags_for_si(state, state_n, state_after_slow, mr, mr_n,  &
                                mr_after_slow, mr_after_adv, derived_fields, &
                                du, dtheta, adv_fields_all_outer,            &
@@ -722,7 +725,7 @@ contains
     !--------------------------------------------------------------------
     ! Update fields held in the driver layer
     !--------------------------------------------------------------------
-    if (.not. (spinup_winds .and. clock%is_spinning_up())) &
+    if (.not. (spinup_winds .and. model_clock%is_spinning_up())) &
       call invoke( setval_X(u, state(igh_u)) )
 
     call invoke( setval_X(theta, state(igh_t)), &

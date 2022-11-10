@@ -21,11 +21,11 @@ module tl_test_transport_control_mod
   use gungho_model_data_mod,          only: model_data_type
   use moist_dyn_mod,                  only: num_moist_factors
   use mr_indices_mod,                 only: nummr
-  use timestepping_config_mod,        only: dt
   use log_mod,                        only: log_event,         &
                                             log_scratch_space, &
                                             LOG_LEVEL_INFO
   use mesh_mod,                       only: mesh_type
+  use model_clock_mod,                only: model_clock_type
   use gungho_transport_control_alg_mod,     &
                                       only: gungho_transport_control_alg_init, &
                                             gungho_transport_control_alg
@@ -43,14 +43,16 @@ module tl_test_transport_control_mod
   !> @param[in] model_data    The working data set for a model run
   !> @param[in] mesh          The current 3d mesh
   !> @param[in] twod_mesh     The current 2d mesh
-  subroutine test_transport_control( model_data, &
-                                     mesh,       &
+  subroutine test_transport_control( model_data,  &
+                                     model_clock, &
+                                     mesh,        &
                                      twod_mesh )
     implicit none
 
     type(mesh_type), pointer,      intent(in) :: mesh
     type(mesh_type), pointer,      intent(in) :: twod_mesh
     type(model_data_type), target, intent(in) :: model_data
+    class(model_clock_type),       intent(in) :: model_clock
 
     character(str_def) :: label = "transport_control"
 
@@ -175,7 +177,7 @@ module tl_test_transport_control_mod
                                       ls_state(igh_u),         &
                                       ls_mr_out,               &
                                       ls_mr,                   &
-                                      dt,                      &
+                                      model_clock,             &
                                       outer                    )
 
     gamma_u = 7.e8_r_def
@@ -227,7 +229,7 @@ module tl_test_transport_control_mod
                                         state(igh_u),            &
                                         n_mr_out,                &
                                         n_mr_in,                 &
-                                        dt,                      &
+                                        model_clock,             &
                                         outer                    )
 
       call tl_transport_control_alg(p_rhs,            &
@@ -240,7 +242,7 @@ module tl_test_transport_control_mod
                                     ls_state(igh_u),  &
                                     ls_state(igh_u),  &
                                     ls_mr,            &
-                                    dt                )
+                                    model_clock )
 
      ! diff = n2_rhs - n1_rhs
       call minus_bundle( n2_rhs, n1_rhs, diff, bundle_size )

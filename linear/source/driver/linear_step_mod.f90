@@ -10,7 +10,6 @@
 
 module linear_step_mod
 
-  use clock_mod,                      only : clock_type
   use conservation_algorithm_mod,     only : conservation_algorithm
   use constants_mod,                  only : i_def, r_def
   use field_collection_mod,           only : field_collection_type
@@ -30,6 +29,7 @@ module linear_step_mod
   use mesh_mod,                       only : mesh_type
   use minmax_tseries_mod,             only : minmax_tseries
   use mr_indices_mod,                 only : nummr
+  use model_clock_mod,                only : model_clock_type
   use moist_dyn_mod,                  only : num_moist_factors
   use moisture_conservation_alg_mod,  only : moisture_conservation_alg
   use moisture_fluxes_alg_mod,        only : moisture_fluxes_alg
@@ -54,14 +54,14 @@ module linear_step_mod
   subroutine linear_step( mesh,       &
                           twod_mesh,  &
                           model_data, &
-                          clock )
+                          model_clock )
 
     implicit none
 
     type( mesh_type ), pointer,      intent(in)    :: mesh
     type( mesh_type ), pointer,      intent(in)    :: twod_mesh
     type( model_data_type ), target, intent(inout) :: model_data
-    class( clock_type ),             intent(in)    :: clock
+    class(model_clock_type),         intent(in)    :: model_clock
 
     type( field_collection_type ), pointer :: prognostic_fields => null()
     type( field_collection_type ), pointer :: diagnostic_fields => null()
@@ -85,7 +85,7 @@ module linear_step_mod
     write( log_scratch_space, '("/", A, "\ ")' ) repeat( "*", 76 )
     call log_event( log_scratch_space, LOG_LEVEL_TRACE )
     write( log_scratch_space, &
-           '(A,I0)' ) 'Start of timestep ', clock%get_step()
+           '(A,I0)' ) 'Start of timestep ', model_clock%get_step()
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     ! Get pointers to field collections for use downstream
@@ -118,11 +118,11 @@ module linear_step_mod
                                        ls_u, ls_rho, ls_theta,            &
                                        ls_exner, ls_mr, ls_moist_dyn,     &
                                        derived_fields,                    &
-                                       clock, mesh, twod_mesh)
+                                       model_clock, mesh, twod_mesh)
       case( method_rk )             ! RK
         call tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr,  &
                             ls_u, ls_rho, ls_theta,               &
-                            ls_moist_dyn, ls_exner, ls_mr, clock)
+                            ls_moist_dyn, ls_exner, ls_mr, model_clock)
     end select
 
     if ( write_conservation_diag ) then
@@ -147,7 +147,7 @@ module linear_step_mod
     end if
 
     write( log_scratch_space, &
-           '(A,I0)' ) 'End of timestep ', clock%get_step()
+           '(A,I0)' ) 'End of timestep ', model_clock%get_step()
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     write( log_scratch_space, '("\", A, "/ ")' ) repeat( "*", 76 )
     call log_event( log_scratch_space, LOG_LEVEL_INFO )

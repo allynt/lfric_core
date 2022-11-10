@@ -12,7 +12,6 @@
 
 module gungho_diagnostics_driver_mod
 
-  use clock_mod,                 only : clock_type
   use constants_mod,             only : i_def, str_def
   use boundaries_config_mod,     only : limited_area, output_lbcs
   use diagnostics_io_mod,        only : write_scalar_diagnostic, &
@@ -38,11 +37,12 @@ module gungho_diagnostics_driver_mod
   use initialization_config_mod, only : ls_option,          &
                                         ls_option_analytic, &
                                         ls_option_file
+  use mesh_mod,                  only : mesh_type
+  use model_clock_mod,           only : model_clock_type
   use moist_dyn_mod,             only : num_moist_factors
   use mr_indices_mod,            only : nummr, mr_names
   use log_mod,                   only : log_event, &
                                         LOG_LEVEL_INFO
-  use mesh_mod,                  only : mesh_type
   use geometric_constants_mod,   only : get_panel_id, get_height
   use io_config_mod,             only: subroutine_timers, use_xios_io, write_fluxes
   use timer_mod,                 only: timer
@@ -66,19 +66,19 @@ contains
   !> @param[in] timestep The timestep at which the fields are valid
   !> @param[in] nodal_output_on_w3 Flag that determines if vector fields
   !>                  should be projected to W3 for nodal output
-  subroutine gungho_diagnostics_driver( mesh,       &
-                                        twod_mesh,  &
-                                        model_data, &
-                                        clock,      &
+  subroutine gungho_diagnostics_driver( mesh,        &
+                                        twod_mesh,   &
+                                        model_data,  &
+                                        model_clock, &
                                         nodal_output_on_w3 )
 
     implicit none
 
-    type(mesh_type),       intent(in), pointer :: mesh
-    type(mesh_type),       intent(in), pointer :: twod_mesh
-    type(model_data_type), intent(in), target  :: model_data
-    class(clock_type),     intent(in)          :: clock
-    logical,               intent(in)          :: nodal_output_on_w3
+    type(mesh_type),         intent(in), pointer :: mesh
+    type(mesh_type),         intent(in), pointer :: twod_mesh
+    type(model_data_type),   intent(in), target  :: model_data
+    class(model_clock_type), intent(in)          :: model_clock
+    logical,                 intent(in)          :: nodal_output_on_w3
 
     type( field_collection_type ), pointer :: prognostic_fields => null()
     type( field_collection_type ), pointer :: diagnostic_fields => null()
@@ -155,20 +155,20 @@ contains
 
     ! Scalar fields
     call write_scalar_diagnostic('rho', rho, &
-                                 clock, mesh, nodal_output_on_w3)
+                                 model_clock, mesh, nodal_output_on_w3)
     call write_scalar_diagnostic('theta', theta, &
-                                 clock, mesh, nodal_output_on_w3)
+                                 model_clock, mesh, nodal_output_on_w3)
     call write_scalar_diagnostic('exner', exner, &
-                                 clock, mesh, nodal_output_on_w3)
+                                 model_clock, mesh, nodal_output_on_w3)
     call write_scalar_diagnostic('height_w3', height_w3, &
-                                 clock, mesh, nodal_output_on_w3)
+                                 model_clock, mesh, nodal_output_on_w3)
     call write_scalar_diagnostic('height_wth', height_wth, &
-                                 clock, mesh, nodal_output_on_w3)
+                                 model_clock, mesh, nodal_output_on_w3)
 
     if (transport_ageofair) then
       call adv_fields_last_outer%get_field('ageofair',ageofair)
       call write_scalar_diagnostic('ageofair', ageofair, &
-                                   clock, mesh, nodal_output_on_w3)
+                                   model_clock, mesh, nodal_output_on_w3)
     end if
 
     ! Vector fields
@@ -180,7 +180,7 @@ contains
       tmp_write_ptr => write_field_edge
       call u_in_w2h%set_write_behaviour(tmp_write_ptr)
       call v_in_w2h%set_write_behaviour(tmp_write_ptr)
-      if (clock%is_initialisation()) then
+      if (model_clock%is_initialisation()) then
         call u_in_w2h%write_field("init_u_in_w2h")
         call v_in_w2h%write_field("init_v_in_w2h")
         call w_in_wth%write_field("init_w_in_wth")
@@ -191,15 +191,15 @@ contains
       end if
     else
       call write_vector_diagnostic('u', u, &
-                                 clock, mesh, nodal_output_on_w3)
+                                   model_clock, mesh, nodal_output_on_w3)
     end if
-    call write_vorticity_diagnostic( u, clock )
+    call write_vorticity_diagnostic( u, model_clock )
 
     ! Moisture fields
     if ( moisture_formulation /= moisture_formulation_dry ) then
       do i=1,nummr
         call write_scalar_diagnostic( trim(mr_names(i)), mr(i), &
-                                      clock, mesh, nodal_output_on_w3 )
+                                      model_clock, mesh, nodal_output_on_w3 )
       end do
     end if
 
@@ -215,37 +215,37 @@ contains
 
         ! Scalar fields
         call write_scalar_diagnostic('lbc_rho', lbc_rho, &
-                                 clock, mesh, nodal_output_on_w3)
+                                     model_clock, mesh, nodal_output_on_w3)
         call write_scalar_diagnostic('lbc_theta', lbc_theta, &
-                                 clock, mesh, nodal_output_on_w3)
+                                     model_clock, mesh, nodal_output_on_w3)
         call write_scalar_diagnostic('lbc_exner', lbc_exner, &
-                                 clock, mesh, nodal_output_on_w3)
+                                     model_clock, mesh, nodal_output_on_w3)
         call write_scalar_diagnostic('readlbc_v_u', v_u, &
-                                 clock, mesh, nodal_output_on_w3)
+                                     model_clock, mesh, nodal_output_on_w3)
 
         if ( moisture_formulation /= moisture_formulation_dry ) then
           call lbc_fields%get_field('lbc_m_v', lbc_m_v)
           call write_scalar_diagnostic('lbc_m_v', lbc_m_v, &
-                                   clock, mesh, nodal_output_on_w3)
+                                       model_clock, mesh, nodal_output_on_w3)
           call lbc_fields%get_field('lbc_q', lbc_q)
           call write_scalar_diagnostic('lbc_q', lbc_q, &
-                                   clock, mesh, nodal_output_on_w3)
+                                       model_clock, mesh, nodal_output_on_w3)
           call lbc_fields%get_field('lbc_rho_r2', lbc_rho)
           call write_scalar_diagnostic('lbc_rho_r2', lbc_rho, &
-                                   clock, mesh, nodal_output_on_w3)
+                                       model_clock, mesh, nodal_output_on_w3)
         end if
 
         ! Vector fields
         call write_vector_diagnostic('lbc_u', lbc_u, &
-                                 clock, mesh, nodal_output_on_w3)
+                                     model_clock, mesh, nodal_output_on_w3)
         call write_vector_diagnostic('readlbc_h_u', h_u, &
-                                 clock, mesh, nodal_output_on_w3)
+                                     model_clock, mesh, nodal_output_on_w3)
       endif
     endif
 
 #ifdef UM_PHYSICS
     ! Derived physics fields (only those on W3 or Wtheta)
-    if (use_physics .and. .not. clock%is_initialisation()) then
+    if (use_physics .and. .not. model_clock%is_initialisation()) then
 
       call iterator%initialise(derived_fields)
       do
@@ -285,7 +285,7 @@ contains
     if (ls_option /= ls_option_file .and. ls_option /= ls_option_analytic) then
       ! Other derived diagnostics with special pre-processing
       ! Don't output for the tangent linear model
-      call write_divergence_diagnostic( u, clock, mesh )
+      call write_divergence_diagnostic( u, model_clock, mesh )
       call write_hydbal_diagnostic( theta, moist_dyn, exner, mesh )
     end if
 

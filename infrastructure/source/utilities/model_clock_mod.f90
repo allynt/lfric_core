@@ -28,7 +28,6 @@ module model_clock_mod
   !>
   type, public, extends(clock_type) :: model_clock_type
     private
-    class(calendar_type), allocatable :: calendar
     integer(i_timestep) :: current_step
     integer(i_timestep) :: first_step
     integer(i_timestep) :: last_step
@@ -37,6 +36,8 @@ module model_clock_mod
     real(r_def)         :: spinup_fraction
     logical             :: initialisation_phase
     logical             :: starting
+    class(clock_type), &
+                pointer :: shadow_clock => null()
   contains
     private
     procedure, public :: tick
@@ -45,11 +46,11 @@ module model_clock_mod
     procedure, public :: get_last_step
     procedure, public :: get_seconds_per_step
     procedure, public :: seconds_from_steps
-    procedure, public :: get_calendar
     procedure, public :: get_spinup_fraction
     procedure, public :: is_initialisation
     procedure, public :: is_running
     procedure, public :: is_spinning_up
+    procedure, public :: add_clock
     procedure :: calculate_spinup_fraction
   end type model_clock_type
 
@@ -67,32 +68,31 @@ contains
   !> @param[in] seconds_per_step Length of a timestep in seconds.
   !> @param[in] spinup_period Length of spinup period in seconds. May be zero.
   !>
-  function model_clock_constructor( calendar,         &
-                                    first,            &
+  function model_clock_constructor( first,            &
                                     last,             &
                                     seconds_per_step, &
                                     spinup_period ) result(new_clock)
 
     implicit none
 
-    class(calendar_type),     intent(in)    :: calendar
-    character(*),             intent(in)    :: first
-    character(*),             intent(in)    :: last
-    real(r_second),           intent(in)    :: seconds_per_step
-    real(r_second),           intent(in)    :: spinup_period
+    integer(i_timestep),      intent(in) :: first
+    integer(i_timestep),      intent(in) :: last
+    real(r_second),           intent(in) :: seconds_per_step
+    real(r_second),           intent(in) :: spinup_period
     type(model_clock_type) :: new_clock
 
-    allocate( new_clock%calendar, source=calendar )
-    new_clock%first_step = new_clock%calendar%parse_instance( first )
-    if (new_clock%first_step < 1) then
+    if (first < 1) then
       write(log_scratch_space, '("First clock step must be positive")')
       call log_event(log_scratch_space, log_level_error)
+    else
+      new_clock%first_step = first
     end if
-    new_clock%last_step = new_clock%calendar%parse_instance( last )
 
-    if (new_clock%last_step < new_clock%first_step) then
+    if (last < new_clock%first_step) then
       write(log_scratch_space, '("Last clock step must be after first")')
       call log_event(log_scratch_space, log_level_error)
+    else
+      new_clock%last_step = last
     end if
 
     if (seconds_per_step <= 0.0_r_second) then
@@ -102,30 +102,31 @@ contains
     end if
 
     new_clock%current_step = new_clock%first_step
-    new_clock%last_spinup_step = ceiling( spinup_period / seconds_per_step )
-
+    new_clock%last_spinup_step = ceiling( spinup_period &
+                                          / new_clock%seconds_per_step )
     new_clock%spinup_fraction = new_clock%calculate_spinup_fraction()
-
     new_clock%initialisation_phase = (new_clock%current_step == 1_i_timestep)
     new_clock%starting = .true.
 
   end function model_clock_constructor
 
 
-  !> Gets the calendar the clock is working on.
+  !> Add a clock which is ticked in sync with this one.
   !>
-  !> @return Calendar pointer should never be unassociated.
-  !>
-  function get_calendar( this )
+  subroutine add_clock( this, clock )
 
     implicit none
 
-    class(model_clock_type), intent(in), target :: this
-    class(calendar_type), pointer         :: get_calendar
+    class(model_clock_type), intent(inout)      :: this
+    class(clock_type),       intent(in), target :: clock
 
-    get_calendar => this%calendar
+    if (associated(this%shadow_clock)) then
+      call log_event( "Attempt to add a second shadow clock", log_level_error )
+    end if
 
-  end function get_calendar
+    this%shadow_clock => clock
+
+  end subroutine add_clock
 
 
   !> Gets the first step in the current run.
@@ -311,6 +312,7 @@ contains
 
     class(model_clock_type), intent(inout) :: this
     logical :: tick
+    logical :: dummy
 
     if (this%starting) then
       this%starting = .false.
@@ -318,12 +320,18 @@ contains
     else
       this%current_step = this%current_step + 1
     end if
+
     if (this%is_running()) then
       call log_set_timestep( this%current_step )
     else
       call log_forget_timestep()
     end if
     this%spinup_fraction = this%calculate_spinup_fraction()
+
+    if (associated(this%shadow_clock)) then
+      dummy = this%shadow_clock%tick()
+    end if
+
     tick = this%is_running()
 
   end function tick

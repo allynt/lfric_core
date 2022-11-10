@@ -12,14 +12,13 @@
 !>
 module multires_coupling_driver_mod
 
-  use multires_coupling_config_mod,             only : dynamics_mesh_name,          &
-                                                       physics_mesh_name,           &
-                                                       multires_coupling_mode,      &
-                                                       multires_coupling_mode_test
+  use multires_coupling_config_mod, &
+    only : dynamics_mesh_name,      &
+           physics_mesh_name,       &
+           multires_coupling_mode,  &
+           multires_coupling_mode_test
   use variable_fields_mod,                      only : update_variable_fields
-  use driver_io_mod,                            only : get_clock
   use gungho_step_mod,                          only : gungho_step
-  use clock_mod,                                only : clock_type
   use constants_mod,                            only : i_def, i_native, &
                                                        str_def, imdi
   use io_config_mod,                            only : write_diag,           &
@@ -32,6 +31,7 @@ module multires_coupling_driver_mod
                                                        LOG_LEVEL_ALWAYS, &
                                                        LOG_LEVEL_INFO
   use mesh_mod,                                 only : mesh_type
+  use model_clock_mod,                          only : model_clock_type
   use multires_coupling_mod,                    only : program_name
   use coupling_test_alg_mod,                    only : coupling_test_alg
   use xios,                                     only : xios_context_finalize
@@ -51,6 +51,8 @@ module multires_coupling_driver_mod
 
   private
   public initialise, run, finalise
+
+  type(model_clock_type) :: model_clock
 
   ! Model run working data set
   type (model_data_type) :: dynamics_mesh_model_data
@@ -84,8 +86,6 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-
     !-------------------------------------------------------------------------
     ! Model init
     !-------------------------------------------------------------------------
@@ -97,11 +97,12 @@ contains
     !-------------------------------------------------------------------------
     call log_event( 'Initialising Infrastructure...', LOG_LEVEL_ALWAYS )
 
-    call initialise_infrastructure( program_name,              &
-                                    prime_mesh,                &
-                                    prime_2D_mesh,             &
-                                    prime_shifted_mesh,        &
-                                    prime_double_level_mesh )
+    call initialise_infrastructure( program_name,            &
+                                    prime_mesh,              &
+                                    prime_2D_mesh,           &
+                                    prime_shifted_mesh,      &
+                                    prime_double_level_mesh, &
+                                    model_clock )
 
     dynamics_2D_mesh_name = trim(dynamics_mesh_name)//'_2d'
 
@@ -117,39 +118,41 @@ contains
     !-------------------------------------------------------------------------
     call log_event( 'Creating and Initialising Model Data...', LOG_LEVEL_ALWAYS )
 
-    clock => get_clock()
-
     ! Instantiate the fields stored in model_data
     call create_model_data( dynamics_mesh_model_data, &
                             dynamics_mesh,            &
-                            dynamics_2D_mesh )
+                            dynamics_2D_mesh,         &
+                            model_clock )
     call create_model_data( physics_mesh_model_data, &
                             physics_mesh,            &
-                            physics_2D_mesh )
+                            physics_2D_mesh,         &
+                            model_clock )
 
 
     ! Initialise the fields stored in the model_data
     call initialise_model_data( dynamics_mesh_model_data, &
+                                model_clock,              &
                                 dynamics_mesh,            &
                                 dynamics_2D_mesh )
     call initialise_model_data( physics_mesh_model_data, &
+                                model_clock,             &
                                 physics_mesh,            &
                                 physics_2D_mesh )
 
    ! Initial output
    ! We only want these once at the beginning of a run
-   if ( clock%is_initialisation() .and. write_diag .and. &
+   if ( model_clock%is_initialisation() .and. write_diag .and. &
         multires_coupling_mode /= multires_coupling_mode_test ) then
      call multires_coupling_diagnostics_driver( dynamics_mesh,            &
                                                 dynamics_2D_mesh,         &
                                                 dynamics_mesh_model_data, &
-                                                clock, nodal_output_on_w3 )
+                                                model_clock,              &
+                                                nodal_output_on_w3 )
    end if
 
    if ( multires_coupling_mode /= multires_coupling_mode_test ) then
      ! Model configuration initialisation
-     call initialise_model( clock,                    &
-                            dynamics_mesh,            &
+     call initialise_model( dynamics_mesh,            &
                             dynamics_mesh_model_data, &
                             physics_mesh,             &
                             physics_mesh_model_data )
@@ -163,33 +166,33 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-
-    clock => get_clock()
-
     if ( multires_coupling_mode == multires_coupling_mode_test ) then
       ! Call coupling test algorithm
       call coupling_test_alg()
     else
       ! Do timestep
-      do while (clock%tick())
+      do while (model_clock%tick())
         ! Update time-varying fields
-        call update_variable_fields( dynamics_mesh_model_data%ancil_times_list, &
-                                     clock, dynamics_mesh_model_data%ancil_fields )
+        call update_variable_fields(                 &
+          dynamics_mesh_model_data%ancil_times_list, &
+          model_clock,                               &
+          dynamics_mesh_model_data%ancil_fields )
         ! Perform gungho timestep
         call gungho_step( dynamics_mesh,            &
                           dynamics_2D_mesh,         &
                           dynamics_mesh_model_data, &
-                          clock )
+                          model_clock )
         ! Write out output file
         call log_event(program_name//": Writing depository output", LOG_LEVEL_INFO)
 
-        if ( (mod(clock%get_step(), diagnostic_frequency) == 0) &
+        if ( (mod(model_clock%get_step(), diagnostic_frequency) == 0) &
               .and. (write_diag) ) then
-              call multires_coupling_diagnostics_driver( dynamics_mesh,            &
-                                                         dynamics_2D_mesh,         &
-                                                         dynamics_mesh_model_data, &
-                                                         clock, nodal_output_on_w3 )
+              call multires_coupling_diagnostics_driver( &
+                dynamics_mesh,            &
+                dynamics_2D_mesh,         &
+                dynamics_mesh_model_data, &
+                model_clock,              &
+                nodal_output_on_w3 )
         end if
       end do
     end if
@@ -203,13 +206,9 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-
-    clock => get_clock()
-
-    !-----------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
     ! Model finalise
-    !-----------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     !-------------------------------------------------------------------------

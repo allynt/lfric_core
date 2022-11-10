@@ -10,19 +10,32 @@ module simple_io_context_mod_test
   use clock_mod,             only : clock_type
   use constants_mod,         only : r_second, i_native
   use field_mod,             only : field_type
+  use file_mod,              only : file_type
   use io_context_mod,        only : io_context_type
-  use pfunit_mod
+  use model_clock_mod,       only : model_clock_type
   use simple_io_context_mod, only : simple_io_context_type
+
+  use pFUnit_mod
 
   implicit none
 
   private
-  public :: test_initialisation
+  public :: test_basic_initialisation, test_filelist_initialisation
+
+  type, extends(file_type) :: dummy_file_type
+    private
+  contains
+    private
+    procedure, public :: file_open  => open_dummy_file
+    procedure, public :: file_new   => new_dummy_file
+    procedure, public :: file_close => close_dummy_file
+  end type dummy_file_type
 
 contains
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   @test
-  subroutine test_initialisation()
+  subroutine test_basic_initialisation()
 
     implicit none
 
@@ -35,27 +48,56 @@ contains
     type(field_type) :: panel_id
 
     call test_unit%initialise( 'test_context', 1_i_native, &
-                               chi, panel_id, '4', '7',    &
-                               2.5_r_second, 1.2_r_second, &
-                               "test_date", "test_calendar" )
+                               chi, panel_id )
 
-    ! Check clock is still correct.
-    call clock_val( test_unit%get_clock() )
+    @assertFalse( associated( test_unit%get_filelist() ) )
 
-  end subroutine test_initialisation
+  end subroutine test_basic_initialisation
 
-  subroutine clock_val( clock )
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @test
+  subroutine test_filelist_initialisation()
 
     implicit none
 
-    class(clock_type), intent(in), pointer :: clock
+    type(simple_io_context_type) :: test_unit
+    class(clock_type), pointer   :: clock
 
-    @assertEqual( 4, clock%get_step() )
-    @assertEqual( 4, clock%get_first_step() )
-    @assertEqual( 7, clock%get_last_step() )
-    @assertFalse( clock%is_spinning_up() )
-    @assertEqual( 1.2_r_second, clock%get_seconds_per_step() )
+    type(dummy_file_type) :: filelist(1)
 
-  end subroutine clock_val
+    ! These arguments are, as yet, unused by the context so can be passed
+    ! through un-initialised
+    type(field_type) :: chi(3)
+    type(field_type) :: panel_id
+
+    filelist(1) = dummy_file_type()
+
+    call test_unit%initialise( 'test_context', 1_i_native, &
+                               chi, panel_id, filelist )
+
+    @assertTrue( associated( test_unit%get_filelist() ) )
+
+  end subroutine test_filelist_initialisation
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine open_dummy_file( self, file_name )
+    implicit none
+    class(dummy_file_type), intent(inout) :: self
+    character(*),           intent(in)    :: file_name
+  end subroutine open_dummy_file
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine new_dummy_file( self, file_name )
+    implicit none
+    class(dummy_file_type), intent(inout) :: self
+    character(*),           intent(in)    :: file_name
+  end subroutine new_dummy_file
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine close_dummy_file( self )
+    implicit none
+    class(dummy_file_type), intent(inout) :: self
+  end subroutine close_dummy_file
+
 
 end module simple_io_context_mod_test

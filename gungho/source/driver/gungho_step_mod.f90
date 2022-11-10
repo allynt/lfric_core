@@ -14,7 +14,6 @@ module gungho_step_mod
   use checks_config_mod,              only : energy_correction,      &
                                              energy_correction_none, &
                                              correction_hours
-  use clock_mod,                      only : clock_type
   use conservation_algorithm_mod,     only : conservation_algorithm
   use constants_mod,                  only : i_def, r_def, l_def
   use field_collection_mod,           only : field_collection_type
@@ -34,6 +33,7 @@ module gungho_step_mod
 
   use mesh_mod,                       only : mesh_type
   use minmax_tseries_mod,             only : minmax_tseries
+  use model_clock_mod,                only : model_clock_type
   use mr_indices_mod,                 only : nummr
   use section_choice_config_mod,      only : cloud, cloud_um
   use semi_implicit_timestep_alg_mod, only : semi_implicit_alg_step
@@ -68,14 +68,14 @@ module gungho_step_mod
   subroutine gungho_step( mesh,       &
                           twod_mesh,  &
                           model_data, &
-                          clock )
+                          model_clock )
 
     implicit none
 
     type(mesh_type), intent(in), pointer    :: mesh
     type(mesh_type), intent(in), pointer    :: twod_mesh
     type( model_data_type ), target, intent(inout) :: model_data
-    class(clock_type),               intent(in)    :: clock
+    class(model_clock_type),         intent(in)    :: model_clock
 
     type( field_collection_type ), pointer :: prognostic_fields => null()
     type( field_collection_type ), pointer :: diagnostic_fields => null()
@@ -112,7 +112,7 @@ module gungho_step_mod
     write( log_scratch_space, '("/", A, "\ ")' ) repeat( "*", 76 )
     call log_event( log_scratch_space, LOG_LEVEL_TRACE )
     write( log_scratch_space, &
-           '(A,I0)' ) 'Start of timestep ', clock%get_step()
+           '(A,I0)' ) 'Start of timestep ', model_clock%get_step()
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     use_moisture = ( moisture_formulation /= moisture_formulation_dry )
@@ -146,7 +146,7 @@ module gungho_step_mod
     call prognostic_fields%get_field('exner', exner)
 
     ! Get timestep parameters from clock
-    dt = real(clock%get_seconds_per_step(), r_def)
+    dt = real(model_clock%get_seconds_per_step(), r_def)
 
     ! Get temperature increment for energy correction
     dtemp_encorr = dt * model_data%temperature_correction_rate
@@ -162,10 +162,10 @@ module gungho_step_mod
                                     cloud_fields, surface_fields,              &
                                     soil_fields, snow_fields,                  &
                                     chemistry_fields, aerosol_fields,          &
-                                    lbc_fields, clock, dtemp_encorr, mesh,   &
-                                    twod_mesh)
+                                    lbc_fields, model_clock, dtemp_encorr,     &
+                                    mesh, twod_mesh)
       case( method_rk )             ! RK
-        call rk_alg_step(u, rho, theta, moist_dyn, exner, mr, dt )
+        call rk_alg_step(u, rho, theta, moist_dyn, exner, mr, model_clock )
       case( method_no_timestepping )
         write( log_scratch_space, &
            '(A, A)' ) 'CAUTION: Running with no timestepping. ' // &
@@ -179,12 +179,12 @@ module gungho_step_mod
       ! temperature_correction_rate is stored in this field so that it
       ! maybe written to checkpoint file
       call derived_fields%get_field('temp_correction_field', temp_correction_field)
-      call sum_fluxes_alg( accumulated_fluxes,         &
-                           radiation_fields,     &
-                           turbulence_fields,    &
-                           convection_fields,    &
+      call sum_fluxes_alg( accumulated_fluxes, &
+                           radiation_fields,   &
+                           turbulence_fields,  &
+                           convection_fields,  &
                            microphysics_fields )
-      if ( mod( nint( dt * clock%get_step() ),              &
+      if ( mod( nint( dt * model_clock%get_step() ), &
                 3600_i_def * correction_hours ) == 0 ) then
 
         ! Total mass of dry atmosphere
@@ -239,7 +239,7 @@ module gungho_step_mod
     end if
 
     write( log_scratch_space, &
-           '(A,I0)' ) 'End of timestep ', clock%get_step()
+           '(A,I0)' ) 'End of timestep ', model_clock%get_step()
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     write( log_scratch_space, '("\", A, "/ ")' ) repeat( "*", 76 )
     call log_event( log_scratch_space, LOG_LEVEL_INFO )

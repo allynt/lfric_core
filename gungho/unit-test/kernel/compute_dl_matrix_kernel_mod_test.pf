@@ -102,15 +102,15 @@ contains
 
     class(compute_dl_matrix_test_type), intent(inout) :: this
 
-    real(r_def), parameter :: tol = 1.0e-6_r_def
-    real(r_def), parameter :: dx = 6000.0_r_def
-    real(r_def), parameter :: dy = 1000.0_r_def
-    real(r_def), parameter :: dz = 2000.0_r_def
-    real(r_def), parameter :: dt = 1.0_r_def
-    real(r_def), parameter :: dl_base = 800.0_r_def
-    real(r_def), parameter :: dl_str = 0.015_r_def
-    real(r_def), parameter :: domain_top = 6000.0_r_def
-    real(r_def), parameter :: radius=6000000.0_r_def
+    real(r_def),    parameter :: tol = 1.0e-6_r_def
+    real(r_def),    parameter :: dx = 6000.0_r_def
+    real(r_def),    parameter :: dy = 1000.0_r_def
+    real(r_def),    parameter :: dz = 2000.0_r_def
+    real(r_second), parameter :: dt = 1.0_r_def
+    real(r_def),    parameter :: dl_base = 800.0_r_def
+    real(r_def),    parameter :: dl_str = 0.015_r_def
+    real(r_def),    parameter :: domain_top = 6000.0_r_def
+    real(r_def),    parameter :: radius=6000000.0_r_def
 
     integer(i_def), parameter :: nlayers = 3
     integer(i_def), parameter :: element_order = 0

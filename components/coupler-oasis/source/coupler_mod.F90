@@ -19,7 +19,6 @@ module coupler_mod
                                             namsrcfld, namdstfld, oasis_in,    &
                                             prism_real
 #endif
-  use clock_mod,                      only: clock_type
   use field_mod,                      only: field_type, field_proxy_type
   use field_parent_mod,               only: field_parent_type
   use pure_abstract_field_mod,        only: pure_abstract_field_type
@@ -41,6 +40,7 @@ module coupler_mod
                                             LOG_LEVEL_ERROR, &
                                             log_scratch_space
   use mesh_mod,                       only: mesh_type
+  use model_clock_mod,                only: model_clock_type
   use field_parent_mod,               only: write_interface, read_interface,  &
                                             checkpoint_write_interface,       &
                                             checkpoint_read_interface
@@ -110,17 +110,17 @@ module coupler_mod
   contains
   !>@brief Sends field to another component
   !>
-  !> @param [in]    sfield field to be sent
-  !> @param [in]    clock model clock
-  !> @param [in,out] ldfaif Failure flag for send operation
+  !> @param [in]     sfield      Field to be sent
+  !> @param [in]     model_clock Time within the model.
+  !> @param [in,out] ldfaif      Failure flag for send operation
   !
-  subroutine cpl_field_send(sfield, ice_frac_proxy, clock, ldfail)
+  subroutine cpl_field_send(sfield, ice_frac_proxy, model_clock, ldfail)
    implicit none
-   type( field_type), intent(in)   :: sfield
+   type( field_type),        intent(in)    :: sfield
    !proxy of the sea ice fraction field
-   type( field_proxy_type ), intent(in) :: ice_frac_proxy
-   class(clock_type), intent(in)   :: clock
-   logical(l_def), intent(inout)   :: ldfail
+   type( field_proxy_type ), intent(in)    :: ice_frac_proxy
+   class(model_clock_type),  intent(in)    :: model_clock
+   logical(l_def),           intent(inout) :: ldfail
 
 #ifdef MCT
    !model time since the start of the run
@@ -160,8 +160,10 @@ module coupler_mod
    sname        = trim(adjustl(sfield%get_name()))
    sfield_proxy = sfield%get_proxy()
    nlev         = sfield_proxy%vspace%get_ndata()
-   mtime        = int(clock%seconds_from_steps(clock%get_step()) -            &
-                      clock%seconds_from_steps(clock%get_first_step()), i_def)
+   mtime                                                                    &
+     = int( model_clock%seconds_from_steps(model_clock%get_step())          &
+            - model_clock%seconds_from_steps(model_clock%get_first_step()), &
+            i_def )
 
    do k = 1, nlev
       svar_id = sfield%get_cpl_id(k)
@@ -186,10 +188,10 @@ module coupler_mod
             if (maxval(cpl_freqs(1:ncpl)) == minval(cpl_freqs(1:ncpl))) then
 
               !mean value for sending
-              if (clock%get_step() == clock%get_first_step()) then
+              if (model_clock%get_step() == model_clock%get_first_step()) then
                  isteps = 1.0
               else
-                 isteps = real(cpl_freqs(1), r_def) / real(clock%get_seconds_per_step(), r_def)
+                 isteps = real(cpl_freqs(1), r_def) / real(model_clock%get_seconds_per_step(), r_def)
               endif
 
               ! The averaging process is simply a matter of taking our field value and
@@ -856,16 +858,16 @@ module coupler_mod
   !> @param [in,out] dcpl_snd field collection with fields sent to another
   !>                         component
   !> @param [in]    depository field collection - all fields
-  !> @param [in]    clock model clock
+  !> @param [in]    model_clock Time within the model.
   !> @param [in]    istep model timestep
   !
-  subroutine cpl_snd(dcpl_snd, depository, clock)
+  subroutine cpl_snd(dcpl_snd, depository, model_clock)
 
     implicit none
 
     type( field_collection_type ), intent(in)    :: dcpl_snd
     type( field_collection_type ), intent(in)    :: depository
-    class(clock_type),             intent(in)    :: clock
+    class(model_clock_type),       intent(in)    :: model_clock
 
     !local variables
     !pointer to a field (parent)
@@ -898,8 +900,8 @@ module coupler_mod
       select type(field)
         type is (field_type)
           field_ptr => field
-          call cpl_diagnostics(field_ptr, depository, clock)
-          call cpl_field_send(field_ptr, ice_frac_proxy, clock, lfail)
+          call cpl_diagnostics(field_ptr, depository, model_clock)
+          call cpl_field_send(field_ptr, ice_frac_proxy, model_clock, lfail)
           call field_ptr%write_field(trim(field%get_name()))
         class default
           write(log_scratch_space, '(2A)' ) "PROBLEM cpl_snd: field ", &
@@ -924,13 +926,13 @@ module coupler_mod
   !> @param [in,out] dcpl_snd field collection with fields sent to another
   !>                         component
   !> @param [in]    depository field collection - all fields
-  !> @param [in]    clock model clock
+  !> @param [in]    model_clock Time within the model.
   !
-  subroutine cpl_fld_update(dcpl_snd, depository, clock)
+  subroutine cpl_fld_update(dcpl_snd, depository, model_clock)
    implicit none
    type( field_collection_type ), intent(in)    :: dcpl_snd
    type( field_collection_type ), intent(in)    :: depository
-   class(clock_type),             intent(in)    :: clock
+   class(model_clock_type),       intent(in)    :: model_clock
    !local variables
    !pointer to a field (parent)
    class( field_parent_type ), pointer          :: field   => null()
@@ -960,7 +962,7 @@ module coupler_mod
       select type(field)
         type is (field_type)
           field_ptr => field
-          call cpl_diagnostics(field_ptr, depository, clock)
+          call cpl_diagnostics(field_ptr, depository, model_clock)
 
           call field_ptr%write_field(trim(field%get_name()))
         class default
@@ -983,15 +985,15 @@ module coupler_mod
   !>@brief Top level routine for receiving data
   !>
   !> @param [in,out] dcpl_rcv field collection with names of the fields received
-  !>                         from another component
-  !> @param [in] depository field collection - all fields
-  !> @param [in] clock model clock
+  !>                          from another component
+  !> @param [in] depository   field collection - all fields
+  !> @param [in] model_clock  Time within the model.
   !
-  subroutine cpl_rcv(dcpl_rcv, depository, clock)
+  subroutine cpl_rcv(dcpl_rcv, depository, model_clock)
    implicit none
    type( field_collection_type ), intent(in)    :: dcpl_rcv
    type( field_collection_type ), intent(in)    :: depository
-   class(clock_type),             intent(in)    :: clock
+   class(model_clock_type),       intent(in)    :: model_clock
    !local variables
    !pointer to a field (parent)
    class( field_parent_type ), pointer          :: field   => null()
@@ -1011,8 +1013,10 @@ module coupler_mod
    lfail = .false.
    l_process_data = .false.
 
-   mtime        = int(clock%seconds_from_steps(clock%get_step()) - &
-                      clock%seconds_from_steps(clock%get_first_step()), i_def)
+   mtime                                                                    &
+     = int( model_clock%seconds_from_steps(model_clock%get_step())          &
+            - model_clock%seconds_from_steps(model_clock%get_first_step()), &
+            i_def)
 
    call iter%initialise(dcpl_rcv)
    do

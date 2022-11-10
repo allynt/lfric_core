@@ -11,23 +11,24 @@
 !>          throughout the algorithm layers.
 module runtime_constants_mod
 
-  use boundaries_config_mod,             only: limited_area
-  use constants_mod,                     only: i_def, r_def, str_def
-  use field_mod,                         only: field_type
-  use io_config_mod,                     only: subroutine_timers
-  use log_mod,                           only: log_event, LOG_LEVEL_INFO
-  use mesh_collection_mod,               only: mesh_collection
-  use mesh_mod,                          only: mesh_type
-  use runtime_tools_mod,                 only: primary_mesh_label,      &
-                                               shifted_mesh_label,      &
-                                               double_level_mesh_label, &
-                                               twod_mesh_label,         &
-                                               multigrid_mesh_label,    &
-                                               extra_mesh_label
-  use timer_mod,                         only: timer
-  use transport_config_mod,              only: moisture_eqn, &
-                                               moisture_eqn_conservative, &
-                                               moisture_eqn_consistent
+  use boundaries_config_mod, only: limited_area
+  use constants_mod,         only: i_def, r_def, str_def
+  use field_mod,             only: field_type
+  use io_config_mod,         only: subroutine_timers
+  use log_mod,               only: log_event, LOG_LEVEL_INFO
+  use mesh_collection_mod,   only: mesh_collection
+  use mesh_mod,              only: mesh_type
+  use model_clock_mod,       only: model_clock_type
+  use runtime_tools_mod,     only: primary_mesh_label,      &
+                                   shifted_mesh_label,      &
+                                   double_level_mesh_label, &
+                                   twod_mesh_label,         &
+                                   multigrid_mesh_label,    &
+                                   extra_mesh_label
+  use timer_mod,             only: timer
+  use transport_config_mod,  only: moisture_eqn, &
+                                   moisture_eqn_conservative, &
+                                   moisture_eqn_consistent
 
   implicit none
 
@@ -43,7 +44,7 @@ contains
   !> @param[in] twod_mesh            Mesh for 2D domain
   !> @param[in] chi                  Coordinate field on primary mesh
   !> @param[in] panel_id             panel id
-  !> @param[in] dt                   The model timestep length
+  !> @param[in] model_clock          Model time.
   !> @param[in] shifted_mesh         Mesh for vertically shifted field
   !> @param[in] shifted_chi          Coordinate field for vertically shifted field
   !> @param[in] double_level_mesh    Mesh for double level field
@@ -57,7 +58,8 @@ contains
   !> @param[in] chi_extra            The coordinate fields for any extra meshes
   !> @param[in] panel_id_extra       The panel_id fields for any extra MG meshes
   subroutine create_runtime_constants(mesh, twod_mesh, chi,  &
-                                      panel_id, dt,          &
+                                      panel_id,              &
+                                      model_clock,           &
                                       shifted_mesh,          &
                                       shifted_chi,           &
                                       double_level_mesh,     &
@@ -89,7 +91,7 @@ contains
     type(mesh_type), intent(in), pointer :: twod_mesh
     type(field_type),      target,   intent(in) :: chi(:)
     type(field_type),      target,   intent(in) :: panel_id
-    real(r_def),                     intent(in) :: dt
+    class(model_clock_type),         intent(in) :: model_clock
     type(field_type),      optional, intent(in) :: shifted_chi(:)
     type(field_type),      optional, intent(in) :: double_level_chi(:)
     integer(kind=i_def),   optional, intent(in) :: mg_mesh_ids(:)
@@ -240,15 +242,17 @@ contains
 
     ! Finite element constants should be created after geometric constants
     ! The chi fields set up in geometric constants are used here
-    call create_fem_constants(mesh_id_list,      &
-                              chi_list,          &
-                              panel_id_list,     &
-                              label_list, dt     )
+    call create_fem_constants(mesh_id_list,  &
+                              chi_list,      &
+                              panel_id_list, &
+                              label_list,    &
+                              model_clock )
 
     call create_physical_op_constants(mesh_id_list,  &
                                       chi_list,      &
                                       panel_id_list, &
-                                      label_list, dt )
+                                      label_list,    &
+                                      model_clock )
 
     if ( limited_area ) then
       call create_limited_area_constants(mesh_id_list, &

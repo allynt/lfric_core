@@ -15,7 +15,7 @@ module transport_runtime_alg_mod
                                             check_any_scheme_split, &
                                             check_horz_dep_pts,     &
                                             check_vert_dep_pts
-  use constants_mod,                  only: r_def, i_def, l_def,  &
+  use constants_mod,                  only: r_def, r_second, i_def, l_def,  &
                                             str_def, tiny_eps, imdi
   use field_mod,                      only: field_type
   use finite_element_config_mod,      only: element_order
@@ -29,6 +29,7 @@ module transport_runtime_alg_mod
                                             LOG_LEVEL_INFO
   use mesh_mod,                       only: mesh_type
   use mesh_collection_mod,            only: mesh_collection
+  use model_clock_mod,                only: model_clock_type
   use runtime_tools_mod,              only: check_initialised_field
   use transport_enumerated_types_mod, only: scheme_split
   use transport_config_mod,           only: moisture_eqn,            &
@@ -69,7 +70,7 @@ module transport_runtime_alg_mod
     real(kind=r_def),    allocatable, dimension(:)   :: horizontal_cfl_max
     real(kind=r_def),    allocatable, dimension(:)   :: vertical_cfl_max
     real(kind=r_def),    allocatable, dimension(:)   :: total_cfl_max
-    real(kind=r_def)                                 :: dt_model
+    class(model_clock_type), pointer                 :: model_clock
 
     contains
 
@@ -126,9 +127,13 @@ contains
   !!                             prime extrusion
   !> @param[in] primal_wind_np1  Predictor of wind field at next time step on
   !!                             the prime extrusion
-  !> @param[in] dt               Change in time during one model time step
+  !> @param[in] model_clock      Time within the model
   !> @param[in] shifted_mesh    (Optional) Shifted mesh
-  function transport_runtime_constructor(primal_wind_n, primal_wind_np1, dt, shifted_mesh) result(self)
+  !>
+  function transport_runtime_constructor( primal_wind_n,   &
+                                          primal_wind_np1, &
+                                          model_clock,     &
+                                          shifted_mesh) result(self)
 
     use calc_dep_pts_alg_mod,          only: calc_vert_dep_pts, &
                                              calc_hori_dep_pts, &
@@ -147,9 +152,9 @@ contains
 
     implicit none
 
-    type(field_type), target,  intent(in) :: primal_wind_n
-    type(field_type), target,  intent(in) :: primal_wind_np1
-    real(kind=r_def),          intent(in) :: dt
+    type(field_type),        target, intent(in) :: primal_wind_n
+    type(field_type),        target, intent(in) :: primal_wind_np1
+    class(model_clock_type), target, intent(in) :: model_clock
 
     type(mesh_type),  pointer, intent(in), optional :: shifted_mesh
 
@@ -168,6 +173,7 @@ contains
     real(kind=r_def)               :: cfl_min, cfl_max
     real(kind=r_def)               :: h_cfl_min, h_cfl_max
     real(kind=r_def)               :: v_cfl_min, v_cfl_max
+    real(r_def)                    :: cast_dt
     logical(kind=l_def)            :: any_scheme_mol, any_scheme_split
     logical(kind=l_def)            :: any_scheme_ffsl
     logical(kind=l_def)            :: any_horz_dep_pts, any_vert_dep_pts
@@ -209,7 +215,11 @@ contains
       self%n_meshes = 1
     end if
 
-    self%dt_model = dt
+    !> @todo This is almost certainly the wrong thing to do but I want to get
+    !>       something done.
+    !>
+    self%model_clock => model_clock
+    cast_dt = real( model_clock%get_seconds_per_step(), r_def )
 
     mesh => primal_wind_n%get_mesh()
     local_mesh => mesh%get_local_mesh()
@@ -324,7 +334,7 @@ contains
                                 wind_n,                               &
                                 wind_np1,                             &
                                 self%detj_at_w2_transport(mesh_idx),  &
-                                dt )
+                                cast_dt )
       end if
 
       ! If any horizontal scheme is ffsl compute horizontal departure points
@@ -334,7 +344,7 @@ contains
                                 wind_n,                                &
                                 wind_np1,                              &
                                 self%detj_at_w2_transport(mesh_idx),   &
-                                dt )
+                                cast_dt )
       end if
 
       !=======================================================================!
@@ -349,7 +359,7 @@ contains
 
       call invoke( setval_X(cfl, self%advecting_wind(mesh_idx)),               &
                    inc_X_divideby_Y(cfl, self%detj_at_w2_transport(mesh_idx)), &
-                   inc_a_times_X(dt, cfl),                                     &
+                   inc_a_times_X(cast_dt, cfl),                                &
                    setval_c(horizontal_cfl, 0.0_r_def),                        &
                    setval_c(vertical_cfl, 0.0_r_def),                          &
                    setval_c(sum_horizontal_cfl, 0.0_r_def),                    &
@@ -404,7 +414,7 @@ contains
       !========================================================================!
       ! Compute the divergence factor for use in density advection
       ! div_factor = 1 - beta*dt*m3_inv*div*wind_n
-      minus_beta_dt = -beta*dt
+      minus_beta_dt = -beta*cast_dt
       mm_w3_inv => get_inverse_w3_mass_matrix(self%mesh_ids(mesh_idx))
       div       => get_div(self%mesh_ids(mesh_idx))
       call rhs%initialise( self%div_factor(mesh_idx)%get_function_space() )
@@ -549,7 +559,7 @@ contains
     dest%horizontal_cfl_max(:) = source%horizontal_cfl_max(:)
     dest%vertical_cfl_max(:)   = source%vertical_cfl_max(:)
     dest%total_cfl_max(:)      = source%total_cfl_max(:)
-    dest%dt_model = source%dt_model
+    dest%model_clock => source%model_clock
 
   end subroutine transport_runtime_assign
 
@@ -913,7 +923,8 @@ contains
     real(kind=r_def)                          :: dt_substep
 
     number_substeps = self%get_number_substeps(mesh_id, direction, splitting)
-    dt_substep = self%dt_model/real(number_substeps, r_def)
+    dt_substep = real(self%model_clock%get_seconds_per_step(), r_def) &
+                 / real(number_substeps, r_def)
     if ( splitting  == splitting_strang_vhv .and. direction == direction_v ) then
         dt_substep = dt_substep / 2.0_r_def
     else if ( splitting  == splitting_strang_hvh .and. direction == direction_h ) then

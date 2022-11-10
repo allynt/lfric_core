@@ -14,8 +14,9 @@ module gungho_model_mod
   use clock_mod,                  only : clock_type
   use driver_comm_mod,            only : init_comm, final_comm
   use driver_fem_mod,             only : init_fem, final_fem
-  use driver_io_mod,              only : init_io, final_io, get_clock, &
-                                         filelist_populator
+  use driver_io_mod,              only : init_io, final_io,  &
+                                         filelist_populator, &
+                                         get_io_context
   use driver_mesh_mod,            only : init_mesh, final_mesh
   use driver_log_mod,             only : init_logger, final_logger
   use configuration_mod,          only : final_configuration
@@ -49,6 +50,8 @@ module gungho_model_mod
                                          write_minmax_tseries,    &
                                          timer_output_path,       &
                                          counter_output_suffix
+  use io_context_mod,             only : io_context_type
+  use lfric_xios_context_mod,     only : lfric_xios_context_type
   use linked_list_mod,            only : linked_list_type
   use log_mod,                    only : log_event,          &
                                          log_scratch_space,  &
@@ -60,6 +63,7 @@ module gungho_model_mod
   use minmax_tseries_mod,         only : minmax_tseries,      &
                                          minmax_tseries_init, &
                                          minmax_tseries_final
+  use model_clock_mod,            only : model_clock_type
   use mesh_mod,                   only : mesh_type
   use moisture_conservation_alg_mod, &
                                   only : moisture_conservation_alg
@@ -76,6 +80,8 @@ module gungho_model_mod
   use section_choice_config_mod,  only : radiation,         &
                                          radiation_socrates,&
                                          surface, surface_jules
+  use step_calendar_mod,          only : step_calendar_type
+  use time_config_mod,            only : timestep_end, timestep_start
   use timer_mod,                  only : timer, output_timer, init_timer
   use timestepping_config_mod,    only : dt,                     &
                                          method,                 &
@@ -126,13 +132,22 @@ contains
   !> @param [in,out] shifted_mesh The vertically shifted 3d mesh
   !> @param [in,out] double_level_mesh The double-level 3d mesh
   !> @param [in,out] model_data   The working data set for the model run
+  !> @param [out]    model_clock  Time within the model.
+  !>
   subroutine initialise_infrastructure( filename,             &
                                         program_name,         &
                                         mesh,                 &
                                         twod_mesh,            &
                                         shifted_mesh,         &
                                         double_level_mesh,    &
-                                        model_data )
+                                        model_data, model_clock )
+
+    use logging_config_mod, only: key_from_run_log_level, &
+                                  RUN_LOG_LEVEL_ERROR,    &
+                                  RUN_LOG_LEVEL_INFO,     &
+                                  RUN_LOG_LEVEL_DEBUG,    &
+                                  RUN_LOG_LEVEL_TRACE,    &
+                                  RUN_LOG_LEVEL_WARNING
 
     implicit none
 
@@ -144,7 +159,8 @@ contains
     type(mesh_type), intent(inout), pointer :: twod_mesh
     type(mesh_type), intent(inout), pointer :: double_level_mesh
 
-    type (model_data_type), intent(inout)   :: model_data
+    type(model_data_type),  intent(out) :: model_data
+    type(model_clock_type), intent(out) :: model_clock
 
     character(len=*), parameter :: io_context_name = "gungho_atm"
 
@@ -152,8 +168,6 @@ contains
 
     integer(i_native) :: communicator
 
-    class(clock_type), pointer :: clock
-    real(r_def)                :: dt_model
 
     type(field_type) :: surface_altitude
 
@@ -168,6 +182,10 @@ contains
     integer(i_def),   allocatable :: multigrid_2d_mesh_ids(:)
     type(field_type), allocatable :: chi_mg(:,:)
     type(field_type), allocatable :: panel_id_mg(:)
+
+    class(io_context_type), pointer :: io_context => null()
+    class(clock_type),      pointer :: io_clock => null()
+    type(step_calendar_type) :: step_calendar
 
 #ifdef UM_PHYSICS
     integer(i_def) :: ncells
@@ -266,9 +284,6 @@ contains
                   chi, panel_id,                 &
                   populate_filelist=files_init_ptr )
 
-    clock => get_clock()
-    dt_model = real(clock%get_seconds_per_step(), r_def)
-
     ! Set up surface altitude field - this will be used to generate orography
     ! for models with global land mass included (i.e GAL)
     call init_altitude( twod_mesh, surface_altitude )
@@ -287,17 +302,37 @@ contains
     end if
 
     !-------------------------------------------------------------------------
+    ! Setup clock
+    !-------------------------------------------------------------------------
+
+    io_context => get_io_context()
+    select type (io_context)
+    class is (lfric_xios_context_type)
+      io_clock => io_context%get_clock()
+      model_clock = model_clock_type( io_clock%get_first_step(),       &
+                                      io_clock%get_last_step(),        &
+                                      io_clock%get_seconds_per_step(), &
+                                      real(spinup_period, r_second) )
+      call model_clock%add_clock( io_clock )
+    class default
+      model_clock = model_clock_type(                   &
+        step_calendar%parse_instance( timestep_start ), &
+        step_calendar%parse_instance( timestep_end ),   &
+        real( dt, r_second), real( spinup_period, r_second ) )
+    end select
+
+    !-------------------------------------------------------------------------
     ! Setup constants
     !-------------------------------------------------------------------------
 
     ! Create runtime_constants object. This in turn creates various things
     ! needed by the timestepping algorithms such as mass matrix operators, mass
     ! matrix diagonal fields and the geopotential field
-    call create_runtime_constants( mesh, twod_mesh, chi,                      &
-                                   panel_id, dt_model, shifted_mesh,          &
-                                   shifted_chi, double_level_mesh,            &
-                                   double_level_chi, multigrid_mesh_ids,      &
-                                   multigrid_2D_mesh_ids,                     &
+    call create_runtime_constants( mesh, twod_mesh, chi, panel_id,            &
+                                   model_clock,                               &
+                                   shifted_mesh, shifted_chi,                 &
+                                   double_level_mesh, double_level_chi,       &
+                                   multigrid_mesh_ids, multigrid_2D_mesh_ids, &
                                    chi_mg, panel_id_mg )
 
 #ifdef UM_PHYSICS
@@ -311,14 +346,15 @@ contains
       if (radiation == radiation_socrates) then
         ! Initialisation for the Socrates radiation scheme
         call socrates_init()
-        call illuminate_alg(model_data%radiation_fields, clock%get_step(), &
-                            clock%get_seconds_per_step())
+        call illuminate_alg( model_data%radiation_fields, &
+                             model_clock%get_step(),      &
+                             model_clock%get_seconds_per_step())
       end if
       ! Initialisation of UM high-level variables
       call um_control_init(mesh)
       call um_sizes_init(ncells)
       ! Initialisation of UM clock
-      call um_clock_init(clock)
+      call um_clock_init(model_clock)
 
       ! Initialisation of UM physics variables
       call um_physics_init()
@@ -343,7 +379,7 @@ contains
   !> @param[in] mesh  The primary mesh
   !> @param[in,out] model_data The working data set for the model run
   !>
-  subroutine initialise_model( mesh,  &
+  subroutine initialise_model( mesh, &
                                model_data )
     implicit none
 
@@ -358,10 +394,6 @@ contains
     type( field_type), pointer :: u => null()
     type( field_type), pointer :: rho => null()
     type( field_type), pointer :: exner => null()
-
-    class(clock_type), pointer :: clock => null()
-
-    clock => get_clock()
 
     use_moisture = ( moisture_formulation /= moisture_formulation_dry )
 

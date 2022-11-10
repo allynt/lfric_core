@@ -9,9 +9,7 @@
 !!         method to gungho, but with the addition of the linearisation state.
 module tl_test_driver_mod
 
-  use clock_mod,                  only : clock_type
   use constants_mod,              only : i_def, i_native, imdi
-  use driver_io_mod,              only : get_clock
   use gungho_mod,                 only : program_name
   use gungho_model_mod,           only : initialise_infrastructure, &
                                          initialise_model,          &
@@ -25,6 +23,7 @@ module tl_test_driver_mod
   use log_mod,                    only : log_event,         &
                                          LOG_LEVEL_ALWAYS
   use mesh_mod,                   only : mesh_type
+  use model_clock_mod,            only : model_clock_type
   use linear_model_data_mod,      only : linear_create_ls,  &
                                          linear_init_ls
   use tl_test_kinetic_energy_gradient_mod, only : test_kinetic_energy_gradient
@@ -64,7 +63,8 @@ module tl_test_driver_mod
          run_semi_imp_alg,            &
          run_transport_control
 
-  type (model_data_type) :: model_data
+  type(model_data_type)  :: model_data
+  type(model_clock_type) :: model_clock
 
   type(mesh_type), pointer :: mesh              => null()
   type(mesh_type), pointer :: twod_mesh         => null()
@@ -83,22 +83,21 @@ contains
 
     character(*),      intent(in) :: filename
 
-    class(clock_type), pointer :: clock
-
     ! Initialise infrastructure and setup constants
-    call initialise_infrastructure( filename,             &
-                                    program_name,         &
-                                    mesh,                 &
-                                    twod_mesh,            &
-                                    shifted_mesh,         &
-                                    double_level_mesh,    &
-                                    model_data  )
+    call initialise_infrastructure( filename,          &
+                                    program_name,      &
+                                    mesh,              &
+                                    twod_mesh,         &
+                                    shifted_mesh,      &
+                                    double_level_mesh, &
+                                    model_data,        &
+                                    model_clock )
 
-    clock => get_clock()
     ! Instantiate the fields stored in model_data
     call create_model_data( model_data, &
                             mesh,       &
-                            twod_mesh )
+                            twod_mesh,  &
+                            model_clock )
 
     ! Instantiate the linearisation state
     call linear_create_ls( model_data, &
@@ -107,7 +106,7 @@ contains
 
     ! Initialise the fields stored in the model_data prognostics. This needs
     ! to be done before initialise_model.
-    call initialise_model_data( model_data, mesh, twod_mesh )
+    call initialise_model_data( model_data, model_clock, mesh, twod_mesh )
 
     ! Model configuration initialisation
     call initialise_model( mesh,  &
@@ -117,7 +116,7 @@ contains
     call linear_init_ls( mesh,       &
                          twod_mesh,  &
                          model_data, &
-                         clock )
+                         model_clock )
 
   end subroutine initialise
 
@@ -127,14 +126,10 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-
-    clock => get_clock()
-
     call test_timesteps( model_data, &
                          mesh,       &
                          twod_mesh,  &
-                         clock )
+                         model_clock )
 
   end subroutine run_timesteps
 
@@ -152,8 +147,9 @@ contains
 
     implicit none
 
-    call test_advect_density_field( model_data, &
-                                    mesh,       &
+    call test_advect_density_field( model_data,  &
+                                    model_clock, &
+                                    mesh,        &
                                     twod_mesh )
 
   end subroutine run_advect_density_field
@@ -162,8 +158,9 @@ contains
 
     implicit none
 
-    call test_advect_theta_field( model_data, &
-                                  mesh,       &
+    call test_advect_theta_field( model_data,  &
+                                  model_clock, &
+                                  mesh,        &
                                   twod_mesh )
 
   end subroutine run_advect_theta_field
@@ -222,13 +219,10 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-    clock => get_clock()
-
     call test_rk_alg( model_data, &
                       mesh,       &
                       twod_mesh,  &
-                      clock )
+                      model_clock )
 
   end subroutine run_rk_alg
 
@@ -236,11 +230,9 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-    clock => get_clock()
-
-    call test_transport_control( model_data, &
-                                 mesh,       &
+    call test_transport_control( model_data,  &
+                                 model_clock, &
+                                 mesh,        &
                                  twod_mesh )
 
   end subroutine run_transport_control
@@ -249,13 +241,10 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-    clock => get_clock()
-
     call test_semi_imp_alg( model_data, &
                             mesh,       &
                             twod_mesh,  &
-                            clock )
+                            model_clock )
 
   end subroutine run_semi_imp_alg
 

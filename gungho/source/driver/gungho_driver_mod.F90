@@ -12,7 +12,8 @@ module gungho_driver_mod
   use cli_mod,                    only : get_initial_filename
   use clock_mod,                  only : clock_type
   use constants_mod,              only : i_def, i_native, imdi
-  use driver_io_mod,              only : get_clock, get_io_context
+  use derived_config_mod,         only : l_esm_couple
+  use driver_io_mod,              only : get_io_context
   use field_mod,                  only : field_type
   use gungho_mod,                 only : program_name
   use gungho_diagnostics_driver_mod, &
@@ -31,7 +32,6 @@ module gungho_driver_mod
   use io_config_mod,              only : write_diag, &
                                          diagnostic_frequency, &
                                          nodal_output_on_w3
-  use io_context_mod,             only : io_context_type
   use initialization_config_mod,  only : lbc_option,               &
                                          lbc_option_gungho_file,   &
                                          lbc_option_um2lfric_file, &
@@ -40,10 +40,11 @@ module gungho_driver_mod
   use init_gungho_lbcs_alg_mod,   only : update_lbcs_file_alg
   use log_mod,                    only : log_event,           &
                                          log_level_always,    &
+                                         log_level_error,     &
                                          log_level_info,      &
                                          log_scratch_space
   use mesh_mod,                   only : mesh_type
-  use derived_config_mod,         only : l_esm_couple
+  use model_clock_mod,            only : model_clock_type
 #ifdef UM_PHYSICS
   use variable_fields_mod,        only : update_variable_fields
   use update_ancils_alg_mod,      only : update_ancils_alg
@@ -60,7 +61,8 @@ module gungho_driver_mod
   public initialise, run, finalise
 
   ! Model run working data set
-  type (model_data_type) :: model_data
+  type(model_data_type) :: model_data
+  type(model_clock_type) :: model_clock
 
   type(mesh_type), pointer :: mesh              => null()
   type(mesh_type), pointer :: twod_mesh         => null()
@@ -72,6 +74,9 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Sets up required state in preparation for run.
   subroutine initialise()
+
+    use io_context_mod,         only : io_context_type
+    use lfric_xios_context_mod, only : lfric_xios_context_type
 
     implicit none
 
@@ -88,17 +93,18 @@ contains
                                     twod_mesh,            &
                                     shifted_mesh,         &
                                     double_level_mesh,    &
-                                    model_data            )
+                                    model_data,           &
+                                    model_clock )
 
     ! Instantiate the fields stored in model_data
-    call create_model_data( model_data, mesh, twod_mesh )
+    call create_model_data( model_data, mesh, twod_mesh, model_clock )
 
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, mesh, twod_mesh )
+    call initialise_model_data( model_data, model_clock, mesh, twod_mesh )
 
     ! Initial output
     io_context => get_io_context()
-    call write_initial_output( mesh, twod_mesh, model_data, &
+    call write_initial_output( mesh, twod_mesh, model_data, model_clock, &
                                io_context, nodal_output_on_w3 )
 
     ! Model configuration initialisation
@@ -123,7 +129,6 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock => null()
 
     write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
@@ -136,22 +141,22 @@ contains
       call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
     endif
 
-    clock => get_clock()
-    do while (clock%tick())
+    do while (model_clock%tick())
 
 #ifdef COUPLED
       if(l_esm_couple) then
 
-         write(log_scratch_space, *) 'Coupling timestep: ', clock%get_step() - 1
+         write(log_scratch_space, &
+               '(A, I0)') 'Coupling timestep: ', model_clock%get_step() - 1
          call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
          call save_sea_ice_frac_previous(model_data%depository)
 
          ! Receive all incoming (ocean/seaice fields) from the coupler
-         call cpl_rcv(model_data%cpl_rcv, model_data%depository, clock)
+         call cpl_rcv(model_data%cpl_rcv, model_data%depository, model_clock)
 
          ! Send all outgoing (ocean/seaice driving fields) to the coupler
-         call cpl_snd(model_data%cpl_snd, model_data%depository, clock)
+         call cpl_snd(model_data%cpl_snd, model_data%depository, model_clock)
 
       endif
 #endif
@@ -160,24 +165,24 @@ contains
            lbc_option == lbc_option_um2lfric_file) then
 
         call update_lbcs_file_alg( model_data%lbc_times_list, &
-                                   clock, model_data%lbc_fields )
+                                   model_clock, model_data%lbc_fields )
       endif
 
       ! Perform a timestep
       call gungho_step( mesh, twod_mesh, model_data, &
-                        clock )
+                        model_clock )
 
       ! Use diagnostic output frequency to determine whether to write
       ! diagnostics on this timestep
 
-      if ( ( mod(clock%get_step(), diagnostic_frequency) == 0 ) &
+      if ( ( mod(model_clock%get_step(), diagnostic_frequency) == 0 ) &
            .and. ( write_diag ) ) then
 
         ! Calculation and output diagnostics
-        call gungho_diagnostics_driver( mesh,       &
-                                        twod_mesh,  &
-                                        model_data, &
-                                        clock,      &
+        call gungho_diagnostics_driver( mesh,        &
+                                        twod_mesh,   &
+                                        model_data,  &
+                                        model_clock, &
                                         nodal_output_on_w3 )
       end if
 
@@ -189,9 +194,9 @@ contains
       ! end of timestep date.
       if (ancil_option == ancil_option_updating) then
         call update_variable_fields( model_data%ancil_times_list, &
-                                     clock, model_data%ancil_fields )
+                                     model_clock, model_data%ancil_fields )
         call update_ancils_alg( model_data%ancil_times_list, &
-                                clock, model_data%ancil_fields, &
+                                model_clock, model_data%ancil_fields, &
                                 model_data%surface_fields)
       end if
 #endif
@@ -203,7 +208,8 @@ contains
        ! Ensure coupling fields are updated at the end of a cycle to ensure the values
        ! stored in and recovered from checkpoint dumps are correct and reproducible
        ! when (re)starting subsequent runs!
-       call cpl_fld_update(model_data%cpl_snd, model_data%depository, clock)
+       call cpl_fld_update(model_data%cpl_snd, model_data%depository, &
+                           model_clock)
     endif
 #endif
 
@@ -219,7 +225,7 @@ contains
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Output the fields stored in the model_data (checkpoint and dump)
-    call output_model_data( model_data )
+    call output_model_data( model_data, model_clock )
 
     ! Model configuration finalisation
     call finalise_model( model_data, &

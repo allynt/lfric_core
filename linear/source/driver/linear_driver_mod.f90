@@ -7,9 +7,7 @@
 module linear_driver_mod
 
   use cli_mod,                    only : get_initial_filename
-  use clock_mod,                  only : clock_type
   use constants_mod,              only : i_def, i_native, imdi
-  use driver_io_mod,              only : get_clock
   use field_mod,                  only : field_type
   use gungho_mod,                 only : program_name
   use gungho_diagnostics_driver_mod, &
@@ -24,6 +22,8 @@ module linear_driver_mod
                                          output_model_data, &
                                          finalise_model_data
   use gungho_step_mod,            only : gungho_step
+  use initialization_config_mod,  only : ls_option, &
+                                         ls_option_file
   use io_config_mod,              only : write_diag, &
                                          diagnostic_frequency, &
                                          nodal_output_on_w3
@@ -41,8 +41,7 @@ module linear_driver_mod
   use linear_step_mod,            only : linear_step
   use linear_data_algorithm_mod,  only : update_ls_file_alg
   use mesh_mod,                   only : mesh_type
-  use initialization_config_mod,  only : ls_option, &
-                                         ls_option_file
+  use model_clock_mod,            only : model_clock_type
 
   implicit none
 
@@ -51,6 +50,7 @@ module linear_driver_mod
 
   ! Model run working data set
   type (model_data_type) :: model_data
+  type(model_clock_type) :: model_clock
 
   type( mesh_type ), pointer :: mesh         => null()
   type( mesh_type ), pointer :: twod_mesh    => null()
@@ -65,25 +65,25 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
     character(:),  allocatable :: filename
 
     call get_initial_filename( filename )
 
     ! Initialise infrastructure and setup constants
-    call initialise_infrastructure( filename,                   &
-                                    program_name,               &
-                                    mesh,                       &
-                                    twod_mesh,                  &
-                                    shifted_mesh,               &
-                                    double_level_mesh,          &
-                                    model_data )
+    call initialise_infrastructure( filename,          &
+                                    program_name,      &
+                                    mesh,              &
+                                    twod_mesh,         &
+                                    shifted_mesh,      &
+                                    double_level_mesh, &
+                                    model_data,        &
+                                    model_clock )
 
-    clock => get_clock()
     ! Instantiate the fields stored in model_data
     call create_model_data( model_data, &
                             mesh,       &
-                            twod_mesh )
+                            twod_mesh,  &
+                            model_clock )
 
     ! Instantiate the linearisation state
     call linear_create_ls( model_data, &
@@ -91,7 +91,7 @@ contains
                            twod_mesh )
 
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, mesh, twod_mesh )
+    call initialise_model_data( model_data, model_clock, mesh, twod_mesh )
 
     ! Model configuration initialisation
     call initialise_model( mesh,  &
@@ -101,7 +101,7 @@ contains
     call linear_init_ls( mesh,       &
                          twod_mesh,  &
                          model_data, &
-                         clock )
+                         model_clock )
 
     ! Initialise the linear model perturbation state
     call linear_init_pert( mesh,      &
@@ -109,22 +109,21 @@ contains
                            model_data )
 
     ! Linear model configuration initialisation
-    call initialise_linear_model( clock, &
-                                  mesh,  &
+    call initialise_linear_model( mesh,        &
                                   model_data )
 
     ! Initial output
-    if ( clock%is_initialisation() .and. write_diag ) then
+    if ( model_clock%is_initialisation() .and. write_diag ) then
         ! Calculation and output of diagnostics
-        call gungho_diagnostics_driver( mesh,       &
-                                        twod_mesh,  &
-                                        model_data, &
-                                        clock,      &
+        call gungho_diagnostics_driver( mesh,        &
+                                        twod_mesh,   &
+                                        model_data,  &
+                                        model_clock, &
                                         nodal_output_on_w3 )
 
-        call linear_diagnostics_driver( mesh,       &
-                                        model_data, &
-                                        clock,      &
+        call linear_diagnostics_driver( mesh,        &
+                                        model_data,  &
+                                        model_clock, &
                                         nodal_output_on_w3 )
     end if
 
@@ -139,17 +138,14 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-
     write( log_scratch_space,'(A)' ) 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
-    clock => get_clock()
-    do while ( clock%tick() )
+    do while ( model_clock%tick() )
 
       if ( ls_option == ls_option_file ) then
         call update_ls_file_alg( model_data%ls_times_list, &
-                                 clock,                    &
+                                 model_clock,              &
                                  model_data%ls_fields,     &
                                  model_data%ls_mr,         &
                                  model_data%ls_moist_dyn )
@@ -158,21 +154,21 @@ contains
       call linear_step( mesh,       &
                         twod_mesh,  &
                         model_data, &
-                        clock )
+                        model_clock )
 
-      if ( ( mod(clock%get_step(), diagnostic_frequency) == 0 ) &
+      if ( ( mod(model_clock%get_step(), diagnostic_frequency) == 0 ) &
            .and. ( write_diag ) ) then
 
         ! Calculation and output diagnostics
-        call gungho_diagnostics_driver( mesh,       &
-                                        twod_mesh,  &
-                                        model_data, &
-                                        clock,      &
+        call gungho_diagnostics_driver( mesh,        &
+                                        twod_mesh,   &
+                                        model_data,  &
+                                        model_clock, &
                                         nodal_output_on_w3 )
 
-        call linear_diagnostics_driver( mesh,       &
-                                        model_data, &
-                                        clock,      &
+        call linear_diagnostics_driver( mesh,        &
+                                        model_data,  &
+                                        model_clock, &
                                         nodal_output_on_w3 )
       end if
 
@@ -189,7 +185,7 @@ contains
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Output the fields stored in the model_data (checkpoint and dump)
-    call output_model_data( model_data )
+    call output_model_data( model_data, model_clock )
 
     ! Model configuration finalisation
     call finalise_model( model_data, &

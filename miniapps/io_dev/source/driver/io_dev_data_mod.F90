@@ -14,7 +14,6 @@
 module io_dev_data_mod
 
   ! Infrastructure
-  use clock_mod,                        only : clock_type
   use constants_mod,                    only : i_def
   use field_mod,                        only : field_type
   use field_collection_mod,             only : field_collection_type
@@ -24,6 +23,7 @@ module io_dev_data_mod
                                                LOG_LEVEL_INFO, &
                                                LOG_LEVEL_ERROR
   use mesh_mod,                         only : mesh_type
+  use model_clock_mod,                  only : model_clock_type
   use timer_mod,                        only : timer
   use variable_fields_mod,              only : init_variable_fields, &
                                                update_variable_fields
@@ -47,7 +47,6 @@ module io_dev_data_mod
   use io_dev_init_fields_alg_mod,       only : io_dev_init_fields_alg
   use io_dev_checksum_alg_mod,          only : io_dev_checksum_alg
   use io_dev_timestep_alg_mod,          only : io_dev_timestep_alg
-  use driver_io_mod,                    only : get_clock
 
   implicit none
 
@@ -83,12 +82,12 @@ contains
   !> @param[in,out] model_data   The working data set for a model run
   !> @param[in]     mesh         The current 3d mesh
   !> @param[in]     twod_mesh    The current 2d mesh
-  !> @param[in]     clock        The model clock object
-  !> @param[in]     alt_mesh     The alternate 3d mesh
+  !>
   subroutine create_model_data( model_data, &
                                 mesh,       &
                                 twod_mesh,  &
                                 alt_mesh )
+
     implicit none
 
     type( io_dev_data_type ),             intent(inout) :: model_data
@@ -108,20 +107,20 @@ contains
   end subroutine create_model_data
 
   !> @brief Initialises the working data set dependent of namelist configuration
-  !> @param[in,out] model_data The working data set for a model run
-  !> @param[in]     chi        A size 3 array of fields holding the mesh coordinates
+  !> @param[in,out] model_data  The working data set for a model run
+  !> @param[in]     model_clock Time within the model.
+  !> @param[in]     chi         A size 3 array of fields holding the mesh
+  !>                            coordinates
   !> @param[in]     panel_id   A field with the IDs of mesh panels
-  subroutine initialise_model_data( model_data, chi, panel_id )
+  !>
+  subroutine initialise_model_data( model_data, model_clock, chi, panel_id )
 
     implicit none
 
     type( io_dev_data_type ), intent(inout) :: model_data
+    class(model_clock_type),  intent(in)    :: model_clock
     type( field_type ),       intent(in)    :: chi(3)
     type( field_type ),       intent(in)    :: panel_id
-
-    class( clock_type ),      pointer :: clock      => null()
-
-    clock => get_clock()
 
     ! Initialise all the model fields here analytically
     call io_dev_init_fields_alg( model_data%core_fields, chi, panel_id )
@@ -132,8 +131,8 @@ contains
     !---------------------------------------------------------------
     if ( checkpoint_read ) then
       if ( subroutine_timers ) call timer('read_checkpoint')
-      call read_checkpoint( model_data%core_fields,     &
-                            clock%get_first_step() - 1, &
+      call read_checkpoint( model_data%core_fields,           &
+                            model_clock%get_first_step() - 1, &
                             checkpoint_stem_name )
       if ( subroutine_timers ) call timer('read_checkpoint')
 
@@ -149,7 +148,7 @@ contains
       if ( time_variation == time_variation_ancil ) then
         if ( subroutine_timers ) call timer('init_variable_fields')
         call init_variable_fields( model_data%variable_field_times, &
-                                   clock, model_data%core_fields )
+                                   model_clock, model_data%core_fields )
         if ( subroutine_timers ) call timer('init_variable_fields')
       end if
 
@@ -160,15 +159,12 @@ contains
 
   !> @brief Updates the working data set dependent of namelist configuration
   !> @param[in,out] model_data The working data set for a model run
-  subroutine update_model_data( model_data )
+  subroutine update_model_data( model_data, model_clock )
 
     implicit none
 
     type( io_dev_data_type ), intent(inout) :: model_data
-
-    class( clock_type ),      pointer :: clock      => null()
-
-    clock => get_clock()
+    class(model_clock_type),  intent(in)    :: model_clock
 
     !---------------------------------------------------------------
     ! Separate update calls are made based on model configuration
@@ -178,14 +174,14 @@ contains
     case ( time_variation_analytic )
       call log_event( "IO_Dev: Updating fields analytically", LOG_LEVEL_INFO )
       if (model_data%alg_fields%get_length() /= 0) then
-        call io_dev_timestep_alg( model_data%alg_fields, clock )
+        call io_dev_timestep_alg( model_data%alg_fields, model_clock )
       end if
 
     case ( time_variation_ancil )
       call log_event( "IO_Dev: Updating fields from time_varying ancillary", LOG_LEVEL_INFO )
       if ( subroutine_timers ) call timer('update_variable_fields')
       call update_variable_fields( model_data%variable_field_times, &
-                                   clock, model_data%core_fields )
+                                   model_clock, model_data%core_fields )
       if ( subroutine_timers ) call timer('update_variable_fields')
 
     case ( time_variation_none )
@@ -201,18 +197,15 @@ contains
 
   !> @brief Writes out a checkpoint and dump file dependent on namelist options
   !> @param[in,out] model_data The working data set for the model run
-  subroutine output_model_data( model_data )
+  subroutine output_model_data( model_data, model_clock )
 
     implicit none
 
     type( io_dev_data_type ), intent(inout), target :: model_data
-
-    class( clock_type ),      pointer :: clock      => null()
-
-    clock => get_clock()
+    class(model_clock_type),  intent(in)            :: model_clock
 
     !===================== Write initial output ======================!
-    if ( clock%is_initialisation() ) then
+    if ( model_clock%is_initialisation() ) then
       if ( subroutine_timers ) call timer('write_state: initial')
         if (model_data%alg_fields%get_length() /= 0) then
           call write_state( model_data%alg_fields, prefix='initial_' )
@@ -238,20 +231,17 @@ contains
 
   !> @brief Routine to destroy all the field collections in the working data set
   !> @param[in,out] model_data The working data set for a model run
-  subroutine finalise_model_data( model_data )
+  subroutine finalise_model_data( model_data, model_clock )
 
     implicit none
 
-      type(io_dev_data_type), intent(inout) :: model_data
-
-      class( clock_type ),      pointer :: clock      => null()
-
-      clock => get_clock()
+      type(io_dev_data_type),  intent(inout) :: model_data
+      class(model_clock_type), intent(in)    :: model_clock
 
       !=================== Write fields to checkpoint files ====================
       if ( checkpoint_write ) then
         if ( subroutine_timers ) call timer('write_checkpoint')
-        call write_checkpoint( model_data%core_fields, clock, &
+        call write_checkpoint( model_data%core_fields, model_clock, &
                                checkpoint_stem_name )
         if ( subroutine_timers ) call timer('write_checkpoint')
       end if

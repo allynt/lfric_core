@@ -22,11 +22,14 @@ module io_dev_driver_mod
   use driver_mesh_mod,            only: init_mesh, final_mesh
   use driver_fem_mod,             only: init_fem, final_fem
   use driver_io_mod,              only: init_io, final_io, &
-                                        get_clock, filelist_populator
+                                        get_io_context,    &
+                                        filelist_populator
   use field_mod,                  only: field_type
   use io_dev_config_mod,          only: multi_mesh, alt_mesh_name
   use io_config_mod,              only: write_diag, diagnostic_frequency, &
                                         subroutine_timers, timer_output_path
+  use io_context_mod,             only: io_context_type
+  use lfric_xios_context_mod,     only: lfric_xios_context_type
   use local_mesh_collection_mod,  only: local_mesh_collection, &
                                         local_mesh_collection_type
   use log_mod,                    only: log_event,          &
@@ -36,6 +39,7 @@ module io_dev_driver_mod
   use mesh_collection_mod,        only: mesh_collection, &
                                         mesh_collection_type
   use mesh_mod,                   only: mesh_type
+  use model_clock_mod,            only: model_clock_type
   use mpi_mod,                    only: get_comm_size, &
                                         get_comm_rank
   use timer_mod,                  only: timer, output_timer, init_timer
@@ -48,8 +52,6 @@ module io_dev_driver_mod
                                         output_model_data,         &
                                         finalise_model_data
 
-  use lfric_xios_clock_mod, only: lfric_xios_clock_type
-
   implicit none
 
   private
@@ -57,7 +59,9 @@ module io_dev_driver_mod
   public initialise, run, finalise
 
   character(*), parameter :: program_name = "io_dev"
-  type (io_dev_data_type) :: model_data
+
+  type(io_dev_data_type) :: model_data
+  type(model_clock_type) :: model_clock
 
   type(field_type), target, dimension(3) :: chi
   type(field_type), target               :: panel_id
@@ -66,8 +70,15 @@ module io_dev_driver_mod
 
   contains
 
+
   !> @brief Sets up required state in preparation for run.
   subroutine initialise()
+
+    use step_calendar_mod,       only : step_calendar_type
+    use constants_mod,           only : r_second
+    use log_mod,                 only : log_level_error
+    use time_config_mod,         only : timestep_start, timestep_end
+    use timestepping_config_mod, only : dt, spinup_period
 
     implicit none
 
@@ -77,6 +88,8 @@ module io_dev_driver_mod
 
     character(str_def), allocatable :: multires_mesh_tags(:)
     integer(i_def),     allocatable :: multires_mesh_ids(:), multires_twod_mesh_ids(:)
+
+    type(step_calendar_type) :: calendar
 
     type(field_type), allocatable, target :: multires_coords(:,:)
     type(field_type), allocatable, target :: multires_panel_ids(:)
@@ -149,8 +162,13 @@ module io_dev_driver_mod
                               twod_mesh )
     end if
 
+    model_clock = model_clock_type( calendar%parse_instance(timestep_start), &
+                                    calendar%parse_instance(timestep_end),   &
+                                    dt,                                      &
+                                    spinup_period )
+
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, chi, panel_id )
+    call initialise_model_data( model_data, model_clock, chi, panel_id )
 
 
   end subroutine initialise
@@ -159,32 +177,41 @@ module io_dev_driver_mod
   !>upon the configuration
   subroutine run()
 
+    use clock_mod,            only : clock_type
+    use lfric_xios_clock_mod, only: lfric_xios_clock_type
+
     implicit none
 
-    class(clock_type), pointer :: clock => null()
+    class(io_context_type), pointer :: io_context => null()
+    class(clock_type),      pointer :: io_clock => null()
+
+    logical :: dummy
 
     write(log_scratch_space,'(A)') 'Running '//program_name//' ...'
     call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
 
     ! Output initial data after initial step
-    clock => get_clock()
-    select type (clock)
-    type is (lfric_xios_clock_type)
-        call clock%initial_step()
+    io_context => get_io_context()
+    select type (io_context)
+    class is (lfric_xios_context_type)
+      io_clock => io_context%get_clock()
+      dummy = io_clock%tick()
     end select
 
-    call output_model_data( model_data )
+    call output_model_data( model_data, model_clock )
+
+    call model_clock%add_clock( io_clock )
 
     ! Model step
-    do while( clock%tick() )
+    do while( model_clock%tick() )
 
       ! Update fields
-      call update_model_data( model_data )
+      call update_model_data( model_data, model_clock )
 
       ! Write out the fields
-      if ( (mod( clock%get_step(), diagnostic_frequency ) == 0) ) then
+      if ( (mod( model_clock%get_step(), diagnostic_frequency ) == 0) ) then
         call log_event( program_name//': Writing output', LOG_LEVEL_INFO)
-        call output_model_data( model_data )
+        call output_model_data( model_data, model_clock )
       end if
 
     end do
@@ -199,7 +226,7 @@ module io_dev_driver_mod
     call log_event( 'Finalising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
     ! Destroy the fields stored in model_data
-    call finalise_model_data( model_data )
+    call finalise_model_data( model_data, model_clock )
 
     ! Finalise IO context
     call final_io()

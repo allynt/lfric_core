@@ -27,6 +27,7 @@ module swe_transport_control_alg_mod
   use matrix_vector_kernel_mod,          only: matrix_vector_kernel_type
   use mesh_mod,                          only: mesh_type
   use mesh_collection_mod,               only: mesh_collection
+  use model_clock_mod,                   only: model_clock_type
   use quadrature_rule_gaussian_mod,      only: quadrature_rule_gaussian_type
   use quadrature_xyoz_mod,               only: quadrature_xyoz_type
   use runtime_tools_mod,                 only: find_mesh_index
@@ -154,12 +155,12 @@ contains
   !!                                prognostics [u, geopot, buoyancy, q]
   !> @param[in]     advected_fields Fields to advect: [u, geopot, buoyancy, q]
   !> @param[in]     state_np1       Estimate of fields at time n+1
-  !> @param[in]     model_dt        Difference in time through model time step
+  !> @param[in]     model_clock     Time within the model
 
   subroutine swe_transport_control_alg_step( advection_inc,    &
                                              advected_fields,  &
                                              state_np1,        &
-                                             model_dt )
+                                             model_clock )
 
     use fem_constants_mod,               only: get_mass_matrix
     use operator_mod,                    only: operator_type
@@ -174,7 +175,7 @@ contains
     type(field_vector_type),         intent(inout) :: advection_inc
     type(field_vector_type), target, intent(in)    :: advected_fields
     type(field_vector_type), target, intent(in)    :: state_np1
-    real(kind=r_def),                intent(in)    :: model_dt
+    class(model_clock_type),         intent(in)    :: model_clock
 
     ! Fields from advected_fields and state_np1 vector
     type(field_type), pointer :: wind_np1 => null(), &
@@ -209,6 +210,8 @@ contains
     type(quadrature_xyoz_type)          :: qr
     type(quadrature_rule_gaussian_type) :: quadrature_rule
 
+    real(r_def) :: cast_dt
+
     if ( subroutine_timers ) call timer('swe_transport_control_alg_step')
 
     ! ------------------------------------------------------------------------ !
@@ -223,7 +226,7 @@ contains
     wind_np1 => state_np1%vector(isw_u)
 
     ! Create transport_runtime object (advecting wind etc)
-    transport_runtime = transport_runtime_type(wind_n, wind_np1, model_dt)
+    transport_runtime = transport_runtime_type(wind_n, wind_np1, model_clock)
     call set_transport_runtime(transport_runtime)
 
     ! Initialise geopotential variables
@@ -233,12 +236,14 @@ contains
     ! Transport of prognostic variables
     ! ------------------------------------------------------------------------ !
 
+    cast_dt = real( model_clock%get_seconds_per_step(), r_def )
+
     ! ------------------------------------------------------------------------ !
     ! Transport geopotential
     call log_event( "Transporting geopotential...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('geopot')
     call transport_field( geopot_np1, geopot, &
-                          model_dt, transport_metadata )
+                          cast_dt, transport_metadata )
     call invoke( X_minus_Y( advection_inc%vector(isw_g), geopot_np1, &
                             geopot ) )
 
@@ -252,7 +257,7 @@ contains
       call log_event( "Transporting buoyancy...", LOG_LEVEL_INFO)
       transport_metadata => transport_metadata_collection%get_transport_metadata('buoyancy')
       call transport_field( buoyancy_np1, buoyancy, &
-                            model_dt, transport_metadata )
+                            cast_dt, transport_metadata )
       call invoke( X_minus_Y( advection_inc%vector(isw_b), buoyancy_np1, &
                               buoyancy ) )
       ! The increment is now pointwise. Depending upon the temporal discretisation
@@ -300,7 +305,7 @@ contains
       call invoke( X_times_Y(q_geopot,q,geopot) )
       transport_metadata => transport_metadata_collection%get_transport_metadata('q')
       call transport_field( q_np1, q_geopot, &
-                            model_dt, transport_metadata )
+                            cast_dt, transport_metadata )
       q_mass_flux => transport_runtime_get%get_dry_flux(geopot%get_mesh_id(), 1)
 
       ! If vector_invariant form, use the PV mass flux for the velocity advection
@@ -311,7 +316,7 @@ contains
                                                    q_mass_flux,                      &
                                                    constant_one, chi, panel_id, qr), &
                    enforce_bc_kernel_type(advection_inc%vector(isw_u)),              &
-                   inc_a_times_X(model_dt,advection_inc%vector(isw_u)) )
+                   inc_a_times_X(cast_dt,advection_inc%vector(isw_u)) )
 
       nullify( w1_fs, chi, panel_id )
 
@@ -320,7 +325,7 @@ contains
       call log_event( "Transporting wind...", LOG_LEVEL_INFO)
       transport_metadata => transport_metadata_collection%get_transport_metadata('wind')
       call wind_transport_alg( advection_inc%vector(isw_u), wind_n, &
-                               model_dt, transport_metadata )
+                               cast_dt, transport_metadata )
       ! We don't change advection_inc%vector(isw_u) as wind_transport_alg
       ! already returns weak increment
 

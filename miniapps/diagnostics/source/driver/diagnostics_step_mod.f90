@@ -34,10 +34,9 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !> Performs time steps.
     !>
-    subroutine diagnostics_step( mesh,       &
-                                 twod_mesh,  &
-                                 model_data, &
-                                 clock )
+    subroutine diagnostics_step( mesh,      &
+                                 twod_mesh, &
+                                 model_data )
 
         implicit none
 
@@ -45,7 +44,6 @@ contains
         type(mesh_type),         pointer, intent(in)    :: mesh      ! included for consistency with gungho
         type(mesh_type),         pointer, intent(in)    :: twod_mesh ! included for consistency with gungho
         type( model_data_type ), target,  intent(inout) :: model_data
-        class(clock_type),                intent(in)    :: clock     ! included for consistency with gungho
 
         type(field_type), pointer :: red => null()
         type(field_type), pointer :: green => null()

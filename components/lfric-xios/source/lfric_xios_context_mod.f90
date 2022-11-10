@@ -127,7 +127,6 @@ contains
               source=lfric_xios_clock_type( calendar,                &
                                             start_time, finish_time, &
                                             seconds_per_step,        &
-                                            spinup_period,           &
                                             this%uses_timers ),      &
               stat=rc )
     if (rc /= 0) then

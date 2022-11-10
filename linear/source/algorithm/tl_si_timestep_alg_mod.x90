@@ -8,12 +8,12 @@
 !!       time-discretisation of the nonlinear 3D equations.
 module tl_si_timestep_alg_mod
 
-  use clock_mod,                   only: clock_type
   use constants_mod,               only: i_def, r_def, l_def
   use log_mod,                     only: log_event,         &
                                          log_scratch_space, &
                                          LOG_LEVEL_INFO,    &
                                          LOG_LEVEL_ERROR
+  use model_clock_mod,             only: model_clock_type
   use reference_element_mod,       only: T
 
   ! Configuration options
@@ -316,14 +316,14 @@ contains
   !> @param[in]     ls_mr                  Mixing ratios
   !> @param[in]     ls_moist_dyn           Factors for moist dynamics
   !> @param[in]     derived_fields         Group of derived fields
-  !> @param[in]     clock                  Model time
+  !> @param[in]     model_clock            Time within the model.
   !> @param[in]     mesh                   The current mesh
   !> @param[in]     twod_mesh              The current 2d mesh
   subroutine tl_semi_implicit_alg_step(u, rho, theta, exner, mr, moist_dyn, &
                                        ls_u, ls_rho, ls_theta, ls_exner,    &
                                        ls_mr, ls_moist_dyn,                 &
                                        derived_fields,                      &
-                                       clock, mesh, twod_mesh)
+                                       model_clock, mesh, twod_mesh)
 
     implicit none
 
@@ -338,12 +338,12 @@ contains
     ! field groups
     type( field_collection_type ), intent( inout ) :: derived_fields
 
-    class(clock_type), intent(in) :: clock
+    class(model_clock_type), intent(in) :: model_clock
 
     type(mesh_type), intent(in), pointer :: mesh
     type(mesh_type), intent(in), pointer :: twod_mesh
 
-    real(kind=r_def) :: dt
+    real(kind=r_def) :: cast_dt
 
     ! Quadrature object
     type( quadrature_xyoz_type ), pointer :: qr => null()
@@ -365,7 +365,7 @@ contains
 
     if ( subroutine_timers ) call timer('semi_implicit_timestep_alg')
 
-    dt = real(clock%get_seconds_per_step(), r_def)
+    cast_dt = real(model_clock%get_seconds_per_step(), r_def)
 
     call log_event( "Tangent linear: semi implicit timestep", LOG_LEVEL_INFO )
 
@@ -382,7 +382,7 @@ contains
    !--------------------------------------------------------------------
     ! If off-centring is being spun up then modify the alpha value
     !--------------------------------------------------------------------
-    if (spinup_alpha .and. clock%is_spinning_up()) then
+    if (spinup_alpha .and. model_clock%is_spinning_up()) then
       varalpha = 1.0_r_def
     else
       varalpha = alpha
@@ -407,7 +407,7 @@ contains
     ! If winds are being spunup overwrite the local copy of the winds
     ! with the driver level representation
     !--------------------------------------------------------------------
-    if (clock%is_spinning_up()) then
+    if (model_clock%is_spinning_up()) then
        if (spinup_winds) then
          call invoke( setval_X(ls_state(igh_u), ls_u ) )
        else
@@ -442,9 +442,9 @@ contains
     !--------------------------------------------------------------------
     ! Compute the time-level n dynamics terms
     !--------------------------------------------------------------------
-    call rhs_alg(ls_rhs_n, varbeta*dt, ls_state_after_slow, &
-                 ls_state_n, ls_moist_dyn_itns(:,1,1),      &
-                 .false., .false., dt)
+    call rhs_alg( ls_rhs_n, varbeta*cast_dt, ls_state_after_slow, &
+                  ls_state_n, ls_moist_dyn_itns(:,1,1),           &
+                  .false., .false. )
 
     call copy_bundle(ls_state_after_slow, ls_advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
@@ -465,7 +465,7 @@ contains
                                         ls_state_n(igh_u),              &
                                         ls_mr_itns(:, outer, 1),        &
                                         ls_mr_after_slow(:),            &
-                                        dt, outer)
+                                        model_clock, outer)
 
       if (use_wavedynamics) then
 
@@ -512,20 +512,19 @@ contains
             reset_ref_state = mod(inner + (outer-1)*inner_iterations - 1_i_def, &
                                   reference_reset_freq)
             if ( reset_ref_state == 0_i_def ) then
-              call compute_si_operators(ls_state_itns(:, outer, inner), dt)
+              call compute_si_operators(ls_state_itns(:, outer, inner), cast_dt)
             end if
 
             !--------------------------------------------------------------------
             ! Compute the time-level n+1 dynamics terms
             !--------------------------------------------------------------------
-            call rhs_alg(ls_rhs_np1(:, outer, inner),        &
-                         -varalpha*dt,                       &
-                         ls_state_itns(:, outer, inner),     &
-                         ls_state_itns(:, outer, inner),     &
-                         ls_moist_dyn_itns(:, outer, inner), &
-                         .true.,                             &
-                         dlayer_on,                          &
-                         dt)
+            call rhs_alg( ls_rhs_np1(:, outer, inner),        &
+                          -varalpha*cast_dt,                  &
+                          ls_state_itns(:, outer, inner),     &
+                          ls_state_itns(:, outer, inner),     &
+                          ls_moist_dyn_itns(:, outer, inner), &
+                          .true.,                             &
+                          dlayer_on )
 
             !--------------------------------------------------------------------
             ! Compute the LAM LBCs and RHS
@@ -608,7 +607,7 @@ contains
 
             ! For poorly balanced initial conditions, we set the vertical
             ! component of W2 wind to zero
-            if (spinup_alpha .and. clock%is_spinning_up()) then
+            if (spinup_alpha .and. model_clock%is_spinning_up()) then
               call invoke( set_any_dof_kernel_type( &
                            ls_state_itns(igh_u, next_outer, next_inner), &
                            T, 0.0_r_def) )
@@ -643,7 +642,7 @@ contains
     ! If winds are being spunup overwrite the local copy of the winds
     ! with the driver level representation
     !--------------------------------------------------------------------
-    if (clock%is_spinning_up()) then
+    if (model_clock%is_spinning_up()) then
        if (spinup_winds) then
          call invoke( setval_X(state(igh_u), u ) )
        else
@@ -652,7 +651,7 @@ contains
     end if
 
     ! Perform some checking on the fields.
-    call check_fields(state, dt)
+    call check_fields(state, cast_dt)
 
     !--------------------------------------------------------------------
     ! Update state_n and mr_n with start of timestep values
@@ -671,9 +670,9 @@ contains
     !--------------------------------------------------------------------
     ! Compute the time-level n dynamics terms
     !--------------------------------------------------------------------
-    call tl_rhs_alg(rhs_n, varbeta*dt, state_after_slow, state_n, moist_dyn, &
-                    ls_state_n, ls_moist_dyn_itns(:, 1,1),                   &
-                    .false., .false., dt)
+    call tl_rhs_alg( rhs_n, varbeta*cast_dt, state_after_slow, state_n, &
+                     moist_dyn, ls_state_n, ls_moist_dyn_itns(:, 1,1),  &
+                     .false., .false., cast_dt )
 
     call copy_bundle(state_after_slow, advected_state,  bundle_size)
     if ( .not. si_momentum_equation ) then
@@ -699,7 +698,7 @@ contains
                                     ls_state_itns(igh_u, outer, 1), &
                                     ls_state_n(igh_u),              &
                                     ls_mr_after_slow,               &
-                                    dt                              )
+                                    model_clock )
 
       if (use_wavedynamics) then
 
@@ -719,14 +718,14 @@ contains
           reset_ref_state = mod(inner + (outer-1)*inner_iterations - 1_i_def, &
                                 reference_reset_freq)
           if ( reset_ref_state == 0_i_def ) then
-            call compute_si_operators(ls_state_itns(:,outer, inner), dt)
+            call compute_si_operators(ls_state_itns(:,outer, inner), cast_dt)
           end if
 
           !--------------------------------------------------------------------
           ! Compute the time-level n+1 dynamics terms
           !--------------------------------------------------------------------
           call tl_rhs_alg(rhs_np1,                            &
-                          -varalpha*dt,                       &
+                          -varalpha*cast_dt,                  &
                           state,                              &
                           state,                              &
                           moist_dyn,                          &
@@ -734,7 +733,7 @@ contains
                           ls_moist_dyn_itns(:, outer, inner), &
                           .true.,                             &
                           dlayer_on,                          &
-                          dt)
+                          cast_dt )
 
           !--------------------------------------------------------------------
           ! Compute the LAM LBCs and RHS
@@ -783,7 +782,7 @@ contains
 
           ! For poorly balanced initial conditions, we set the vertical
           ! component of W2 wind to zero
-          if (spinup_alpha .and. clock%is_spinning_up()) then
+          if (spinup_alpha .and. model_clock%is_spinning_up()) then
             call invoke( set_any_dof_kernel_type(state(igh_u), T, 0.0_r_def) )
           end if
 
@@ -811,12 +810,12 @@ contains
     !--------------------------------------------------------------------
     call mixing_alg(mr, state(igh_t),                             &
                     state(igh_u), visc_m, visc_h, derived_fields, &
-                    state(igh_d), dt )
+                    state(igh_d), cast_dt )
 
     !--------------------------------------------------------------------
     ! Update fields held in the driver layer
     !--------------------------------------------------------------------
-    if (.not. (spinup_winds .and. clock%is_spinning_up())) &
+    if (.not. (spinup_winds .and. model_clock%is_spinning_up())) &
       call invoke( setval_X(u, state(igh_u)) )
 
     call invoke( setval_X(theta, state(igh_t)), &

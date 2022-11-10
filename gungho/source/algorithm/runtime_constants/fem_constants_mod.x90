@@ -15,7 +15,7 @@
 module fem_constants_mod
 
   ! Infrastructure
-  use constants_mod,                      only: i_def, r_def, str_def
+  use constants_mod,                      only: i_def, r_def, r_second, str_def
   use field_mod,                          only: field_type
   use r_solver_field_mod,                 only: r_solver_field_type
   use fs_continuity_mod,                  only: W0, W1, W2, W2broken, &
@@ -27,6 +27,7 @@ module fem_constants_mod
                                                 LOG_LEVEL_ERROR, log_scratch_space
   use mesh_collection_mod,                only: mesh_collection
   use mesh_mod,                           only: mesh_type
+  use model_clock_mod,                    only: model_clock_type
   use operator_mod,                       only: operator_type, r_solver_operator_type
   use quadrature_xyoz_mod,                only: quadrature_xyoz_type
   use quadrature_rule_gaussian_mod,       only: quadrature_rule_gaussian_type
@@ -203,19 +204,20 @@ contains
   !> @param[in] chi_list             List of coordinate fields
   !> @param[in] panel_id_list        List of panel_id fields
   !> @param[in] label_list           List of labels for meshes
-  !> @param[in] dt                   The model timestep length
-  subroutine create_fem_constants(mesh_id_list,  &
-                                  chi_list,      &
-                                  panel_id_list, &
-                                  label_list, dt )
+  !> @param[in] model_clock          Time within the model.
+  subroutine create_fem_constants( mesh_id_list,  &
+                                   chi_list,      &
+                                   panel_id_list, &
+                                   label_list,    &
+                                   model_clock )
     implicit none
 
     ! Arguments
-    integer(kind=i_def), intent(in) :: mesh_id_list(:)
-    type(field_type),    intent(in) :: chi_list(:,:)
-    type(field_type),    intent(in) :: panel_id_list(:)
-    integer(kind=i_def), intent(in) :: label_list(:)
-    real(r_def),         intent(in) :: dt
+    integer(kind=i_def),     intent(in) :: mesh_id_list(:)
+    type(field_type),        intent(in) :: chi_list(:,:)
+    type(field_type),        intent(in) :: panel_id_list(:)
+    integer(kind=i_def),     intent(in) :: label_list(:)
+    class(model_clock_type), intent(in) :: model_clock
 
     ! Internal variables
     type(function_space_type), pointer :: w0_fs     => null()
@@ -254,6 +256,7 @@ contains
     integer(kind=i_def) :: detj_direction
 
     type(mesh_type), pointer :: mesh => null()
+    real(r_second) :: delta_t
 
     if ( subroutine_timers ) call timer('fem_constants_alg')
     call log_event( "Gungho: creating fem_constants", LOG_LEVEL_INFO )
@@ -447,11 +450,19 @@ contains
         ! Compute W2 mass matrix with damping layer
         ! Eventually this may be absorbed into the de Rham complex computations
         ! but until the final form is settled upon it is left separate
-        call invoke( name = "compute_damping_layer_mass_matrix",                &
-                     compute_dl_matrix_kernel_type( mm_dl(i),chi_list(:,i),     &
-                                                    panel_id_list(i), dl_base,  &
-                                                    dl_str, domain_top, radius, &
-                                                    element_order, dt, qr) )
+        !
+        ! Function call arguments in invokes don't work so we need to set up
+        ! a temporary.
+        !
+        delta_t = model_clock%get_seconds_per_step()
+        call invoke( name = "compute_damping_layer_mass_matrix",  &
+          compute_dl_matrix_kernel_type( mm_dl(i), chi_list(:,i), &
+                                         panel_id_list(i),        &
+                                         dl_base, dl_str,         &
+                                         domain_top, radius,      &
+                                         element_order,           &
+                                         delta_t,                 &
+                                         qr) )
       end if
 
       if ( label_list(i) == primary_mesh_label ) then
@@ -460,7 +471,7 @@ contains
 
         ! Compute temporary Coriolis operator
         if ( rotating ) then
-          const = tau_u * dt
+          const = tau_u * real(model_clock%get_seconds_per_step(), r_def)
           call invoke( name = "compute_coriolis_matrix",                       &
                        compute_coriolis_matrix_kernel_type(coriolis,           &
                                                            chi_list(:,i),      &

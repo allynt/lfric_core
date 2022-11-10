@@ -11,23 +11,22 @@ module skeleton_driver_mod
 
   use checksum_alg_mod,           only : checksum_alg
   use cli_mod,                    only : get_initial_filename
-  use clock_mod,                  only : clock_type
   use configuration_mod,          only : final_configuration
   use constants_mod,              only : i_def, i_native, &
-                                         PRECISION_REAL, r_def
+                                         PRECISION_REAL, r_def, r_second
   use convert_to_upper_mod,       only : convert_to_upper
   use driver_comm_mod,            only : init_comm, final_comm
   use driver_log_mod,             only : init_logger, final_logger
   use driver_mesh_mod,            only : init_mesh, final_mesh
   use driver_fem_mod,             only : init_fem, final_fem
-  use driver_io_mod,              only : init_io, final_io, &
-                                         get_clock
+  use driver_io_mod,              only : init_io, final_io
   use field_mod,                  only : field_type
   use init_skeleton_mod,          only : init_skeleton
   use io_config_mod,              only : write_diag
   use log_mod,                    only : log_event, log_scratch_space, &
                                          LOG_LEVEL_ALWAYS, LOG_LEVEL_INFO
   use mesh_mod,                   only : mesh_type
+  use model_clock_mod,            only : model_clock_type
   use mpi_mod,                    only : get_comm_size, &
                                          get_comm_rank
   use skeleton_mod,               only : load_configuration
@@ -39,6 +38,8 @@ module skeleton_driver_mod
   public initialise, run, finalise
 
   character(*), parameter :: program_name = "skeleton"
+
+  type(model_clock_type) :: model_clock
 
   ! Prognostic fields
   type( field_type ) :: field_1
@@ -56,12 +57,17 @@ contains
   !>
   subroutine initialise()
 
+    use step_calendar_mod,       only : step_calendar_type
+    use time_config_mod,         only : timestep_start, timestep_end
+    use timestepping_config_mod, only : dt
+
     implicit none
 
     character(:), allocatable :: filename
     integer(i_native) :: model_communicator
 
-    class(clock_type),      pointer :: clock => null()
+    type(step_calendar_type) :: calendar
+
     real(r_def)                     :: dt_model
 
     call init_comm("skeleton", model_communicator)
@@ -90,9 +96,12 @@ contains
     ! Initialise I/O context
     call init_io( program_name, model_communicator, chi, panel_id )
 
-    ! Get dt from model clock
-    clock => get_clock()
-    dt_model = real(clock%get_seconds_per_step(), r_def)
+    ! Initialise clock
+    model_clock = model_clock_type( calendar%parse_instance(timestep_start), &
+                                    calendar%parse_instance(timestep_end), &
+                                    dt, 0.0_r_second)
+
+    dt_model = real(model_clock%get_seconds_per_step(), r_def)
 
     ! Create and initialise prognostic fields
     call init_skeleton(mesh, chi, panel_id, dt_model, field_1)
@@ -106,11 +115,9 @@ contains
 
     implicit none
 
-    class(clock_type),      pointer :: clock => null()
     logical                         :: running
 
-    clock => get_clock()
-    running = clock%tick()
+    running = model_clock%tick()
 
     ! Call an algorithm
     call skeleton_alg(field_1)

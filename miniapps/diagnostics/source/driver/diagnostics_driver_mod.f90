@@ -15,7 +15,7 @@ module diagnostics_driver_mod
   use diagnostics_configuration_mod, only : load_configuration, program_name
   use driver_comm_mod,               only : init_comm, final_comm
   use driver_fem_mod,                only : init_fem
-  use driver_io_mod,                 only : init_io, final_io, get_clock
+  use driver_io_mod,                 only : init_io, final_io, get_io_context
   use driver_mesh_mod,               only : init_mesh
   use field_mod,                     only : field_type
   use field_parent_mod,              only : field_parent_type
@@ -25,12 +25,15 @@ module diagnostics_driver_mod
   use io_config_mod,                 only : write_diag, &
                                             use_xios_io
   use io_context_mod,                only : io_context_type
-  use log_mod,                       only : log_event, &
+  use lfric_xios_context_mod,        only : lfric_xios_context_type
+  use log_mod,                       only : log_event,         &
                                             log_scratch_space, &
-                                            LOG_LEVEL_ALWAYS, &
-                                            LOG_LEVEL_INFO,   &
+                                            log_level_error,   &
+                                            LOG_LEVEL_ALWAYS,  &
+                                            LOG_LEVEL_INFO,    &
                                             LOG_LEVEL_TRACE
   use mesh_mod,                      only : mesh_type
+  use model_clock_mod,               only : model_clock_type
   use mpi_mod,                       only : get_comm_size, &
                                             get_comm_rank
 
@@ -40,7 +43,8 @@ module diagnostics_driver_mod
   public initialise, run, finalise
 
   ! Model run working data set
-  type (model_data_type), target :: model_data
+  type(model_data_type), target :: model_data
+  type(model_clock_type)        :: model_clock
 
   ! Coordinate field
   type(field_type), target, dimension(3) :: chi
@@ -68,20 +72,19 @@ contains
     use driver_log_mod,             only : init_logger
     use fieldspec_xml_parser_mod,   only : populate_fieldspec_collection
     use init_diagnostics_mod,       only : init_diagnostics
+    use io_context_mod,             only : io_context_type
     use mod_wait,                   only : init_wait
     use seed_diagnostics_mod,       only : seed_diagnostics
-    use timestepping_config_mod,    only : dt, &
-                                           spinup_period
+    use timestepping_config_mod,    only : spinup_period
     use diagnostics_miniapp_config_mod, only : iodef_path
 
     implicit none
 
-
     character(len = *), parameter :: program_name = "diagnostics"
     character(:), allocatable     :: filename
 
-    class(clock_type), pointer :: clock
-    real(r_def)                :: dt_model
+    class(io_context_type), pointer :: io_context
+    class(clock_type),      pointer :: io_clock
 
     integer(i_native) :: model_communicator
 
@@ -116,12 +119,22 @@ contains
                   chi,                &
                   panel_id )
 
-    clock => get_clock()
-    dt_model = real(clock%get_seconds_per_step(), r_def)
+    io_context => get_io_context()
+    select type(io_context)
+    class is (lfric_xios_context_type)
+      io_clock => io_context%get_clock()
+      model_clock = model_clock_type( io_clock%get_first_step(),       &
+                                      io_clock%get_last_step(),        &
+                                      io_clock%get_seconds_per_step(), &
+                                      spinup_period )
+    class default
+      call log_event( "Requires XIOS context", log_level_error )
+    end select
 
     ! Create and initialise prognostic fields
-    call init_diagnostics( mesh, twod_mesh,                &
-                           chi, panel_id, dt_model,        &
+    call init_diagnostics( mesh, twod_mesh,                    &
+                           chi, panel_id,                      &
+                           model_clock%get_seconds_per_step(), &
                            model_data, fieldspec_collection)
 
     call log_event("seed starting values", LOG_LEVEL_INFO)
@@ -141,25 +154,20 @@ contains
 
     implicit none
 
-    class(clock_type), pointer :: clock
-
-    clock => get_clock()
-
     ! standard timestepping from gungho
-    do while (clock%tick())
+    do while (model_clock%tick())
 
         write(log_scratch_space, '("/", A, "\ ")') repeat("*", 76)
         call log_event(log_scratch_space, LOG_LEVEL_TRACE)
         write( log_scratch_space, &
-               '(A,I0)' ) 'Start of timestep ', clock%get_step()
+               '(A,I0)' ) 'Start of timestep ', model_clock%get_step()
         call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
         call log_event( 'Running ' // program_name // ' ...', &
                         LOG_LEVEL_ALWAYS )
         call diagnostics_step( mesh,       &
                                twod_mesh,  &
-                               model_data, &
-                               clock )
+                               model_data )
 
     end do
 

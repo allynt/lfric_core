@@ -8,9 +8,7 @@
 !>
 module gravity_wave_driver_mod
 
-  use clock_mod,                      only: clock_type
   use constants_mod,                  only: i_def, i_native, r_def
-  use driver_io_mod,                  only: get_clock
   use gravity_wave_infrastructure_mod,only: initialise_infrastructure, &
                                             finalise_infrastructure
   use create_gravity_wave_prognostics_mod, &
@@ -49,6 +47,7 @@ module gravity_wave_driver_mod
                                             log_level_error,     &
                                             log_scratch_space
   use mesh_mod,                       only: mesh_type
+  use model_clock_mod,                only: model_clock_type
   use io_mod,                         only: ts_fname
   use files_config_mod,               only: checkpoint_stem_name
   use timer_mod,                      only: init_timer, timer, output_timer
@@ -58,6 +57,8 @@ module gravity_wave_driver_mod
   private
 
   public initialise, run, finalise
+
+  type(model_clock_type) :: model_clock
 
   ! The prognostic fields
   type( field_type ), target :: wind
@@ -76,12 +77,11 @@ contains
 
   implicit none
 
-  class(clock_type), pointer :: clock
-
   ! Initialise aspects of the infrastructure
-  call initialise_infrastructure( program_name,       &
-                                  mesh,               &
-                                  twod_mesh)
+  call initialise_infrastructure( program_name, &
+                                  mesh,         &
+                                  twod_mesh,    &
+                                  model_clock )
 
   call log_event( 'Initialising '//program_name//' ...', LOG_LEVEL_ALWAYS )
 
@@ -110,26 +110,24 @@ contains
   ! Create the prognostic fields
   call create_gravity_wave_prognostics(mesh, wind, pressure, buoyancy)
 
-  clock => get_clock()
-
   ! Initialise prognostic fields
   if (checkpoint_read) then                 ! R ecorded check point to start from
      call log_event( 'Reading checkpoint file to restart wind', LOG_LEVEL_INFO)
      call wind%read_checkpoint("restart_wind",                                &
           trim(ts_fname(checkpoint_stem_name,                                 &
-          "","wind",clock%get_step()-1,"")) )
+          "","wind",model_clock%get_step()-1,"")) )
 
      call log_event( 'Reading checkpoint file to restart pressure',           &
           LOG_LEVEL_INFO)
      call pressure%read_checkpoint("restart_pressure",                        &
           trim(ts_fname(checkpoint_stem_name,"",                              &
-          "pressure",clock%get_step()-1,"")) )
+          "pressure",model_clock%get_step()-1,"")) )
 
      call log_event( 'Reading checkpoint file to restart buoyancy',           &
           LOG_LEVEL_INFO)
      call buoyancy%read_checkpoint("restart_buoyancy",                        &
           trim(ts_fname(checkpoint_stem_name,"",                              &
-          "buoyancy",clock%get_step()-1,"")) )
+          "buoyancy",model_clock%get_step()-1,"")) )
 
   else                                      ! No check point to start from
      call gw_init_fields_alg(wind, pressure, buoyancy)
@@ -140,12 +138,12 @@ contains
 
   ! Output initial conditions
   ! We only want these once at the beginning of a run
-  if (clock%is_initialisation() .and. write_diag) then
-    call gravity_wave_diagnostics_driver( mesh,              &
-                                          wind,              &
-                                          pressure,          &
-                                          buoyancy,          &
-                                          clock,             &
+  if (model_clock%is_initialisation() .and. write_diag) then
+    call gravity_wave_diagnostics_driver( mesh,        &
+                                          wind,        &
+                                          pressure,    &
+                                          buoyancy,    &
+                                          model_clock, &
                                           nodal_output_on_w3)
   end if
 
@@ -158,17 +156,13 @@ contains
 
   implicit none
 
-  class(clock_type), pointer :: clock
-
   write(log_scratch_space,'(A,I0,A)') 'Running '//program_name//' ...'
   call log_event( log_scratch_space, LOG_LEVEL_ALWAYS )
-
-  clock => get_clock()
 
   !--------------------------------------------------------------------------
   ! Model step
   !--------------------------------------------------------------------------
-  do while (clock%tick())
+  do while (model_clock%tick())
 
     ! Update XIOS calendar if we are using it for diagnostic output or
     ! checkpoint
@@ -180,25 +174,27 @@ contains
 
     write( log_scratch_space, '("/",A,"\ ")' ) repeat('*', 76)
     call log_event( log_scratch_space, LOG_LEVEL_TRACE )
-    write( log_scratch_space, '(A,I0)' ) 'Start of timestep ', clock%get_step()
+    write( log_scratch_space, &
+           '(A,I0)' ) 'Start of timestep ', model_clock%get_step()
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     call gravity_wave_alg_step(wind, pressure, buoyancy)
 
-    write( log_scratch_space, '(A,I0)' ) 'End of timestep ', clock%get_step()
+    write( log_scratch_space, &
+           '(A,I0)' ) 'End of timestep ', model_clock%get_step()
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     write( log_scratch_space, '("\",A,"/ ")' ) repeat('*', 76)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
-    if ( (mod(clock%get_step(), diagnostic_frequency) == 0) &
+    if ( (mod(model_clock%get_step(), diagnostic_frequency) == 0) &
          .and. (write_diag) ) then
 
       call log_event("Gravity Wave: writing diagnostic output", LOG_LEVEL_INFO)
 
-      call gravity_wave_diagnostics_driver( mesh,              &
-                                            wind,              &
-                                            pressure,          &
-                                            buoyancy,          &
-                                            clock,             &
+      call gravity_wave_diagnostics_driver( mesh,        &
+                                            wind,        &
+                                            pressure,    &
+                                            buoyancy,    &
+                                            model_clock, &
                                             nodal_output_on_w3)
     end if
 
@@ -214,10 +210,6 @@ contains
 
   implicit none
 
-  class(clock_type), pointer :: clock
-
-  clock => get_clock()
-
   !--------------------------------------------------------------------------
   ! Model finalise
   !--------------------------------------------------------------------------
@@ -231,15 +223,15 @@ contains
   if( checkpoint_write ) then
      call wind%write_checkpoint("restart_wind",                               &
           trim(ts_fname(checkpoint_stem_name,                                 &
-          "","wind",clock%get_step(),"")) )
+          "","wind",model_clock%get_step(),"")) )
 
      call pressure%write_checkpoint("restart_pressure",                       &
           trim(ts_fname(checkpoint_stem_name,"",                              &
-          "pressure",clock%get_step(),"")) )
+          "pressure",model_clock%get_step(),"")) )
 
      call buoyancy%write_checkpoint("restart_buoyancy",                       &
           trim(ts_fname(checkpoint_stem_name,"",                              &
-          "buoyancy",clock%get_step(),"")) )
+          "buoyancy",model_clock%get_step(),"")) )
 
   end if
 

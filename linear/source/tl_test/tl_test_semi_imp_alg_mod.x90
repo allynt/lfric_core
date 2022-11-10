@@ -9,7 +9,7 @@
 !!         to the corresponding section of nonlinear code, for the semi
 !!         implicit algorithm, using the Taylor remainder convergence test.
 module tl_test_semi_imp_alg_mod
-  use clock_mod,                      only: clock_type
+
   use assign_field_random_kernel_mod, only: assign_field_random_kernel_type
   use constants_mod,                  only: i_def, r_def, str_def
   use field_mod,                      only: field_type
@@ -21,6 +21,7 @@ module tl_test_semi_imp_alg_mod
                                             moisture_formulation_dry
   use fs_continuity_mod,              only: W2, W3, Wtheta
   use gungho_model_data_mod,          only: model_data_type
+  use model_clock_mod,                only: model_clock_type
   use moist_dyn_mod,                  only: num_moist_factors
   use mr_indices_mod,                 only: nummr
   use timestepping_config_mod,        only: dt
@@ -50,10 +51,12 @@ module tl_test_semi_imp_alg_mod
   !> @param[in] model_data    The working data set for a model run
   !> @param[in] mesh          The current 3d mesh
   !> @param[in] twod_mesh     The current 2d mesh
+  !> @param[in] model_clock   Time within the model.
+  !>
   subroutine test_semi_imp_alg( model_data, &
                                 mesh,       &
                                 twod_mesh,  &
-                                clock )
+                                model_clock )
 
     implicit none
 
@@ -61,7 +64,7 @@ module tl_test_semi_imp_alg_mod
     type(mesh_type), pointer, intent(in) :: twod_mesh
 
     type(model_data_type), target, intent(in) :: model_data
-    class(clock_type),             intent(in) :: clock
+    class(model_clock_type),       intent(in) :: model_clock
 
     character(str_def) :: label = "semi_imp_alg"
 
@@ -239,7 +242,7 @@ module tl_test_semi_imp_alg_mod
                                 soil_fields, snow_fields,                    &
                                 chemistry_fields,                            &
                                 aerosol_fields, lbc_fields,                  &
-                                clock, dtemp_encorr, mesh, twod_mesh)
+                                model_clock, dtemp_encorr, mesh, twod_mesh)
 
     call semi_implicit_alg_final()
 
@@ -298,7 +301,7 @@ module tl_test_semi_imp_alg_mod
                                   soil_fields, snow_fields,                   &
                                   chemistry_fields,                           &
                                   aerosol_fields, lbc_fields,                 &
-                                  clock, dtemp_encorr, mesh, twod_mesh)
+                                  model_clock, dtemp_encorr, mesh, twod_mesh)
 
       call semi_implicit_alg_final()
 
@@ -311,7 +314,7 @@ module tl_test_semi_imp_alg_mod
                                      ls_u, ls_rho, ls_theta,               &
                                      ls_exner, ls_mr, ls_moist_dyn,        &
                                      derived_fields,                       &
-                                     clock, mesh, twod_mesh)
+                                     model_clock, mesh, twod_mesh)
 
       call tl_semi_implicit_alg_final()
 

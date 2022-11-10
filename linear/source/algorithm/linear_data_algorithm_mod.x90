@@ -7,16 +7,16 @@
 module linear_data_algorithm_mod
 
   use constants_mod,                  only: i_def, r_def
-  use clock_mod,                      only: clock_type
-  use gungho_model_data_mod,          only: model_data_type
   use field_bundle_mod,               only: set_bundle_scalar
   use field_mod,                      only: field_type
   use field_collection_mod,           only: field_collection_type
   use geometric_constants_mod,        only: get_coordinates, &
                                             get_panel_id
+  use gungho_model_data_mod,          only: model_data_type
   use linked_list_mod,                only: linked_list_type
   use lfric_xios_read_mod,            only: read_state
   use mr_indices_mod,                 only: nummr
+  use model_clock_mod,                only: model_clock_type
   use moist_dyn_mod,                  only: num_moist_factors
   use moist_dyn_factors_alg_mod,      only: moist_dyn_factors_alg
   use variable_fields_mod,            only: init_variable_fields,  &
@@ -44,11 +44,15 @@ module linear_data_algorithm_mod
   !> @details Initialise the lin state, that is read in and updated using
   !!          a time-axis.
   !> @param[in,out] ls_times_list  The Lin state time axis list
-  !> @param[in]     clock          Clock
+  !> @param[in]     model_clock    Time within the model.
   !> @param[in,out] ls_fields      The Lin state field collection
   !> @param[in,out] ls_mr          The Lin state mixing ratios
   !> @param[in,out] ls_moist_dyn   The Lin state moist dynamical factors
-  subroutine init_ls_file_alg( ls_times_list, clock, ls_fields, ls_mr, ls_moist_dyn )
+  subroutine init_ls_file_alg( ls_times_list, &
+                               model_clock,   &
+                               ls_fields,     &
+                               ls_mr,         &
+                               ls_moist_dyn )
 
     implicit none
 
@@ -56,11 +60,11 @@ module linear_data_algorithm_mod
     type( field_type ),            intent(inout) :: ls_mr(nummr)
     type( field_type ),            intent(inout) :: ls_moist_dyn(num_moist_factors)
     type(linked_list_type),        intent(in)    :: ls_times_list
-    class(clock_type),             intent(in)    :: clock
+    class(model_clock_type),       intent(in)    :: model_clock
 
     call read_state( ls_fields )
     call init_variable_fields( ls_times_list, &
-                               clock, ls_fields )
+                               model_clock, ls_fields )
 
     call combine_ls_winds( ls_fields )
     call moist_dyn_factors_alg( ls_moist_dyn, ls_mr )
@@ -71,11 +75,15 @@ module linear_data_algorithm_mod
   !> @details Update the Lin state, that is read in and updated using
   !!          a time-axis.
   !> @param[in]     ls_times_list  The Lin state time axis list
-  !> @param[in]     clock          Clock
+  !> @param[in]     model_clock    Time within the model.
   !> @param[in,out] ls_fields      The Lin state field collection
   !> @param[in,out] ls_mr          The Lin state mixing ratios
   !> @param[in,out] ls_moist_dyn   The Lin state moist dynamical factors
-  subroutine update_ls_file_alg( ls_times_list, clock, ls_fields, ls_mr, ls_moist_dyn )
+  subroutine update_ls_file_alg( ls_times_list, &
+                                 model_clock,   &
+                                 ls_fields,     &
+                                 ls_mr,         &
+                                 ls_moist_dyn )
 
     implicit none
 
@@ -83,12 +91,12 @@ module linear_data_algorithm_mod
     type( field_type ),            intent(inout) :: ls_mr(nummr)
     type( field_type ),            intent(inout) :: ls_moist_dyn(num_moist_factors)
     type(linked_list_type),        intent(in)    :: ls_times_list
-    class(clock_type),             intent(in)    :: clock
+    class(model_clock_type),       intent(in)    :: model_clock
 
     type( field_type ), pointer                  :: ls_field => null()
 
     call update_variable_fields( ls_times_list,    &
-                                 clock, ls_fields )
+                                 model_clock, ls_fields )
 
     ! Combine h_wind (W2h) and v_wind (wtheta) into wind (w2)
     call combine_ls_winds( ls_fields )

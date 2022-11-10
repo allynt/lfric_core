@@ -8,30 +8,24 @@
 module linear_model_data_mod
 
   use constants_mod,                  only : i_def, r_def, l_def, str_def
-  use clock_mod,                      only : clock_type
   use gungho_model_data_mod,          only : model_data_type
   use pure_abstract_field_mod,        only : pure_abstract_field_type
   use field_mod,                      only : field_type
   use field_collection_mod,           only : field_collection_type
   use finite_element_config_mod,      only : element_order
-  use mr_indices_mod,                 only : nummr, &
-                                             mr_names
-  use moist_dyn_mod,                  only : num_moist_factors
-  use moist_dyn_factors_alg_mod,      only : moist_dyn_factors_alg
   use function_space_mod,             only : function_space_type
   use function_space_collection_mod,  only : function_space_collection
   use fs_continuity_mod,              only : W2, W3, WTheta, W2h
+  use init_time_axis_mod,             only : setup_field
   use initialization_config_mod,      only : ls_option,           &
                                              ls_option_analytic,  &
                                              ls_option_file
-  use linked_list_mod,                only : linked_list_type
-  use linear_data_algorithm_mod,      only : linear_copy_model_to_ls, &
-                                             linear_init_pert_random, &
-                                             init_ls_file_alg
   use lfric_xios_time_axis_mod,       only : time_axis_type, &
                                              update_interface
   use lfric_xios_read_mod,            only : read_field_time_var
-  use init_time_axis_mod,             only : setup_field
+  use linear_data_algorithm_mod,      only : linear_copy_model_to_ls, &
+                                             linear_init_pert_random, &
+                                             init_ls_file_alg
   use linear_data_algorithm_mod,      only : linear_copy_model_to_ls,  &
                                              linear_init_pert_random,  &
                                              linear_init_reference_ls, &
@@ -39,11 +33,17 @@ module linear_model_data_mod
   use linear_config_mod,              only : pert_option,          &
                                              pert_option_analytic, &
                                              pert_option_random
+  use linked_list_mod,                only : linked_list_type
   use log_mod,                        only : log_event,         &
                                              log_scratch_space, &
                                              LOG_LEVEL_INFO,    &
                                              LOG_LEVEL_ERROR
   use mesh_mod,                       only : mesh_type
+  use model_clock_mod,                only : model_clock_type
+  use moist_dyn_mod,                  only : num_moist_factors
+  use moist_dyn_factors_alg_mod,      only : moist_dyn_factors_alg
+  use mr_indices_mod,                 only : nummr, &
+                                             mr_names
 
   implicit none
 
@@ -204,8 +204,9 @@ contains
   !> @param[in]    mesh        The current 3d mesh
   !> @param[in]    twod_mesh   The current 2d mesh
   !> @param[inout] model_data  The working data set for a model run
-  !> @param[in]    clock       The model time
-  subroutine linear_init_ls( mesh, twod_mesh, model_data, clock )
+  !> @param[in]    model_clock Time within the model.
+  !>
+  subroutine linear_init_ls( mesh, twod_mesh, model_data, model_clock )
 
     use gungho_step_mod,                only : gungho_step
 
@@ -215,7 +216,7 @@ contains
     type( mesh_type ), pointer, intent(in) :: twod_mesh
 
     type( model_data_type ), target, intent(inout) :: model_data
-    class(clock_type),               intent(in)    :: clock
+    class(model_clock_type),         intent(in)    :: model_clock
 
     integer(i_def)              :: i
     type( field_type ), pointer :: ls_field => null()
@@ -243,7 +244,7 @@ contains
               call gungho_step( mesh,       &
                                 twod_mesh,  &
                                 model_data, &
-                                clock )
+                                model_clock )
             end do
 
             ! Copy the prognostic fields to the LS and then zero the prognostics.
@@ -262,7 +263,7 @@ contains
       case( ls_option_file )
 
         call init_ls_file_alg( model_data%ls_times_list, &
-                               clock,                    &
+                               model_clock,              &
                                model_data%ls_fields,     &
                                model_data%ls_mr,         &
                                model_data%ls_moist_dyn )

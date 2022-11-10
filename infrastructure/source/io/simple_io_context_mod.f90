@@ -27,12 +27,10 @@ module simple_io_context_mod
   !>
   type, public, extends(io_context_type) :: simple_io_context_type
     private
-    type(model_clock_type), allocatable :: clock
     class(file_type),       allocatable :: filelist(:)
   contains
     private
     procedure, public :: initialise
-    procedure, public :: get_clock
     procedure, public :: get_filelist
   end type simple_io_context_type
 
@@ -45,12 +43,6 @@ contains
   !> @param [in]     communicator      MPI communicator used by context.
   !> @param [in]     chi               Array of coordinate fields
   !> @param [in]     panel_id          Panel ID field
-  !> @param [in]     start_time        Time of first step.
-  !> @param [in]     finish_time       Time of last step.
-  !> @param [in]     spinup_period     Number of seconds in spinup period.
-  !> @param [in]     seconds_per_step  Number of seconds in a time step.
-  !> @param [in]     calendar_start    Start date for calendar
-  !> @param [in]     calendar_type     Type of calendar.
   !> @param [in]     list_of_files     List of file objects attached to the
   !!                                   context
   !> @param [in]     alt_coords        Array of coordinate fields for alternative meshes
@@ -59,11 +51,6 @@ contains
   subroutine initialise( this,                    &
                          id, communicator,        &
                          chi, panel_id,           &
-                         start_time, finish_time, &
-                         spinup_period,           &
-                         seconds_per_step,        &
-                         calendar_start,          &
-                         calendar_type,           &
                          list_of_files,           &
                          alt_coords, alt_panel_ids )
 
@@ -74,30 +61,9 @@ contains
     integer(i_native),             intent(in)    :: communicator
     class(field_type),             intent(in)    :: chi(:)
     class(field_type),             intent(in)    :: panel_id
-    character(*),                  intent(in)    :: start_time
-    character(*),                  intent(in)    :: finish_time
-    real(r_second),                intent(in)    :: spinup_period
-    real(r_second),                intent(in)    :: seconds_per_step
-    character(*),                  intent(in)    :: calendar_start
-    character(*),                  intent(in)    :: calendar_type
     class(file_type),    optional, intent(in)    :: list_of_files(:)
     type(field_type),    optional, intent(in)    :: alt_coords(:,:)
     type(field_type),    optional, intent(in)    :: alt_panel_ids(:)
-
-    type(step_calendar_type), allocatable :: calendar
-    integer(i_native)                     :: rc
-
-    allocate( calendar, stat=rc )
-    if (rc /= 0) then
-      call log_event( "Unable to allocate calendar", log_level_error )
-    end if
-
-    allocate( this%clock, stat=rc )
-    if (rc /= 0) then
-      call log_event( "Failed to allocate clock", log_level_error )
-    end if
-    this%clock = model_clock_type( calendar, start_time, finish_time, &
-                                   seconds_per_step, spinup_period )
 
     ! Attach optional file list
     if (present(list_of_files)) then
@@ -105,22 +71,6 @@ contains
     end if
 
   end subroutine initialise
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !> @brief Gets the clock associated with this context.
-  !>
-  !> @return Context's clock object.
-  !>
-  function get_clock( this ) result(clock)
-
-    implicit none
-
-    class(simple_io_context_type), intent(in), target :: this
-    class(clock_type), pointer :: clock
-
-    clock => this%clock
-
-  end function get_clock
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Gets the context's file list

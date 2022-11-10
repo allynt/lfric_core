@@ -24,6 +24,7 @@ module swe_timestep_alg_mod
                                             LOG_LEVEL_INFO,    &
                                             LOG_LEVEL_ERROR,   &
                                             LOG_LEVEL_TRACE
+  use model_clock_mod,                only: model_clock_type
 
   ! Configuration options
   use finite_element_config_mod,      only: element_order, nqp_exact
@@ -34,8 +35,7 @@ module swe_timestep_alg_mod
                                             time_scheme,     &
                                             time_scheme_semi_implicit
   use timer_mod,                      only: timer
-  use timestepping_config_mod,        only: dt,               &
-                                            alpha,            &
+  use timestepping_config_mod,        only: alpha,            &
                                             outer_iterations, &
                                             inner_iterations
 
@@ -379,16 +379,18 @@ contains
   !> @param[in,out] buoyancy The buoyancy field
   !> @param[in,out] q        The potential vorticity field
   !> @param[in]     s_geopot The surface geopotential field
-  subroutine swe_timestep_alg_si(wind,     &
-                                 geopot,   &
-                                 buoyancy, &
-                                 q,        &
-                                 s_geopot)
+  subroutine swe_timestep_alg_si( model_clock, &
+                                  wind,        &
+                                  geopot,      &
+                                  buoyancy,    &
+                                  q,           &
+                                  s_geopot)
 
     use swe_rhs_alg_mod,   only: swe_rhs_alg
 
     implicit none
 
+    class(model_clock_type), intent(in) :: model_clock
     ! Prognostic fields, potential vorticity, and surface geopotential
     type(field_type), intent(inout) :: wind
     type(field_type), intent(inout) :: geopot
@@ -424,8 +426,9 @@ contains
     rhs_n   = state
 
     ! auxiliary constants
-    alpha_dt = alpha * dt
-    beta_dt = (alpha - 1.0_r_def) * dt
+    alpha_dt = alpha * real(model_clock%get_seconds_per_step(), r_def)
+    beta_dt = (alpha - 1.0_r_def) &
+              * real(model_clock%get_seconds_per_step(), r_def)
 
     ! Compute timestep n part of rhs of the shallow water equations system
     call swe_rhs_alg( rhs_n, beta_dt, state_n, s_geopot )
@@ -437,7 +440,7 @@ contains
       call swe_transport_control_alg_step( rhs_adv,  &
                                            state_n,  &
                                            state,    &
-                                           dt )
+                                           model_clock )
 
       ! Vorticity solved for in advection alg, does not appear in mixed solve
       call invoke( setval_X(state%vector(isw_q), rhs_adv%vector(isw_q)), &
@@ -507,22 +510,27 @@ contains
   !=============================================================================!
   !> @brief   Shallow water model explicit Euler timestepping algorithm.
   !> @details An algorithm for timestepping the shallow water equations
-  !!          using an explicit forwards Euler method.
-  !> @param[in,out] wind     The wind field
-  !> @param[in,out] geopot   The geopotential field
-  !> @param[in,out] buoyancy The buoyancy field
-  !> @param[in,out] q        The potential vorticity field
-  !> @param[in]     s_geopot The surface geopotential field
-  subroutine swe_timestep_alg_euler( wind,     &
-                                     geopot,   &
-                                     buoyancy, &
-                                     q,        &
+  !>          using an explicit forwards Euler method.
+  !>
+  !> @param[in]     model_clock Time within the model
+  !> @param[in,out] wind        The wind field
+  !> @param[in,out] geopot      The geopotential field
+  !> @param[in,out] buoyancy    The buoyancy field
+  !> @param[in,out] q           The potential vorticity field
+  !> @param[in]     s_geopot    The surface geopotential field
+  !>
+  subroutine swe_timestep_alg_euler( model_clock, &
+                                     wind,        &
+                                     geopot,      &
+                                     buoyancy,    &
+                                     q,           &
                                      s_geopot )
 
     use swe_rhs_alg_mod,            only: swe_rhs_alg
 
     implicit none
 
+    class(model_clock_type), intent(in) :: model_clock
     ! Prognostic fields, potential vorticity, and surface geopotential
     type( field_type ), intent( inout ) :: wind
     type( field_type ), intent( inout ) :: geopot
@@ -556,7 +564,7 @@ contains
     call rhs_b%initialise( vector_space=rhs_n%vector(isw_b)%get_function_space() )
 
     ! auxiliary constants
-    beta_dt  = -1.0_r_def * dt
+    beta_dt  = -1.0_r_def * real(model_clock%get_seconds_per_step(), r_def)
 
     ! Compute timestep n part of rhs of the shallow water equations system
     call swe_rhs_alg( rhs_n, beta_dt, state_n, s_geopot )
@@ -566,7 +574,7 @@ contains
     call swe_transport_control_alg_step( rhs_adv,  &
                                          state_n,  &
                                          state,    &
-                                         dt )
+                                         model_clock )
 
     ! Put RHS together
     call rhs_n%axpy(1.0_r_def, rhs_adv)
@@ -612,19 +620,23 @@ contains
   !!          \f[ y_2 = 3/4y^n + 1/4 F(y_1) \f]
   !!          \f[ y^{n+1} = 1/3y^n + 2/3 F(y_2) \f]
   !!
-  !> @param[in,out] wind     The wind field
-  !> @param[in,out] geopot   The geopotential field
-  !> @param[in,out] buoyancy The buoyancy field
-  !> @param[in,out] q        The potential vorticity field
-  !> @param[in]     s_geopot The surface geopotential field
-  subroutine swe_timestep_alg_rk( wind,     &
-                                  geopot,   &
-                                  buoyancy, &
-                                  q,        &
+  !> @param[in]     model_clock Time within the model
+  !> @param[in,out] wind        The wind field
+  !> @param[in,out] geopot      The geopotential field
+  !> @param[in,out] buoyancy    The buoyancy field
+  !> @param[in,out] q           The potential vorticity field
+  !> @param[in]     s_geopot    The surface geopotential field
+  !>
+  subroutine swe_timestep_alg_rk( model_clock, &
+                                  wind,        &
+                                  geopot,      &
+                                  buoyancy,    &
+                                  q,           &
                                   s_geopot )
 
     implicit none
 
+    class(model_clock_type), intent(in) :: model_clock
     ! Prognostic fields, potential vorticity, and surface geopotential
     type( field_type ), intent( inout ) :: wind
     type( field_type ), intent( inout ) :: geopot
@@ -680,10 +692,11 @@ contains
                  setval_X(q_1,q)  )
 
     ! Forward Euler call of y^n
-    call swe_timestep_alg_euler( wind_1,     &
-                                 geopot_1,   &
-                                 buoyancy_1, &
-                                 q_1,        &
+    call swe_timestep_alg_euler( model_clock, &
+                                 wind_1,      &
+                                 geopot_1,    &
+                                 buoyancy_1,  &
+                                 q_1,         &
                                  s_geopot )
 
     ! Set up 2nd stage variables
@@ -693,7 +706,8 @@ contains
                  setval_X(q_fe1,q_1)  )
 
     ! Forward Euler call of y_1
-    call swe_timestep_alg_euler( wind_fe1,     &
+    call swe_timestep_alg_euler( model_clock,  &
+                                 wind_fe1,     &
                                  geopot_fe1,   &
                                  buoyancy_fe1, &
                                  q_fe1,        &
@@ -712,7 +726,8 @@ contains
                  setval_X(q_fe2,q_2)  )
 
     ! Forward Euler call of y_2
-    call swe_timestep_alg_euler( wind_fe2,     &
+    call swe_timestep_alg_euler( model_clock,  &
+                                 wind_fe2,     &
                                  geopot_fe2,   &
                                  buoyancy_fe2, &
                                  q_fe2,        &

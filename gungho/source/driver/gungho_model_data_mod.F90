@@ -12,7 +12,6 @@
 !>
 module gungho_model_data_mod
 
-  use clock_mod,                          only : clock_type
   use mr_indices_mod,                     only : nummr
   use moist_dyn_mod,                      only : num_moist_factors
   use field_mod,                          only : field_type
@@ -57,6 +56,7 @@ module gungho_model_data_mod
   use create_physics_prognostics_mod,     only : create_physics_prognostics
   use section_choice_config_mod,          only : cloud, cloud_none
   use map_fd_to_prognostics_alg_mod,      only : map_fd_to_prognostics
+  use model_clock_mod,                    only : model_clock_type
   use gungho_init_prognostics_driver_mod, only : init_gungho_prognostics
   use init_gungho_lbcs_alg_mod,           only : init_lbcs_file_alg,    &
                                                  init_lbcs_analytic_alg
@@ -79,7 +79,6 @@ module gungho_model_data_mod
 #endif
   use linked_list_mod,                    only : linked_list_type, &
                                                  linked_list_item_type
-  use driver_io_mod,                      only : get_clock
   use checks_config_mod,                  only : energy_correction,      &
                                                  energy_correction_none
   use calc_total_energy_alg_mod,          only : calc_total_energy_alg
@@ -198,17 +197,15 @@ contains
   !> @param[in]    twod_mesh The current 2d mesh
   subroutine create_model_data( model_data, &
                                 mesh,       &
-                                twod_mesh )
+                                twod_mesh,  &
+                                model_clock )
 
     implicit none
 
-    type( model_data_type ), intent(inout) :: model_data
-    type( mesh_type ), intent(in), pointer :: mesh
-    type( mesh_type ), intent(in), pointer :: twod_mesh
-
-    class(clock_type), pointer :: clock => null()
-
-    clock => get_clock()
+    type( model_data_type ), intent(inout)       :: model_data
+    type( mesh_type ),       intent(in), pointer :: mesh
+    type( mesh_type ),       intent(in), pointer :: twod_mesh
+    class(model_clock_type), intent(in)          :: model_clock
 
     !-------------------------------------------------------------------------
     ! Select how to initialize model prognostic fields
@@ -259,7 +256,7 @@ contains
     ! Create prognostics used by physics
     if (use_physics) then
       call create_physics_prognostics( mesh, twod_mesh,                  &
-                                       clock,                            &
+                                       model_clock,                      &
                                        model_data%depository,            &
                                        model_data%prognostic_fields,     &
                                        model_data%adv_fields_all_outer,  &
@@ -302,15 +299,14 @@ contains
   !-------------------------------------------------------------------------------
   !> @brief Initialises the working data set dependent of namelist configuration
   !> @param [inout] model_data The working data set for a model run
-  subroutine initialise_model_data( model_data, mesh, twod_mesh )
+  subroutine initialise_model_data( model_data, model_clock, mesh, twod_mesh )
 
     implicit none
 
     type( model_data_type ), intent(inout) :: model_data
+    class(model_clock_type), intent(in)    :: model_clock
     type( mesh_type ), intent(in), pointer :: mesh
     type( mesh_type ), intent(in), pointer :: twod_mesh
-
-    class(clock_type), pointer :: clock => null()
 
     type( field_type ), pointer :: theta => null()
     type( field_type ), pointer :: rho   => null()
@@ -318,8 +314,6 @@ contains
     type( field_type ), pointer :: exner => null()
     type( field_type ), pointer :: temp_correction_field => null()
     type( field_type ), pointer :: accumulated_fluxes    => null()
-
-    clock => get_clock()
 
     ! Initialise all the physics fields here. We'll then re initialise
     ! them below if need be
@@ -357,7 +351,7 @@ contains
         ! from a previous run
 
         call read_checkpoint( model_data%prognostic_fields, &
-                              clock%get_first_step() - 1,   &
+                              model_clock%get_first_step() - 1,   &
                               checkpoint_stem_name )
 
         ! Update factors for moist dynamics
@@ -410,12 +404,12 @@ contains
 
         case ( lbc_option_gungho_file )
           call init_lbcs_file_alg( model_data%lbc_times_list, &
-                                   clock,                     &
+                                   model_clock,                     &
                                    model_data%lbc_fields )
 
         case ( lbc_option_um2lfric_file )
           call init_lbcs_file_alg( model_data%lbc_times_list, &
-                                   clock,                     &
+                                   model_clock,                     &
                                    model_data%lbc_fields )
 
         case ( lbc_option_none )
@@ -443,7 +437,7 @@ contains
         call model_data%derived_fields%get_field('accumulated_fluxes',accumulated_fluxes)
       end if
 
-      if (clock%is_spinning_up()) then
+      if (model_clock%is_spinning_up()) then
         call set_any_dof_alg(u, T, 0.0_r_def)
       end if
       call map_physics_fields_alg(u, exner, rho, theta,     &
@@ -462,7 +456,7 @@ contains
                                 model_data%fd_fields, put_field=.true. )
         case ( ancil_option_fixed, ancil_option_updating )
           call init_variable_fields( model_data%ancil_times_list, &
-                                     clock, model_data%ancil_fields )
+                                     model_clock, model_data%ancil_fields )
           if (.not. checkpoint_read) then
             ! These parts only need to happen on a new run
             call log_event( "Gungho: Reading ancillaries from file ", LOG_LEVEL_INFO )
@@ -518,20 +512,17 @@ contains
   !> @brief Writes out a checkpoint and dump file dependent on namelist
   !> options
   !> @param[inout] model_data The working data set for the model run
-  !> @param[in] clock Model time.
+  !> @param[in] model_clock Model time.
   !>
-  subroutine output_model_data( model_data )
+  subroutine output_model_data( model_data, model_clock )
 
     implicit none
 
     type( model_data_type ), intent(inout), target :: model_data
+    class(model_clock_type), intent(in)            :: model_clock
 
     type( field_collection_type ), pointer :: fd_fields => null()
     type( field_collection_type ), pointer :: prognostic_fields => null()
-
-    class(clock_type), pointer :: clock => null()
-
-    clock => get_clock()
 
     ! Get pointers to field collections for use downstream
     fd_fields => model_data%fd_fields
@@ -554,7 +545,7 @@ contains
 
     !=================== Write fields to checkpoint files ====================!
     if( checkpoint_write ) then
-       call write_checkpoint( prognostic_fields, clock, checkpoint_stem_name )
+       call write_checkpoint( prognostic_fields, model_clock, checkpoint_stem_name )
     end if
 
   end subroutine output_model_data

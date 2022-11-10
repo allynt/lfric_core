@@ -181,15 +181,18 @@ contains
   !> @param[in,out] moist_dyn    Moist dynamics factors
   !> @param[in,out] exner        Exner pressure field
   !> @param[in,out] mr           Mixing ratios
-  !> @param[in] dt               The model timestep length
-  subroutine rk_alg_step(u, rho, theta, moist_dyn, exner, mr, dt )
+  !> @param[in]     model_clock  Time withing the model
+  !>
+  subroutine rk_alg_step(u, rho, theta, moist_dyn, exner, mr, model_clock )
+
+    use model_clock_mod, only : model_clock_type
 
     implicit none
     ! Prognostic fields
     type(field_type),            intent(inout) :: u, rho, theta, exner, &
                                                   moist_dyn(num_moist_factors)
     type(field_type),            intent(inout) :: mr(nummr)
-    real(kind=r_def),            intent(in)    :: dt
+    class(model_clock_type),     intent(in)    :: model_clock
 
     ! The quadrature object
     type( quadrature_xyoz_type ),  pointer :: qr => null()
@@ -243,7 +246,7 @@ contains
       ! Compute advection terms
       call gungho_transport_control_alg( rhs_prediction(:,stage), state, &
                                          state(igh_u), state(igh_u),     &
-                                         mr, mr, dt, outer )
+                                         mr, mr, model_clock, outer )
       ! Compute new rhs
       if ( rotating ) then
         coriolis => get_coriolis(mesh_id)
@@ -292,7 +295,8 @@ contains
 
       ! Add increments
       call invoke( setval_c(inc(igh_p), 0.0_r_def) )
-      call bundle_axpy(dt, inc, state_n, state, bundle_size)
+      call bundle_axpy( real(model_clock%get_seconds_per_step(), r_def), &
+                        inc, state_n, state, bundle_size)
       ! Recompute exner from eos
       m3_inv => get_inverse_w3_mass_matrix(mesh_id)
       call invoke( project_eos_pressure_kernel_type( state(igh_p), state(igh_d),       &
@@ -321,7 +325,8 @@ contains
                   momentum_viscosity_kernel_type( inc(igh_u), state(igh_u), 1, &
                                                   dx_at_w2, 1, viscosity_mu ), &
                   setval_c(inc(igh_d), 0.0_r_def) )
-      call bundle_axpy(dt, inc, state, state, bundle_size)
+      call bundle_axpy( real(model_clock%get_seconds_per_step(), r_def), &
+                        inc, state, state, bundle_size )
     end if
 
     ! Return fields in u, theta, rho arrays

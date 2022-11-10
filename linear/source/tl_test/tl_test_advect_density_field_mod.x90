@@ -20,11 +20,11 @@ module tl_test_advect_density_field_mod
   use finite_element_config_mod,      only: element_order
   use fs_continuity_mod,              only: W2, W3
   use gungho_model_data_mod,          only: model_data_type
-  use timestepping_config_mod,        only: dt
   use log_mod,                        only: log_event,         &
                                             log_scratch_space, &
                                             LOG_LEVEL_INFO
   use mesh_mod,                       only: mesh_type
+  use model_clock_mod,                only: model_clock_type
   use gungho_transport_control_alg_mod,     &
                                       only: gungho_transport_control_alg_init, &
                                             gungho_transport_control_alg
@@ -49,10 +49,13 @@ module tl_test_advect_density_field_mod
   contains
 
   !> @brief Test the tangent linear for advecting density.
-  !> @param[in] model_data The working data set for a model run
-  !> @param[in] mesh       The current 3d mesh
-  !> @param[in] twod_mesh  The current 2d mesh
+  !> @param[in] model_data  The working data set for a model run
+  !> @param[in] model_clock Time in the model
+  !> @param[in] mesh        The current 3d mesh
+  !> @param[in] twod_mesh   The current 2d mesh
+  !>
   subroutine test_advect_density_field( model_data, &
+                                        model_clock, &
                                         mesh,       &
                                         twod_mesh )
 
@@ -62,6 +65,7 @@ module tl_test_advect_density_field_mod
     type(mesh_type), pointer, intent(in) :: twod_mesh
 
     type(model_data_type), target, intent(in) :: model_data
+    class(model_clock_type),       intent(in) :: model_clock
 
     character(str_def) :: label = "advect_density_field"
 
@@ -92,7 +96,9 @@ module tl_test_advect_density_field_mod
     real(r_def) :: norm_diff, norm_diff_prev
     real(r_def) :: gamma_u, gamma_rho
 
-    integer :: n
+    integer     :: n
+    real(r_def) :: cast_dt
+
     real(r_def), parameter :: tol = 1.e-3_r_def
 
     call log_event( "TL Test: " // trim(label), &
@@ -137,7 +143,7 @@ module tl_test_advect_density_field_mod
 
     ! Init stuff
     call gungho_transport_control_alg_init(mesh)
-    transport_runtime = transport_runtime_type(ls_u, ls_u, dt)
+    transport_runtime = transport_runtime_type( ls_u, ls_u, model_clock )
     call set_transport_runtime(transport_runtime)
     transport_metadata => transport_metadata_collection%get_transport_metadata('density')
 
@@ -146,7 +152,9 @@ module tl_test_advect_density_field_mod
                  assign_field_random_kernel_type( random_rho, 1.0_r_def ), &
                  setval_C( n1_advection_inc, 0.0_r_def ) )
 
-    call transport_field( ls_rho_np1, ls_rho, dt, transport_metadata )
+    cast_dt = real(model_clock%get_Seconds_per_step(), r_def)
+
+    call transport_field( ls_rho_np1, ls_rho, cast_dt, transport_metadata )
     call invoke( X_minus_Y( n1_advection_inc, ls_rho_np1, ls_rho ) )
 
     gamma_u = 6.e7
@@ -164,18 +172,18 @@ module tl_test_advect_density_field_mod
                    inc_X_plus_Y( n_u, p_u ),                  &
                    inc_X_plus_Y( n_rho, p_rho ) )
 
-      transport_runtime = transport_runtime_type(n_u, n_u, dt)
+      transport_runtime = transport_runtime_type( n_u, n_u, model_clock )
       call set_transport_runtime(transport_runtime)
 
-      call transport_field( n_rho_np1, n_rho, dt, transport_metadata )
+      call transport_field( n_rho_np1, n_rho, cast_dt, transport_metadata )
       call invoke( X_minus_Y( n2_advection_inc, n_rho_np1, n_rho ) )
 
-      transport_runtime = transport_runtime_type(ls_u, ls_u, dt)
+      transport_runtime = transport_runtime_type( ls_u, ls_u, model_clock )
       call set_transport_runtime(transport_runtime)
-      tl_transport_runtime = transport_runtime_type(p_u, p_u, dt)
+      tl_transport_runtime = transport_runtime_type( p_u, p_u, model_clock )
 
       call tl_transport_field( p_rho_np1, p_rho, ls_rho,  &
-                               dt, transport_metadata )
+                               cast_dt, transport_metadata )
       call invoke( X_minus_Y( p_advection_inc, p_rho_np1, p_rho ) )
 
       call invoke( X_minus_Y( diff, n2_advection_inc, n1_advection_inc ), &

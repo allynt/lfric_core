@@ -25,6 +25,7 @@ module physical_op_constants_mod
                                                 LOG_LEVEL_ERROR
   use mesh_mod,                           only: mesh_type
   use mesh_collection_mod,                only: mesh_collection
+  use model_clock_mod,                    only: model_clock_type
   use extrusion_mod,                      only: TWOD
   use extrusion_config_mod,               only: domain_top
 
@@ -124,20 +125,21 @@ contains
   !> @param[in] chi_list             List of coordinate fields
   !> @param[in] panel_id_list        List of panel_id fields
   !> @param[in] label_list           List of labels for meshes
-  !> @param[in] dt                   The model timestep length
+  !> @param[in] model_clock          Time in the model.
   subroutine create_physical_op_constants(mesh_id_list,  &
                                           chi_list,      &
                                           panel_id_list, &
                                           label_list,    &
-                                          dt             )
+                                          model_clock )
+
     implicit none
 
     ! Arguments
-    integer(kind=i_def), intent(in) :: mesh_id_list(:)
-    type(field_type),    intent(in) :: chi_list(:,:)
-    type(field_type),    intent(in) :: panel_id_list(:)
-    integer(kind=i_def), intent(in) :: label_list(:)
-    real(kind=r_def),    intent(in) :: dt
+    integer(kind=i_def),     intent(in) :: mesh_id_list(:)
+    type(field_type),        intent(in) :: chi_list(:,:)
+    type(field_type),        intent(in) :: panel_id_list(:)
+    integer(kind=i_def),     intent(in) :: label_list(:)
+    class(model_clock_type), intent(in) :: model_clock
 
     ! Internal variables
     type(function_space_type),  pointer :: w1_k0_fs  => null()
@@ -182,6 +184,8 @@ contains
     ! Parameters of the cells
     integer(i_def), parameter :: n_faces = 4_i_def
     integer(i_def), parameter :: n_centres = 1_i_def
+
+    real(r_def) :: cast_delta_t
 
     if ( subroutine_timers ) call timer('physical_op_constants_alg')
     call log_event( "Gungho: creating physical_op_constants", LOG_LEVEL_INFO )
@@ -319,6 +323,10 @@ contains
           height_w3 => get_height(W3, mesh%get_id())
           height_wth => get_height(Wtheta, mesh%get_id())
 
+          ! Because we can't include function calls in "invoke" argument lists
+          ! we need to extract this value up front.
+          !
+          cast_delta_t = real(model_clock%get_seconds_per_step(), r_def)
           call invoke( name = "calculate_physics_geometric_objects",           &
                        ! Calculate dx at wtheta points
                        calc_delta_at_wtheta_kernel_type(delta_at_wtheta,       &
@@ -334,7 +342,7 @@ contains
                        ! Calculate r^2 * dz_at_fd2
                        inc_X_times_Y(dtrdz_fd2, r_squared),                    &
                        ! Calculate dt / (r^2 * dz_at_fd2 )
-                       inc_a_divideby_X(dt, dtrdz_fd2),                        &
+                       inc_a_divideby_X(cast_delta_t, dtrdz_fd2),              &
                        ! Calculate dz at location of lowest order W1 dofs
                        setval_c(rdz_fd1, 1.0_r_def),                           &
                        calc_dz_face_kernel_type(rdz_fd1, height_w2, height_w1, &
@@ -347,7 +355,8 @@ contains
 
           ! Calculate maximum diffusion coefficient allowed in this run for
           ! stability based on UMDP 28 equation 32: max_diff = dx^2/(8*dt)
-          diffusion_const = 0.125_r_def/dt
+          diffusion_const = 0.125_r_def &
+                            / real(model_clock%get_seconds_per_step(), r_def)
           call invoke( name = "calculate_max_diffusion",             &
                        setval_X( max_diff_wtheta, delta_at_wtheta ), &
                        inc_X_powint_n( max_diff_wtheta, 2_i_def ),   &

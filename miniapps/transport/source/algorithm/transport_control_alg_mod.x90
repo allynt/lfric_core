@@ -243,8 +243,7 @@ contains
   !!          transporting rho, theta, tracer and moisture mixing ratios. The
   !!          transporting wind field is prescribed, but may be updated if a
   !!          time-varying profile has been specified.
-  !> @param[in]     timestep           Integer from the clock denoting the step
-  !> @param[in]     model_dt           Time difference across time step in seconds
+  !> @param[in]     model_clock        Time within the model
   !> @param[in,out] wind               The transporting wind field
   !> @param[in,out] rho                Dry density field to transport
   !> @param[in,out] theta              Pot. temperature field to transport
@@ -253,27 +252,28 @@ contains
   !> @param[in,out] constant           Constant tracer field to transport conservatively
   !> @param[in,out] mr                 Bundle of mixing ratio fields to transport
   !> @param[in]     nummr_to_transport Number of moisture species to transport
-  subroutine transport_step( timestep, model_dt, wind, &
+  subroutine transport_step( model_clock, wind, &
                              rho, theta, tracer_con,   &
                              tracer_adv, constant, mr, &
                              nummr_to_transport )
 
     use field_bundle_mod,                 only: clone_bundle, copy_bundle
     use init_gungho_prognostics_alg_mod,  only: init_u_field
+    use model_clock_mod,                  only: model_clock_type
     use moist_mr_transport_alg_mod,       only: moist_mr_transport_alg
     use transport_field_mod,              only: transport_field
 
     implicit none
 
     ! Arguments
-    integer(kind=i_def), intent(in)    :: timestep
-    real(kind=r_def),    intent(in)    :: model_dt
-    type(field_type),    intent(inout) :: wind, rho, theta
-    type(field_type),    intent(inout) :: tracer_con, tracer_adv, constant
-    type(field_type),    intent(inout) :: mr(nummr)
-    integer(kind=i_def), intent(in)    :: nummr_to_transport
+    class(model_clock_type), intent(in) :: model_clock
+    type(field_type),        intent(inout) :: wind, rho, theta
+    type(field_type),        intent(inout) :: tracer_con, tracer_adv, constant
+    type(field_type),        intent(inout) :: mr(nummr)
+    integer(kind=i_def),     intent(in)    :: nummr_to_transport
 
     real(kind=r_def)             :: current_time
+    real(r_def)                  :: cast_dt
     type(field_type)             :: rho_n, theta_n, constant_n
     type(field_type)             :: tracer_con_n, tracer_adv_n, mr_n(nummr)
 
@@ -285,8 +285,14 @@ contains
     type(transport_metadata_type), pointer :: transport_metadata => null()
 
     ! Update the transporting wind field
+    !
+    !> @todo This is all kinds of bad and wrong. If the model needs the number
+    !>       of seconds since the origin of the clock then the clock should
+    !>       tell it.
+    !>
+    cast_dt = real(model_clock%get_seconds_per_step(), r_def)
     if ( time_varying_wind ) then
-      current_time = model_dt * real(timestep, r_def)
+      current_time = model_clock%get_step() * cast_dt
       call init_u_field(wind, current_time)
     end if
 
@@ -294,46 +300,50 @@ contains
     shifted_mesh => mesh_collection%get_mesh(primary_mesh, SHIFTED)
 
     ! Create transport_runtime object (advecting wind etc)
-    transport_runtime = transport_runtime_type(wind, wind, model_dt, shifted_mesh)
+    transport_runtime = transport_runtime_type( wind, wind, &
+                                                model_clock,  shifted_mesh)
     call set_transport_runtime(transport_runtime)
 
     ! Transport dry density
     call log_event( "Transporting density...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('rho')
     call rho%copy_field(rho_n)
-    call transport_field(rho, rho_n, model_dt, transport_metadata)
+    call transport_field( rho, rho_n, cast_dt, transport_metadata )
 
     ! Transport potential temperature
     call log_event( "Transporting potential temperature...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('theta')
     call theta%copy_field(theta_n)
-    call transport_field(theta, theta_n, model_dt, transport_metadata)
+    call transport_field( theta, theta_n, cast_dt, transport_metadata )
 
     ! Transport conservative W3 tracer
     call log_event( "Transporting conservative tracer...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('tracer_con')
     call tracer_con%copy_field(tracer_con_n)
-    call transport_field(tracer_con, tracer_con_n, model_dt, transport_metadata)
+    call transport_field( tracer_con, tracer_con_n, &
+                          cast_dt, transport_metadata )
 
     ! Transport advective W3 tracer
     call log_event( "Transporting advective tracer...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('tracer_adv')
     call tracer_adv%copy_field(tracer_adv_n)
-    call transport_field(tracer_adv, tracer_adv_n, model_dt, transport_metadata)
+    call transport_field( tracer_adv, tracer_adv_n, &
+                          cast_dt, transport_metadata )
 
     ! Transport constant W3 tracer
     call log_event( "Transporting constant tracer...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('constant')
     call constant%copy_field(constant_n)
-    call transport_field(constant, constant_n, model_dt, transport_metadata)
+    call transport_field( constant, constant_n, &
+                          cast_dt, transport_metadata )
 
     ! Transport moisture mixing ratio fields
     call log_event("Transporting moisture mixing ratio fields...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('mr')
     call clone_bundle(mr, mr_n, nummr)
     call copy_bundle(mr, mr_n, nummr)
-    call moist_mr_transport_alg(mr, mr_n, nummr_to_transport, &
-                                model_dt, transport_metadata)
+    call moist_mr_transport_alg( mr, mr_n, nummr_to_transport, &
+                                 cast_dt, transport_metadata)
 
     nullify(primary_mesh, shifted_mesh)
 

@@ -274,8 +274,9 @@ contains
     ! Set time units to seconds across a single year - the calendar type needs to
     ! be integrated into this eventually
     if ( .not. any( valid_units == trim(adjustl(time_units)) ) ) then
-      write( log_scratch_space,'(A,A)' ) "Invalid units for "//trim(self%name)// &
-                                         " time axis: "// trim(time_units)
+      write( log_scratch_space,&
+             '(A,A,A,A)' ) "Invalid units for ", trim(self%name), &
+                           " time axis: ", trim(time_units)
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
 

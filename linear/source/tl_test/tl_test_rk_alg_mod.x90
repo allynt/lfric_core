@@ -11,7 +11,6 @@
 module tl_test_rk_alg_mod
 
   use assign_field_random_kernel_mod, only: assign_field_random_kernel_type
-  use clock_mod,                      only: clock_type
   use constants_mod,                  only: i_def, r_def, str_def
   use field_mod,                      only: field_type
   use field_bundle_mod,               only: clone_bundle
@@ -20,6 +19,7 @@ module tl_test_rk_alg_mod
   use finite_element_config_mod,      only: element_order
   use fs_continuity_mod,              only: W2, W3, Wtheta
   use gungho_model_data_mod,          only: model_data_type
+  use model_clock_mod,                only: model_clock_type
   use moist_dyn_mod,                  only: num_moist_factors
   use mr_indices_mod,                 only: nummr
   use timestepping_config_mod,        only: dt
@@ -46,18 +46,19 @@ module tl_test_rk_alg_mod
   !> @param[in] model_data  The working data set for a model run
   !> @param[in] mesh        The current 3d mesh
   !> @param[in] twod_mesh   The current 2d mesh
-  !> @param[in] clock       Model time
+  !> @param[in] model_clock Model time
+  !>
   subroutine test_rk_alg( model_data, &
                           mesh,       &
                           twod_mesh,  &
-                          clock )
+                          model_clock )
 
     implicit none
 
     type(mesh_type),       pointer, intent(in) :: mesh
     type(mesh_type),       pointer, intent(in) :: twod_mesh
     type(model_data_type), target,  intent(in) :: model_data
-    class(clock_type),              intent(in) :: clock
+    class(model_clock_type),        intent(in) :: model_clock
 
     character(str_def) :: label = "rk_alg"
 
@@ -186,7 +187,7 @@ module tl_test_rk_alg_mod
     call rk_alg_init(mesh, u, rho, theta, exner)
 
     call rk_alg_step(u, rho, theta, moist_dyn, exner, &
-                     mr, dt )
+                     mr, model_clock )
 
     call rk_alg_final()
 
@@ -225,17 +226,18 @@ module tl_test_rk_alg_mod
 
       call rk_alg_init(mesh, n_u, n_rho, n_theta, n_exner)
 
-      call rk_alg_step(n_u, n_rho, n_theta, n_moist_dyn, n_exner, &
-                       n_mr, dt )
+      call rk_alg_step( n_u, n_rho, n_theta, n_moist_dyn, n_exner, &
+                        n_mr, model_clock )
 
       call rk_alg_final()
 
       call tl_rk_alg_init(mesh, p_u, p_rho, p_theta, p_exner, &
                           ls_u, ls_rho, ls_theta, ls_exner)
 
-      call tl_rk_alg_step(p_u, p_rho, p_theta, p_moist_dyn, p_exner, &
-                          p_mr, ls_u, ls_rho,                        &
-                          ls_theta, ls_moist_dyn, ls_exner, ls_mr, clock)
+      call tl_rk_alg_step( p_u, p_rho, p_theta, p_moist_dyn, p_exner, &
+                           p_mr, ls_u, ls_rho,                        &
+                           ls_theta, ls_moist_dyn, ls_exner, ls_mr,   &
+                           model_clock )
 
       call tl_rk_alg_final()
 

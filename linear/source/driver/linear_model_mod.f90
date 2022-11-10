@@ -7,10 +7,10 @@
 module linear_model_mod
 
   use constants_mod,              only : i_def
-  use clock_mod,                  only : clock_type
   use field_mod,                  only : field_type
   use field_collection_mod,       only : field_collection_type
   use gungho_model_data_mod,      only : model_data_type
+  use model_clock_mod,            only : model_clock_type
   use tl_rk_alg_timestep_mod,     only : tl_rk_alg_init, &
                                          tl_rk_alg_final
   use tl_si_timestep_alg_mod,     only : tl_semi_implicit_alg_init, &
@@ -37,18 +37,16 @@ module linear_model_mod
 contains
 
   !> @brief Completes the initialisation of the tangent linear model
-  !> @param[in] clock Model time
+  !> @param[in] model_clock Time wihtin the model.
   !> @param[in] mesh The primary mesh
   !> @param[in,out] model_data The working data set for the model run
-  subroutine initialise_linear_model( clock, &
-                                      mesh,  &
+  !>
+  subroutine initialise_linear_model( mesh,  &
                                       model_data )
     implicit none
 
-    class(clock_type), intent(in), pointer :: clock
-    type(mesh_type),   intent(in), pointer :: mesh
-
-    type( model_data_type ), intent(inout), target :: model_data
+    type(mesh_type),        intent(in),    pointer :: mesh
+    type(model_data_type),  intent(inout), target :: model_data
 
     type( field_collection_type ), pointer :: prognostic_fields => null()
     type( field_type ),            pointer :: mr(:) => null()

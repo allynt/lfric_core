@@ -133,8 +133,8 @@ module tl_test_rhs_alg_mod
     gamma_moist_dyn = 1.e-1_r_def
 
     call set_bundle_scalar( 0.0_r_def, n1_rhs, bundle_size )
-    call rhs_alg(n1_rhs, dt, ls_state, ls_state, ls_moist_dyn, &
-                 .true., .false., dt)
+    call rhs_alg( n1_rhs, dt, ls_state, ls_state, ls_moist_dyn, &
+                  .true., .false. )
 
     do n=1,2
       gamma_u = gamma_u / 2.0_r_def
@@ -160,8 +160,8 @@ module tl_test_rhs_alg_mod
           inc_X_plus_Y( n_moist_dyn(i), p_moist_dyn(i) ) )
       enddo
 
-      call rhs_alg(n2_rhs, dt, state, state, n_moist_dyn, &
-                 .true., .false., dt)
+      call rhs_alg( n2_rhs, dt, state, state, n_moist_dyn, &
+                    .true., .false. )
 
       call tl_rhs_alg(p_rhs, dt, p_state, p_state, p_moist_dyn, &
                       ls_state, ls_moist_dyn,                   &

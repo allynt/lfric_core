@@ -12,7 +12,6 @@
 !-------------------------------------------------------------------------------
 module diagnostics_calc_mod
 
-  use clock_mod,                     only: clock_type
   use constants_mod,                 only: i_def, r_def, str_max_filename
   use diagnostic_alg_mod,            only: divergence_diagnostic_alg,   &
                                            hydbal_diagnostic_alg,       &
@@ -30,6 +29,7 @@ module diagnostics_calc_mod
   use field_mod,                     only: field_type
   use field_parent_mod,              only: write_interface
   use fs_continuity_mod,             only: W3
+  use model_clock_mod,               only: model_clock_type
   use moist_dyn_mod,                 only: num_moist_factors
   use log_mod,                       only: log_event,         &
                                            log_set_level,     &
@@ -61,9 +61,9 @@ contains
 subroutine write_divergence_diagnostic(u_field, clock, mesh)
   implicit none
 
-  type(field_type),  intent(in)    :: u_field
-  class(clock_type), intent(in)    :: clock
-  type(mesh_type),   intent(in), pointer :: mesh
+  type(field_type),        intent(in)    :: u_field
+  class(model_clock_type), intent(in)    :: clock
+  type(mesh_type),         intent(in), pointer :: mesh
 
   type(field_type)                :: div_field
   real(r_def)                     :: l2_norm
@@ -136,8 +136,8 @@ end subroutine write_hydbal_diagnostic
 subroutine write_vorticity_diagnostic(u_field, clock)
   implicit none
 
-  type(field_type),  intent(in) :: u_field
-  class(clock_type), intent(in) :: clock
+  type(field_type),        intent(in) :: u_field
+  class(model_clock_type), intent(in) :: clock
 
   type(field_type) :: vorticity
 

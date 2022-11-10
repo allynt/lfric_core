@@ -23,6 +23,7 @@ module driver_io_mod
   use timestepping_config_mod, only: dt, spinup_period
   use simple_io_context_mod,   only: simple_io_context_type
 #ifdef USE_XIOS
+  use lfric_xios_clock_mod,    only: lfric_xios_clock_type
   use lfric_xios_context_mod,  only: lfric_xios_context_type
   use lfric_xios_file_mod,     only: lfric_xios_file_type
 #endif
@@ -31,7 +32,6 @@ module driver_io_mod
 
   public :: init_io, final_io,  &
             get_io_context,     &
-            get_clock,          &
             filelist_populator, &
             append_file_to_list
   private
@@ -80,8 +80,8 @@ contains
     integer(i_native) :: rc
 
     ! Allocate IO context type based on model configuration
-    if ( use_xios_io ) then
 #ifdef USE_XIOS
+    if ( use_xios_io ) then
       allocate( lfric_xios_context_type::context, stat=rc )
       if (rc /= 0) then
         call log_event( "Unable to allocate LFRic-XIOS context object", &
@@ -93,39 +93,61 @@ contains
       type is (lfric_xios_context_type)
         call context%set_timer_flag(subroutine_timers)
       end select
-#endif
-
     else
+#endif
       allocate( simple_io_context_type::context, stat=rc )
       if (rc /= 0) then
         call log_event( "Unable to allocate simple I/O context object", &
                         log_level_error )
       end if
-
+#ifdef USE_XIOS
     end if
+#endif
 
     ! Populate list of files if present and intialise context object
     if (present(populate_filelist)) then
       call populate_filelist(file_list)
-      call context%initialise( id, communicator,                      &
-                               chi, panel_id,                         &
-                               timestep_start,                        &
-                               timestep_end,                          &
-                               spinup_period, dt,                     &
-                               calendar_start,                        &
-                               key_from_calendar_type(calendar_type), &
-                               file_list,                             &
-                               alt_coords, alt_panel_ids )
+      select type(context)
+      class is (simple_io_context_type)
+        call context%initialise( id, communicator, &
+                                 chi, panel_id,    &
+                                 file_list )
+#ifdef USE_XIOS
+      class is (lfric_xios_context_type)
+        call context%initialise( id, communicator,                      &
+                                 chi, panel_id,                         &
+                                 timestep_start,                        &
+                                 timestep_end,                          &
+                                 spinup_period, dt,                     &
+                                 calendar_start,                        &
+                                 key_from_calendar_type(calendar_type), &
+                                 file_list,                             &
+                                 alt_coords, alt_panel_ids )
+#endif
+      class default
+        call log_event( "Unrecognised context type", log_level_error )
+      end select
 
     else
-      call context%initialise( id, communicator,                      &
-                               chi, panel_id,                         &
-                               timestep_start,                        &
-                               timestep_end,                          &
-                               spinup_period, dt,                     &
-                               calendar_start,                        &
-                               key_from_calendar_type(calendar_type), &
-                               alt_coords=alt_coords, alt_panel_ids=alt_panel_ids )
+      select type(context)
+      class is (simple_io_context_type)
+        call context%initialise( id, communicator, &
+                                 chi, panel_id )
+#ifdef USE_XIOS
+      class is (lfric_xios_context_type)
+        call context%initialise( id, communicator,                      &
+                                 chi, panel_id,                         &
+                                 timestep_start,                        &
+                                 timestep_end,                          &
+                                 spinup_period, dt,                     &
+                                 calendar_start,                        &
+                                 key_from_calendar_type(calendar_type), &
+                                 alt_coords=alt_coords,                 &
+                                 alt_panel_ids=alt_panel_ids )
+#endif
+      class default
+        call log_event( "Unrecognised context type", log_level_error )
+      end select
 
     end if
 
@@ -150,17 +172,6 @@ contains
     context_ptr => context
 
   end function get_io_context
-
-  !> @brief  Returns the model clock.
-  function get_clock() result(clock_ptr)
-
-    implicit none
-
-    class(clock_type), pointer :: clock_ptr
-
-    clock_ptr => context%get_clock()
-
-  end function get_clock
 
   !> @brief  Appends a file to the end of a list of files.
   !>

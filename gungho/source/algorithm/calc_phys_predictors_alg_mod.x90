@@ -7,12 +7,12 @@
 !>@brief Calculate predictors required by fast physics
 module calc_phys_predictors_alg_mod
 
-  use clock_mod,                only: clock_type
   use constants_mod,            only: r_def
   use field_mod,                only: field_type
   use field_collection_mod,     only: field_collection_type
   use derived_config_mod,       only: bundle_size
   use mesh_mod,                 only: mesh_type
+  use model_clock_mod,          only: model_clock_type
   use field_indices_mod,        only: igh_u, igh_t
   use formulation_config_mod,   only: use_wavedynamics
 
@@ -41,8 +41,9 @@ contains
   !> @param[in]     state            Current prognostic state
   !> @param[in]     state_after_slow State after slow physics
   !> @param[in]     clock            The model clock
-subroutine calc_phys_predictors_alg(derived_fields, rhs_np1, rhs_adv, rhs_n, &
-                                    state, state_after_slow, clock)
+subroutine calc_phys_predictors_alg( derived_fields, rhs_np1,                 &
+                                     rhs_adv, rhs_n, state, state_after_slow, &
+                                     model_clock )
 
     implicit none
     ! Prognostic fields
@@ -54,7 +55,7 @@ subroutine calc_phys_predictors_alg(derived_fields, rhs_np1, rhs_adv, rhs_n, &
     type( field_type ), intent(in)    :: rhs_adv(bundle_size)
     type( field_type ), intent(in)    :: rhs_n(bundle_size)
 
-    class(clock_type), intent(in) :: clock
+    class(model_clock_type), intent(in) :: model_clock
 
     type( mesh_type ),  pointer :: mesh => null()
 
@@ -74,7 +75,7 @@ subroutine calc_phys_predictors_alg(derived_fields, rhs_np1, rhs_adv, rhs_n, &
     call derived_fields%get_field('theta_star', theta_star)
     call derived_fields%get_field('u_star', u_star)
 
-    if (use_wavedynamics .and. (.not. clock%is_spinning_up())) then
+    if (use_wavedynamics .and. (.not. model_clock%is_spinning_up())) then
       ! Note that if spinning up the dynamics, then explicit predictors are used.
 
       ! theta_star can be directly guessed from advection terms

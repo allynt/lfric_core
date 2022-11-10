@@ -8,7 +8,6 @@
 module tl_rk_alg_timestep_mod
 
   use constants_mod,                      only: i_def,r_def
-  use clock_mod,                          only: clock_type
   use log_mod,                            only: log_event,         &
                                                 log_scratch_space, &
                                                 LOG_LEVEL_INFO,    &
@@ -29,6 +28,7 @@ module tl_rk_alg_timestep_mod
   use transport_config_mod,               only: operators, &
                                                 operators_fv
   use mixing_config_mod,                  only: viscosity, viscosity_mu
+  use model_clock_mod,                    only: model_clock_type
   use planet_config_mod,                  only: cp
   use field_bundle_mod,                   only: clone_bundle, &
                                                 bundle_axpy,  &
@@ -219,10 +219,11 @@ contains
   !> @param[in]     ls_moist_dyn Lin state for moist dynamics factors
   !> @param[in]     ls_exner     Linearisation state for exner pressure
   !> @param[in]     ls_mr        Linearisation state for moisture mixing ratios
-  !> @param[in]     clock        Model time
+  !> @param[in]     model_clock  Time in the model
+  !>
   subroutine tl_rk_alg_step(u, rho, theta, moist_dyn, exner, mr,               &
                             ls_u, ls_rho, ls_theta, ls_moist_dyn, ls_exner,    &
-                            ls_mr, clock)
+                            ls_mr, model_clock)
 
     implicit none
     ! Prognostic fields
@@ -235,9 +236,9 @@ contains
     type( field_type ), intent( inout ) :: ls_mr(nummr)
     type( field_type ), intent( inout ) :: ls_moist_dyn(num_moist_factors)
 
-    class(clock_type),  intent( in )    :: clock
+    class(model_clock_type), intent( in ) :: model_clock
 
-    real( r_def ) :: dt
+    real(r_def) :: cast_dt
 
     ! The quadrature object
     type( quadrature_xyoz_type ),  pointer :: qr => null()
@@ -262,7 +263,7 @@ contains
 
     if ( subroutine_timers ) call timer('tl_rk_alg')
 
-    dt = real(clock%get_seconds_per_step(), r_def)
+    cast_dt = real(model_clock%get_seconds_per_step(), r_def)
 
     qr => get_qr()
     mesh => theta%get_mesh()
@@ -298,7 +299,7 @@ contains
                                          ls_state_n,                   &
                                          ls_state_stage(igh_u,stage),  &
                                          ls_state_stage(igh_u,stage),  &
-                                         ls_mr, ls_mr, dt, 1_i_def )
+                                         ls_mr, ls_mr, model_clock, 1_i_def )
 
       ! Compute new rhs
       if ( rotating ) then
@@ -355,7 +356,7 @@ contains
 
       ! Add increments
       call invoke( setval_c(inc(igh_p), 0.0_r_def) )
-      call bundle_axpy(dt, inc, ls_state_n, ls_state_stage(:,stage + 1), bundle_size)
+      call bundle_axpy(cast_dt, inc, ls_state_n, ls_state_stage(:,stage + 1), bundle_size)
       ! Recompute exner from eos
       m3_inv => get_inverse_w3_mass_matrix(mesh_id)
       call invoke( project_eos_pressure_kernel_type( ls_state_stage(igh_p,stage+1), &
@@ -385,7 +386,7 @@ contains
                                      ls_state_stage(:,stage),          &
                                      ls_state_stage(igh_u,stage),      &
                                      ls_state_stage(igh_u,stage),      &
-                                     ls_mr, dt )
+                                     ls_mr, model_clock )
 
       ! Compute new rhs
       if ( rotating ) then
@@ -447,7 +448,7 @@ contains
 
       ! Add increments
       call invoke( setval_c(inc(igh_p), 0.0_r_def) )
-      call bundle_axpy(dt, inc, state_n, state, bundle_size)
+      call bundle_axpy(cast_dt, inc, state_n, state, bundle_size)
 
      ! Recompute exner from eos
       m3_inv => get_inverse_w3_mass_matrix(mesh_id)
@@ -480,7 +481,7 @@ contains
                   momentum_viscosity_kernel_type( inc(igh_u), state(igh_u), 1, &
                                                   dx_at_w2, 1, viscosity_mu ), &
                   setval_c(inc(igh_d), 0.0_r_def) )
-      call bundle_axpy(dt, inc, state, state, bundle_size)
+      call bundle_axpy(cast_dt, inc, state, state, bundle_size)
     end if
 
     ! Return fields in u, theta, rho arrays

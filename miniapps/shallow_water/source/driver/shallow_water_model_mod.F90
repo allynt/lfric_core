@@ -10,7 +10,6 @@ module shallow_water_model_mod
   use assign_orography_field_mod,     only: assign_orography_field
   use checksum_alg_mod,               only: checksum_alg
   use cli_mod,                        only: get_initial_filename
-  use clock_mod,                      only: clock_type
   use configuration_mod,              only: final_configuration
   use conservation_algorithm_mod,     only: conservation_algorithm
   use constants_mod,                  only: i_def, i_native, &
@@ -21,7 +20,7 @@ module shallow_water_model_mod
   use driver_log_mod,                 only: init_logger, final_logger
   use driver_comm_mod,                only: init_comm, final_comm
   use driver_fem_mod,                 only: init_fem, final_fem
-  use driver_io_mod,                  only: init_io, final_io, get_clock, &
+  use driver_io_mod,                  only: init_io, final_io, &
                                             filelist_populator
   use driver_mesh_mod,                only: init_mesh, final_mesh
   use field_mod,                      only: field_type
@@ -49,10 +48,9 @@ module shallow_water_model_mod
   use minmax_tseries_mod,             only: minmax_tseries,      &
                                             minmax_tseries_init, &
                                             minmax_tseries_final
+  use model_clock_mod,                only: model_clock_type
   use mpi_mod,                        only: get_comm_size, &
                                             get_comm_rank
-  use runtime_constants_mod,          only: create_runtime_constants, &
-                                            final_runtime_constants
   use shallow_water_mod,              only: load_configuration
   use shallow_water_model_data_mod,   only: model_data_type
   use shallow_water_setup_io_mod,     only: init_shallow_water_files
@@ -78,16 +76,17 @@ module shallow_water_model_mod
   !> @param[in,out] chi          A size 3 array of fields holding the coordinates of the mesh
   subroutine initialise_infrastructure(program_name, &
                                        mesh,         &
-                                       chi           )
+                                       twod_mesh,    &
+                                       chi,          &
+                                       panel_id )
 
     implicit none
 
-    character(*),      intent(in)                    :: program_name
-    type(mesh_type),   intent(inout), pointer        :: mesh
-    type(field_type),  intent(inout)                 :: chi(3)
-
-    type(field_type), target :: panel_id
-    type(mesh_type), pointer :: twod_mesh => null()
+    character(*),     intent(in)             :: program_name
+    type(mesh_type),  intent(inout), pointer :: mesh
+    type(mesh_type),  intent(out),   pointer :: twod_mesh
+    type(field_type), intent(inout)          :: chi(3)
+    type(field_type), intent(out),   target  :: panel_id
 
     procedure(filelist_populator), pointer :: files_init_ptr => null()
 
@@ -95,8 +94,6 @@ module shallow_water_model_mod
     character(:),   allocatable :: filename
 
     integer(i_native) :: communicator
-
-    class(clock_type), pointer :: clock
 
     !-------------------------------------------------------------------------
     ! Initialise aspects of the infrastructure
@@ -156,17 +153,6 @@ module shallow_water_model_mod
                   chi, panel_id,                 &
                   populate_filelist=files_init_ptr )
 
-    clock => get_clock()
-
-    !-------------------------------------------------------------------------
-    ! Setup constants
-    !-------------------------------------------------------------------------
-
-    ! Create runtime_constants object. This in turn creates various things
-    ! needed by the timestepping algorithms such as mass matrix operators, mass
-    ! matrix diagonal fields and the geopotential field
-    call create_runtime_constants(mesh, twod_mesh, chi, panel_id, dt)
-
   end subroutine initialise_infrastructure
 
   !=============================================================================
@@ -218,12 +204,6 @@ module shallow_water_model_mod
     implicit none
 
     character(*), intent(in) :: program_name
-
-    !-------------------------------------------------------------------------
-    ! Finalise constants
-    !-------------------------------------------------------------------------
-
-    call final_runtime_constants()
 
     !-------------------------------------------------------------------------
     ! Finalise timers and counters

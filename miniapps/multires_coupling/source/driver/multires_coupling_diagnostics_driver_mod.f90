@@ -11,7 +11,6 @@
 
 module multires_coupling_diagnostics_driver_mod
 
-  use clock_mod,                          only : clock_type
   use constants_mod,                      only : i_def
   use field_mod,                          only : field_type
   use field_collection_mod,               only : field_collection_type
@@ -20,6 +19,7 @@ module multires_coupling_diagnostics_driver_mod
   use gungho_diagnostics_driver_mod,      only : gungho_diagnostics_driver
   use map_physics_fields_alg_mod,         only : map_physics_fields_alg
   use mesh_mod,                           only : mesh_type
+  use model_clock_mod,                    only : model_clock_type
 
   implicit none
 
@@ -33,21 +33,21 @@ contains
   !> @param [in] dynamics_2D_mesh The dynamics 2D mesh
   !> @param [in,out] dynamics_model_data A collection containing the fields
   !>                                     on the dynamics mesh
-  !> @param [in] clock Model time.
+  !> @param [in] model_clock Time within the model.
   !> @param [in] W3_project Flag that determines if vector fields should be
   !>                        projected to W3
   subroutine multires_coupling_diagnostics_driver( dynamics_mesh,       &
                                                    dynamics_2D_mesh,    &
                                                    dynamics_model_data, &
-                                                   clock, W3_project )
+                                                   model_clock, W3_project )
 
     implicit none
 
-    type(mesh_type),       intent(in), pointer     :: dynamics_mesh
-    type(mesh_type),       intent(in), pointer     :: dynamics_2D_mesh
-    type(model_data_type), intent(inout), target   :: dynamics_model_data
-    class(clock_type),     intent(in)              :: clock
-    logical,               intent(in)              :: W3_project
+    type(mesh_type),         intent(in), pointer     :: dynamics_mesh
+    type(mesh_type),         intent(in), pointer     :: dynamics_2D_mesh
+    type(model_data_type),   intent(inout), target   :: dynamics_model_data
+    class(model_clock_type), intent(in)              :: model_clock
+    logical,                 intent(in)              :: W3_project
 
     type( field_collection_type ), pointer :: dynamics_prognostic_fields => null()
     type( field_collection_type ), pointer :: dynamics_derived_fields => null()
@@ -78,8 +78,9 @@ contains
                                   dynamics_moist_dyn, dynamics_derived_fields)
     end if
 
-    call gungho_diagnostics_driver( dynamics_mesh, dynamics_2D_mesh, &
-                                    dynamics_model_data, clock, W3_project )
+    call gungho_diagnostics_driver( dynamics_mesh, dynamics_2D_mesh,  &
+                                    dynamics_model_data, model_clock, &
+                                    W3_project )
 
   end subroutine multires_coupling_diagnostics_driver
 

@@ -16,7 +16,7 @@ module multires_coupling_model_mod
   use driver_fem_mod,             only : init_fem, final_fem
   use driver_mesh_mod,            only : init_mesh, final_mesh
   use driver_log_mod,             only : init_logger, final_logger
-  use driver_io_mod,              only : init_io, final_io, get_clock, &
+  use driver_io_mod,              only : init_io, final_io, &
                                          filelist_populator
   use configuration_mod,          only : final_configuration
   use conservation_algorithm_mod, only : conservation_algorithm
@@ -29,10 +29,6 @@ module multires_coupling_model_mod
   use field_mod,                  only : field_type
   use field_parent_mod,           only : write_interface
   use field_collection_mod,       only : field_collection_type
-  use multires_coupling_config_mod, &
-                                  only : physics_mesh_name,          &
-                                         dynamics_mesh_name,         &
-                                         multires_coupling_mesh_tags
   use formulation_config_mod,     only : l_multigrid,              &
                                          moisture_formulation,     &
                                          moisture_formulation_dry, &
@@ -41,6 +37,11 @@ module multires_coupling_model_mod
   use mesh_collection_mod,        only : mesh_collection, &
                                          mesh_collection_type
   use mesh_mod,                   only : mesh_type
+  use model_clock_mod,            only : model_clock_type
+  use multires_coupling_config_mod, &
+                                  only : physics_mesh_name,          &
+                                         dynamics_mesh_name,         &
+                                         multires_coupling_mesh_tags
   use gungho_mod,                 only : load_configuration
   use gungho_model_data_mod,      only : model_data_type
   use gungho_setup_io_mod,        only : init_gungho_files
@@ -113,14 +114,20 @@ contains
   !> @param [in,out] twod_mesh    The current 2d mesh
   !> @param [in,out] shifted_mesh The vertically shifted 3d mesh
   !> @param [in,out] double_level_mesh The double-level 3d mesh
+  !> @param [out]    model_clock  Time within the model.
   !>
-  subroutine initialise_infrastructure( program_name,         &
-                                        mesh,                 &
-                                        twod_mesh,            &
-                                        shifted_mesh,         &
-                                        double_level_mesh )
+  subroutine initialise_infrastructure( program_name,      &
+                                        mesh,              &
+                                        twod_mesh,         &
+                                        shifted_mesh,      &
+                                        double_level_mesh, &
+                                        model_clock )
 
     use check_configuration_mod, only: get_required_stencil_depth
+    use driver_io_mod,           only: get_io_context
+    use io_context_mod,          only: io_context_type
+    use lfric_xios_clock_mod,    only: lfric_xios_clock_type
+    use lfric_xios_context_mod,  only: lfric_xios_context_type
 
     implicit none
 
@@ -129,14 +136,16 @@ contains
     type(mesh_type),        intent(inout), pointer   :: twod_mesh
     type(mesh_type),        intent(inout), pointer   :: double_level_mesh
     type(mesh_type),        intent(inout), pointer   :: shifted_mesh
+    type(model_clock_type), intent(out)              :: model_clock
 
     procedure(filelist_populator), pointer :: files_init_ptr
 
     integer(i_def) :: i
 
-    class(clock_type), pointer :: clock
-    real(r_def)                :: dt_model
-    integer(i_native)          :: communicator
+    integer(i_native) :: communicator
+
+    class(io_context_type), pointer :: io_context => null()
+    class(clock_type),      pointer :: io_clock => null()
 
     type(field_type) :: surface_altitude
 
@@ -275,9 +284,6 @@ contains
                   dynamics_panel_id,               &
                   populate_filelist=files_init_ptr )
 
-    clock => get_clock()
-    dt_model = real(clock%get_seconds_per_step(), r_def)
-
     ! Set up surface altitude field - this will be used to generate orography
     ! for models with global land mass included (i.e GAL)
     call init_altitude( twod_mesh, surface_altitude )
@@ -296,6 +302,21 @@ contains
                              chi_mg, panel_id_mg, surface_altitude )
     end if
 
+    ! Initialise model time
+    !
+    io_context => get_io_context()
+    select type(io_context)
+    class is (lfric_xios_context_type)
+      io_clock => io_context%get_clock()
+      model_clock = model_clock_type( io_clock%get_first_step(),       &
+                                      io_clock%get_last_step(),        &
+                                      io_clock%get_seconds_per_step(), &
+                                      0.0_r_second )
+      call model_clock%add_clock( io_clock )
+    class default
+      call log_event( "XIOS context needed", log_level_error )
+    end select
+
     !-------------------------------------------------------------------------
     ! Setup constants
     !-------------------------------------------------------------------------
@@ -303,14 +324,14 @@ contains
     ! Create runtime_constants object. This in turn creates various things
     ! needed by the timestepping algorithms such as mass matrix operators, mass
     ! matrix diagonal fields and the geopotential field
-    call create_runtime_constants(mesh, twod_mesh, chi,                       &
-                                  panel_id, dt_model, shifted_mesh,           &
-                                  shifted_chi, double_level_mesh,             &
-                                  double_level_chi,                           &
-                                  multigrid_mesh_ids, multigrid_2D_mesh_ids,  &
-                                  chi_mg, panel_id_mg,                        &
-                                  multires_coupling_mesh_ids,                 &
-                                  multires_coupling_2D_mesh_ids,              &
+    call create_runtime_constants(mesh, twod_mesh, chi,                      &
+                                  panel_id, model_clock,                     &
+                                  shifted_mesh, shifted_chi,                 &
+                                  double_level_mesh, double_level_chi,       &
+                                  multigrid_mesh_ids, multigrid_2D_mesh_ids, &
+                                  chi_mg, panel_id_mg,                       &
+                                  multires_coupling_mesh_ids,                &
+                                  multires_coupling_2D_mesh_ids,             &
                                   chi_mrc, panel_id_mrc )
 
     physics_mesh => mesh_collection%get_mesh( physics_mesh_name )
@@ -359,14 +380,12 @@ contains
   !> @param[in] physics_mesh            The physics mesh
   !> @param[in,out] physics_model_data  The physics data set
   !>
-  subroutine initialise_model( clock,               &
-                               dynamics_mesh,       &
+  subroutine initialise_model( dynamics_mesh,       &
                                dynamics_model_data, &
                                physics_mesh,        &
                                physics_model_data )
     implicit none
 
-    class(clock_type),     pointer, intent(in)    :: clock
     type(mesh_type),       pointer, intent(in)    :: dynamics_mesh
     type(mesh_type),       pointer, intent(in)    :: physics_mesh
     type(model_data_type), target,  intent(inout) :: dynamics_model_data

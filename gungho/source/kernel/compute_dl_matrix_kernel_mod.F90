@@ -21,7 +21,8 @@ module compute_dl_matrix_kernel_mod
                                        GH_SCALAR, GH_INTEGER,     &
                                        CELL_COLUMN, GH_QUADRATURE_XYoZ
   use base_mesh_config_mod,      only: geometry, geometry_spherical
-  use constants_mod,             only: i_def, r_def, PI, degrees_to_radians
+  use constants_mod,             only: i_def, r_def, r_second, &
+                                       PI, degrees_to_radians
   use chi_transform_mod,         only: chi2llr
   use damping_layer_config_mod,  only: dl_type, dl_type_latitude
   use finite_element_config_mod, only: coord_system,    &
@@ -139,7 +140,7 @@ contains
     real(kind=r_def),    intent(in)    :: dl_strength
     real(kind=r_def),    intent(in)    :: domain_top
     real(kind=r_def),    intent(in)    :: radius
-    real(kind=r_def),    intent(in)    :: dt
+    real(kind=r_second), intent(in)    :: dt
     real(kind=r_def),    intent(in)    :: wqp_h(nqp_h)
     real(kind=r_def),    intent(in)    :: wqp_v(nqp_v)
     real(kind=r_def),    intent(in)    :: basis_w2(3,ndf_w2,nqp_h,nqp_v)
@@ -218,8 +219,9 @@ contains
                           /dj(qp1,qp2)
               ! Only modify dofs corresponding to vertical part of w-basis function (for lowest order: bottom two rows)
               if (df > ndf_w2 - (element_order+2)*(element_order+1)**2) then
-                mm(df,df2,ik) = mm(df,df2,ik) + &
-                                (1.0_r_def + dt*mu_at_quad) * integrand
+                mm(df,df2,ik) = mm(df,df2,ik) +                          &
+                                (1.0_r_def + real(dt, r_def)*mu_at_quad) &
+                                * integrand
               else
                 mm(df,df2,ik) = mm(df,df2,ik) + integrand
               end if
