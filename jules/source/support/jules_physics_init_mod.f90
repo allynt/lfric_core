@@ -205,7 +205,8 @@ contains
          l_moruses_emissivity, l_moruses_rough, l_moruses_storage,          &
          l_moruses_storage_thin, check_jules_urban, print_nlist_jules_urban
     use jules_vegetation_mod, only: can_rad_mod, ilayers, l_vegcan_soilfx,  &
-         photo_model, photo_collatz, check_jules_vegetation,                &
+         photo_model, photo_collatz, stomata_model, stomata_jacobs,         &
+         check_jules_vegetation,                                            &
          l_spec_veg_z0, l_limit_canhc, l_crop, l_triffid, l_phenol
     use nvegparm, only:                                                     &
          albsnc_nvg, albsnf_nvgu, albsnf_nvg, albsnf_nvgl, catch_nvg,       &
@@ -509,6 +510,7 @@ contains
     l_spec_veg_z0   = l_spec_z0_pft
     l_vegcan_soilfx = .true.
     photo_model     = photo_collatz
+    stomata_model   = stomata_jacobs
 
     ! Check the contents of the vegetation parameters module
     call check_jules_vegetation()

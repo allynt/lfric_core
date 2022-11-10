@@ -17,7 +17,7 @@
 export casim_rev=um13.0
 export casim_sources=
 export jules_rev=24186
-export jules_sources=
+export jules_sources=vld309:/home/h01/gline/ticket_1246
 export shumlib_rev=um13.0
 export shumlib_sources=
 export socrates_rev=um13.0
@@ -25,7 +25,7 @@ export socrates_sources=
 export ukca_rev=611
 export ukca_sources=
 export um_rev=113557
-export um_sources=
+export um_sources=vld309:/home/h01/gline/ticket_6459
 
 
 #### Do not edit the definitions below this line without
