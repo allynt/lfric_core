@@ -20,7 +20,6 @@ USE field_collection_mod,       ONLY: field_collection_type
 USE field_mod,                  ONLY: field_type
 USE gungho_extrusion_mod,       ONLY: create_extrusion
 USE halo_comms_mod,             ONLY: initialise_halo_comms
-USE mod_wait,                   ONLY: init_wait
 USE model_clock_mod,            ONLY: model_clock_type
 USE lfric_xios_context_mod,     ONLY: lfric_xios_context_type
 USE lfric_xios_driver_mod,      ONLY: lfric_xios_initialise, &

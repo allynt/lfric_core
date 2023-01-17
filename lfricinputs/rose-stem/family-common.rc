@@ -42,7 +42,7 @@
 
     {# TODO: The Spice/X86 platform uses deprecated LFRic environment #}
     {#       modules. This will be updated in the LFRic ticket        #}
-    {#       https://code.metoffice.gov.uk/trac/lfric/ticket/3319     #}
+    {#       https://code.metoffice.gov.uk/trac/lfric/ticket/3614     #}
     [[meto-x86-ifort-gcc]]
         inherit = PLATFORM_X86
         pre-script = """
@@ -57,7 +57,7 @@
 
     {# TODO: The Spice/X86 platform uses deprecated LFRic environment #}
     {#       modules. This will be updated in the LFRic ticket        #}
-    {#       https://code.metoffice.gov.uk/trac/lfric/ticket/3319     #}
+    {#       https://code.metoffice.gov.uk/trac/lfric/ticket/3614     #}
     [[meto-x86-gfortran-gcc]]
         inherit = PLATFORM_X86
         pre-script = """
@@ -107,10 +107,12 @@
 {% for tasks in [36,72,144,288] %}
     [[METO_XC40_{{tasks}}_TASKS]]
         [[[environment]]]
-            NUM_NODES = {{(tasks/36) | round(0, 'ceil') | int}}
+            {# Added node for XIOS server #}
+            NUM_NODES = {{(tasks/36) | round(0, 'ceil') | int + 1}}
             TOTAL_MPI_TASKS = {{tasks}}
         [[[directives]]]
-            -l select = {{(tasks/36) | round(0, 'ceil') | int}}
+            {# Added node for XIOS server #}
+            -l select = {{(tasks/36) | round(0, 'ceil') | int + 1}}
 {% endfor %}
 
     [[METO_XC40_NORMAL_QUEUE]]
@@ -133,16 +135,11 @@
         [[[directives]]]
             -q = normal
 
-    {# TODO: The XC40 platform uses old XIOS r1537 with Intel compiler. #}
-    {#       This will be updated in the LFRic ticket                   #}
-    {#       https://code.metoffice.gov.uk/trac/lfric/ticket/3319       #}
     [[meto-xc40-ifort-icc]]
         inherit = PLATFORM_XC40
         pre-script = """
                      source /data/d03/lfric/modules/setup
                      module load meto-environment/lfric/intel/17.0.0.098/5
-                     module unload meto-xios/r2252/intel/17.0.0.098
-                     module load meto-xios/r1537.2/intel/17.0.0.098
                      module load cray-snplauncher/$CRAY_MPICH2_VER
                      module swap craype-haswell craype-ivybridge
                      module list 2>&1
@@ -161,7 +158,7 @@
     [[rose_ana_xc40]]
         inherit = PLATFORM_XC40
         pre-script = """
-                     module load nctools/1.5.0
+                     module load nctools/1.8.6.5
                      module load um_tools
                      module list 2>&1
                      """

@@ -25,6 +25,7 @@ USE clock_mod,                     ONLY: clock_type
 USE xios,                          ONLY: xios_date_convert_to_string,          &
                                          xios_get_current_date, xios_date,     &
                                          xios_context_finalize
+USE mod_wait,                      ONLY: init_wait
 
 IMPLICIT NONE
 
@@ -84,6 +85,9 @@ NULLIFY(clock)
 
 ! Finalizes XIOS file context thus forcing data out of IO buffers
 CALL xios_context_finalize()
+! We have closed the context on our end, but we need to make sure that XIOS
+! has closed the files for all servers before we process them
+CALL init_wait()
 CALL log_event('Finalise XIOS context', LOG_LEVEL_INFO)
 
 ! Post process correct output file by offsetting time axis by one time step
