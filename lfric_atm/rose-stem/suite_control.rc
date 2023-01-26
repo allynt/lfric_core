@@ -326,17 +326,17 @@
                      plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
                      )',
    'run_application("lfric_atm", "thai_ben1",
-                            resolutions=[("C24",1800.0)],
-                            env={"crun":1, "nrun":72,
-                            "directives":{"C24":{"mpi_parts":6,
-                                                 "threads":1,
-                                                 "wallclock":"00:10:00"},
-                                         },
-                            },
-			    plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
-                           )',
-     'check_compilers("lfric_atm", "nwp_gal9_mg_copy", "full-debug",
-                     resolution=("C48_MG",1800.0))',
+                    resolutions=[("C48_MG", 1200.0)],
+                    env={"crun":1, "nrun":72,
+                    "directives":{"C48_MG":{"mpi_parts":24,
+                                            "threads":1,
+                                            "wallclock":"00:10:00"},
+                                 },
+                    },
+		    plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
+                   )',
+   'check_compilers("lfric_atm", "nwp_gal9_mg_copy", "full-debug",
+                    resolution=("C48_MG",1800.0))',
    'publish_commit'
   ],
 
@@ -361,19 +361,6 @@
                                                "threads":1,
                                                "wallclock":"0:40:00"},
 					       } },)',
-  ],
-  'exoplanet': [
-    'run_application("lfric_atm", "thai_ben1", checkkgo=False,
-                            resolutions=[("C24",1800.0)],
-                            env={"crun":1, "nrun":72,
-                            "directives":{"C24":{"mpi_parts":6,
-                                                 "threads":1,
-                                                 "wallclock":"00:10:00"},
-                                         },
-                            },
-			    plotstr="plot_map.py $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR"
-                           )',
-    'publish_commit'
   ],
   'basic-gal-demo': [
     'run_application("lfric_atm", "clim_gal9_mg", checkkgo=False,
@@ -413,3 +400,6 @@
  		    plotstr="plot_map.py -ral $NODAL_DATA_DIR/lfric_diag.nc  $PLOT_DIR")',
 		     ],
 } %}
+{# Include exoplanet groups #}
+%include inc/exoplanets.rc
+{%- do groups.update(exoplanets_groups) %}
