@@ -111,6 +111,9 @@ subroutine pc2_checks_code( nlayers,                   &
     use planet_constants_mod,       only: p_zero, kappa
     use gen_phys_inputs_mod,        only: l_mr_physics
 
+    use free_tracers_inputs_mod,    only: n_wtrac
+    use water_tracers_mod,          only: wtrac_type
+
     implicit none
 
     ! Arguments
@@ -150,6 +153,10 @@ subroutine pc2_checks_code( nlayers,                   &
     integer(i_um), parameter :: nSCMDpkgs=15
     logical, parameter :: l_scmdiags(nscmdpkgs)=.false.
 
+    ! Water tracer field which is not currently used but is required by
+    ! UM routine
+    type(wtrac_type), dimension(n_wtrac) :: wtrac
+
     !-----------------------------------------------------------------------
     ! Initialisation of prognostic variables and arrays
     !-----------------------------------------------------------------------
@@ -181,7 +188,8 @@ subroutine pc2_checks_code( nlayers,                   &
                      t_work, bcf_work, cfl_work, cff_work,     &
                      qv_work, qcl_work, qcf_work, l_mr_physics,&
                      row_length, rows, model_levels,           &
-                     0_i_um, 0_i_um, 0_i_um, 0_i_um, zeros)
+                     0_i_um, 0_i_um, 0_i_um, 0_i_um, zeros,    &
+                     wtrac)
 
     ! Recast back to LFRic space
     do k = 1, model_levels

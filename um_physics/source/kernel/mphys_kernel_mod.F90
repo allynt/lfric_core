@@ -217,6 +217,10 @@ subroutine mphys_code( nlayers, seg_len,            &
 
     use lsp_froude_moist_mod,       only: lsp_froude_moist
 
+    use free_tracers_inputs_mod,    only: n_wtrac
+    use wtrac_atm_step_mod,         only: atm_step_wtrac_type
+    use wtrac_mphys_mod,            only: mp_wtrac_type
+
     implicit none
 
     ! Arguments
@@ -324,6 +328,11 @@ subroutine mphys_code( nlayers, seg_len,            &
     logical :: l_cosp_lsp
 
     type (t_easyaerosol_cdnc) :: easyaerosol_cdnc
+
+    ! Water tracer fields which are not currently used but are required by
+    ! UM routine
+    type (atm_step_wtrac_type), dimension(n_wtrac) :: wtrac_as
+    type (mp_wtrac_type), dimension(n_wtrac) :: wtrac_mp
 
     !-----------------------------------------------------------------------
     ! Initialisation of non-prognostic variables and arrays
@@ -669,7 +678,8 @@ subroutine mphys_code( nlayers, seg_len,            &
                 rhodz_dry, rhodz_moist,                                        &
                 ls_rainfrac, land_points, land_index,                          &
                 l_cosp_lsp,                                                    &
-                hmteff, zb, tnuc_new)
+                hmteff, zb, tnuc_new,                                          &
+                wtrac_as, wtrac_mp)
 
 ! Lightning scheme
 ! Should not change prognostic variables, but is worth including here

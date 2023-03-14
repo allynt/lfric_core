@@ -257,6 +257,7 @@ contains
     use cloud_inputs_mod, only: i_cld_vn, i_pc2_init_logic, forced_cu, &
          i_cld_area
     use cv_run_mod, only: l_param_conv
+    use free_tracers_inputs_mod, only: l_wtrac
     use gen_phys_inputs_mod, only: l_mr_physics
     use mphys_inputs_mod, only: l_mcr_qcf2, l_casim
     use nlsizes_namelist_mod, only: bl_levels
@@ -854,7 +855,7 @@ contains
                                    z_theta, qcl_inv_top,                       &
                                    cca0, ccw0, ccb0, cct0, lcbase0,            &
                                    cfl_latest, cf_latest,                      &
-                                   qcl_latest, q_latest, t_latest)
+                                   qcl_latest, q_latest, t_latest, l_wtrac)
           end if  ! test on forced_cu
 
           ! --------------------------------------------------------------------

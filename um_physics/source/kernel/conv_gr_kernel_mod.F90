@@ -530,6 +530,9 @@ contains
     use scm_convss_dg_mod, only: scm_convss_dg_type
     use timestep_mod, only: timestep
 
+    use free_tracers_inputs_mod, only: n_wtrac
+    use wtrac_conv_mod, only: l_wtrac_conv 
+
     ! subroutines used
     use glue_conv_6a_mod, only: glue_conv_6a
     use ukca_api_mod, only: ukca_get_tracer_varlist, ukca_maxlen_fieldname
@@ -767,6 +770,12 @@ contains
 
     integer(i_um), dimension(row_length,rows) :: conv_type
 
+    ! Water tracer fields which are not currently used but are required by
+    ! UM routine
+    real(r_um), dimension(1,1,1) :: q_wtrac, qcl_wtrac, qcf_wtrac,           &
+          dqbydt_wtrac, dqclbydt_wtrac, dqcfbydt_wtrac
+    real(r_um), dimension(1,1) :: rain_wtrac, snow_wtrac
+
     !-----------------------------------------------------------------------
     ! Mapping of LFRic fields into UM variables
     !-----------------------------------------------------------------------
@@ -927,6 +936,17 @@ contains
     cca_3d = 0.0_r_um
     ccw_3d = 0.0_r_um
     w_max(1,1) = 0.0_r_um
+
+    ! Turn water tracers off in convection and initialise dummy fields
+    l_wtrac_conv = .FALSE.
+    q_wtrac(1,1,1)   = 0.0_r_um
+    qcl_wtrac(1,1,1) = 0.0_r_um
+    qcf_wtrac(1,1,1) = 0.0_r_um
+    dqbydt_wtrac(1,1,1)   = 0.0_r_um
+    dqclbydt_wtrac(1,1,1) = 0.0_r_um
+    dqcfbydt_wtrac(1,1,1) = 0.0_r_um
+    rain_wtrac(1,1) = 0.0_r_um
+    snow_wtrac(1,1) = 0.0_r_um
 
     ! Check for negative (less than a minimum) q being passed to convection
     if (l_safe_conv) then
@@ -1153,14 +1173,17 @@ contains
       it_cg_term(1,1) = 0
 
       call glue_conv_6a                                                     &
-        ( rows*row_length, segments, n_conv_levels, bl_levels, call_number, &
-         seg_num, theta_conv, q_conv, qcl_conv, qcf_conv                    &
+        ( rows*row_length, segments, n_conv_levels, n_wtrac, bl_levels      & 
+        , call_number, seg_num, theta_conv, q_conv, qcl_conv, qcf_conv      &
+        , q_wtrac, qcl_wtrac, qcf_wtrac                                     &
         , cf_liquid_conv, cf_frozen_conv, bulk_cf_conv                      &
         , p_star, land_sea_mask                                             &
         , u_conv, v_conv, w(1,1,1)                                          &
         , tot_tracer, dthbydt, dqbydt,   dqclbydt, dqcfbydt                 &
         , dcflbydt, dcffbydt, dbcfbydt, dubydt_p, dvbydt_p                  &
+        , dqbydt_wtrac, dqclbydt_wtrac, dqcfbydt_wtrac                      &   
         , it_conv_rain, it_conv_snow, it_conv_rain_3d, it_conv_snow_3d      &
+        , rain_wtrac, snow_wtrac                                            &
         , it_cca0_dp, it_cca0_md, it_cca0_sh                                &
         , it_cca0,  it_ccb0, it_cct0, it_cclwp0, it_ccw0, it_lcbase0        &
         , it_lctop,  it_lcca                                                &

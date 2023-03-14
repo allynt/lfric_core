@@ -30,9 +30,8 @@ export socrates_rev=1331
 export socrates_sources=
 export ukca_rev=1147
 export ukca_sources=
-export um_rev=116382
+export um_rev=116504
 export um_sources=
-
 
 #### Do not edit the definitions below this line without
 #### consulting the owners of this build system

@@ -368,6 +368,10 @@ contains
     use planet_constants_mod, only: p_zero, kappa, planet_radius, lcrcp, lsrcp
     use timestep_mod, only: timestep
 
+    use free_tracers_inputs_mod,    only: n_wtrac
+    use wtrac_atm_step_mod,         only: atm_step_wtrac_type
+    use wtrac_bl_mod,               only: bl_wtrac_type
+
     ! subroutines used
     use atmos_physics2_save_restore_mod, only: ap2_init_conv_diag
     use bl_diags_mod, only: BL_diag, dealloc_bl_imp, dealloc_bl_expl, &
@@ -557,6 +561,11 @@ contains
 
     logical, dimension(seg_len,1) :: no_cumulus, l_congestus, l_congestus2,  &
          l_mid
+
+    ! Water tracer fields which are not currently used but are required
+    ! UM routine
+    type (atm_step_wtrac_type), dimension(n_wtrac) :: wtrac_as
+    type (bl_wtrac_type), dimension(n_wtrac) :: wtrac_bl
 
     !-----------------------------------------------------------------------
     ! Initialisation of variables and arrays
@@ -831,14 +840,14 @@ contains
       bulk_cloud_fraction,q,qcf,qcl,temperature,qw,tl,                         &
     ! IN everything not covered so far :
       rad_hr,micro_tends,fb_surf,ustargbm,p_star,tstar,h_blend_orog,           &
-      zh_prev, zhpar,zlcl,ho2r2_orog_gb,sd_orog,                               &
+      zh_prev, zhpar,zlcl,ho2r2_orog_gb,sd_orog,wtrac_as,                         &
     ! 2 IN 3 INOUT for Smagorinsky
       delta_smag, max_diff, rneutml_sq, visc_m, visc_h,                        &
     ! SCM Diagnostics (dummy values in full UM) & stash diag
       nSCMDpkgs,L_SCMDiags,BL_diag,                                            &
     ! INOUT variables
       zh,dzh,ntml,ntpar,l_shallow,cumulus,fqw,ftl,rhokh,rhokm,w,etadot,        &
-      t1_sd,q1_sd,                                                             &
+      t1_sd,q1_sd,wtrac_bl,                                                    &
     ! OUT New variables for message passing
       tau_fd_x, tau_fd_y, f_ngstress,                                          &
     ! OUT Diagnostic not requiring STASH flags :

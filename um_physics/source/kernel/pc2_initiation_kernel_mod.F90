@@ -187,6 +187,9 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     use planet_constants_mod,       only: p_zero, kappa, lcrcp, planet_radius
     use gen_phys_inputs_mod,        only: l_mr_physics
 
+    use free_tracers_inputs_mod,    only: l_wtrac, n_wtrac
+    use water_tracers_mod,          only: wtrac_type
+
     ! Redirect routine names to avoid clash with existing qsat routines
     use qsat_mod, only: qsat_wat_mix
 
@@ -271,6 +274,10 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     real(r_um) :: t_n
 
     integer(i_um) :: k, i
+
+    ! Water tracer field which is not currently used but is required by
+    ! UM routine
+    type(wtrac_type), dimension(n_wtrac) :: wtrac
 
     ! Hardwired things for PC2
     !
@@ -382,7 +389,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                             zlcl_mix,                      &
                             r_theta_levels,                &
                             ! Model switches
-                            l_mr_physics,                  &
+                            l_mr_physics, l_wtrac,         &
                             ! SCM diagnostics switches
                             nSCMDpkgs,                     &
                             L_SCMDiags,                    &
@@ -430,7 +437,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                             svar_turb_out,                 &
                             svar_bm_out,                   &
                             zeros,                         &
-                            zeros )
+                            zeros,                         &
+                            wtrac)
 
     ! Recast back to LFRic space
     do k = 1, nlayers
