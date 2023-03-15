@@ -86,7 +86,7 @@ contains
   !> @param[in]     order             Order of the reconstruction
   !> @param[in]     dt                The model timestep length
   !> @param[in]     monotone          Horizontal monotone option for FFSL
-  !> @param[in,out] flux              Horizontal flux. Included here to be
+  !> @param[in,out] mass_flux         Horizontal mass flux. Included here to be
   !!                                  ready for #2997
   !> @param[in,out] increment         Conservative transport increment
   subroutine ffsl_1d_flux_first( direction,  &
@@ -96,7 +96,7 @@ contains
                                  order,      &
                                  dt,         &
                                  monotone,   &
-                                 flux,       &
+                                 mass_flux,  &
                                  increment )
 
     implicit none
@@ -108,18 +108,18 @@ contains
     integer(i_def),                  intent(in)    :: order
     real(r_tran),                    intent(in)    :: dt
     integer(kind=i_def),             intent(in)    :: monotone
-    type(r_tran_field_type),         intent(inout) :: flux
+    type(r_tran_field_type),         intent(inout) :: mass_flux
     type(r_tran_field_type),         intent(inout) :: increment
 
     ! Mass flux variables
-    type(r_tran_field_type) :: mass_flux
+    type(r_tran_field_type) :: flux
     type(r_tran_field_type) :: difference
 
     ! Inverse mass matrix and stencil extent
     type(r_tran_operator_type), pointer :: m3_inv => null()
-    integer(kind=i_def)          :: stencil_extent
-    integer(kind=i_def)          :: cfl_stencil_extent
-    real(kind=r_tran)            :: cfl_min, cfl_max
+    integer(kind=i_def) :: stencil_extent
+    integer(kind=i_def) :: cfl_stencil_extent
+    real(kind=r_tran)   :: cfl_min, cfl_max
 
     ! Fields for remapping
     type(r_tran_field_type), target  :: remap_field
@@ -133,10 +133,10 @@ contains
     ! Get inverse mass matrix
     m3_inv => get_inverse_w3_mass_matrix_r_tran(increment%get_mesh_id())
 
-    call mass_flux%initialise( vector_space=dep_pts%get_function_space() )
+    call flux%initialise( vector_space=dep_pts%get_function_space() )
     call difference%initialise( vector_space=field%get_function_space() )
-    call invoke( setval_c(mass_flux,  0.0_r_tran),  &
-                 setval_c(difference, 0.0_r_tran)  )
+    call invoke( setval_c(flux,  0.0_r_tran), &
+                 setval_c(difference, 0.0_r_tran) )
 
     ! If needed remap the field on an extended cubed sphere
     if ( extended_mesh ) then
@@ -186,7 +186,7 @@ contains
   !> @param[in]     dt                The model timestep length
   !> @param[in]     panel_id          Panel ID of the cells
   !> @param[in]     monotone          Horizontal monotone option for FFSL
-  !> @param[in,out] flux              Horizontal flux. Included here to be
+  !> @param[in,out] mass_flux         Horizontal mass flux. Included here to be
   !!                                  ready for #2997
   !> @param[in,out] increment         Conservative transport increment
   subroutine ffsl_1d_flux_final( direction,  &
@@ -198,7 +198,7 @@ contains
                                  dt,         &
                                  panel_id,   &
                                  monotone,   &
-                                 flux,       &
+                                 mass_flux,  &
                                  increment )
 
     implicit none
@@ -212,18 +212,18 @@ contains
     real(r_tran),                    intent(in)    :: dt
     type(field_type),                intent(in)    :: panel_id
     integer(kind=i_def),             intent(in)    :: monotone
-    type(r_tran_field_type),         intent(inout) :: flux
+    type(r_tran_field_type),         intent(inout) :: mass_flux
     type(r_tran_field_type),         intent(inout) :: increment
 
     ! Mass flux variables
-    type(r_tran_field_type) :: mass_flux
+    type(r_tran_field_type) :: flux
     type(r_tran_field_type) :: difference
 
     ! Inverse mass matrix and stencil extent
     type(r_tran_operator_type), pointer :: m3_inv => null()
-    integer(kind=i_def)          :: stencil_extent
-    integer(kind=i_def)          :: cfl_stencil_extent
-    real(kind=r_tran)            :: cfl_min, cfl_max
+    integer(kind=i_def) :: stencil_extent
+    integer(kind=i_def) :: cfl_stencil_extent
+    real(kind=r_tran)   :: cfl_min, cfl_max
 
     ! Fields for remapping
     type(r_tran_field_type), target  :: remap_field_x
@@ -239,10 +239,10 @@ contains
     ! Get inverse mass matrix
     m3_inv => get_inverse_w3_mass_matrix_r_tran(increment%get_mesh_id())
 
-    call mass_flux%initialise( vector_space=dep_pts%get_function_space() )
+    call flux%initialise( vector_space=dep_pts%get_function_space() )
     call difference%initialise( vector_space=field_x%get_function_space() )
-    call invoke( setval_c(mass_flux,  0.0_r_tran),  &
-                 setval_c(difference, 0.0_r_tran)  )
+    call invoke( setval_c(flux,  0.0_r_tran), &
+                 setval_c(difference, 0.0_r_tran) )
 
     ! If needed remap the field on an extended cubed sphere
     if ( extended_mesh ) then
@@ -293,7 +293,7 @@ contains
   !> @param[in]     dt                The model timestep length
   !> @param[in]     monotone          Vertical monotone option for FFSL
   !> @param[in]     reversible        Reversibility option for FFSL
-  !> @param[in,out] flux              Vertical flux. Included here to be
+  !> @param[in,out] mass_flux         Vertical mass flux. Included here to be
   !!                                  ready for #2997
   !> @param[in,out] increment         Conservative transport increment
   subroutine ffsl_1d_flux_vert( field,      &
@@ -303,7 +303,7 @@ contains
                                 dt,         &
                                 monotone,   &
                                 reversible, &
-                                flux,       &
+                                mass_flux,  &
                                 increment )
 
     use psykal_lite_mod,               only: invoke_copy_to_rtran
@@ -316,11 +316,11 @@ contains
     real(r_tran),            intent(in)    :: dt
     integer(kind=i_def),     intent(in)    :: monotone
     logical(kind=l_def),     intent(in)    :: reversible
-    type(r_tran_field_type), intent(inout) :: flux
+    type(r_tran_field_type), intent(inout) :: mass_flux
     type(r_tran_field_type), intent(inout) :: increment
 
     ! Variables needed for reconstruction and flux
-    type(r_tran_field_type) :: mass_flux
+    type(r_tran_field_type) :: flux
     type(r_tran_field_type) :: difference
     type(r_tran_field_type) :: a0, a1, a2
 
@@ -330,12 +330,12 @@ contains
     type(r_tran_field_type)             :: dz_w3
 
     ! Initialise variables
-    call mass_flux%initialise( vector_space=flux%get_function_space() )
+    call flux%initialise( vector_space=mass_flux%get_function_space() )
     call difference%initialise( vector_space=field%get_function_space() )
     call a0%initialise( vector_space=field%get_function_space() )
     call a1%initialise( vector_space=field%get_function_space() )
     call a2%initialise( vector_space=field%get_function_space() )
-    call invoke( setval_c(mass_flux,  0.0_r_tran), &
+    call invoke( setval_c(flux, 0.0_r_tran),       &
                  setval_c(difference, 0.0_r_tran), &
                  setval_c(a0, 0.0_r_tran),         &
                  setval_c(a1, 0.0_r_tran),         &

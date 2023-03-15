@@ -8,13 +8,14 @@
 
 module swe_transport_control_alg_mod
 
+  use combine_w2_field_kernel_mod,       only: combine_w2_field_kernel_type
   use constants_mod,                     only: i_def, r_def, l_def
   use enforce_bc_kernel_mod,             only: enforce_bc_kernel_type
   use field_mod,                         only: field_type
   use field_indices_mod,                 only: isw_u, isw_g, isw_b, isw_q
   use field_vector_mod,                  only: field_vector_type
   use finite_element_config_mod,         only: element_order, nqp_exact
-  use fs_continuity_mod,                 only: W1, W3
+  use fs_continuity_mod,                 only: W1, W3, W2v
   use function_space_mod,                only: function_space_type
   use function_space_collection_mod,     only: function_space_collection
   use geometric_constants_mod,           only: get_coordinates, &
@@ -35,6 +36,11 @@ module swe_transport_control_alg_mod
                                                momentum_form,          &
                                                momentum_form_momentum, &
                                                momentum_form_vector_invariant
+  use transport_enumerated_types_mod,    only: scheme_mol_3d, &
+                                               scheme_split,  &
+                                               splitting_hv,  &
+                                               splitting_vh,  &
+                                               splitting_strang_vhv
   use transport_metadata_mod,            only: transport_metadata_type
   use transport_metadata_collection_mod, only: transport_metadata_collection_type
   use transport_runtime_alg_mod,         only: transport_runtime_type
@@ -176,15 +182,20 @@ contains
 
     ! Function space
     type(function_space_type), pointer :: w1_fs => null()
+    type(function_space_type), pointer :: w2v_fs => null()
+
+    ! Transport runtime and metadate
+    type(transport_runtime_type)           :: transport_runtime
+    type(transport_runtime_type),  pointer :: transport_runtime_get => null()
+    type(transport_metadata_type), pointer :: transport_metadata => null()
 
     ! Internal variables
-    type(transport_runtime_type) :: transport_runtime
-    type(transport_runtime_type), pointer :: transport_runtime_get => null()
-    type(transport_metadata_type), pointer :: transport_metadata => null()
-    type(field_type), pointer :: q_mass_flux => null()
+    type(field_type), pointer :: q_mass_flux_get => null()
     type(field_type) :: buoy_inc,     &
                         constant_one, &
-                        q_geopot
+                        q_geopot,     &
+                        q_mass_flux,  &
+                        q_mass_flux_vert
 
     ! Coordinates, Panel ID, and Mass Matrix
     type(field_type),    pointer :: chi(:)   => null()
@@ -283,16 +294,46 @@ contains
 
       ! Initialise vorticity advection function spaces and quadrature
       w1_fs    => function_space_collection%get_fs( geopot%get_mesh(), element_order, W1 )
+      w2v_fs   => function_space_collection%get_fs( geopot%get_mesh(), element_order, W2v )
       chi      => get_coordinates(geopot%get_mesh_id())
       panel_id => get_panel_id(geopot%get_mesh_id())
       qr = quadrature_xyoz_type(nqp_exact, quadrature_rule)
 
-      ! Calculate q*phi and get q mass flux
+      ! Calculate q*phi
       call invoke( X_times_Y(q_geopot,q,geopot) )
       transport_metadata => transport_metadata_collection%get_transport_metadata('q')
       call transport_field( q_np1, q_geopot, &
                             cast_dt, transport_metadata )
-      q_mass_flux => transport_runtime_get%get_dry_flux(geopot%get_mesh_id(), 1)
+
+      ! The PV mass flux depends on whether splitting has been used
+      ! we require it to be in W2 space
+      call q_mass_flux%initialise(vector_space = wind%get_function_space())
+
+      select case ( transport_metadata%get_scheme() )
+      case ( scheme_mol_3d )
+        q_mass_flux_get => transport_runtime_get%get_dry_flux(geopot%get_mesh_id(), 1)
+        call invoke( setval_X(q_mass_flux, q_mass_flux_get) )
+      case ( scheme_split )
+        ! Get the correct directional flux based on which splitting is used
+        if ( transport_metadata%get_splitting() == splitting_hv ) then
+          ! HV splitting requires flux from first splitting stage
+          q_mass_flux_get => transport_runtime_get%get_dry_flux(geopot%get_mesh_id(), 1)
+        else if ( transport_metadata%get_splitting() == splitting_vh .OR. &
+                  transport_metadata%get_splitting() == splitting_strang_vhv ) then
+          ! VH or VHV splitting requires flux from second splitting stage
+          q_mass_flux_get => transport_runtime_get%get_dry_flux(geopot%get_mesh_id(), 2)
+        else
+          call log_event('Only HV, VH, or VHV splitting is valid for shallow water', &
+                          LOG_LEVEL_ERROR)
+        end if
+        ! Combine W2h and W2v flux parts into a W2 field
+        call q_mass_flux_vert%initialise( w2v_fs )
+        call invoke( setval_c(q_mass_flux_vert, 0.0_r_def) )
+        call invoke( combine_w2_field_kernel_type( q_mass_flux, q_mass_flux_get, q_mass_flux_vert ) )
+      case default
+        call log_event('Trying to transport PV with unrecognised scheme', &
+                        LOG_LEVEL_ERROR)
+      end select
 
       ! If vector_invariant form, use the PV mass flux for the velocity advection
       call constant_one%initialise( vector_space = w1_fs )
@@ -304,7 +345,7 @@ contains
                    enforce_bc_kernel_type(advection_inc%vector(isw_u)),              &
                    inc_a_times_X(cast_dt,advection_inc%vector(isw_u)) )
 
-      nullify( w1_fs, chi, panel_id )
+      nullify( w1_fs, w2v_fs, q_mass_flux_get, chi, panel_id )
 
     case(momentum_form_momentum)
 

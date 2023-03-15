@@ -66,6 +66,8 @@ contains
   !> @param[in]     hori_monotone     Horizontal monotone option for FFSL
   !> @param[in]     vert_monotone     Vertical monotone option for FFSL
   !> @param[in]     reversible        Vertical reversibility option for FFSL
+  !> @param[in,out] mass_flux         Horizontal mass flux. Included here to be
+  !!                                  ready for #2997
   !> @param[in,out] increment         Conservative transport increment
   subroutine ffsl_conservative_transport_alg( field,         &
                                               dep_pts_x,     &
@@ -77,6 +79,7 @@ contains
                                               hori_monotone, &
                                               vert_monotone, &
                                               reversible,    &
+                                              mass_flux,     &
                                               increment )
 
     implicit none
@@ -91,6 +94,7 @@ contains
     integer(kind=i_def),     intent(in)    :: hori_monotone
     integer(kind=i_def),     intent(in)    :: vert_monotone
     logical(kind=l_def),     intent(in)    :: reversible
+    type(r_tran_field_type), intent(inout) :: mass_flux
     type(r_tran_field_type), intent(inout) :: increment
 
     ! Subroutine name for timer
@@ -156,7 +160,8 @@ contains
     ! Set fluxes to zero
     call invoke( setval_c( flux_x, 0.0_r_tran ), &
                  setval_c( flux_y, 0.0_r_tran ), &
-                 setval_c( flux_z, 0.0_r_tran ) )
+                 setval_c( flux_z, 0.0_r_tran ), &
+                 setval_c( mass_flux, 0.0_r_tran ) )
 
     ! Set constants
     half_dt = 0.5_r_tran * dt
@@ -347,6 +352,10 @@ contains
 
     end select
 
+    ! Collect the fluxes
+    call invoke( X_minus_Y( mass_flux, flux_x, flux_y ), &
+                 inc_X_plus_Y( mass_flux, flux_z ) )
+
     if ( subroutine_timers ) call timer(routine_name)
 
     nullify( field_fs, dep_fs )
@@ -372,6 +381,8 @@ contains
   !> @param[in]     hori_monotone     Horizontal monotone option for FFSL
   !> @param[in]     strang            Logical flag to do half step in unity transport
   !> @param[in]     advect_flux       Flag to also compute advective update
+  !> @param[in,out] mass_flux         Horizontal mass flux. Included here to be
+  !!                                  ready for #2997
   !> @param[in,out] increment_con     Conservative transport increment
   !> @param[in,out] increment_adv     Advective increment
   subroutine ffsl_conservative_horizontal_alg( field,         &
@@ -383,6 +394,7 @@ contains
                                                hori_monotone, &
                                                strang,        &
                                                advect_flux,   &
+                                               mass_flux,     &
                                                increment_con, &
                                                increment_adv )
 
@@ -397,6 +409,7 @@ contains
     integer(kind=i_def),     intent(in)    :: hori_monotone
     logical(l_def),          intent(in)    :: strang
     logical(kind=l_def),     intent(in)    :: advect_flux
+    type(r_tran_field_type), intent(inout) :: mass_flux
     type(field_type),        intent(inout) :: increment_con
     type(field_type),        intent(inout) :: increment_adv
 
@@ -446,7 +459,8 @@ contains
 
     ! Set fluxes to zero
     call invoke( setval_c( flux_x, 0.0_r_tran ), &
-                 setval_c( flux_y, 0.0_r_tran ) )
+                 setval_c( flux_y, 0.0_r_tran ), &
+                 setval_c( mass_flux, 0.0_r_tran ) )
 
     ! Set constants
     half_dt = 0.5_r_tran * dt
@@ -494,8 +508,9 @@ contains
       call invoke( setval_c(increment_adv, 0.0_r_tran) )
     end if
 
-    ! Collect the conservative increments
-    call invoke( X_plus_Y( increment_con, increment_x, increment_y ) )
+    ! Collect the conservative increments and fluxes
+    call invoke( X_plus_Y( increment_con, increment_x, increment_y ), &
+                 X_minus_Y( mass_flux, flux_x, flux_y ) )
 
     if ( subroutine_timers ) call timer(routine_name)
 
