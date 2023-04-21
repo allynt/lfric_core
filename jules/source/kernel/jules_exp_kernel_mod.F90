@@ -606,7 +606,7 @@ contains
     integer(kind=i_def), dimension(ndf_w3,maxval(sea_v_w3_stencil_size),seg_len_halo), intent(in) :: sea_v_w3_stencil
 
     real(kind=r_def), intent(in) :: sea_ice_temperature(undf_sice)
-    
+
     real(kind=r_def), intent(in) :: sea_ice_conductivity(undf_sice)
 
     real(kind=r_def), intent(in) :: peak_to_trough_orog(undf_2d)
@@ -973,10 +973,10 @@ contains
     ! Surface currents
     ! Coupled A-O models will have ocean surface current components on w3
     ! available after coupling exchanges, assuming that coupled models always
-    ! couple to an ocean model AND that sea surface currents are always exchanged. 
+    ! couple to an ocean model AND that sea surface currents are always exchanged.
     ! If sea surface currents are obtained from elsewhere, e.g. ancillary files,
     ! then we need to ensure that sea_u_current and sea_v_current are populated
-    ! from the appropriate source data. 
+    ! from the appropriate source data.
     do i = 1, seg_len_halo
       jules_vars%u_0_p_ij(i,1) = sea_u_current(sea_u_w3_stencil(1,1,i))
       jules_vars%v_0_p_ij(i,1) = sea_v_current(sea_v_w3_stencil(1,1,i))

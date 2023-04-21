@@ -253,7 +253,7 @@ contains
 
 #endif
 
-    if (evap_condense_placement == evap_condense_placement_fast .and. & 
+    if (evap_condense_placement == evap_condense_placement_fast .and. &
         cloud == cloud_evap_condense) then
       call derived_fields%get_field('exner_in_wth', exner_in_wth)
       call clone_bundle(mr, dmr_cld, nummr)

@@ -462,7 +462,7 @@ contains
         ! Construct vertical- and horizontal-only velocity mass matrices
         call mm_w2v(i)%initialise( w2v_fs, w2v_fs )
         call mm_w2h(i)%initialise( w2h_fs, w2h_fs )
- 
+
         call invoke( name = "compute_W2_hori_mass_matrix",                         &
                      compute_mass_matrix_kernel_w2_type( mm_w2v(i), chi_list(:,i), &
                                                          panel_id_list(i), qr ) )
@@ -570,7 +570,7 @@ contains
                                                         mm_dl_lagged(i),            &
                                                         const, coriolis) )
 
-          end if    
+          end if
         else
           call invoke( name = "set_W2_si_mass_matrix_no_damping_layer",      &
                        operator_x_plus_ay_kernel_type(mm_w2_si(i), mm_w2(i), &

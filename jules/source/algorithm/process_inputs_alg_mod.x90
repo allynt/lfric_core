@@ -258,7 +258,7 @@ contains
       call radiation_fields%get_field('skyview', skyview)
       call radiation_fields%get_field('horizon_angle', horizon_angle)
       call radiation_fields%get_field('horizon_aspect', horizon_aspect)
-      
+
       if (topography == topography_horizon) then
         n_horizon_angle = n_horiz_ang
         n_horizon_layer = n_horiz_layer

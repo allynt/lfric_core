@@ -95,22 +95,22 @@ DO i=1, SIZE(stash_list)
   stashcode = stash_list(i)
   lfric_field_kind = get_lfric_field_kind(stashcode)
   field_name = TRIM(get_field_name(stashcode))
- 
+
   ! TODO - It would be good to move this case statement into its own
   ! routine it could be used elsewhere to add fields to the collection
   ! without the do loop over stash list
   IF ( .NOT. field_collection%field_exists(field_name) ) THEN
- 
+
     SELECT CASE (lfric_field_kind)
 
       CASE(w2h_field) ! Stashcodes that would map to W2h, i.e. winds
         type_mesh => mesh
         fs_id = W2H
         ndata_64 = 1_int64
-        ndata_first = .FALSE. 
+        ndata_first = .FALSE.
         tmp_read_ptr => read_field_edge
-        tmp_write_ptr => write_field_edge 
-   
+        tmp_write_ptr => write_field_edge
+
       CASE(w3_field) ! Stashcodes that map to W3/rho
         type_mesh => mesh
         fs_id = W3
@@ -118,7 +118,7 @@ DO i=1, SIZE(stash_list)
         ndata_first = .FALSE.
         tmp_read_ptr => read_field_face
         tmp_write_ptr => write_field_face
-     
+
       CASE(wtheta_field) ! Stashcodes that maps to Wtheta
         type_mesh => mesh
         fs_id = Wtheta
@@ -126,7 +126,7 @@ DO i=1, SIZE(stash_list)
         ndata_first = .FALSE.
         tmp_read_ptr => read_field_face
         tmp_write_ptr => write_field_face
-     
+
       CASE(w3_field_2d) ! Stash that needs 2D mesh
         type_mesh => twod_mesh
         fs_id = W3
@@ -140,7 +140,7 @@ DO i=1, SIZE(stash_list)
         ndata_first = .FALSE.
         tmp_write_ptr => write_field_single_face
         tmp_read_ptr => read_field_single_face
-     
+
       CASE(w3_soil_field) ! Soil fields
         type_mesh => twod_mesh
         fs_id = W3
@@ -148,10 +148,10 @@ DO i=1, SIZE(stash_list)
         ndata_first = .TRUE.
         tmp_write_ptr => write_field_single_face
         tmp_read_ptr => read_field_single_face
-     
+
       CASE DEFAULT
         WRITE(log_scratch_space, '(A,I0,A)')                                   &
-           "LFRic field kind code ", lfric_field_kind, " not recognised" 
+           "LFRic field kind code ", lfric_field_kind, " not recognised"
         CALL log_event(log_scratch_space, LOG_LEVEL_ERROR)
 
     END SELECT
@@ -163,7 +163,7 @@ DO i=1, SIZE(stash_list)
                                               ndata=INT(ndata_64, KIND=i_def)  &
                                                     )
     CALL field % initialise(vector_space=vector_space, name=field_name,        &
-                            ndata_first=ndata_first) 
+                            ndata_first=ndata_first)
     CALL field % set_read_behaviour(tmp_read_ptr)
     CALL field % set_write_behaviour(tmp_write_ptr)
     CALL log_event("Add "//field_name//" to field collection", LOG_LEVEL_INFO)
@@ -171,7 +171,7 @@ DO i=1, SIZE(stash_list)
 
     NULLIFY(tmp_read_ptr, tmp_write_ptr)
     NULLIFY(vector_space)
-   
+
   END IF
 
 END DO

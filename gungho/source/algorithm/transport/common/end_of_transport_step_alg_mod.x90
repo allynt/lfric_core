@@ -200,7 +200,7 @@ contains
         do limit_iteration = 1, num_limiting_steps
           call invoke( iterate_min_flux_kernel_type(field_start, sum_flux, &
                                                     div_r_def, min_value, adv_dt) )
-          
+
           ! Apply flux, and determine new minima
           call invoke_dg_matrix_vector_rtran(increment, sum_flux, div)
           call invoke( X_minus_Y(field_np1, field_start, increment) )
@@ -520,7 +520,7 @@ contains
 
     ! Arguments
     type(r_tran_field_type),      intent(inout) :: sum_flux
-    type(transport_runtime_type), intent(in)    :: transport_runtime 
+    type(transport_runtime_type), intent(in)    :: transport_runtime
 
     ! Internal variables
     integer(kind=i_def)                :: mesh_id, step
@@ -611,7 +611,7 @@ contains
     implicit none
 
     ! Arguments
-    type(transport_runtime_type), intent(inout) :: transport_runtime 
+    type(transport_runtime_type), intent(inout) :: transport_runtime
     type(r_tran_field_type),      intent(inout) :: new_flux_last_step
     type(r_tran_field_type),      intent(in)    :: old_flux_last_step
     type(r_tran_field_type),      intent(in)    :: sum_flux
@@ -681,7 +681,7 @@ contains
       end select
 
       ! ---------------------------------------------------------------------- !
-      ! Adjust the fluxes stored in the transport runtime 
+      ! Adjust the fluxes stored in the transport runtime
       ! ---------------------------------------------------------------------- !
       ! The limited flux was 3D, but we store only horizontal/vertical fluxes
       ! for a split scheme. Therefore we need to go back and find horizontal and

@@ -55,7 +55,7 @@ contains
 
     if ( subroutine_timers ) call timer("mphys_diagnostics")
 
-  end subroutine 
+  end subroutine
 
   subroutine output_diags_for_mphys(exner_in_wth, dtheta_mphys,               &
                                     dmv_mphys, dmcl_mphys, dmci_mphys,        &

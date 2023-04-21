@@ -231,7 +231,7 @@ subroutine initialise_diags_for_radiation( lw_down_surf, lw_heating_rate, &
   ! lw_down_clear_surf_rts => lw_down_clear_rts
   if ( lw_down_clear_surf_rts_flag .and. .not. lw_down_clear_rts_flag ) &
     ignore = init_diag(lw_down_clear_rts, 'radiation__lw_down_clear_rts', activate=.true.)
-  
+
   ! (lw_up_clear_surf_rts or lq_up_clear_toa_rts) => sw_up_clear_rts
   if ( (lw_up_clear_surf_rts_flag .or. lw_up_clear_toa_rts_flag) .and. &
     .not. lw_up_clear_rts_flag ) &
@@ -330,10 +330,10 @@ subroutine output_diags_for_radiation( dtheta_rad, &
   ! Locally computed diagnostics
   logical( l_def ) :: lw_net_surf_flag
   logical( l_def ) :: lw_net_skyview_incr_flag
-  
+
   ! Local working variables
   logical( l_def ) :: ignore
-  
+
   if ( subroutine_timers ) call timer("radiation_diags")
 
   ! Prognostic fields
@@ -408,7 +408,7 @@ subroutine output_diags_for_radiation( dtheta_rad, &
 
   ! lw_net_skyview_incr requires lw_net_surf
   lw_net_surf_flag = init_diag(lw_net_surf, 'radiation__lw_net_surf')
-  lw_net_skyview_incr_flag = init_diag(lw_net_skyview_incr, 'radiation__lw_net_skyview_incr') 
+  lw_net_skyview_incr_flag = init_diag(lw_net_skyview_incr, 'radiation__lw_net_skyview_incr')
   if ( lw_net_surf_flag .or. lw_net_skyview_incr_flag ) then
     if ( .not. lw_net_surf_flag ) then
       ignore = init_diag(lw_net_surf, 'radiation__lw_net_surf', activate=.true.)
@@ -503,7 +503,7 @@ subroutine output_diags_for_radiation( dtheta_rad, &
   call sw_aer_optical_depth_rts%write_field( sw_aer_optical_depth_rts%get_name() )
   if ( lw_aer_optical_depth_rts_flag ) &
   call lw_aer_optical_depth_rts%write_field( lw_aer_optical_depth_rts%get_name() )
-  
+
   if ( sw_direct_clear_rts_flag ) &
   call sw_direct_clear_rts%write_field(sw_direct_clear_rts%get_name())
   if ( sw_down_clear_rts_flag ) &
@@ -514,7 +514,7 @@ subroutine output_diags_for_radiation( dtheta_rad, &
   call lw_down_clear_rts%write_field(lw_down_clear_rts%get_name())
   if ( lw_up_clear_rts_flag ) &
   call lw_up_clear_rts%write_field(lw_up_clear_rts%get_name())
-  
+
   if ( sw_down_clear_surf_rts_flag ) &
   call sw_down_clear_surf_rts%write_field(sw_down_clear_surf_rts%get_name())
   if ( sw_up_clear_surf_rts_flag ) &

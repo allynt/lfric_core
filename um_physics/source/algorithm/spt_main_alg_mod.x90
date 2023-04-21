@@ -11,7 +11,7 @@ module spt_main_alg_mod
     use constants_mod,        only: r_def, i_def, l_def
     use fs_continuity_mod,    only: W0, Wtheta
     ! define types
-    use clock_mod,            only: clock_type    
+    use clock_mod,            only: clock_type
     use field_mod,            only: field_type
     use field_collection_mod, only: field_collection_type
     use mesh_mod,             only: mesh_type
@@ -99,7 +99,7 @@ module spt_main_alg_mod
                                            spt_n_smoothing_iters, &
                                            ! Add increments
                                            spt_add_increments,        &
-                                           ! SPT levels 
+                                           ! SPT levels
                                            spt_level_bottom,          &
                                            spt_level_top,             &
                                            ! Stoch Phy wavenumbers
@@ -147,7 +147,7 @@ module spt_main_alg_mod
   type( field_collection_type ), intent(in) :: orography_fields
   ! classes
   class(clock_type), intent(in)   :: clock
-  
+
   !!!! Internal variables
   ! From Collections:
 
@@ -219,7 +219,7 @@ module spt_main_alg_mod
   ! Physics scalars
   real(kind=r_def) :: inv_kappa, mlcrcp
   ! iterators in for loops
-  integer(i_def) :: n,n_row, m 
+  integer(i_def) :: n,n_row, m
 
   if ( subroutine_timers ) call timer("spt_main_alg")
 
@@ -251,7 +251,7 @@ module spt_main_alg_mod
     Lbeta = 500e3_r_def !Original value eq 500e3
     beta  = 0.5_r_def*(Lbeta/planet_radius)**2.0_r_def
 
-    ! Compute Tau, add zonal one by hand 
+    ! Compute Tau, add zonal one by hand
     ! (as done in UM)
     gamma=1.0_r_def/(2.0_r_def-spt_alpha)
     do n=1,stph_n_max
@@ -260,7 +260,7 @@ module spt_main_alg_mod
 
     ! Compute sigma
     sigma=1.0_r_def/sqrt(12.0_r_def)
-    
+
     !Define the power law over all stph_spectral_dim
     !for simplicity (thus repeating same values)
     !on the single line

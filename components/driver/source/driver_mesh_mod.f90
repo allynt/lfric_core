@@ -1390,16 +1390,16 @@ subroutine check_stencil_depths( mesh_bank, stencil_depth )
 
 end subroutine check_stencil_depths
 
-!> @brief  Checks that the partitioning strategy will work on the 
+!> @brief  Checks that the partitioning strategy will work on the
 !>         lowest resolution multigrid level
 !> @param[in]  mesh_name          The name of the mesh on which the
 !>                                multigrid is being applied
-!> @param[in]  xproc              The number of partitions across a 
+!> @param[in]  xproc              The number of partitions across a
 !>                                panel in the mesh in the x-direction
-!> @param[in]  yproc              The number of partitions across a 
+!> @param[in]  yproc              The number of partitions across a
 !>                                panel in the mesh in the y-direction
 !> @param[in]  n_multigrid_levels The number of levels of multigrid
-!>                                being applied to the mesh 
+!>                                being applied to the mesh
 !==========================================================================
 subroutine check_multigrid_partitioning( mesh_name, &
                                          xproc, yproc,    &

@@ -11,7 +11,7 @@
 !>        Daniel R. Feldman, William D. Collins, Robert Pincus, Xianglei Huang,
 !>        and Xiuhong Chen, Far-infrared surface emissivity and climate,
 !>        PNAS November 18, 2014 111 (46) 16297-16302;
-!>        https://doi.org/10.1073/pnas.1413640111. 
+!>        https://doi.org/10.1073/pnas.1413640111.
 !>        and alternatively for sea using the IREMIS model
 !>        Roger Saunders, James Hocking, Emma Turner, Peter Rayer, David Rundle,
 !>        Pascal Brunel, Jerome Vidot, Pascale Roquet, Marco Matricardi,
@@ -24,6 +24,8 @@
 !>        obtained by scanning in the relevant figures in the paper.
 
 module specemis_mod
+
+  implicit none
 
   contains
 
@@ -67,7 +69,7 @@ module specemis_mod
   ! Size of lookup table (0-3000 wavenumbers at 10 wavenumber spacing)
   ! Units of wavenumbers are inverse cm
   integer(i_def), parameter :: n_val=301
-  ! Planck function at lookup table wavelenghts 
+  ! Planck function at lookup table wavelenghts
   real(r_def) :: planck_wavelentbl(n_val)
 
   ! Planck weighted contribution of each lookup table position to each band

@@ -348,7 +348,7 @@ contains
     call invoke( setval_c(flux, 0.0_r_tran) )
 
     nullify(mesh, w2_fs)
-  
+
   end subroutine calculate_null_flux
 
 end module split_transport_mod

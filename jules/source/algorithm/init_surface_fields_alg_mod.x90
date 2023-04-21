@@ -138,7 +138,7 @@ contains
                  setval_c(urbwrr,              0.5_r_def),                    &
                  setval_c(urbhwr,              1.0_r_def),                    &
                  setval_c(urbhgt,              10.0_r_def),                   &
-      		 ! Calculated urban areodynamic fields
+                 ! Calculated urban areodynamic fields
                  process_urban_kernel_type( urbwrr, urbhwr, urbhgt,           &
                                              urbztm, urbdisp ),               &
                  setval_c(urbalbwl,            0.375_r_def),                  &

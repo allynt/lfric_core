@@ -24,9 +24,9 @@ TYPE :: datetime_type
   CHARACTER(LEN=10)   :: calendar
 
   INTEGER(KIND=i_def) :: first_step
-  INTEGER(KIND=i_def) :: last_step 
+  INTEGER(KIND=i_def) :: last_step
   REAL(r_second)      :: spinup_period
-  REAL(r_second)      :: seconds_per_step 
+  REAL(r_second)      :: seconds_per_step
 
 CONTAINS
 

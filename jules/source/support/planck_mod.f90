@@ -6,6 +6,7 @@
 !> @brief Module with function to calculate the planck function.
 
 module planck_mod
+  implicit none
 
   contains
 

@@ -100,10 +100,10 @@ subroutine lw_rad_tile_code(nlayers,                                &
   ! Local variables for the kernel
   integer(i_def) :: i_tile, i_band
   integer(i_def) :: df_rtile
-  
+
   real(r_def) :: specemis_sea(n_band)
   real(r_def) :: specemis_soil(n_band)
-  
+
   real(r_def) :: greyemis_sea
   real(r_def) :: greyemis_soil
 
@@ -152,7 +152,7 @@ subroutine lw_rad_tile_code(nlayers,                                &
 
   ! Now set the tile_lw_albedo for land, sea and sea-ice tiles
   ! If constant albedos/emissivities are used these can are copied from tile_lw_grey_albedo
-  ! If spectrally varying emissivities are used these have been calculated 
+  ! If spectrally varying emissivities are used these have been calculated
   ! per band in the calls to specemis above and are applied below to set tile_lw_albedo
   do i_band = 1, n_band
 

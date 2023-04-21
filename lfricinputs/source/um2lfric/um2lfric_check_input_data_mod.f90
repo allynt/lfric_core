@@ -71,7 +71,7 @@ IF ((um_file_type /= inst_dump) .AND. (um_file_type /= fieldsfile)) THEN
   WRITE(log_scratch_space, "(3(A,I0))" )                                       &
        "Input file is not a UM dump or fieldsfile, dataset type "              &
         // "found was: ", um_file_type, " but input file should have: ",       &
-        inst_dump, " or ", fieldsfile 
+        inst_dump, " or ", fieldsfile
   CALL log_event(log_scratch_space, LOG_LEVEL_ERROR)
 END IF
 

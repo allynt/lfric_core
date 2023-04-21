@@ -135,7 +135,7 @@ contains
   !!                                iteration transport used for cheap transport update
   !> @param[in,out] adv_fields_all_outer
   !!                                (Optional) Fields after transport on every iteration
-  !> @param[in]     adv_fields_all_outer_after_slow 
+  !> @param[in]     adv_fields_all_outer_after_slow
   !!                                (Optional) Fields to transport every iteration
   !> @param[in]     adv_fields_all_outer_prev
   !!                                (Optional) Fields after 1st outer iteration transport

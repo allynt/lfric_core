@@ -106,7 +106,7 @@ subroutine rad_cloud_alg(rand_seed, n_cloud_layer, &
     call cloud_fields%get_field('area_fraction', area_fraction)
     call convection_fields%get_field('cca', cca)
     call convection_fields%get_field('ccw', ccw)
-    
+
     ! Initialise radiative cloud fields
     call rand_seed%initialise( w3_2d_space, name="rand_seed" )
     call n_cloud_layer%initialise( w3_2d_space, name = "n_cloud_layer" )
@@ -120,7 +120,7 @@ subroutine rad_cloud_alg(rand_seed, n_cloud_layer, &
                                   wtheta_space, name="conv_frozen_fraction")
     call conv_liquid_mmr%initialise(wtheta_space, name="conv_liquid_mmr")
     call conv_frozen_mmr%initialise(wtheta_space, name="conv_frozen_mmr")
-    
+
     ! Find current time, latitude and longitude to use for random seed
     call xios_get_current_date(datetime)
     year = int( datetime%year, i_def )
@@ -128,7 +128,7 @@ subroutine rad_cloud_alg(rand_seed, n_cloud_layer, &
     second_of_day = int( xios_date_get_second_of_day(datetime), i_def )
     latitude  => get_latitude(twod_mesh%get_id())
     longitude => get_longitude(twod_mesh%get_id())
-    
+
     ! Generate a unique seed for each gridpoint (actually for each area of the
     ! globe with a size defined by per_deg_lat) at the given time in seconds.
     ! ------------------------------------------------------------------------
@@ -136,7 +136,7 @@ subroutine rad_cloud_alg(rand_seed, n_cloud_layer, &
                    rand_seed, latitude, longitude, &
                    year, day_of_year, second_of_day, per_deg_lat ), &
                  name="setup_random_seed")
-    
+
     ! Set cloud fields to be used for radiative transfer
     ! --------------------------------------------------
     ! Treatment of convective cloud

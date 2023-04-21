@@ -555,8 +555,8 @@ contains
     if (use_xios_io .and. outer == outer_iterations) then
 
       ! Calculate zonal and meridional wind stresses.
-      ! Always set taux_ssi and tauy_ssi in coupled models regardless of 
-      ! whether write_diag is set since these are needed for coupling to 
+      ! Always set taux_ssi and tauy_ssi in coupled models regardless of
+      ! whether write_diag is set since these are needed for coupling to
       ! the ocean!
       if (write_diag .OR. l_esm_couple .OR. l_esm_couple_test) then
         call zh%copy_field_properties(tauz_ssi)

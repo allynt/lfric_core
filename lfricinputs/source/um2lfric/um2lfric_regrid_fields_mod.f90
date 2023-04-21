@@ -207,7 +207,7 @@ DO i_field = 1, um2lfric_config%num_fields
                                             src=um_input_fields(level)%rdata,  &
                                             dst=regridded_field(:, level))
       END IF
-  
+
     END DO ! loop over levels
 
     ! Tidy up input field memory

@@ -168,7 +168,7 @@ contains
           call invoke_copy_to_rtran(consist_w3_to_sh_w3_rtran(k), &
                                     consist_w3_to_sh_w3_rdef(k))
         end do
-        
+
         call consist_w3_to_sh_w3_rdef_inventory%add_field_array(             &
                               consist_w3_to_sh_w3_rdef, prime_extrusion_mesh)
         call consist_w3_to_sh_w3_rtran_inventory%add_field_array(             &
@@ -198,7 +198,7 @@ contains
                                                     panel_id,                 &
                                                     dummy_theta,              &
                                                     qr ) )
-          
+
           call proj_mr_to_sh_rho_inventory%add_field_array(                   &
                                 proj_mr_to_sh_rho_rhs_op, prime_extrusion_mesh)
 

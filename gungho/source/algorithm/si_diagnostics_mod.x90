@@ -156,7 +156,7 @@ contains
       if (du_adv_flag) call du_adv%write_field(du_adv%get_name())
       if (dv_adv_flag) call dv_adv%write_field(dv_adv%get_name())
       if (dw_adv_flag) call dw_adv%write_field(dw_adv%get_name())
-  
+
       if (moisture_formulation /= moisture_formulation_dry) then
        if (init_diag(dmv_adv, 'advection__dmv_adv')) then
           call invoke(X_minus_Y(dmv_adv,mr_after_adv(imr_v),mr_after_slow(imr_v)))

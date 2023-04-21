@@ -13,7 +13,7 @@ PRIVATE
 
 PUBLIC :: density_h2o
 
-! Density of water in kg/m3 
+! Density of water in kg/m3
 REAL(KIND=r_def), PARAMETER :: density_h2o = 1000.0_r_def
 
 END MODULE lfricinp_physics_constants_mod

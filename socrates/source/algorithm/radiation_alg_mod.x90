@@ -310,7 +310,7 @@ subroutine radiation_alg(dtheta_rad, theta, exner, mr,                        &
   n_levs = mesh%get_nlayers() + 1
   flux_space => function_space_collection%get_fs(twod_mesh, 0, W3, n_levs)
   wtheta_space => function_space_collection%get_fs( mesh, 0, Wtheta )
-  
+
 
   ! Initialise the radiation diagnostics
   call initialise_diags_for_radiation(lw_down_surf, lw_heating_rate, &

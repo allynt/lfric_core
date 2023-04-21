@@ -55,3 +55,5 @@ infrastructure = Style(
 # Define additional file type processing pipelines
 #
 pf = FilePipe(FortranSource, PFUnitProcessor, FortranPreProcessor)
+X90 = FilePipe(FortranSource, FortranPreProcessor)
+x90 = FilePipe(FortranSource)
