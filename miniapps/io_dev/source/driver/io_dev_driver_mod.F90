@@ -11,7 +11,6 @@
 module io_dev_driver_mod
 
   use checksum_alg_mod,           only: checksum_alg
-  use cli_mod,                    only: get_initial_filename
   use clock_mod,                  only: clock_type
   use configuration_mod,          only: final_configuration
   use constants_mod,              only: i_def, i_native, str_def, &
@@ -71,11 +70,11 @@ module io_dev_driver_mod
   contains
 
   !> @brief Sets up required state in preparation for run.
-  subroutine initialise()
+  subroutine initialise( filename )
 
     implicit none
 
-    character(:), allocatable :: filename
+    character(*) :: filename
 
     integer(i_native) :: communicator
 
@@ -96,7 +95,6 @@ module io_dev_driver_mod
     call init_comm(program_name)
     communicator = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call load_configuration( filename )
 
     call init_logger( communicator, program_name )

@@ -12,6 +12,7 @@
 
 program da_dev
 
+  use cli_mod,                   only : get_initial_filename
   use da_dev_driver_mod,         only : initialise_lfric, run, finalise_lfric, &
                                         initialise_model, finalise_model,      &
                                         initialise_lfric_comm
@@ -25,9 +26,13 @@ program da_dev
 
   character(*), parameter :: program_name = "da_dev"
 
+  character(:), allocatable :: filename
+
+  call get_initial_filename( filename )
+
   call initialise_lfric_comm(program_name, model_communicator)
 
-  call initialise_lfric(program_name, model_communicator)
+  call initialise_lfric( program_name, model_communicator, filename )
 
   call initialise_model(program_name, model_communicator, model_data)
 

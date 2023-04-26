@@ -73,12 +73,15 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets up required state in preparation for run.
   !>
-  subroutine initialise()
+  subroutine initialise( filename )
 
   implicit none
 
+  character(*), intent(in) :: filename
+
   ! Initialise aspects of the infrastructure
   call initialise_infrastructure( program_name, &
+                                  filename,     &
                                   mesh,         &
                                   twod_mesh,    &
                                   model_clock )

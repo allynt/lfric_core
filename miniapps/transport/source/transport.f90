@@ -8,13 +8,18 @@
 !> run_transport() and finalise_transport().
 program transport
 
+  use cli_mod,              only: get_initial_filename
   use transport_driver_mod, only: initialise_transport, &
                                   run_transport,        &
                                   finalise_transport
 
   implicit none
 
-  call initialise_transport()
+  character(:), allocatable :: filename
+
+  call get_initial_filename( filename )
+
+  call initialise_transport( filename )
 
   call run_transport()
 

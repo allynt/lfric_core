@@ -9,7 +9,6 @@
 !>
 module diagnostics_driver_mod
 
-  use cli_mod,                       only : get_initial_filename
   use clock_mod,                     only : clock_type
   use constants_mod,                 only : i_def, i_native, str_def, r_def
   use diagnostics_configuration_mod, only : load_configuration, program_name
@@ -62,7 +61,7 @@ contains
   !> mostly boiler plate - note the init and seeding of the fields at the end
   !> of the function.
   !>
-  subroutine initialise()
+  subroutine initialise( filename )
 
     use convert_to_upper_mod,       only : convert_to_upper
     use driver_fem_mod,             only : init_fem
@@ -77,15 +76,15 @@ contains
 
     implicit none
 
+    character(*), intent(in) :: filename
+
     character(len = *), parameter :: program_name = "diagnostics"
-    character(:), allocatable     :: filename
 
     integer(i_native) :: model_communicator
 
     call init_comm( program_name )
     model_communicator = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call load_configuration(filename)
 
     call init_logger( model_communicator, program_name )

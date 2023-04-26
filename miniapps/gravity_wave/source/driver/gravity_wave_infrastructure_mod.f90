@@ -9,7 +9,6 @@
 module gravity_wave_infrastructure_mod
 
   use check_configuration_mod,    only : get_required_stencil_depth
-  use cli_mod,                    only : get_initial_filename
   use configuration_mod,          only : final_configuration
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL,  &
@@ -45,9 +44,11 @@ contains
 
   !> @brief Initialises the infrastructure used by the model
   !> @param [in]     program_name  An identifier given to the model begin run
+  !> @param [in]     filename      Namelist file to load
   !> @param [in,out] mesh          The model prime mesh
   !> @param [in,out] twod_mesh     The model prime 2D mesh
   subroutine initialise_infrastructure( program_name, &
+                                        filename,     &
                                         mesh,         &
                                         twod_mesh,    &
                                         model_clock )
@@ -60,6 +61,7 @@ contains
     implicit none
 
     character(*),           intent(in) :: program_name
+    character(*),           intent(in) :: filename
     type(mesh_type),        intent(inout), pointer :: mesh
     type(mesh_type),        intent(inout), pointer :: twod_mesh
     type(model_clock_type), intent(out), allocatable :: model_clock
@@ -74,13 +76,10 @@ contains
 
     integer(i_native)          :: comm
 
-    character(:), allocatable :: filename
-
     ! Set up the communicator for later use
     call init_comm(program_name)
     comm = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call load_configuration( filename )
 
     call init_logger( comm, program_name )

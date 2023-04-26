@@ -9,7 +9,6 @@
 !>
 module gungho_driver_mod
 
-  use cli_mod,                    only : get_initial_filename
   use clock_mod,                  only : clock_type
   use derived_config_mod,         only : l_esm_couple
   use driver_io_mod,              only : get_io_context
@@ -71,7 +70,7 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> @brief Sets up required state in preparation for run.
-  subroutine initialise( program_name )
+  subroutine initialise( program_name, filename )
 
     use io_context_mod,         only : io_context_type
     use lfric_xios_context_mod, only : lfric_xios_context_type
@@ -79,12 +78,9 @@ contains
     implicit none
 
     character(*), intent(in) :: program_name
+    character(*), intent(in) :: filename
 
     class(io_context_type), pointer :: io_context => null()
-
-    character(:), allocatable :: filename
-
-    call get_initial_filename( filename )
 
     ! Initialise infrastructure and setup constants
     call initialise_infrastructure( filename,             &

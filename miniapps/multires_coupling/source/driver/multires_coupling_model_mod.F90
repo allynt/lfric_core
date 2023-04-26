@@ -10,7 +10,6 @@ module multires_coupling_model_mod
 
   use assign_orography_field_mod, only : assign_orography_field
   use checksum_alg_mod,           only : checksum_alg
-  use cli_mod,                    only : get_initial_filename
   use driver_comm_mod,            only : init_comm, final_comm
   use driver_fem_mod,             only : init_fem, final_fem
   use driver_mesh_mod,            only : init_mesh, final_mesh
@@ -107,7 +106,8 @@ contains
   !> @brief Initialises the infrastructure and sets up constants used by the
   !>        model.
   !>
-  !> @param [in]    program_name An identifier given to the model begin run
+  !> @param [in]     program_name An identifier given to the model begin run
+  !> @param [in]     filename     Namelist file for configuration
   !> @param [in,out] mesh         The current 3d mesh
   !> @param [in,out] twod_mesh    The current 2d mesh
   !> @param [in,out] shifted_mesh The vertically shifted 3d mesh
@@ -115,6 +115,7 @@ contains
   !> @param [out]    model_clock  Time within the model.
   !>
   subroutine initialise_infrastructure( program_name,      &
+                                        filename,          &
                                         mesh,              &
                                         twod_mesh,         &
                                         shifted_mesh,      &
@@ -126,6 +127,7 @@ contains
     implicit none
 
     character(*),           intent(in)               :: program_name
+    character(*),           intent(in)               :: filename
     type(mesh_type),        intent(inout), pointer   :: mesh
     type(mesh_type),        intent(inout), pointer   :: twod_mesh
     type(mesh_type),        intent(inout), pointer   :: double_level_mesh
@@ -153,7 +155,6 @@ contains
 
     logical(l_def)                :: found_dynamics_chi
     character(str_def)            :: dynamics_2D_mesh_name
-    character(:), allocatable     :: filename
 
     type(mesh_type), pointer      :: dynamics_mesh    => null()
     type(mesh_type), pointer      :: physics_mesh     => null()
@@ -180,7 +181,6 @@ contains
     call init_comm( program_name )
     communicator = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call load_configuration( filename, program_name )
 
     call init_logger( communicator, program_name )

@@ -6,7 +6,6 @@
 !>@brief Drives the execution of the (tangent) linear model.
 module linear_driver_mod
 
-  use cli_mod,                    only : get_initial_filename
   use constants_mod,              only : i_def, i_native, imdi
   use driver_io_mod,              only : get_io_context
   use field_mod,                  only : field_type
@@ -66,16 +65,14 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>@brief Sets up required state in preparation for run.
-  subroutine initialise( program_name )
+  subroutine initialise( program_name, filename )
 
     implicit none
 
     character(*), intent(in) :: program_name
+    character(*), intent(in) :: filename
 
     class(io_context_type), pointer :: io_context => null()
-    character(:),  allocatable      :: filename
-
-    call get_initial_filename( filename )
 
     ! Initialise infrastructure and setup constants
     call initialise_infrastructure( filename,          &

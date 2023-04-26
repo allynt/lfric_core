@@ -14,13 +14,18 @@
 
 program linear_model
 
+  use cli_mod,           only : get_initial_filename
   use linear_driver_mod, only : initialise, run, finalise
 
   implicit none
 
   character(*), parameter :: application_name = "linear_model"
 
-  call initialise( application_name )
+  character(:), allocatable :: filename
+
+  call get_initial_filename( filename )
+
+  call initialise( application_name, filename )
 
   call run( application_name )
 

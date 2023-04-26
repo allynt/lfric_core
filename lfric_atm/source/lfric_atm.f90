@@ -16,13 +16,18 @@
 
 program lfric_atm
 
+  use cli_mod,           only : get_initial_filename
   use gungho_driver_mod, only : initialise, run, finalise
 
   implicit none
 
   character(*), parameter :: application_name = "lfric_atm"
 
-  call initialise( application_name )
+  character(:), allocatable :: filename
+
+  call get_initial_filename( filename )
+
+  call initialise( application_name, filename )
 
   call run( application_name )
 

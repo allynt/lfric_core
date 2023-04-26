@@ -64,9 +64,11 @@ contains
   !!          model_data, then sets the initial conditions for the run.
   !> @param[in] filename Configuration namelist file
   !!
-  subroutine initialise()
+  subroutine initialise( filename )
 
     implicit none
+
+    character(*), intent(in) :: filename
 
     type(mesh_type),   pointer :: twod_mesh => null()
     type(field_type)           :: panel_id
@@ -74,6 +76,7 @@ contains
     call log_event( 'Initialising Infrastructure ...', LOG_LEVEL_INFO )
     ! Initialise infrastructure (from shallow_water_model_mod.F90) and setup constants
     call initialise_infrastructure( program_name, &
+                                    filename,     &
                                     mesh,         &
                                     twod_mesh,    &
                                     chi,          &

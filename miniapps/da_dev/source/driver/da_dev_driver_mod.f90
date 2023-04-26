@@ -10,7 +10,6 @@
 module da_dev_driver_mod
 
   use checksum_alg_mod,         only: checksum_alg
-  use cli_mod,                  only: get_initial_filename
   use configuration_mod,        only: final_configuration
   use constants_mod,            only: i_def, i_native, &
                                       PRECISION_REAL, r_def
@@ -97,21 +96,15 @@ contains
 
     implicit none
 
-    character(len=*), intent(in)              :: program_name
-    integer(i_native),          intent(in)    :: model_communicator
-    character(len=*), optional, intent(in)    :: filename
+    character(len=*),  intent(in) :: program_name
+    integer(i_native), intent(in) :: model_communicator
+    character(len=*),  intent(in) :: filename
 
-    character(:), allocatable              :: filename_local
     procedure(filelist_populator), pointer :: fl_populator => null()
     class(io_context_type),        pointer :: model_io_context => null()
     class(extrusion_type), allocatable     :: extrusion
 
-    if (present(filename)) then
-      call load_configuration( filename, program_name )
-    else
-      call get_initial_filename( filename_local )
-      call load_configuration( filename_local, program_name )
-    endif
+    call load_configuration( filename, program_name )
 
     call init_logger( model_communicator, program_name )
 

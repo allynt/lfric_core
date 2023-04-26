@@ -82,9 +82,11 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets up required state in preparation for run.
   !>
-  subroutine initialise()
+  subroutine initialise( filename )
 
     implicit none
+
+    character(*), intent(in) :: filename
 
     !-------------------------------------------------------------------------
     ! Model init
@@ -98,6 +100,7 @@ contains
     call log_event( 'Initialising Infrastructure...', LOG_LEVEL_ALWAYS )
 
     call initialise_infrastructure( program_name,            &
+                                    filename,                &
                                     prime_mesh,              &
                                     prime_2D_mesh,           &
                                     prime_shifted_mesh,      &

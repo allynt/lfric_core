@@ -10,7 +10,6 @@ module shallow_water_model_mod
   use assign_orography_field_mod,     only: assign_orography_field
   use check_configuration_mod,        only: get_required_stencil_depth
   use checksum_alg_mod,               only: checksum_alg
-  use cli_mod,                        only: get_initial_filename
   use configuration_mod,              only: final_configuration
   use conservation_algorithm_mod,     only: conservation_algorithm
   use constants_mod,                  only: i_def, i_native, &
@@ -73,9 +72,11 @@ module shallow_water_model_mod
   !=============================================================================
   !> @brief Initialises the infrastructure and sets up constants used by the model.
   !> @param[in]     program_name An identifier given to the model begin run
+  !> @param[in]     filename     Namelist file for configuration
   !> @param[in,out] mesh         The 3D mesh
   !> @param[in,out] chi          A size 3 array of fields holding the coordinates of the mesh
   subroutine initialise_infrastructure(program_name, &
+                                       filename,     &
                                        mesh,         &
                                        twod_mesh,    &
                                        chi,          &
@@ -85,6 +86,7 @@ module shallow_water_model_mod
     implicit none
 
     character(*),           intent(in)             :: program_name
+    character(*),           intent(in)             :: filename
     type(mesh_type),        intent(inout), pointer :: mesh
     type(mesh_type),        intent(out),   pointer :: twod_mesh
     type(field_type),       intent(inout)          :: chi(3)
@@ -94,7 +96,6 @@ module shallow_water_model_mod
     procedure(filelist_populator), pointer :: files_init_ptr => null()
 
     character(len=*), parameter :: io_context_name = "shallow_water"
-    character(:),   allocatable :: filename
 
     integer(i_native) :: communicator
 
@@ -106,7 +107,6 @@ module shallow_water_model_mod
     call init_comm( program_name )
     communicator = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call load_configuration( filename )
 
     call init_logger( communicator, program_name )

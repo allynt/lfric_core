@@ -10,7 +10,6 @@ module transport_driver_mod
 
   use checksum_alg_mod,                 only: checksum_alg
   use check_configuration_mod,          only: get_required_stencil_depth
-  use cli_mod,                          only: get_initial_filename
   use configuration_mod,                only: final_configuration
   use constants_mod,                    only: i_def, i_native, r_def, r_second
   use driver_comm_mod,                  only: init_comm, final_comm
@@ -98,12 +97,13 @@ contains
   !> @brief Sets up required state in preparation for run.
   !! @param[out] model_clock Time within the model.
   !!
-  subroutine initialise_transport()
+  subroutine initialise_transport( filename )
 
     implicit none
 
+    character(*), intent(in) :: filename
+
     character(len=*), parameter :: xios_ctx  = "transport"
-    character(:),   allocatable :: filename
 
     integer(i_native) :: model_communicator
 
@@ -115,7 +115,6 @@ contains
     call init_comm( program_name )
     model_communicator = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call transport_load_configuration( filename )
 
     call init_logger( model_communicator, program_name )

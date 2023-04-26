@@ -11,11 +11,16 @@
 
 program gravity_wave
 
+  use cli_mod,                 only : get_initial_filename
   use gravity_wave_driver_mod, only : initialise, run, finalise
 
   implicit none
 
-  call initialise()
+  character(:), allocatable :: filename
+
+  call get_initial_filename( filename )
+
+  call initialise( filename )
 
   call run()
 

@@ -10,7 +10,6 @@
 module skeleton_driver_mod
 
   use checksum_alg_mod,           only : checksum_alg
-  use cli_mod,                    only : get_initial_filename
   use configuration_mod,          only : final_configuration
   use constants_mod,              only : i_def, i_native, &
                                          PRECISION_REAL, r_def, r_second
@@ -55,11 +54,12 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !> Sets up required state in preparation for run.
   !>
-  subroutine initialise()
+  subroutine initialise( filename )
 
     implicit none
 
-    character(:), allocatable :: filename
+    character(*), intent(in) :: filename
+
     integer(i_native) :: model_communicator
 
     real(r_def) :: dt_model
@@ -67,7 +67,6 @@ contains
     call init_comm("skeleton")
     model_communicator = global_mpi%get_comm()
 
-    call get_initial_filename( filename )
     call load_configuration( filename, program_name )
 
     call init_logger( model_communicator, program_name )
