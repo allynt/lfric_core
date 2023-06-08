@@ -5,7 +5,7 @@
 !-----------------------------------------------------------------------------
 !> @brief Performs a simple insert sort on reference theta field to remove any
 !>        static instability.
-!>
+!>        Only written for the lowest order elements.
 module sort_ref_kernel_mod
 
   use argument_mod,      only: arg_type,          &

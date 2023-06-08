@@ -243,6 +243,8 @@ ffsl_advective_splitting='full'
 ffsl_flux_splitting='full'
 fv_horizontal_order=2,
 fv_vertical_order=2,
+adjust_theta=.false.
+adjust_theta_above=0.0
 min_val_abs_tol=-1e-9
 min_val_max_iterations=10
 oned_reconstruction=.true.,
@@ -250,6 +252,7 @@ operators='fv',
 reversible=.false.,.false.,.false.,.false.
 runge_kutta_method = 'ssp5',
 slice_order='cubic',
+theta_variable='dry'
 use_density_predictor=.false.,
 vertical_sl_order='cubic',
 /

@@ -245,6 +245,7 @@ contains
     use init_gungho_prognostics_alg_mod,  only: init_u_field
     use model_clock_mod,                  only: model_clock_type
     use moist_mr_transport_alg_mod,       only: moist_mr_transport_alg
+    use theta_transport_alg_mod,          only: theta_transport_alg
     use transport_field_mod,              only: transport_field
 
     implicit none
@@ -258,7 +259,7 @@ contains
 
     real(kind=r_def)             :: current_time
     real(r_def)                  :: cast_dt
-    type(field_type)             :: rho_n, theta_n, constant_n
+    type(field_type)             :: rho_n, theta_n, constant_n, theta_inc
     type(field_type)             :: tracer_con_n, tracer_adv_n, mr_n(nummr)
 
     type(mesh_type),     pointer :: primary_mesh => null()
@@ -304,13 +305,6 @@ contains
     call invoke( setval_X(rho_n, rho) )
     call transport_field( rho, rho_n, cast_dt, transport_metadata )
 
-    ! Transport potential temperature
-    call log_event( "Transporting potential temperature...", LOG_LEVEL_INFO)
-    transport_metadata => transport_metadata_collection%get_transport_metadata('theta')
-    call theta%copy_field_properties(theta_n)
-    call invoke( setval_X(theta_n, theta) )
-    call transport_field( theta, theta_n, cast_dt, transport_metadata )
-
     ! Transport conservative W3 tracer
     call log_event( "Transporting conservative tracer...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('tracer_con')
@@ -342,6 +336,16 @@ contains
     call copy_bundle(mr, mr_n, nummr)
     call moist_mr_transport_alg( mr, mr_n, nummr_to_transport, &
                                  cast_dt, transport_metadata)
+
+    ! Transport potential temperature
+    call log_event( "Transporting potential temperature...", LOG_LEVEL_INFO)
+    transport_metadata => transport_metadata_collection%get_transport_metadata('theta')
+    call theta%copy_field_properties(theta_n)
+    call invoke( setval_X(theta_n, theta) )
+    call theta%copy_field_properties(theta_inc)
+    call theta_transport_alg(theta, theta_inc, theta_n, mr, mr_n, &
+                             cast_dt, transport_metadata)
+
     nullify(primary_mesh, shifted_mesh)
 
   end subroutine transport_step

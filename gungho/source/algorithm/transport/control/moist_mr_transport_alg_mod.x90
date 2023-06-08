@@ -19,7 +19,6 @@ module moist_mr_transport_alg_mod
   use function_space_collection_mod,  only: function_space_collection
   use inject_sh_w3_to_wt_kernel_mod,  only: inject_sh_w3_to_wt_kernel_type
   use inject_wt_to_sh_w3_kernel_mod,  only: inject_wt_to_sh_w3_kernel_type
-  use intermesh_constants_mod,        only: get_proj_mr_to_sh_rho_rhs_op
   use io_config_mod,                  only: subroutine_timers
   use log_mod,                        only: log_event,       &
                                             LOG_LEVEL_ERROR
@@ -35,11 +34,6 @@ module moist_mr_transport_alg_mod
   use transport_runtime_alg_mod,      only: transport_runtime_type
   use transport_runtime_collection_mod,   &
                                       only: get_transport_runtime
-  use tri_matrix_vector_kernel_mod,   only: tri_matrix_vector_kernel_type
-  use proj_mr_to_sh_rho_rhs_update_kernel_mod,   &
-                                      only: proj_mr_to_sh_rho_rhs_update_kernel_type
-  use tri_solve_sh_rho_to_mr_kernel_mod, &
-                                      only: tri_solve_sh_rho_to_mr_kernel_type
   use psykal_lite_mod,                only: invoke_copy_rtran_to_rdef, &
                                             invoke_copy_to_rtran
 
@@ -119,7 +113,6 @@ contains
       do imr = 1, nummr_to_transport
         call mr_out(imr)%initialise( vector_space = mr_out_rdef(imr)%get_function_space()  )
         call mr_in(imr)%initialise( vector_space = mr_in_rdef(imr)%get_function_space()  )
-        call invoke_copy_to_rtran( mr_out(imr), mr_out_rdef(imr) )
         call invoke_copy_to_rtran( mr_in(imr), mr_in_rdef(imr) )
       end do
       model_dt = real( model_dt_rdef, r_tran )
@@ -175,9 +168,9 @@ contains
           call invoke( enforce_lower_bound_kernel_type(mr_out(imr), min_value) )
         end if
 
-        ! ------------------------------------------------------------------------ !
+        ! -------------------------------------------------------------------- !
         ! Copy transported fields back to r_def
-        ! ------------------------------------------------------------------------ !
+        ! -------------------------------------------------------------------- !
         call invoke_copy_rtran_to_rdef( mr_out_rdef(imr), mr_out(imr) )
 
       end do

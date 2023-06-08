@@ -228,6 +228,8 @@ stretching_method='linear',
 /
 
 &transport
+  adjust_theta=.false.
+  adjust_theta_above=0.0
   broken_w2_projection = .false.
   cap_density_predictor = 0.01
   profile_size = 3
@@ -262,6 +264,7 @@ stretching_method='linear',
   ffsl_flux_splitting='full'
   min_val_abs_tol=-1.0e-12
   min_val_max_iterations=10
+  theta_variable='dry'
   use_density_predictor=.true.
   transport_ageofair=.false.
   ageofair_reset_level=10

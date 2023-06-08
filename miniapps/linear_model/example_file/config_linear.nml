@@ -219,6 +219,8 @@ spinup_period=0,
 spinup_winds=.false.,
 /
 &transport
+adjust_theta=.false.
+adjust_theta_above=0.0
 broken_w2_projection=.false.
 cap_density_predictor = 0.01
 profile_size=5
@@ -250,6 +252,7 @@ runge_kutta_method='ssp4'
 scheme=1,1,1,1,1
 slice_order='cubic'
 splitting=1,1,1,1,1
+theta_variable='dry'
 use_density_predictor=.false.
 vertical_monotone=1,1,1,1,1
 vertical_monotone_order = 1,1,1,1,1

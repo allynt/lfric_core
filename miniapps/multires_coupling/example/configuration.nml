@@ -211,6 +211,8 @@ prime_mesh_name='C24',
 /
 
 &transport
+adjust_theta=.false.
+adjust_theta_above=0.0
 broken_w2_projection = .false.
 cap_density_predictor = 0.01
 cfl_mol_1d_stab = 1.5,
@@ -243,6 +245,7 @@ runge_kutta_method='ssp3',
 scheme=1
 slice_order='cubic',
 splitting=1
+theta_variable='dry'
 use_density_predictor=.false.,
 vertical_method=3
 vertical_sl_order='cubic',
