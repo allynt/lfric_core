@@ -622,7 +622,8 @@ contains
                       mm_diagonal_kernel_type(mm2_diag(i), mm_w2(i)),   &
                       mm_diagonal_kernel_type(mm3_diag(i), mm_w3(i))    )
 
-        if ( label_list(i) == primary_mesh_label ) then
+        if ( label_list(i) == primary_mesh_label .or. &
+             label_list(i) == extra_mesh_label ) then
           ! Initialise fields
           call mm0_diag(i)%initialise( vector_space = w0_fs )
           call mm1_diag(i)%initialise( vector_space = w1_fs )
@@ -671,7 +672,8 @@ contains
       end if
 
       if ( label_list(i) == primary_mesh_label .or. &
-           label_list(i) == multigrid_mesh_label ) then
+           label_list(i) == multigrid_mesh_label .or. &
+           label_list(i) == extra_mesh_label ) then
         call ones%initialise( vector_space = wtheta_fs )
         call mmtheta_lumped_inv(i)%initialise( vector_space = wtheta_fs )
         call invoke( name = "create_mmtheta_lumped_inv",                       &
@@ -778,9 +780,10 @@ contains
 
       !================ Create Det(J) values at W2 dof locations ==============!
 
-      if ( label_list(i) == primary_mesh_label .or. &
-           label_list(i) == shifted_mesh_label .or. &
-           label_list(i) == multigrid_mesh_label  ) then
+      if ( label_list(i) == primary_mesh_label .or.   &
+           label_list(i) == shifted_mesh_label .or.   &
+           label_list(i) == multigrid_mesh_label .or. &
+           label_list(i) == extra_mesh_label ) then
         call detj_at_w2(i)%initialise( vector_space = w2_fs )
         call invoke( name = "calculate_detj_at_w2",                            &
                      setval_c(detj_at_w2(i), 0.0_r_def),                       &

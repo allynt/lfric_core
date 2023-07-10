@@ -80,10 +80,11 @@ def make_figures(filein, plotpath, field_list, slice_list,
         zmax = 2400.
 
     elif testname in ['baroclinic', 'aquaplanet', 'spherical', 'lam_gw',
-                      'sbr', 'dcmip101', 'vert_def', 'hadley', 'cos_phi']:
+                      'sbr', 'dcmip101', 'vert_def', 'hadley', 'cos_phi',
+                      'four_part_sbr']:
         spherical = True
 
-        if testname in ['spherical', 'cos_phi']:
+        if testname in ['spherical', 'cos_phi', 'four_part_sbr']:
             # This is a special 2D spherical shell
             zmin = 0.0
             zmax = 1.0
@@ -116,7 +117,12 @@ def make_figures(filein, plotpath, field_list, slice_list,
                   'tracer_con': r'$q_c \ / $ kg kg$^{-1}$',
                   'tracer_adv': r'$q_a \ / $ kg kg$^{-1}$',
                   'constant': r'$q_c \ / $ kg kg$^{-1}$',
-                  'buoyancy': r'$b \ / $ m s$^{-2}$'}
+                  'buoyancy': r'$b \ / $ m s$^{-2}$',
+                  'w2_vector1': r'$F_1 \ / $ m s$^{-1}$',
+                  'w2_vector2': r'$F_2 \ / $ m s$^{-1}$',
+                  'w2_vector3': r'$F_3 \ / $ m s$^{-1}$',
+                  'w3_aerosol': r'$a_\rho \ / $ kg kg$^{-1}$',
+                  'wt_aerosol': r'$a_\theta \ / $ kg kg$^{-1}$'}
 
     # Find number of full levels by asking for theta
     try:
@@ -399,7 +405,9 @@ def make_figures(filein, plotpath, field_list, slice_list,
                                  'eternal_fountain', 'rotational',
                                  'translational'] and
                         field in ['theta', 'density', 'rho', 'm_v',
-                                  'tracer', 'tracer_con', 'tracer_adv'])
+                                  'tracer', 'tracer_con', 'tracer_adv',
+                                  'w2_vector1', 'w2_vector2',
+                                  'wt_aerosol', 'w3_aerosol'])
                     or (testname == 'curl_free' and
                         field in ['theta', 'm_v'])
                     or (testname in ['sbr', 'dcmip101', 'vert_def'] and
@@ -422,6 +430,30 @@ def make_figures(filein, plotpath, field_list, slice_list,
                     for contour in contour_colours:
                         if abs(contour - tracer_background) > epsilon:
                             contour_lines.append(contour)
+
+                elif (testname in ['cylinder', 'div_free',
+                                    'eternal_fountain', 'rotational',
+                                    'translational'] and
+                        field == 'w2_vector3'):
+
+                    # Hardwire contour details
+                    # 0.0 is the background value (usually the minimum)
+                    # 3.0 is the expected maximum value
+                    # Take steps of 0.4 from -1.0 to 4.0
+                    # but omit 2.0 for contour lines
+                    step = 0.5
+                    tracer_background = 0.0
+                    tracer_max = 3.0
+                    max_field = tracer_max + 2*step
+                    min_field = tracer_background - 2*step
+                    contour_colours = np.arange(min_field, max_field+step,
+                                                step=step)
+                    contour_lines = []
+                    epsilon = 1e-14
+                    for contour in contour_colours:
+                        if abs(contour - tracer_background) > epsilon:
+                            contour_lines.append(contour)
+
                 elif (testname in ['hadley', 'cos_phi']
                       or (testname in ['sbr', 'dcmip101', 'vert_def'] and
                           field in ['density', 'rho'])):
@@ -452,6 +484,14 @@ def make_figures(filein, plotpath, field_list, slice_list,
                     contour_colours = np.arange(min_field, max_field+step,
                                                 step=step)
                     contour_lines = np.copy(contour_colours)
+                elif (testname == 'four_part_sbr'):
+                    step = 0.25
+                    min_field = -3.0
+                    max_field = 3.0
+                    contour_colours = np.arange(min_field, max_field+step,
+                                                step=step)
+                    contour_lines = np.copy(contour_colours)
+
                 elif (testname == 'lam_gw' and field == 'buoyancy'):
                     step = 0.002
                     min_field = -0.014

@@ -57,7 +57,8 @@
                                     'cylinder_xz_split_molmol_consist',
                                     'cylinder_xz_koren_consist',
                                     'cylinder_xz_split_koren_consist',
-                                    'eternal_fountain_xz_mol_consist'] } %}
+                                    'eternal_fountain_xz_mol_consist',
+                                    'four_part_sbr'] } %}
 
 {%- set canned_configurations = ['transport'] %}
 
@@ -129,7 +130,7 @@
                      resolutions=[("BiP100x10-20x20", 2.0)],
                      env={"crun":1, "nrun":500,
                           "directives":{"default":{"mpi_parts":4,"threads":1,"wallclock":"01:00:00","use_xios":"True"} } },
-                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v xz all linear eternal_fountain",
+                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v:w3_aerosol:wt_aerosol xz all linear eternal_fountain",
                      checkkgo=False)',
     'run_application("transport", "eternal_fountain_xz_ffsl",
                      resolutions=[("BiP100x10-20x20", 2.0)],
@@ -141,13 +142,13 @@
                      resolutions=[("BiP100x10-20x20", 2.0)],
                      env={"crun":1, "nrun":500,
                           "directives":{"default":{"mpi_parts":4,"threads":1,"wallclock":"01:00:00","use_xios":"True"} } },
-                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v xz all linear eternal_fountain",
+                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v:w3_aerosol:wt_aerosol xz all linear eternal_fountain",
                      checkkgo=False)',
     'run_application("transport", "eternal_fountain_xz_split_vhv",
                      resolutions=[("BiP100x10-20x20", 2.0)],
                      env={"crun":1, "nrun":500,
                           "directives":{"default":{"mpi_parts":4,"threads":1,"wallclock":"01:00:00","use_xios":"True"} } },
-                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v xz all linear eternal_fountain",
+                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v:w3_aerosol:wt_aerosol xz all linear eternal_fountain",
                      checkkgo=False)',
     'run_application("transport", "hadley_dcmip_mol",
                      resolutions=[("C48",300.0)],
@@ -189,7 +190,7 @@
                      resolutions=[("BiP100x10-20x20", 4.0)],
                      env={"crun":1, "nrun":500,
                           "directives":{"default":{"mpi_parts":4,"threads":1,"wallclock":"01:00:00","use_xios":"True"} } },
-                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v xz all linear cylinder",
+                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v:w2_vector1:w2_vector2:w2_vector3:wt_aerosol:w3_aerosol xz all linear cylinder",
                      checkkgo=False )',
     'run_application("transport", "cylinder_xz_koren_consist",
                      resolutions=[("BiP100x10-20x20", 4.0)],
@@ -207,7 +208,7 @@
                      resolutions=[("BiP100x10-20x20", 4.0)],
                      env={"crun":1, "nrun":500,
                           "directives":{"default":{"mpi_parts":4,"threads":1,"wallclock":"01:00:00","use_xios":"True"} } },
-                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v xz all linear cylinder",
+                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR rho:theta:tracer_con:tracer_adv:m_v:w2_vector1:w2_vector2:w2_vector3:wt_aerosol:w3_aerosol xz all linear cylinder",
                      checkkgo=False )',
     'run_application("transport", "cylinder_xz_ffsl",
                      resolutions=[("BiP100x10-20x20", 4.0)],
@@ -304,7 +305,14 @@
                      env={"nrun":288,
                           "directives":{"default":{"mpi_parts":6, "wallclock":"00:20:00"}}},
                      plotstr="errors.py ' + appDiagStemName + ' $NODAL_DATA_DIR rho:theta:tracer_con:tracer_adv T000288 -1 -91 0 0.01 $PLOT_DIR",
-                     checkkgo=False )'],
+                     checkkgo=False )',
+    'run_application("transport", "four_part_sbr",
+                     resolutions=[("C24",3600.0)],
+                     env={"crun":1, "nrun":576,
+                          "directives":{"default":{"mpi_parts":12,"threads":1,"wallclock":"01:00:00","use_xios":"True"} } },
+                     plotstr="spherical_and_vertical_slice_ugrid_plot.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR w2_vector1:w2_vector2:w2_vector3 xy all linear four_part_sbr",
+                     checkkgo=False )',
+],
 'nightly': [
     'null_task_graph()' ]
 } %}

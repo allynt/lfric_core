@@ -9,7 +9,7 @@
 !!          point based upon a specified analytic formula
 module analytic_wind_profiles_mod
 
-use constants_mod,            only: r_def, pi, EPS
+use constants_mod,            only: r_def, pi, EPS, i_def
 use initial_wind_config_mod,  only: profile_none,                         &
                                     profile_solid_body_rotation,          &
                                     profile_solid_body_rotation_alt,      &
@@ -30,7 +30,9 @@ use initial_wind_config_mod,  only: profile_none,                         &
                                     profile_curl_free_reversible,         &
                                     profile_sbr_with_vertical,            &
                                     profile_dcmip_101,                    &
-                                    profile_vertical_deformation
+                                    profile_vertical_deformation,         &
+                                    profile_four_part_sbr,                &
+                                    wind_time_period
 use planet_config_mod,        only: scaled_radius
 use log_mod,                  only: log_event,                         &
                                     log_scratch_space,                 &
@@ -424,6 +426,7 @@ function analytic_wind( chi, time, choice, num_options, &
   real(kind=r_def), parameter  :: Rd = 287.0_r_def    ! gas constant for DCMIP 1.1
   real(kind=r_def), parameter  :: T0 = 300.0_r_def    ! ref temperature for DCMIP 1.1
   real(kind=r_def), parameter  :: g  = 9.80616_r_def  ! gravity for DCMIP 1.1
+  integer(kind=i_def)          :: num_periods
 
   if ( .not. present(option_arg) ) then
     option(:) = 0.0_r_def
@@ -468,6 +471,25 @@ function analytic_wind( chi, time, choice, num_options, &
              (  sin(lat_pole) * cos(chi(2))                                    &
               - cos(lat_pole) * cos(chi(1)-lon_pole) * sin(chi(2)) )
       u(2) = r_on_a * option(1) * cos(lat_pole) * sin(chi(1)-lon_pole)
+      u(3) = 0.0_r_def
+    case ( profile_four_part_sbr )
+      ! Test from Bendall & Wimmer (2022) involving rotation of a tracer around
+      ! a sphere by composing four half-complete solid body rotations. When
+      ! transporting a vector-valued field, the final state should equal the
+      ! initial state.
+      num_periods = FLOOR(time / wind_time_period)
+      if ( MOD(num_periods, 2) == 0 ) then
+        lat_pole = pi / 2.0_r_def
+        lon_pole = 0.0_r_def
+      else
+        lat_pole = 0.0_r_def
+        lon_pole = -pi / 2.0_r_def
+      end if
+
+      u(1) = option(1) *                                                       &
+             (  sin(lat_pole) * cos(chi(2))                                    &
+              - cos(lat_pole) * cos(chi(1)-lon_pole) * sin(chi(2)) )
+      u(2) = option(1) * cos(lat_pole) * sin(chi(1)-lon_pole)
       u(3) = 0.0_r_def
     case ( profile_constant_uv )
       u(1) = option(1)

@@ -293,31 +293,31 @@ contains
           nullify( detj_at_w2 )
         end if
 
+        ! Operators needed to map finite difference physics winds to W2
+        ! finite element winds
+        call u_lon_map_collection(i)%initialise( w2_fs, w3_fs )
+        call u_lat_map_collection(i)%initialise( w2_fs, w3_fs )
+        call u_up_map_collection(i)%initialise( w2_fs, wtheta_fs )
+
+        call invoke( name="compute_lonlatr_galerkin_operators",                   &
+                      compute_map_u_operators_kernel_type(u_lon_map_collection(i), &
+                                                          u_lat_map_collection(i), &
+                                                          u_up_map_collection(i),  &
+                                                          chi_list(:,i),           &
+                                                          panel_id_list(i), qr)    )
+
+        call u_lon_sample_collection(i)%initialise( w2b_fs, w3_fs )
+        call u_lat_sample_collection(i)%initialise( w2b_fs, w3_fs )
+        call u_up_sample_collection(i)%initialise( w2b_fs, wtheta_fs )
+
+        call invoke( name="compute_lonlatr_sample_operators",                     &
+                      compute_sample_u_ops_kernel_type(u_lon_sample_collection(i), &
+                                                      u_lat_sample_collection(i), &
+                                                      u_up_sample_collection(i),  &
+                                                      chi_list(:,i),              &
+                                                      panel_id_list(i)) )
+
         if ( use_physics ) then
-
-          ! Operators needed to map finite difference physics winds to W2
-          ! finite element winds
-          call u_lon_map_collection(i)%initialise( w2_fs, w3_fs )
-          call u_lat_map_collection(i)%initialise( w2_fs, w3_fs )
-          call u_up_map_collection(i)%initialise( w2_fs, wtheta_fs )
-
-          call invoke( name="compute_lonlatr_galerkin_operators",                   &
-                       compute_map_u_operators_kernel_type(u_lon_map_collection(i), &
-                                                           u_lat_map_collection(i), &
-                                                           u_up_map_collection(i),  &
-                                                           chi_list(:,i),           &
-                                                           panel_id_list(i), qr)    )
-
-          call u_lon_sample_collection(i)%initialise( w2b_fs, w3_fs )
-          call u_lat_sample_collection(i)%initialise( w2b_fs, w3_fs )
-          call u_up_sample_collection(i)%initialise( w2b_fs, wtheta_fs )
-
-          call invoke( name="compute_lonlatr_sample_operators",                     &
-                       compute_sample_u_ops_kernel_type(u_lon_sample_collection(i), &
-                                                        u_lat_sample_collection(i), &
-                                                        u_up_sample_collection(i),  &
-                                                        chi_list(:,i),              &
-                                                        panel_id_list(i)) )
 
           ! Quantities needed by all UM physics schemes
           call r_squared_w2%initialise( vector_space = w2_k0_fs )
