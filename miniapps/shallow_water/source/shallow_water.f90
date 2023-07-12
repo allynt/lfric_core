@@ -14,30 +14,32 @@
 
 program shallow_water
 
-  use cli_mod,                      only: get_initial_filename
-  use driver_collections_mod,       only: init_collections, final_collections
-  use driver_comm_mod,              only: init_comm, final_comm
-  use driver_config_mod,            only: init_config, final_config
-  use driver_log_mod,               only: init_logger, final_logger
-  use driver_timer_mod,             only: init_timers, final_timers
-  use log_mod,                      only: log_event,       &
-                                          log_level_trace, &
-                                          log_scratch_space
-  use mpi_mod,                      only: global_mpi
-  use shallow_water_mod,            only: shallow_water_required_namelists
-  use shallow_water_model_data_mod, only: model_data_type
-  use shallow_water_driver_mod,     only: initialise, &
-                                          run,        &
-                                          finalise
+  use cli_mod,                   only: get_initial_filename
+  use driver_collections_mod,    only: init_collections, final_collections
+  use driver_comm_mod,           only: init_comm, final_comm
+  use driver_config_mod,         only: init_config, final_config
+  use driver_log_mod,            only: init_logger, final_logger
+  use driver_timer_mod,          only: init_timers, final_timers
+  use log_mod,                   only: log_event,       &
+                                       log_level_trace, &
+                                       log_scratch_space
+  use mpi_mod,                   only: global_mpi
+  use shallow_water_mod,         only: shallow_water_required_namelists
+  use shallow_water_modeldb_mod, only: modeldb_type
+  use shallow_water_driver_mod,  only: initialise, &
+                                       run,        &
+                                       finalise
 
   implicit none
 
   character(*), parameter :: program_name = "shallow_water"
 
   ! Model run working data set
-  type(model_data_type)     :: model_data
+  type(modeldb_type) :: modeldb
 
   character(:), allocatable :: filename
+
+  modeldb%mpi => global_mpi
 
   call init_comm( program_name )
   call get_initial_filename( filename )
@@ -48,18 +50,16 @@ program shallow_water
   deallocate( filename )
 
   ! Create the depository and prognostics field collections
-  call model_data%depository%initialise(name='depository', table_len=100)
-  call model_data%prognostic_fields%initialise(name="prognostics", table_len=100)
-
+  call modeldb%model_data%depository%initialise(name='depository', table_len=100)
+  call modeldb%model_data%prognostic_fields%initialise(name="prognostics", table_len=100)
 
   call log_event( 'Initialising Infrastructure ...', log_level_trace )
-  call initialise( model_data, global_mpi, program_name )
+  call initialise( modeldb, program_name )
   write(log_scratch_space,'("Running ", A, "...")') program_name
   call log_event( log_scratch_space, log_level_trace )
-  call run( model_data )
+  call run( modeldb )
   call log_event( 'Finalising ' // program_name // ' ...', log_level_trace )
-  call finalise( model_data, program_name )
-
+  call finalise( modeldb, program_name )
 
   call final_collections()
   call final_timers( program_name )

@@ -3,37 +3,31 @@
 ! The file LICENCE, distributed with this code, contains details of the terms
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
-!> @brief Container for shallow water model run working data set inclduing methods
-!!        to initialise, copy and finalise the data set.
+!> @brief Container for shallow water model run working data set including
+!!        methods to initialise, copy and finalise the data set.
 !!
-!> @details This module provides a type to hold all the model fields and methods to
-!!          initialise (create and read), copy and finalise (write and destroy) the
-!!          data contained within the type.
+!> @details This module provides a type to hold all the model fields and methods
+!!          to initialise (create and read), copy and finalise (write and
+!!          destroy) the data contained within the type.
 !!
 module shallow_water_model_data_mod
 
   use clock_mod,                            only: clock_type
   use field_mod,                            only: field_type
-  use field_parent_mod,                     only: write_interface
   use field_collection_mod,                 only: field_collection_type
   use files_config_mod,                     only: checkpoint_stem_name
-  use constants_mod,                        only: i_def, l_def
   use log_mod,                              only: log_event,      &
-                                                  LOG_LEVEL_INFO, &
-                                                  LOG_LEVEL_ERROR
+                                                  LOG_LEVEL_INFO
   use io_config_mod,                        only: checkpoint_read,  &
-                                                  checkpoint_write, &
-                                                  write_dump
-  use lfric_xios_read_mod,                  only: read_checkpoint,  &
-                                                  read_state
+                                                  checkpoint_write
+  use lfric_xios_read_mod,                  only: read_checkpoint
   use lfric_xios_write_mod,                 only: write_checkpoint, &
                                                   write_state
   use mesh_mod,                             only: mesh_type
-  use create_shallow_water_prognostics_mod, only: create_shallow_water_prognostics
+  use create_shallow_water_prognostics_mod, only: &
+                                                create_shallow_water_prognostics
   use swe_init_fields_alg_mod,              only: swe_init_fields_alg, &
                                                   swe_init_surface_alg
-  use linked_list_mod,                      only: linked_list_type
-  use variable_fields_mod,                  only: init_variable_fields
 
   implicit none
 
@@ -49,9 +43,9 @@ module shallow_water_model_data_mod
     !> pointers to the data in the depository.
     type(field_collection_type), public :: depository
     !> All the prognostic fields
-    type(field_collection_type), public   :: prognostic_fields
+    type(field_collection_type), public :: prognostic_fields
     !> All the diagnostic fields
-    type(field_collection_type), public   :: diagnostic_fields
+    type(field_collection_type), public :: diagnostic_fields
     !> Surface geopotential field
     type(field_type), public  :: s_geopot
 
@@ -67,9 +61,9 @@ contains
 
   !=============================================================================
   !> @brief Create the fields contained in model_data.
-  !> @param[in,out] model_data   The working data set for a model run
-  !> @param[in]     mesh        Mesh to initialise variables on
-  subroutine create_model_data( model_data,   &
+  !> @param[in,out] model_data The working data set for a model run
+  !> @param[in]     mesh       Mesh to initialise variables on
+  subroutine create_model_data( model_data, &
                                 mesh )
 
     implicit none
@@ -90,8 +84,8 @@ contains
 
   end subroutine create_model_data
 
-  !=============================================================================
-  !> @brief Initialises the working data set dependent of namelist configuration.
+  !=======================================================================
+  !> @brief Initialises the working data set depending on namelist config.
   !> @param[in,out] model_data The working data set for a model run
   !> @param[in]     mesh       Mesh to initialise variables on
   !> @param[in]     clock      Model time
@@ -109,7 +103,7 @@ contains
     call swe_init_surface_alg(model_data%s_geopot)
 
     ! Initialise prognostic fields
-    if (checkpoint_read) then                 ! Recorded check point to start from
+    if (checkpoint_read) then               ! Recorded check point to start from
       call read_checkpoint(model_data%depository, &
                            clock%get_first_step() - 1, checkpoint_stem_name)
     else                                      ! No check point to start from
@@ -139,14 +133,14 @@ contains
     prognostic_fields => model_data%prognostic_fields
 
     !=================== Write fields to checkpoint files ====================!
-    if( checkpoint_write ) then
-       call write_checkpoint( prognostic_fields, clock, checkpoint_stem_name )
+    if ( checkpoint_write ) then
+      call write_checkpoint( prognostic_fields, clock, checkpoint_stem_name )
     end if
 
   end subroutine output_model_data
 
   !=============================================================================
-  !> @brief Routine to destroy all the field collections in the working data set.
+  !> @brief Routine to destroy all the field collections in the working data set
   !> @param[in,out] model_data The working data set for a model run
   subroutine finalise_model_data( model_data )
 

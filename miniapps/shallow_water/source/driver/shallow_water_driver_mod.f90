@@ -22,15 +22,14 @@ module shallow_water_driver_mod
   use mesh_collection_mod,           only: mesh_collection
   use mesh_mod,                      only: mesh_type
   use model_clock_mod,               only: model_clock_type
-  use mpi_mod,                       only: mpi_type
   use runtime_constants_mod,         only: final_runtime_constants
   use shallow_water_diagnostics_mod, only: shallow_water_diagnostics
   use shallow_water_model_mod,       only: initialise_infrastructure, &
                                            initialise_model,          &
                                            finalise_infrastructure,   &
                                            finalise_model
-  use shallow_water_model_data_mod,  only: model_data_type,       &
-                                           create_model_data,     &
+  use shallow_water_modeldb_mod,     only: modeldb_type
+  use shallow_water_model_data_mod,  only: create_model_data,     &
                                            initialise_model_data, &
                                            output_model_data,     &
                                            finalise_model_data
@@ -55,19 +54,17 @@ contains
   !> @brief   Sets up required state in preparation for run.
   !> @details Initialises the infrastructure and the fields stored in
   !!          model_data, then sets the initial conditions for the run.
-  !> @param [in,out] model_data The structure that holds model state
-  !> @param [in,out] mpi        The structure that holds comms details
+  !> @param [in,out] modeldb      The structure that holds model state
   !> @param [in]     program_name An identifier given to the model begin run
-  subroutine initialise( model_data, mpi, program_name )
+  subroutine initialise( modeldb, program_name )
 
     implicit none
 
-    type(model_data_type), intent(inout) :: model_data
-    class(mpi_type),       intent(inout) :: mpi
-    character(*),          intent(in)    :: program_name
+    type(modeldb_type), intent(inout) :: modeldb
+    character(*),       intent(in)    :: program_name
 
     ! Initialise infrastructure (from shallow_water_model_mod.F90) and setup constants
-    call initialise_infrastructure( program_name, model_clock, mpi )
+    call initialise_infrastructure( program_name, model_clock, modeldb%mpi )
 
     !-------------------------------------------------------------------------
     ! Setup constants
@@ -76,43 +73,43 @@ contains
     call log_event( 'Creating model data ...', LOG_LEVEL_INFO )
     ! Instantiate the fields stored in model_data
     mesh => mesh_collection%get_mesh(prime_mesh_name)
-    call create_model_data( model_data, mesh )
+    call create_model_data( modeldb%model_data, mesh )
 
     call log_event( 'Initialising model data ...', LOG_LEVEL_INFO )
     ! Initialise the fields stored in the model_data
-    call initialise_model_data( model_data, mesh, model_clock )
+    call initialise_model_data( modeldb%model_data, mesh, model_clock )
 
     ! Initial output: we only want these once at the beginning of a run
     if (model_clock%is_initialisation() .and. write_diag) then
       call log_event( 'Output of initial diagnostics ...', LOG_LEVEL_INFO )
       ! Calculation and output of diagnostics
       call shallow_water_diagnostics( mesh,               &
-                                      model_data,         &
+                                      modeldb%model_data, &
                                       model_clock,        &
                                       nodal_output_on_w3, &
                                       1_i_def )
     end if
 
     ! Model configuration initialisation
-    call initialise_model( mesh, model_data )
+    call initialise_model( mesh, modeldb%model_data )
 
   end subroutine initialise
 
   !=============================================================================
   !> @brief Performs time stepping for the shallow water miniapp.
-  !> @param [in,out] model_data The structure that holds model state
+  !> @param [in,out] modeldb The structure that holds model state
   !!
-  subroutine run( model_data )
+  subroutine run( modeldb )
 
     implicit none
 
-    type(model_data_type), intent(inout) :: model_data
+    type(modeldb_type), intent(inout) :: modeldb
     !--------------------------------------------------------------------------
     ! Model step
     !--------------------------------------------------------------------------
     do while (model_clock%tick())
 
-      call shallow_water_step( model_data, &
+      call shallow_water_step( modeldb, &
                                model_clock  )
 
       ! Use diagnostic output frequency to determine whether to write
@@ -122,7 +119,7 @@ contains
            .and. ( write_diag ) ) then
 
         call shallow_water_diagnostics(mesh,               &
-                                       model_data,         &
+                                       modeldb%model_data, &
                                        model_clock,        &
                                        nodal_output_on_w3, &
                                        0_i_def)
@@ -136,24 +133,24 @@ contains
 
   !=============================================================================
   !> @brief Tidies up after a run.
-  !> @param [in,out] model_data The structure that holds model state
+  !> @param [in,out] modeldb The structure that holds model state
   !!
-  subroutine finalise( model_data, program_name )
+  subroutine finalise( modeldb, program_name )
 
     implicit none
 
-    type(model_data_type), intent(inout) :: model_data
+    type(modeldb_type), intent(inout) :: modeldb
     character(*), intent(in) :: program_name
 
     ! Output the fields stored in the model_data (checkpoint and dump)
-    call output_model_data( model_data, model_clock )
+    call output_model_data( modeldb%model_data, model_clock )
 
     ! Model configuration finalisation
-    call finalise_model( model_data, &
+    call finalise_model( modeldb%model_data, &
                          program_name )
 
     ! Destroy the fields stored in model_data
-    call finalise_model_data( model_data )
+    call finalise_model_data( modeldb%model_data )
 
     !-------------------------------------------------------------------------
     ! Finalise constants
