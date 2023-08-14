@@ -12,6 +12,7 @@ module conservation_algorithm_mod
   use compute_total_aam_kernel_mod,    only: compute_total_aam_kernel_type
   use compute_total_mass_alg_mod,      only: compute_total_mass_alg
   use compute_energetics_kernel_mod,   only: compute_energetics_kernel_type
+  use compute_entropy_kernel_mod,      only: compute_entropy_kernel_type
 
   use constants_mod,                   only: r_def, i_def, i_timestep
   use function_space_collection_mod,   only: function_space_collection
@@ -73,11 +74,14 @@ contains
 
     type( field_type ) :: aam, kinetic_uv, kinetic_w, &
                           potential, internal, moist_int
+    type( field_type ) :: entropy_phys_dry, entropy_dyn_dry
 
     real(kind=r_def) :: total_mass, total_aam, total_energy, &
                         total_kinetic_uv, total_kinetic_w,   &
                         total_potential, total_internal,     &
                         total_moist_int
+    real(kind=r_def) :: total_entropy_phys_dry, &
+                        total_entropy_dyn_dry
     type(mesh_type), pointer :: mesh => null()
 
     if ( subroutine_timers ) call timer('conservation_alg')
@@ -98,6 +102,8 @@ contains
     call internal%initialise( vector_space = w3_fs )
     call moist_int%initialise( vector_space = w3_fs )
     call aam%initialise( vector_space = w3_fs )
+    call entropy_phys_dry%initialise( vector_space = w3_fs )
+    call entropy_dyn_dry%initialise( vector_space = w3_fs )
 
     ! Compute conserved quantities
     call compute_total_mass_alg(total_mass, rho, mesh)
@@ -114,6 +120,13 @@ contains
                  sum_X(total_potential, potential),                       &
                  sum_X(total_internal, internal),                         &
                  sum_X(total_moist_int, moist_int),                       &
+    ! Compute (dry) Entropy (physical and dynamic)
+                 compute_entropy_kernel_type(entropy_phys_dry,            &
+                                             entropy_dyn_dry,             &
+                                             rho, theta, chi,             &
+                                             panel_id, qr),               &
+                 sum_X(total_entropy_phys_dry, entropy_phys_dry),         &
+                 sum_X(total_entropy_dyn_dry, entropy_dyn_dry),           &
     ! Compute Total Axial Angular Momentum
                  compute_total_aam_kernel_type(aam, u, rho, chi,          &
                                                panel_id, scaled_omega,    &
@@ -146,6 +159,12 @@ contains
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
     write( log_scratch_space, '(A, E32.24)') &
           'Conservation: dry aam ', total_aam
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+    write( log_scratch_space, '(A, E32.24)') &
+          'Conservation: dry physical entropy ', total_entropy_phys_dry
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+    write( log_scratch_space, '(A, E32.24)') &
+          'Conservation: dry dynamic entropy ', total_entropy_dyn_dry
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     nullify( geopotential )
