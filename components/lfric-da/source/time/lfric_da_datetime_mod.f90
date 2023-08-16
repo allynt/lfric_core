@@ -34,6 +34,7 @@ module lfric_da_datetime_mod
 
     integer(i_def) :: date    !< Julian day number
     integer(i_def) :: time    !< seconds since start of day
+    logical(l_def) :: initialised = .false.
 
   contains
 
@@ -47,9 +48,7 @@ module lfric_da_datetime_mod
                                   init_YYYYMMDDhhmmss
 
     procedure, public  :: get_date
-    procedure, private :: set_date
     procedure, public  :: get_time
-    procedure, private :: set_time
 
     procedure, public  :: add_seconds
     procedure, public  :: is_ahead
@@ -216,8 +215,11 @@ contains
 
     call log_event( 'Initialising JEDI datetime', LOG_LEVEL_INFO )
 
+    ! Also checks the date and time are valid
     call YYYYMMDD_to_JDN( year, month, day, self%date )
     call hhmmss_to_seconds( hour, minute, second, self%time )
+
+    self%initialised = .true.
 
     write ( log_scratch_space, '(A, I8, A, I5)' )                   &
            'Initialising JEDI datetime SUCCESS: JDN = ', self%date, &
@@ -240,20 +242,6 @@ contains
 
   end subroutine get_date
 
-  !> @brief Sets the date from the datetime instance
-  !!
-  !> @param [in] date The Julian Day Number
-  subroutine set_date( self, date )
-
-    implicit none
-
-    class( jedi_datetime_type ), intent(inout) :: self
-    integer(i_def),              intent(in)    :: date
-
-    self%date = date
-
-  end subroutine set_date
-
   !> @brief Gets the time from the datetime instance
   !!
   !> @param [out] time Seconds since the start of the day
@@ -267,20 +255,6 @@ contains
     time = self%time
 
   end subroutine get_time
-
-  !> @brief Sets the time from the datetime instance
-  !!
-  !> @param [in] time Seconds since the start of the day
-  subroutine set_time( self, time )
-
-    implicit none
-
-    class( jedi_datetime_type ), intent(inout) :: self
-    integer(i_def),              intent(in)    :: time
-
-    self%time = time
-
-  end subroutine set_time
 
   !> @brief Adds a time in seconds to the datetime instance
   !!
@@ -390,22 +364,15 @@ contains
     class( jedi_datetime_type ), intent(inout) :: self
     class( jedi_datetime_type ), intent(in)    :: from
 
-    integer(i_def) :: date_to_copy, time_to_copy
-    logical(l_def) :: valid
-
-    date_to_copy = from%date
-    time_to_copy = from%time
-
-    valid = is_valid_datetime( date_to_copy, time_to_copy )
-
-    if ( .not. valid ) then
+    if ( .not. from%initialised ) then
       write ( log_scratch_space, '(A)' ) &
-        'Cannot initialise this datetime from an invalid / unitiliased datetime'
+        'Cannot initialise this datetime from an uninitialised datetime'
       call log_event( log_scratch_space, LOG_LEVEL_ERROR )
     end if
 
-    self%date = date_to_copy
-    self%time = time_to_copy
+    self%date = from%date
+    self%time = from%time
+    self%initialised = .true.
 
   end subroutine copy
 
@@ -426,14 +393,13 @@ contains
     integer(i_def) :: time
     integer(i_def) :: seconds
 
-    date = self%date
-    time = self%time
-
-    call new_datetime%set_date( date )
-    call new_datetime%set_time( time )
+    new_datetime%date = self%date
+    new_datetime%time = self%time
 
     call duration%get_duration( seconds )
     call new_datetime%add_seconds( seconds )
+
+    new_datetime%initialised = .true.
 
   end function add_duration
 
