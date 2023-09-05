@@ -156,7 +156,7 @@ contains
 
 
     !=== Copy prognostic field data to state arrays ===========================!
-    call invoke( name = "Copy fields to state",   &
+    call invoke( name = "copy_fields_to_state",   &
                  setval_X(state(igh_u), u    ), &
                  setval_X(state(igh_t), theta), &
                  setval_X(state(igh_d), rho  ), &
@@ -269,7 +269,7 @@ contains
       end if
 
 
-      call invoke( name = "Compute new rhs",                                        &
+      call invoke( name = "compute_new_rhs",                                        &
                    pressure_gradient_bd_kernel_type( rhs_prediction(igh_u, stage),  &
                                                      state(igh_p), 1, state(igh_t), &
                                                      moist_dyn, cp, qrf ),          &
@@ -327,7 +327,7 @@ contains
     end if
 
     ! Return fields in u, theta, rho arrays
-    call invoke( name = "Return fields",        &
+    call invoke( name = "return_fields",        &
                  setval_X(u,     state(igh_u)), &
                  setval_X(theta, state(igh_t)), &
                  setval_X(rho,   state(igh_d)), &

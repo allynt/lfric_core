@@ -182,7 +182,7 @@ contains
           lam_mesh=.false.
           if (limited_area .and. topology==topology_non_periodic) lam_mesh=.true.
 
-          call invoke( name="apply_H",&
+          call invoke( name="apply_h",&
                        apply_helmholtz_operator_kernel_type(y_vec, &
                                                             x_vec, &
                                                             one_int,     &

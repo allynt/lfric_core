@@ -513,7 +513,7 @@ contains
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
         ! Write out si residuals
-        call invoke( name = "Compute SI residuals for u and geopotential",   &
+        call invoke( name = "compute_si_residuals_for_u_and_geopotential",   &
                      X_innerproduct_X(si_err(isw_u), rhs_np1%vector(isw_u)), &
                      X_innerproduct_X(si_err(isw_g), rhs_np1%vector(isw_g)) )
         write( log_scratch_space, '(A,E16.8)' ) &
@@ -524,7 +524,7 @@ contains
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
         if ( thermal_swe ) then
-          call invoke ( name = "Compute SI residual for buoyancy", &
+          call invoke ( name = "compute_si_residual_for_buoyancy", &
                         X_innerproduct_X(si_err(isw_b), rhs_np1%vector(isw_b)) )
           write( log_scratch_space, '(A,E16.8)' ) &
                  'Residual in buoyancy equation:',sqrt(si_err(isw_b))

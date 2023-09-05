@@ -116,7 +116,7 @@ contains
 
     ! Compute conserved quantities
     call compute_total_mass_alg(total_mass, rho, mesh)
-    call invoke( name = "Compute conserved quantities",                   &
+    call invoke( name = "compute_conserved_quantities",                   &
     ! Compute Energy components
                  compute_energetics_kernel_type(kinetic_uv, kinetic_w,    &
                                                 potential, internal,      &

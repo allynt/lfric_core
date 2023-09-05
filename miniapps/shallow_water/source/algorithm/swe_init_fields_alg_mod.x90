@@ -139,7 +139,7 @@ contains
       call log_event( "Shallow water: Initialising winds from stream function", LOG_LEVEL_INFO )
       call psi%initialise( vector_space = w1_fs )
       call r_psi%initialise( vector_space = w1_fs )
-      call invoke( name = 'Initialise U via Psi', &
+      call invoke( name = 'initialise_u_via_psi', &
                    setval_c( psi, 0.0_r_def ),    &
                    setval_c( r_psi, 0.0_r_def ),  &
                    initial_swe_streamfunc_kernel_type( r_psi, chi, panel_id, qr ) )
@@ -148,7 +148,7 @@ contains
                    enforce_bc_kernel_type( wind ) )
     else
       call r_u%initialise( vector_space = wind%get_function_space() )
-      call invoke( name = 'Initialise U',           &
+      call invoke( name = 'initialise_u',           &
                    setval_c( wind,     0.0_r_def ), &
                    setval_c( r_u,      0.0_r_def ), &
                    initial_swe_u_kernel_type( r_u, chi, panel_id, domain_size_x, qr ) )
@@ -214,7 +214,7 @@ contains
     ! then compute its strong curl
     call u_in_w1%initialise( vector_space = w1_fs)
     call r_uq%initialise( vector_space = w1_fs)
-    call invoke( name = 'Initialise vorticity in V2', &
+    call invoke( name = 'initialise_vorticity_in_v2', &
                  setval_c( r_uq, 0.0_r_def ),         &
                  w2_to_w1_projection_kernel_type( r_uq, wind, qr ) )
     call mass_matrix_solver_alg( u_in_w1, r_uq, .false. )

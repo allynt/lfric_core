@@ -211,7 +211,7 @@ contains
 
       call u_broken%initialise( w2b_fs )
 
-      call invoke( name="sample_physics_winds_in_W2",                            &
+      call invoke( name="sample_physics_winds_in_w2",                            &
                    setval_c(u, 0.0_r_def),                                       &
                    dg_matrix_vector_kernel_type(u_broken, u_lon, u_lon_map),     &
                    dg_inc_matrix_vector_kernel_type(u_broken, u_lat, u_lat_map), &

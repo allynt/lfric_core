@@ -138,7 +138,7 @@ contains
       call potential%initialise( vector_space = w3_fs )
       call internal%initialise( vector_space = w3_fs )
       call moist_int%initialise( vector_space = w3_fs )
-      call invoke( name = "Compute total energy",                         &
+      call invoke( name = "compute_total_energy",                         &
                    setval_c(energy, 0.0_r_def),                           &
                    compute_energetics_kernel_type( kinetic_uv, kinetic_w, &
                                                    potential, internal,   &

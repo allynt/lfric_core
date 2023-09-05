@@ -138,7 +138,7 @@ contains
     mm_w3_inv => get_inverse_w3_mass_matrix_r_tran(field_n%get_mesh_id())
 
     call invoke_dg_matrix_vector_rtran(mass, field_np1, mm_w3)
-    call invoke( name="vertical remap",  &
+    call invoke( name="vertical_remap",  &
        vertical_mass_remapping_kernel_type(dep_pts_z, mass, flux, slice_order, &
                                            monotone, monotone_order,           &
                                            enforce_min_value) )

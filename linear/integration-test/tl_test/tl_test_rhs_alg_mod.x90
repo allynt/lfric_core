@@ -111,7 +111,7 @@ module tl_test_rhs_alg_mod
     call clone_bundle(ls_moist_dyn, r_moist_dyn, num_moist_factors)
     call clone_bundle(ls_moist_dyn, n_moist_dyn, num_moist_factors)
 
-    call invoke( name = "Copy fields to ls_state",   &
+    call invoke( name = "copy_fields_to_ls_state",   &
                  setval_X(ls_state(igh_u), ls_u    ), &
                  setval_X(ls_state(igh_t), ls_theta), &
                  setval_X(ls_state(igh_d), ls_rho  ), &

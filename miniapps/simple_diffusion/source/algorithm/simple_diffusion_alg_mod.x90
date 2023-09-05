@@ -55,7 +55,7 @@ contains
     dx_at_w2 => get_dx_at_w2(mesh)
     call dfield_in%initialise( function_space_collection%get_fs( mesh, element_order, Wtheta))
     call visc%initialise( function_space_collection%get_fs( mesh, element_order, Wtheta))
-    call invoke( name = "Compute diffusion", &
+    call invoke( name = "compute_diffusion", &
                  setval_c(visc, visc_val), &
                  setval_c(dfield_in, 0.0_r_def), &
                  tracer_tutorial_diff_kernel_type(dfield_in, &

@@ -201,7 +201,7 @@ contains
       call tl_poly1d_vert_w3_reconstruction_init(vertical_order, &
                                                  mesh%get_nlayers())
       ! The logspace interpolation makes this different to non-linear kernel
-      call invoke( name="W3_1dv_reconstruction",                        &
+      call invoke( name="w3_1dv_reconstruction",                        &
         tl_poly1d_vert_w3_reconstruction_kernel_type( field_new,        &
                                                       field_old,        &
                                                       ls_field_old,     &

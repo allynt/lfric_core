@@ -157,7 +157,7 @@ contains
         call invoke_convert_cart2sphere_vector( wind_map, physical_chi )
       end if
 
-      call invoke( name = "Copy wind fields",       &
+      call invoke( name = "copy_wind_fields",       &
                    setval_X(u1_field, wind_map(1)), &
                    setval_X(u2_field, wind_map(2)), &
                    setval_X(u3_field, wind_map(3)) )
@@ -173,7 +173,7 @@ contains
       call projected_field(3)%initialise( vector_space = u3_field%get_function_space() )
       call galerkin_projection_algorithm( projected_field, source_field, &
                                           mesh, space_dim, qr )
-      call invoke( name = "Copy wind fields2",             &
+      call invoke( name = "copy_wind_fields2",             &
                    setval_X(u1_field, projected_field(1)), &
                    setval_X(u2_field, projected_field(2)), &
                    setval_X(u3_field, projected_field(3)) )

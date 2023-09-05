@@ -109,7 +109,7 @@ contains
     call dx_at_w2%initialise( vector_space = fs, name = field_name )
     call nodal_multiplicity_w2%initialise( vector_space = fs )
 
-    call invoke( name = "Create dx_at_w2",                        &
+    call invoke( name = "create_dx_at_w2",                        &
       setval_c(dA_at_w2, 0.0_r_def),                              &
       setval_c(detj_at_w2, 0.0_r_def),                            &
       setval_c(nodal_multiplicity_w2, 0.0_r_def),                 &

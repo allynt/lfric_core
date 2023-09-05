@@ -292,7 +292,7 @@ contains
     !--------------------------------------------------------------------
     ! Copy prognostic field data to state arrays
     !--------------------------------------------------------------------
-    call invoke( name = "Copy init fields to state", &
+    call invoke( name = "copy_init_fields_to_state", &
                  setval_X(state(igh_u), u    ),      &
                  setval_X(state(igh_t), theta),      &
                  setval_X(state(igh_d), rho  ),      &
@@ -398,7 +398,7 @@ contains
     ! Copy ls data to ls_state arrays
     !--------------------------------------------------------------------
 
-    call invoke( name = "Copy lin fields to ls_state", &
+    call invoke( name = "copy_lin_fields_to_ls_state", &
                  setval_X(ls_state(igh_u), ls_u    ),  &
                  setval_X(ls_state(igh_t), ls_theta),  &
                  setval_X(ls_state(igh_d), ls_rho  ),  &

@@ -146,7 +146,7 @@ module tl_test_transport_control_mod
     call clone_bundle(mr, ls_mr_out, nummr)
     call clone_bundle(mr, diff_mr, nummr)
 
-    call invoke( name = "Copy fields to ls_state",   &
+    call invoke( name = "copy_fields_to_ls_state",   &
                  setval_X(ls_state(igh_u), ls_u    ), &
                  setval_X(ls_state(igh_t), ls_theta), &
                  setval_X(ls_state(igh_d), ls_rho  ), &

@@ -470,7 +470,7 @@ contains
 
         call mm_w3_inventory%add_operator(mm_w3, w3_fs, w3_fs, mesh)
         call div_inventory%add_operator(div, w3_fs, w2_fs, mesh)
-        call invoke( name= "Compute_m3_and_div", &
+        call invoke( name= "compute_m3_and_div", &
                      compute_mass_matrix_kernel_w_scalar_type(mm_w3, chi_list(:,i), panel_id_list(i), &
                                                               extend_mesh, qr), &
                      compute_div_operator_kernel_type(div, chi_list(:,i), panel_id_list(i), qr) )
@@ -546,10 +546,10 @@ contains
           call mm_w2v_inventory%add_operator(mm_w2v, w2v_fs, w2v_fs, mesh)
           call mm_w2h_inventory%add_operator(mm_w2h, w2h_fs, w2h_fs, mesh)
 
-          call invoke( name = "compute_W2_hori_mass_matrix",                      &
+          call invoke( name = "compute_w2_hori_mass_matrix",                      &
                        compute_mass_matrix_kernel_w2_type( mm_w2v, chi_list(:,i), &
                                                            panel_id_list(i), qr ) )
-          call invoke( name = "compute_W2_vert_mass_matrix",                      &
+          call invoke( name = "compute_w2_vert_mass_matrix",                      &
                        compute_mass_matrix_kernel_w2_type( mm_w2h, chi_list(:,i), &
                                                            panel_id_list(i), qr ) )
         end if
@@ -563,7 +563,7 @@ contains
         call im3_div_h_r_tran_inventory%add_operator(im3_div_h_r_tran, w3_fs, w2h_fs, mesh)
         call im3_div_v_r_tran_inventory%add_operator(im3_div_v_r_tran, w3_fs, w2v_fs, mesh)
 
-        call invoke( name = "create_W3_inv_mass_matrix", &
+        call invoke( name = "create_w3_inv_mass_matrix", &
                      invert_local_operator_kernel_type(mm_w3_inv, mm_w3) )
         call invoke( operator_x_times_y_kernel_type( im3_div, mm_w3_inv, div ),  &
                      operator_x_times_y_kernel_type( im3_div_h, mm_w3_inv, div_h ), &
@@ -583,7 +583,7 @@ contains
 
         call mm_w2b_inv_inventory%add_operator(mm_w2b_inv, w2b_fs, w2b_fs, mesh)
 
-        call invoke( name = "create_W2b_inv_mass_matrix", &
+        call invoke( name = "create_w2b_inv_mass_matrix", &
                      invert_local_operator_kernel_type(mm_w2b_inv, mm_w2b) )
         nullify(mm_w2b_inv, mm_w2b)
       end if
@@ -655,7 +655,7 @@ contains
         ! If there is no damping layer, coriolis or lagged orography then the
         ! relevant matrix components take their natural value so we can still
         ! use the relevant operators
-        call invoke( name = "set_W2_si_mass_matrix_with_damping_layer",             &
+        call invoke( name = "set_w2_si_mass_matrix_with_damping_layer",             &
                      operator_x_plus_ay_kernel_type(mm_w2_si, mm_w2_plus_dl_lagged, &
                                                     const, coriolis) )
         call coriolis%operator_final()
@@ -714,7 +714,7 @@ contains
 
       if ( label_list(i) /= twod_mesh_label ) then
         call mm3_lumped_inv_inventory%add_field(mm3_lumped_inv, w3_fs, mesh)
-        call invoke( name = "compute_lumped_W3_inverse",                       &
+        call invoke( name = "compute_lumped_w3_inverse",                       &
                      setval_c(mm3_lumped_inv, 0.0_r_def),                      &
                      mm_diagonal_kernel_type(mm3_lumped_inv, mm_w3_inv) )
         call mm_w3_inv_r_solver_inventory%add_operator(mm_w3_inv_r_solver, w3_fs, w3_fs, mesh)
@@ -727,7 +727,7 @@ contains
       if ( label_list(i) == primary_mesh_label ) then
         call ones%initialise( vector_space = w1_fs )
         call mm1_lumped_inv_inventory%add_field(mm1_lumped_inv, w1_fs, mesh)
-        call invoke( name = "Create_m1_lumped_inv",                            &
+        call invoke( name = "create_m1_lumped_inv",                            &
                      setval_c(ones, 1.0_r_def),                                &
                      setval_c(mm1_lumped_inv, 0.0_r_def),                      &
                      matrix_vector_kernel_type(mm1_lumped_inv, ones, mm_w1),   &
@@ -764,7 +764,7 @@ contains
         call ones%initialise( vector_space = w2_fs )
         call nodal_multiplicity_w2%initialise( vector_space = w2_fs )
         call nodal_rmultiplicity_w2_inventory%add_field(nodal_rmultiplicity_w2, w2_fs, mesh)
-        call invoke( name = "compute_W2_nodal_rmultiplicity",            &
+        call invoke( name = "compute_w2_nodal_rmultiplicity",            &
                      setval_c(ones, 1.0_r_def),                          &
                      setval_c(nodal_multiplicity_w2, 0.0_r_def),         &
                      multiplicity_kernel_type(nodal_multiplicity_w2),    &

@@ -531,7 +531,7 @@ contains
 
     if ( transport_metadata%get_horizontal_monotone() == horizontal_monotone_koren ) then
       ! Compute horizontal components of mass flux with the koren scheme
-      call invoke( name="W3_koren_hor_reconstruction",           &
+      call invoke( name="w3_koren_hor_reconstruction",           &
               polyh_w3_koren_kernel_type( field_new,             &
                                           field_ptr,             &
                                           flux_stencil_extent,   &
@@ -539,7 +539,7 @@ contains
 
     else if ( oned_reconstruction ) then
       ! Use 1d flux reconstruction
-      call invoke( name="W3_1dh_reconstruction", &
+      call invoke( name="w3_1dh_reconstruction", &
                   poly1d_reconstruction_kernel_type( field_new,             &
                                                      field_ptr,             &
                                                      flux_stencil_extent,   &
@@ -549,7 +549,7 @@ contains
     else
       ! Use 2d flux reconstruction
       stencil_extent = fv_horizontal_order / 2_i_def
-      call invoke( name="W3_2dh_reconstruction", &
+      call invoke( name="w3_2dh_reconstruction", &
                   poly2d_reconstruction_kernel_type( field_new,             &
                                                      field_old,             &
                                                      stencil_extent,        &
@@ -611,7 +611,7 @@ contains
 
     if ( monotonicity == vertical_monotone_koren ) then
       height_tr => get_height( Wtheta, mesh%get_id() )
-      call invoke(name="W3_vert_reconstruction_koren",                         &
+      call invoke(name="w3_vert_reconstruction_koren",                         &
                   polyv_w3_koren_kernel_type( field_new,                       &
                                               field_old,                       &
                                               height_tr,                       &
@@ -622,7 +622,7 @@ contains
       ! Compute offset stencil used for vertical reconstruction
       call poly1d_vert_w3_reconstruction_init(vertical_order, &
                                               mesh%get_nlayers())
-      call invoke(name="W3_1dv_reconstruction",                          &
+      call invoke(name="w3_1dv_reconstruction",                          &
         poly1d_vert_w3_reconstruction_kernel_type( field_new, field_old, &
                                                    vert_flux_coeffs,     &
                                                    ndata_v,              &

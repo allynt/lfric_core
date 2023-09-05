@@ -507,7 +507,7 @@ contains
       call invoke( inc_X_times_Y(rhs(igh_t), t_normalisation) )
     end if
     ! Write out si residuals
-    call invoke( name = "Compute SI residuals",               &
+    call invoke( name = "compute_si_residuals",               &
                  X_innerproduct_X(si_err(igh_u), rhs(igh_u)), &
                  X_innerproduct_X(si_err(igh_t), rhs(igh_t)), &
                  X_innerproduct_X(si_err(igh_d), rhs(igh_d)), &
