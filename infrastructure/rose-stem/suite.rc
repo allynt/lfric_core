@@ -114,6 +114,10 @@
       host = {{ get_target_property(PRIMARY_TARGET, 'hostname') }}
     [[[job]]]
       batch system = {{ get_target_property(PRIMARY_TARGET, 'batcher') }}
+{%- if get_target_property(PRIMARY_TARGET, 'update') == 'polling' %}
+      submission polling intervals = PT10S, PT20S, PT30S, PT1M
+      execution polling intervals  = PT1M, 2*PT2M, 3*PT3M, 4*PT4M, PT5M
+{%- endif %}
     [[[environment]]]
       SOURCE_DIRECTORY = $SOURCE_ROOT/{{projectName}}
 
@@ -122,6 +126,10 @@
       host = {{get_target_property(SECONDARY_TARGET, 'hostname')}}
     [[[job]]]
       batch system = {{get_target_property(SECONDARY_TARGET, 'batcher')}}
+{%- if get_target_property(SECONDARY_TARGET, 'update') == 'polling' %}
+      submission polling intervals = PT10S, PT20S, PT30S, PT1M
+      execution polling intervals  = PT1M, 2*PT2M, 3*PT3M, 4*PT4M, PT5M
+{%- endif %}
     [[[environment]]]
       SOURCE_DIRECTORY      = $SOURCE_ROOT/{{projectName}}
       DESTINATION_DIRECTORY = $OUTPUT_ROOT/{{SECONDARY_TARGET['compiler']}}_fast-debug

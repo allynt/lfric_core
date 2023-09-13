@@ -23,6 +23,7 @@
         'hostname' : ROSE_ORIG_HOST,
         'batcher' : 'background',
         'build_root': '/var/tmp/${USER}',
+        'update' : 'interupt',
         'setup' : {
             'base' : [],
             'build' : [],
@@ -513,7 +514,7 @@
         'hostname' : ROSE_ORIG_HOST,
         'batcher' : 'background',
         'build_root' : '$CYLC_SUITE_RUN_DIR/share/lfric_build',
-        'update' : 'interupt',
+        'update' : 'polling',
         'setup' : {
             'base' : [
                 'umask 0022'

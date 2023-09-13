@@ -1,9 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ''' Quick plot of for lfric_atm scm output '''
 
 # Need to set a non-interactive backend for suites
-from __future__ import absolute_import
-from __future__ import print_function
 import matplotlib
 matplotlib.use('Agg')
 
@@ -19,6 +17,7 @@ def load_cube_by_varname(filename, var):
 def do_plot(datapath, plotfield, plotpath='.'):
     ''' Do the plotting using data from datapath. Send output to plotpath '''
 
+    print(f"Plotting {plotfield}")
     lfric = load_cube_by_varname(datapath, plotfield)
     lfric = lfric[:, :, 0]
 
@@ -40,7 +39,9 @@ def do_plot(datapath, plotfield, plotpath='.'):
         plt.ylabel('Model Level Number')
         plt.title('Timestep = '+str(time+1))
 
-    plt.savefig(plotpath+'/'+plotfield+'.png', bbox_inches='tight')
+    plt.savefig(plotpath+'/'+plotfield+'.png',
+                bbox_inches='tight')
+    plt.close()
 
 
 def do_time_plot(datapath, plotfield, plotpath='.'):
@@ -50,10 +51,14 @@ def do_time_plot(datapath, plotfield, plotpath='.'):
     lfric = lfric[:, 0]
 
     plt.figure(figsize=(15, 10))
-    plt.plot(lfric.coord('time').points[:]/3600.0, lfric.data[:], linewidth=2)
+    plt.plot(lfric.coord('time').points[:]/3600.0,
+             lfric.data[:],
+             linewidth=2)
     plt.xlabel('Time (hours)')
     plt.ylabel(plotfield)
-    plt.savefig(plotpath+'/'+plotfield+'.png', bbox_inches='tight')
+    plt.savefig(plotpath+'/'+plotfield+'.png',
+                bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":
