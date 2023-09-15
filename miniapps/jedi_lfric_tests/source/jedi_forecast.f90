@@ -72,10 +72,10 @@ program jedi_forecast
   call jedi_state_config%initialise( use_pseudo_model = .false. )
 
   ! Model config
-  datetime_duration_dt = 1
+  datetime_duration_dt = 3600
 
   ! Forecast config
-  call datetime_duration%init( 5 )
+  call datetime_duration%init( 'P0DT6H0M0S' )
 
   ! Geometry
   call jedi_geometry%initialise()

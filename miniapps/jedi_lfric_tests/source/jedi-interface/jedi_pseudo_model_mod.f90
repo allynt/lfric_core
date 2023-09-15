@@ -72,7 +72,7 @@ subroutine initialise( self, config )
   type( jedi_pseudo_model_config_type ), intent(in)     :: config
 
   ! Setup the pseudo model
-  self%current_state = 1_i_def
+  self%current_state = 1
   self%n_states = size( config%datetime_states, dim=1 )
   allocate( self%datetime_states(self%n_states) )
   self%datetime_states = config%datetime_states
@@ -114,7 +114,7 @@ subroutine model_step( self, state )
   call state%read_file( datetime, self%file_prefix )
 
   ! Iterate the current state
-  self%current_state = self%current_state + 1_i_def
+  self%current_state = self%current_state + 1
 
 end subroutine model_step
 

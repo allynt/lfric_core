@@ -32,6 +32,8 @@ module jedi_state_mod
   use jedi_lfric_fake_nl_driver_mod, only : mesh, twod_mesh
   use constants_mod,                 only : i_def, i_timestep, l_def
 
+  use jedi_lfric_fake_nl_driver_mod,   only : model_clock
+
   implicit none
 
   private
@@ -134,6 +136,11 @@ subroutine state_initialiser_read( self, program_name, geometry, config )
   type( jedi_state_config_type ),     intent(inout) :: config
 
   call self%state_initialiser( geometry, config )
+
+  ! Tick out of initialisation state
+  if ( .not. model_clock%tick() ) then
+    call log_event( 'The LFRic model_clock has stopped.', LOG_LEVEL_ERROR )
+  end if
 
   ! Initialise the Atlas field emulators via the model_data or the
   ! io_collection
@@ -438,7 +445,6 @@ end subroutine update_time
 !> @param [in] new_datetime  The datetime to be used to update the LFRic clock
 subroutine set_clock( self, new_datetime )
 
-  use jedi_lfric_fake_nl_driver_mod, only : model_clock
   use timestepping_config_mod,       only : dt
 
   implicit none

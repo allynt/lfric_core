@@ -14,7 +14,7 @@ module jedi_lfric_fake_nl_init_files_mod
   !> @todo: Test code should not appear in the component
   !> @{
   use jedi_lfric_tests_config_mod, &
-                              only: write_data
+                              only: test_trajectory_path, write_data
   !> @}
   use linked_list_mod,        only: linked_list_type
   use driver_model_data_mod,  only: model_data_type
@@ -44,7 +44,7 @@ contains
       call files_list%insert_item(      &
         lfric_xios_file_type(           &
           file_name="write_model_data", &
-          xios_id="write_model_data",       &
+          xios_id="write_model_data",   &
           io_mode=FILE_MODE_WRITE,      &
           freq=1,                       &
           field_group_id="write_fields" &
@@ -52,14 +52,14 @@ contains
       )
     end if
 
-    call files_list%insert_item(      &
-      lfric_xios_file_type(           &
-        file_name="read_model_data",      &
-        xios_id="read_model_data",        &
-        io_mode=FILE_MODE_READ,       &
-        freq=1,                       &
-        field_group_id="read_fields"  &
-      )                               &
+    call files_list%insert_item(        &
+      lfric_xios_file_type(             &
+        file_name=test_trajectory_path, &
+        xios_id="read_model_data",      &
+        io_mode=FILE_MODE_READ,         &
+        freq=1,                         &
+        field_group_id="read_fields"    &
+      )                                 &
     )
 
   end subroutine init_jedi_lfric_files

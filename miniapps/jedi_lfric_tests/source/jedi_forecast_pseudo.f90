@@ -77,7 +77,7 @@ program jedi_forecast_pseudo
   call jedi_pseudo_model_config%initialise()
 
   ! Forecast config - duration of forecast / seconds
-  call datetime_duration%init( 5 )
+  call datetime_duration%init( 'P0DT6H0M0S' )
 
   ! Geometry
   call jedi_geometry%initialise()

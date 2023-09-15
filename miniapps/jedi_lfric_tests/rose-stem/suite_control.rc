@@ -85,22 +85,20 @@
                                                                                 "wallclock":"00:10:00"} } })',
     
     'run_application("jedi_lfric_tests", "runge-kutta",
-                        resolutions=[("C12",1.0)], env={"nrun":20})',                                                                            'check_compilers("fast-debug")',
+                        resolutions=[("C12",1.0)], env={"nrun":20})',
+    'check_compilers("fast-debug")',
     'check_compilers("full-debug")',
-    'canned_test("jedi_lfric_tests")',
     'validate_rose_meta_graph("jedi_forecast",appName="jedi_forecast")',
     'run_application("jedi_forecast", "default", resolutions=[("C12",)],
-                        env={"nrun":5})',
+                        env={"nrun":7})',
     'run_application("jedi_forecast", "no_xios", resolutions=[("C12",)],
-                        env={"nrun":5,
+                        env={"nrun":7,
                              "directives":{"default":{"use_xios":"False"} } } )',
-    'canned_test("jedi_forecast")',
     'validate_rose_meta_graph("jedi_forecast_pseudo",appName="jedi_forecast_pseudo")',
     'run_application("jedi_forecast_pseudo", "default", resolutions=[("C12",)],
-                        env={"nrun":5})',
+                        env={"nrun":7})',
     'run_application("jedi_forecast_pseudo", "pseudomodel", resolutions=[("C12",)],
-                        env={"nrun":5})',
-    'canned_test("jedi_forecast_pseudo")' ],
+                        env={"nrun":7})'],
 'nightly': [
     'null_task_graph()' ]
     } %}
