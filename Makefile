@@ -32,7 +32,6 @@ OPERATE_ON ?= lfric_atm                                  \
               miniapps/linear_model                      \
               miniapps/skeleton                          \
               miniapps/jedi_lfric_tests                  \
-              miniapps/diagnostics                       \
               miniapps/gravity_wave                      \
               miniapps/simple_diffusion                  \
               miniapps/solver_miniapp                    \

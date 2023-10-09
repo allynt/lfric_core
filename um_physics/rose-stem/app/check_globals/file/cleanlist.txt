@@ -41,13 +41,6 @@ source/constants/chemistry_constants_mod.F90
 source/constants/conversions_mod.F90
 source/constants/rel_mol_mass_mod.F90
 source/constants/water_constants_mod.F90
-source/diagnostics_meta/example_fields/example_science_section__example_fields__meta_mod.f90
-source/diagnostics_meta/meta_types/field_synonyms_enum_mod.f90
-source/diagnostics_meta/meta_types/interpolation_enum_mod.f90
-source/diagnostics_meta/meta_types/levels_enum_mod.f90
-source/diagnostics_meta/meta_types/positive_enum_mod.f90
-source/diagnostics_meta/meta_types/time_step_enum_mod.f90
-source/diagnostics_meta/meta_types/vertical_dimensions_mod.f90
 source/kernel/aerosol_ukca_kernel_mod.F90
 source/kernel/bl_exp_du_kernel_mod.F90
 source/kernel/bl_exp_kernel_mod.F90
