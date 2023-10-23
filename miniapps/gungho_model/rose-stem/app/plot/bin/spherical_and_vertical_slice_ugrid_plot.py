@@ -402,27 +402,25 @@ def make_figures(filein, plotpath, field_list, slice_list,
 
                 # Special contours for our known tests
                 if ((testname in ['cylinder', 'div_free',
-                                 'eternal_fountain', 'rotational',
-                                 'translational'] and
+                                  'eternal_fountain', 'rotational',
+                                  'translational', 'curl_free'] and
                         field in ['theta', 'density', 'rho', 'm_v',
                                   'tracer', 'tracer_con', 'tracer_adv',
                                   'w2_vector1', 'w2_vector2',
                                   'wt_aerosol', 'w3_aerosol'])
-                    or (testname == 'curl_free' and
-                        field in ['theta', 'm_v'])
                     or (testname in ['sbr', 'dcmip101', 'vert_def'] and
                         field in ['theta', 'm_v', 'tracer', 'tracer_con', 'tracer_adv'])):
 
                     # Hardwire contour details
                     # 2.0 is the background value (usually the minimum)
                     # 5.0 is the expected maximum value
-                    # Take steps of 0.4 from 1.0 to 6.0
+                    # Take steps of 0.5 from 0.0 to 6.0
                     # but omit 2.0 for contour lines
                     step = 0.5
                     tracer_background = 2.0
                     tracer_max = 5.0
                     max_field = tracer_max + 2*step
-                    min_field = tracer_background - 2*step
+                    min_field = tracer_background - 4*step
                     contour_colours = np.arange(min_field, max_field+step,
                                                 step=step)
                     contour_lines = []
@@ -473,14 +471,6 @@ def make_figures(filein, plotpath, field_list, slice_list,
                     step = 0.05
                     min_field = 0.8
                     max_field = 1.2
-                    contour_colours = np.arange(min_field, max_field+step,
-                                                step=step)
-                    contour_lines = np.copy(contour_colours)
-                elif (testname == 'curl_free'
-                      and field in ['density', 'rho', 'tracer', 'tracer_con', 'tracer_adv']):
-                    step = 0.5
-                    min_field = 0.0
-                    max_field = 6.0
                     contour_colours = np.arange(min_field, max_field+step,
                                                 step=step)
                     contour_lines = np.copy(contour_colours)

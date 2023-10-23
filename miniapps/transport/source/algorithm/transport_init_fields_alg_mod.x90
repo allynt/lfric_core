@@ -152,7 +152,7 @@ subroutine transport_init_fields_alg( mesh,         &
     call theta%initialise( name='theta', vector_space=wt_fs )
     call tracer_con%initialise( name='tracer_con', vector_space=w3_fs )
     call tracer_adv%initialise( name='tracer_adv', vector_space=w3_fs )
-    call constant%initialise( name='constant', vector_space=w3_fs )
+    call constant%initialise( name='constant', vector_space=wt_fs )
     call w2_vector%initialise( name='w2_vector', vector_space=w2_fs )
     call divergence%initialise( name='divergence', vector_space=w3_fs )
     do imr = 1, nummr

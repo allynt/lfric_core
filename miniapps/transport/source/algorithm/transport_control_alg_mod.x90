@@ -280,7 +280,10 @@ contains
     use model_clock_mod,                  only: model_clock_type
     use moist_mr_transport_alg_mod,       only: moist_mr_transport_alg
     use theta_transport_alg_mod,          only: theta_transport_alg
+    use transport_enumerated_types_mod,   only: equation_form_conservative
     use transport_field_mod,              only: transport_field
+    use transport_rho_times_field_alg_mod, &
+                                          only: transport_rho_times_field_alg
     use transport_runtime_alg_mod,        only: transport_runtime_type
     use wind_transport_alg_mod,           only: wind_transport_alg
 
@@ -377,8 +380,13 @@ contains
     transport_metadata => transport_metadata_collection%get_transport_metadata('constant')
     call constant%copy_field_properties(constant_n)
     call invoke( setval_X(constant_n, constant) )
-    call transport_field( constant, constant_n, &
-                          cast_dt, transport_metadata )
+    if (transport_metadata%get_equation_form() == equation_form_conservative) then
+      call transport_rho_times_field_alg( constant, constant_n, &
+                                          cast_dt, transport_metadata )
+    else
+      call transport_field( constant, constant_n, &
+                            cast_dt, transport_metadata )
+    end if
 
     ! Transport moisture mixing ratio fields
     call log_event("Transporting moisture mixing ratio fields...", LOG_LEVEL_INFO)

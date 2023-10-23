@@ -63,6 +63,8 @@ module gungho_init_fields_mod
                                                  init_lbcs_analytic_alg
   use init_physics_prognostics_alg_mod,   only : init_physics_prognostics_alg
   use derived_config_mod,                 only : l_esm_couple
+  use ageofair_alg_mod,                   only : init_ageofair
+  use transport_config_mod,               only : transport_ageofair
 #ifdef COUPLED
   use coupler_mod,                      only : cpl_init_fields
 #endif
@@ -246,6 +248,7 @@ subroutine create_model_data( modeldb,      &
     type( field_type ), pointer :: exner => null()
     type( field_type ), pointer :: temp_correction_field => null()
     type( field_type ), pointer :: accumulated_fluxes    => null()
+    type( field_type ), pointer :: ageofair => null()
 
     real(r_def), pointer :: temperature_correction_rate
     real(r_def), pointer :: total_dry_mass
@@ -282,6 +285,13 @@ subroutine create_model_data( modeldb,      &
 
     end if
 
+    if ( transport_ageofair ) then
+      ! Age-of-air needs initialising to zero in case this is a new run
+      ! If picking up from a checkpoint, this will be overwritten
+      call modeldb%model_data%con_tracer_last_outer%get_field('ageofair', ageofair)
+      call init_ageofair( ageofair )
+    end if
+
     ! Initialise prognostic fields appropriately
     select case ( prognostic_init_choice )
 
@@ -290,10 +300,9 @@ subroutine create_model_data( modeldb,      &
         ! Initialise prognostics analytically according to
         ! namelist options
 
-        call init_gungho_prognostics( modeldb%model_data%prognostic_fields,     &
-                                      modeldb%model_data%mr,                    &
-                                      modeldb%model_data%moist_dyn,             &
-                                      modeldb%model_data%con_tracer_last_outer  &
+        call init_gungho_prognostics( modeldb%model_data%prognostic_fields,    &
+                                      modeldb%model_data%mr,                   &
+                                      modeldb%model_data%moist_dyn             &
                                       )
 
       case ( init_option_checkpoint_dump )
