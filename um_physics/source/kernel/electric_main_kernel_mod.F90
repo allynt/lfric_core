@@ -66,6 +66,9 @@ contains
 !> @param[in]     dt                    The model timestep length (s)
 !> @param[in,out] flash_potential       Flash potential, accumulated over
 !!                                       model timesteps
+!> @param[inout]  num_flashes_2d        Number of lightning flashes discharged
+!!                                       on this timestep due to total lightning
+!!                                       activity
 !> @param[inout]  total_flash_rate_2d   Total flash rate (s-1), for all
 !!                                       lightning types
 !> @param[inout]  storm_field_2d        Flag to indicate whether a grid column
@@ -80,9 +83,6 @@ contains
 !!                                       (kg m-2)
 !> @param[inout]  tiwp_2d               Total ice water path in the model
 !!                                       column (kg m-2)
-!> @param[inout]  num_flashes_2d        Number of lightning flashes discharged
-!!                                       on this timestep due to total lightning
-!!                                       activity
 !> @param[in]     ndf_wth               Number of degrees of freedom per cell
 !!                                       for potential temperature space
 !> @param[in]     undf_wth              Number unique of degrees of freedom in
@@ -97,10 +97,9 @@ contains
 
 subroutine electric_main_code(nlayers, mi_wth, ms_wth, mg_wth, temp_in_wth,    &
                               w_in_wth, rhodz_in_wth,                          &
-                              dt, flash_potential,                             &
+                              dt, flash_potential, num_flashes_2d,             &
                               total_flash_rate_2d, storm_field_2d,             &
                               fr1_mc_2d, fr2_mc_2d, gwp_2d, tiwp_2d,           &
-                              num_flashes_2d,                                  &
                               ndf_wth, undf_wth, map_wth,                      &
                               ndf_2d, undf_2d, map_2d )
 
@@ -134,7 +133,8 @@ subroutine electric_main_code(nlayers, mi_wth, ms_wth, mg_wth, temp_in_wth,    &
     real(kind=r_def), intent(in), dimension(undf_wth) :: w_in_wth
                                                          ! Vertical velocity
     real(kind=r_def), intent(in), dimension(undf_wth) :: rhodz_in_wth
-    real(kind=r_def), intent(inout), dimension(undf_2d) :: flash_potential
+    real(kind=r_def), intent(inout), dimension(undf_2d) :: flash_potential, &
+                                                           num_flashes_2d
 
     ! Diagnostic arguments
     real(kind=r_def), pointer, intent(inout) :: total_flash_rate_2d(:)
@@ -143,7 +143,6 @@ subroutine electric_main_code(nlayers, mi_wth, ms_wth, mg_wth, temp_in_wth,    &
     real(kind=r_def), pointer, intent(inout) :: fr2_mc_2d(:)
     real(kind=r_def), pointer, intent(inout) :: gwp_2d(:)
     real(kind=r_def), pointer, intent(inout) :: tiwp_2d(:)
-    real(kind=r_def), pointer, intent(inout) :: num_flashes_2d(:)
 
     ! The model timestep length
     real(kind=r_def), intent(in) :: dt
@@ -232,6 +231,9 @@ subroutine electric_main_code(nlayers, mi_wth, ms_wth, mg_wth, temp_in_wth,    &
       flash_potential(map_2d(1)) = flash_potential(map_2d(1))                 &
                                  - num_flashes_2d(map_2d(1))
     else
+      ! Flash rate is zero
+      num_flashes_2d(map_2d(1)) = 0.0_r_def
+
       ! Increment flash potential to 'charge up' for a future timestep
       flash_potential(map_2d(1)) = flash_potential(map_2d(1))                 &
                                  + total_fr_work(1,1)

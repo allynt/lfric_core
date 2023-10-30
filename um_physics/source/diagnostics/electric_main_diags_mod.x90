@@ -20,7 +20,7 @@ module electric_main_diags_mod
 
   public :: initialise_main_diags_for_electric, output_main_diags_for_electric
 
-  logical( l_def ) :: gwp_flag, tiwp_flag, total_fr_flag, num_flashes_flag,    &
+  logical( l_def ) :: gwp_flag, tiwp_flag, total_fr_flag,                    &
                       fr1_mc_flag, fr2_mc_flag, storm_field_flag
 
 contains
@@ -29,20 +29,17 @@ contains
   !> @param[inout] gwp          Graupel Water Path [kg m-2]
   !> @param[inout] tiwp         Total Ice Water Path [kg m-2]
   !> @param[inout] total_fr     Total Flash Rate [s-1]
-  !> @param[inout] num_flashes  Number of lightning flashes []
   !> @param[inout] fr1_mc       Flash Rate due to upward graupel flux [s-1]
   !> @param[inout] fr2_mc       Flash Rate due to total column ice [s-1]
   !> @param[inout] storm_field  Binary flag for whether a storm is defined [1/0]
   subroutine initialise_main_diags_for_electric(gwp, tiwp, total_fr,           &
-                                                num_flashes, fr1_mc, fr2_mc,   &
-                                                storm_field )
+                                                fr1_mc, fr2_mc, storm_field )
 
     implicit none
 
     type( field_type ), intent(inout) :: gwp
     type( field_type ), intent(inout) :: tiwp
     type( field_type ), intent(inout) :: total_fr
-    type( field_type ), intent(inout) :: num_flashes
     type( field_type ), intent(inout) :: fr1_mc
     type( field_type ), intent(inout) :: fr2_mc
     type( field_type ), intent(inout) :: storm_field
@@ -55,7 +52,6 @@ contains
     gwp_flag         = init_diag(gwp, 'electric__gwp')
     tiwp_flag        = init_diag(tiwp, 'electric__tiwp')
     total_fr_flag    = init_diag(total_fr, 'electric__total_flash_rate')
-    num_flashes_flag = init_diag(num_flashes, 'electric__num_lightning_flashes')
     fr1_mc_flag      = init_diag(fr1_mc, 'electric__graupel_flux_flash_rate')
     fr2_mc_flag      = init_diag(fr2_mc, 'electric__total_column_ice_flash_rate')
     storm_field_flag = init_diag(storm_field, 'electric__storm_field_indicator')
@@ -95,11 +91,11 @@ contains
     if ( subroutine_timers ) call timer("electric_diags")
 
     call flash_potential%write_field('electric__flash_potential')
+    call num_flashes%write_field('electric__num_lightning_flashes')
 
     if (gwp_flag) call gwp%write_field()
     if (tiwp_flag) call tiwp%write_field()
     if (total_fr_flag) call total_fr%write_field()
-    if (num_flashes_flag) call num_flashes%write_field()
     if (fr1_mc_flag) call fr1_mc%write_field()
     if (fr2_mc_flag) call fr2_mc%write_field()
     if (storm_field_flag) call storm_field%write_field()

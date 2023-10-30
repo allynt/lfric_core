@@ -54,6 +54,14 @@ contains
     type( field_type ), pointer :: horizon_angle  => null()
     type( field_type ), pointer :: horizon_aspect => null()
 
+    type( field_type ), pointer :: aer_mix_ratio => null()
+    type( field_type ), pointer :: aer_sw_absorption => null()
+    type( field_type ), pointer :: aer_sw_scattering => null()
+    type( field_type ), pointer :: aer_sw_asymmetry => null()
+    type( field_type ), pointer :: aer_lw_absorption => null()
+    type( field_type ), pointer :: aer_lw_scattering => null()
+    type( field_type ), pointer :: aer_lw_asymmetry => null()
+
     real( r_def ), parameter :: pi_by_two = pi / 2.0_r_def
 
     call radiation_fields%get_field('dtheta_rad', dtheta_rad)
@@ -81,6 +89,14 @@ contains
     call radiation_fields%get_field('horizon_angle', horizon_angle)
     call radiation_fields%get_field('horizon_aspect', horizon_aspect)
 
+    call radiation_fields%get_field('aer_mix_ratio', aer_mix_ratio)
+    call radiation_fields%get_field('aer_sw_absorption', aer_sw_absorption)
+    call radiation_fields%get_field('aer_sw_scattering', aer_sw_scattering)
+    call radiation_fields%get_field('aer_sw_asymmetry', aer_sw_asymmetry)
+    call radiation_fields%get_field('aer_lw_absorption', aer_lw_absorption)
+    call radiation_fields%get_field('aer_lw_scattering', aer_lw_scattering)
+    call radiation_fields%get_field('aer_lw_asymmetry', aer_lw_asymmetry)
+
     ! Initialise the increments to 0 for use when the scheme isn't called
     call invoke( setval_c(dtheta_rad,        0.0_r_def),   &
                  setval_c(dmv_pc2_rad,       0.0_r_def),   &
@@ -89,6 +105,14 @@ contains
                  setval_c(sw_up_tile,        0.0_r_def),   &
                  ! Set to zero if ancil/prognostic isn't read
                  setval_c(ozone,             0.0_r_def),   &
+                 ! Need to set to zero for lowest level
+                 setval_c(aer_mix_ratio,     0.0_r_def),   &
+                 setval_c(aer_sw_absorption, 0.0_r_def),   &
+                 setval_c(aer_sw_scattering, 0.0_r_def),   &
+                 setval_c(aer_sw_asymmetry,  0.0_r_def),   &
+                 setval_c(aer_lw_absorption, 0.0_r_def),   &
+                 setval_c(aer_lw_scattering, 0.0_r_def),   &
+                 setval_c(aer_lw_asymmetry,  0.0_r_def),   &
                  ! Set these values for use in SCM testing when radiation is off
                  setval_c(cos_zenith_angle,  1.0_r_def),   &
                  setval_c(lw_down_surf,      380.0_r_def), &

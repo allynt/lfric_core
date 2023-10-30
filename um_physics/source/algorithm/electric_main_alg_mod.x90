@@ -91,10 +91,10 @@ contains
     dz_in_wth => get_dz_at_wtheta( mesh%get_id() )
 
     call electric_fields%get_field('flash_potential', flash_potential)
+    call flash_potential%copy_field_properties(num_flashes_2d)
 
     call initialise_main_diags_for_electric( gwp_2d, tiwp_2d,                  &
                                              total_flash_rate_2d,              &
-                                             num_flashes_2d,                   &
                                              fr1_mc_2d, fr2_mc_2d,             &
                                              storm_field_2d)
 
@@ -105,11 +105,11 @@ contains
                  electric_main_kernel_type ( mr_n(imr_ci), mr_n(imr_s),        &
                                              mr_n(imr_g), t_local,             &
                                              w_in_wth, rhodz_dry, dt,          &
-                                             flash_potential,                  &
+                                             flash_potential, num_flashes_2d,  &
                                              total_flash_rate_2d,              &
                                              storm_field_2d,                   &
                                              fr1_mc_2d, fr2_mc_2d, gwp_2d,     &
-                                             tiwp_2d, num_flashes_2d ) )
+                                             tiwp_2d ) )
 
 
     if ( subroutine_timers ) call timer('electric_main_alg')

@@ -1,4 +1,4 @@
-<field_definition prec="8">
+<field_definition>
 <!-- Main diagnostic group -->
 <field_group id="diagnostic_fields" prec="8" freq_op="1ts" operation="instant" enabled=".TRUE." >
   <field id="theta" name="theta" long_name="air_potential_temperature" standard_name="air_potential_temperature" unit="K" grid_ref="full_level_face_grid" />
@@ -260,10 +260,6 @@
   <field id="convection__cape_diluted" name="cape_diluted" long_name="cape_diluted" unit="J/kg" domain_ref="face" />
   <field id="convection__cape_timescale" name="cape_timescale" long_name="cape_timescale" unit="s" domain_ref="face" />
   <field id="convection__freeze_level" name="freeze_level" long_name="model_level_number_at_freezing_level" unit="1" domain_ref="face" />
-  <field id="convection__lowest_cv_base" name="lowest_cv_base" long_name="model_level_number_at_lowest_conv_cloud_base" unit="1" domain_ref="face" />
-  <field id="convection__lowest_cv_top" name="lowest_cv_top" long_name="model_level_number_at_lowest_conv_cloud_top" unit="1" domain_ref="face" />
-  <field id="convection__cv_base" name="cv_base" long_name="model_level_number_at_conv_cloud_base" unit="1" domain_ref="face" />
-  <field id="convection__cv_top" name="cv_top" long_name="model_level_number_at_conv_cloud_top" unit="1" domain_ref="face" />
   <field id="convection__pres_lowest_cv_base" name="pres_lowest_cv_base" long_name="pressure_at_lowest_convective_cloud_base" unit="Pa" domain_ref="face" />
   <field id="convection__pres_lowest_cv_top" name="pres_lowest_cv_top" long_name="pressure_at_lowest_convective_cloud_top" unit="Pa" domain_ref="face" />
   <field id="convection__pres_cv_base" name="pres_cv_base" long_name="pressure_at_convective_cloud_base" unit="Pa" domain_ref="face" />
@@ -665,7 +661,6 @@
   <field id="processed__qci" name="qci" long_name="specific_cloud_ice" standard_name="mass_fraction_of_cloud_ice_in_air" unit="kg kg-1" grid_ref="full_level_face_grid"> m_ci / (1+processed__m_tot) </field>
   <field id="processed__rh_water" name="rh_water" long_name="relative_humidity_over_water" standard_name="relative_humidity" unit="1" grid_ref="full_level_face_grid" />
   <field id="processed__rh_ice" name="rh_ice" long_name="relative_humidity_over_ice_below_freezing" standard_name="relative_humidity" unit="1" grid_ref="full_level_face_grid" />
-  <field id="processed__trop_level" name="trop_level" long_name="tropopause_level" unit="1" domain_ref="face" />
   <field id="processed__wbig" name="wbig" long_name="wbig_eq_1_where_wphysics_gt_1" unit="1" grid_ref="full_level_face_grid" />
   <field id="processed__pressure_in_w3" name="pressure_in_w3" long_name="pressure_at_cell_centres" unit="Pa" grid_ref="half_level_face_grid" />
   <field id="processed__pressure_in_wth" name="pressure_in_wth" long_name="pressure_at_cell_interfaces" unit="Pa" grid_ref="full_level_face_grid" />
@@ -685,11 +680,16 @@
 </field_group>
 
 <!-- Integer diagnostic group -->
-<field_group id="diag_int_fields" freq_op="1ts" operation="instant" enabled=".TRUE." >
+<field_group id="diag_int_fields" prec="2" freq_op="1ts" operation="instant" enabled=".TRUE." >
   <field id="turbulence__cumulus" name="cumulus" long_name="cumulus_convection_indicator" unit="1" domain_ref="face" />
   <field id="turbulence__bl_type_ind" name="bl_type_ind" long_name="boundary_layer_type_indicator" unit="1" domain_ref="face" axis_ref="boundary_layer_types"/>
   <field id="turbulence__ntml" name="ntml" long_name="number_of_turbulent_mixing_levels" unit="1" domain_ref="face" />
   <field id="turbulence__level_ent" name="level_ent" long_name="level_of_surface_mixed_layer_inversion" unit="1" domain_ref="face" />
   <field id="turbulence__level_ent_dsc" name="level_ent_dsc" long_name="level_of_decoupled_stratocumulus_inversion" unit="1" domain_ref="face" />
+  <field id="convection__lowest_cv_base" name="lowest_cv_base" long_name="model_level_number_at_lowest_conv_cloud_base" unit="1" domain_ref="face" />
+  <field id="convection__lowest_cv_top" name="lowest_cv_top" long_name="model_level_number_at_lowest_conv_cloud_top" unit="1" domain_ref="face" />
+  <field id="convection__cv_base" name="cv_base" long_name="model_level_number_at_conv_cloud_base" unit="1" domain_ref="face" />
+  <field id="convection__cv_top" name="cv_top" long_name="model_level_number_at_conv_cloud_top" unit="1" domain_ref="face" />
+  <field id="processed__trop_level" name="trop_level" long_name="tropopause_level" unit="1" domain_ref="face" />
 </field_group>
 </field_definition>

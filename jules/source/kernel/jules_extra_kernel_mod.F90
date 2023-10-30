@@ -264,6 +264,7 @@ contains
     use jules_control_init_mod, only: &
          nsurft => n_land_tile, n_land_tile
     use jules_physics_init_mod, only: decrease_sath_cond
+    use surface_config_mod, only: use_hydrology
 
     ! Module imports for surf_couple_extra JULESvn5.4
     use ancil_info,               only: nsoilt, dim_cslayer, rad_nband,        &
@@ -1042,7 +1043,8 @@ contains
       end do
     end if
 
-    if (.not. associated(grid_snow_mass, empty_real_data) ) then
+    if (.not. associated(grid_snow_mass, empty_real_data) .and. &
+         use_hydrology) then
       do i = 1, seg_len
         grid_snow_mass(map_2d(1,i)) = progs%snow_mass_ij(i,1)
       end do

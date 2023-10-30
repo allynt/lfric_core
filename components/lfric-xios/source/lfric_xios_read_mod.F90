@@ -12,7 +12,8 @@ module lfric_xios_read_mod
 
   use, intrinsic :: iso_fortran_env, only : real32, real64
 
-  use constants_mod,            only: i_def, str_def, r_def
+  use constants_mod,            only: i_def, str_def, r_def, rmdi, &
+                                      LARGE_REAL_NEGATIVE
   use lfric_xios_constants_mod, only: dp_xios
   use field_mod,                only: field_type, field_proxy_type
   use field_r32_mod,            only: field_r32_type, field_r32_proxy_type
@@ -360,6 +361,9 @@ subroutine read_field_time_var(xios_field_name, field_proxy, time_indices, time_
     end do
 
   end do
+
+  ! Use our own mdi indicator
+  where (field_data(1:undf) == LARGE_REAL_NEGATIVE) field_data = rmdi
 
   ! Pass reshaped data array to field object via proxy
   field_proxy%data( 1 : undf ) = field_data( 1 : undf )

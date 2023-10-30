@@ -8,7 +8,7 @@
 module lfric_xios_format_mod
 
   use, intrinsic :: iso_fortran_env,  only : real32, real64
-  use constants_mod,                  only: i_def
+  use constants_mod,                  only: i_def, rmdi, LARGE_REAL_NEGATIVE
   use lfric_xios_constants_mod,       only: dp_xios, xios_max_int
   use field_parent_mod,               only: field_parent_proxy_type
   use field_r32_mod,                  only: field_r32_proxy_type
@@ -137,6 +137,8 @@ subroutine inverse_format_field(xios_data, field_name, fpxy, m, n)
     do i = 1, m
       fpxy%data(i:mn:m) = real(xios_data(1+(i-1)*n:i*n), real64)
     end do
+    ! Use our own mdi indicator
+    where (fpxy%data(1:mn) == LARGE_REAL_NEGATIVE) fpxy%data = rmdi
 
   type is (integer_field_proxy_type)
     do i = 1, m

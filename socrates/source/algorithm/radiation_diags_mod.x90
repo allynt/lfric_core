@@ -190,8 +190,12 @@ subroutine initialise_diags_for_radiation( lw_down_surf, lw_heating_rate, &
                                       'radiation__cloud_weight_extinction_rts' )
   sw_aer_optical_depth_rts_flag      = init_diag( sw_aer_optical_depth_rts, &
                                       'radiation__sw_aer_optical_depth_rts' )
+  if (sw_aer_optical_depth_rts_flag) &
+       call invoke(setval_c(sw_aer_optical_depth_rts, 0.0_r_def))
   lw_aer_optical_depth_rts_flag      = init_diag( lw_aer_optical_depth_rts, &
                                       'radiation__lw_aer_optical_depth_rts' )
+  if (lw_aer_optical_depth_rts_flag) &
+       call invoke(setval_c(lw_aer_optical_depth_rts, 0.0_r_def))
 
   ! 3D fields on radiation levels (flux space)
   sw_direct_rts_flag       = init_diag( sw_direct_rts, &
