@@ -23,14 +23,15 @@ module pmsl_kernel_mod
   !> Kernel metadata for Psyclone
   type, public, extends(kernel_type) :: pmsl_kernel_type
     private
-    type(arg_type) :: meta_args(7) = (/                                     &
+    type(arg_type) :: meta_args(8) = (/                                     &
          arg_type(GH_FIELD,  GH_REAL, GH_READ,  W3),                        & ! exner_w3
          arg_type(GH_FIELD,  GH_REAL, GH_READ,  WTHETA),                    & ! exner_wth
          arg_type(GH_FIELD,  GH_REAL, GH_READ,  WTHETA),                    & ! theta_wth
          arg_type(GH_FIELD,  GH_REAL, GH_READ,  W3),                        & ! height_w3
          arg_type(GH_FIELD,  GH_REAL, GH_READ,  WTHETA),                    & ! height_wth
          arg_type(GH_SCALAR, GH_INTEGER, GH_READ),                          & ! levelupper
-         arg_type(GH_FIELD,  GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1)  & ! pmsl
+         arg_type(GH_FIELD,  GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1), & ! pmsl
+         arg_type(GH_FIELD,  GH_REAL, GH_WRITE, ANY_DISCONTINUOUS_SPACE_1)  & ! t_at_mean_sea_level
          /)
     integer :: operates_on = CELL_COLUMN
   contains
@@ -45,9 +46,8 @@ contains
   !> @details Basic formation is based on the old UM diagnostic which is
   !>          described in UM Documentation Paper 80.
   !>          https://code.metoffice.gov.uk/doc/um/latest/papers/umdp_080.pdf
-  !>          Initial version just calculates PMSL with no smoothing over
-  !>          high ground. The UM diagnostic included smoothing of the field
-  !>          for orography over 500m. This will be added later.
+  !>          This kernel calculates the unsmoothed version,
+  !>          i.e. with just a basic extrapolation below orography
   !> @param[in]     nlayers     The number of layers
   !> @param[in]     exner_w3    exner pressure in w3 space
   !> @param[in]     exner_wth   exner pressure in theta space
@@ -56,6 +56,7 @@ contains
   !> @param[in]     height_wth  Height of wth levels above mean sea level
   !> @param[in]     levelupper  Level above boundary layer to use for PMSL calculation
   !> @param[in/out] pmsl        pressure at mean sea level
+  !> @param[in/out] t_at_mean_sea_level temperature at mean sea level
   !> @param[in]     ndf_w3      Number of degrees of freedom per cell for wrho
   !> @param[in]     undf_w3     Number of total degrees of freedom for wrho
   !> @param[in]     map_w3      Dofmap for the cell at the base of the column for wrho
@@ -74,6 +75,7 @@ contains
                        height_wth,         &
                        levelupper,         &
                        pmsl,               &
+                       t_at_mean_sea_level,&
                        ndf_w3,             &
                        undf_w3,            &
                        map_w3,             &
@@ -106,12 +108,12 @@ contains
     real(kind=r_def),    intent(in), dimension(undf_wth) :: height_wth
     integer(kind=i_def), intent(in) :: levelupper
     real(kind=r_def),    intent(inout), dimension(undf_2d) :: pmsl
+    real(kind=r_def),    intent(inout), dimension(undf_2d) :: t_at_mean_sea_level
 
     ! Internal variables
     real(kind=r_def) :: power
     real(kind=r_def) :: pressure
     real(kind=r_def) :: t_ref_level_1
-    real(kind=r_def) :: t_at_mean_sea_level
 
     ! Calculate pressure from exner_w3
     ! Used same code structure as in spectral_gwd_kernel_mod
@@ -124,13 +126,13 @@ contains
                   + lapse * ( height_wth(map_wth(1)+levelupper)   &
                             - height_w3(map_w3(1)) )
 
-    t_at_mean_sea_level = t_ref_level_1                           &
-                             + lapse * (height_w3(map_w3(1)) )
+    t_at_mean_sea_level(map_2d(1)) = t_ref_level_1                           &
+                                   + lapse * (height_w3(map_w3(1)) )
 
     ! Calculate PMSL from the previously calculated variables above
 
     power = g / (r * lapse)
-    pmsl(map_2d(1)) = pressure * (t_at_mean_sea_level / t_ref_level_1)**power
+    pmsl(map_2d(1)) = pressure * (t_at_mean_sea_level(map_2d(1)) / t_ref_level_1)**power
 
   end subroutine pmsl_code
 

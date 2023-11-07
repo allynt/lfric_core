@@ -668,6 +668,7 @@
   <field id="zoomed__pstar" field_ref="processed__pressure_in_wth" grid_ref="full_level_0_face_zoom"/>
   <field id="processed__pstar" name="pstar" long_name="surface_air_pressure" standard_name="surface_air_pressure" unit="Pa" domain_ref="face"> zoomed__pstar </field>
   <field id="processed__pmsl" name="pmsl" long_name="air_pressure_at_mean_sea_level" unit="Pa" domain_ref="face" />
+  <field id="processed__pmsl_unsmooth" name="pmsl_unsmooth" long_name="unsmoothed_air_pressure_at_mean_sea_level" unit="Pa" domain_ref="face" />
   <field id="processed__radius" name="radius" long_name="radius" unit="m" grid_ref="half_level_face_grid" > height_w3 + 6371229.0 </field>
   <field id="processed__r2rho" name="r2rho" long_name="product_of_air_density_and_radius_squared" unit="kg m-1" grid_ref="half_level_face_grid"> processed__radius * processed__radius * rho </field>
   <field id="processed__temperature" name="temperature" long_name="air_temperature" standard_name="air_temperature" unit="K" grid_ref="full_level_face_grid"> theta * exner_in_wth </field>

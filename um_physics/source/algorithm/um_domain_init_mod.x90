@@ -16,16 +16,17 @@ module um_domain_init_mod
   use constants_mod,               only : i_um, r_um, rmdi, i_def, r_def
   use field_mod,                   only : field_type
   use mesh_mod,                    only: mesh_type
+  use local_mesh_mod,              only: local_mesh_type
   use log_mod,                     only : log_event,   &
                                     log_scratch_space, &
                                     log_level_error
 
   implicit none
 
-  integer(i_def), protected :: level2km
+  integer(i_def), protected :: level2km, n_iter_pmsl, model_wavenumber_max
 
   private
-  public :: um_domain_init, level2km
+  public :: um_domain_init, level2km, n_iter_pmsl, model_wavenumber_max
 
 contains
 
@@ -51,6 +52,8 @@ contains
     real(r_def) :: sum_delta, sum_ones
 
     integer(i_def) :: k
+    integer(i_def) :: n_cells, n_panels, cells_per_panel, cells_per_side
+    type(local_mesh_type), pointer :: local_mesh => null()
 
     ! The following 3D arrays are used direct from level_heights_mod
     ! throughout the UM code.
@@ -96,6 +99,29 @@ contains
       end if
     end do
     level2km = k
+
+
+    ! Calculate the mesh size
+    local_mesh => mesh%get_local_mesh()
+
+    n_cells  = local_mesh%get_ncells_global_mesh()
+    n_panels = local_mesh%get_num_panels_global_mesh()
+
+    cells_per_panel = n_cells / n_panels
+    cells_per_side = nint( sqrt( real( cells_per_panel, r_def ) ), i_def )
+
+    ! Calculate parameters derived from mesh size
+    if (n_panels > 1) then
+      ! global model, number of iters is equatorial number of points
+      n_iter_pmsl = 4_i_def * cells_per_side
+      ! max wavenumber is half equatorial number of points
+      model_wavenumber_max = 2_i_def * cells_per_side
+    else
+      ! limited area model, number of iters is number of points
+      n_iter_pmsl = cells_per_side
+      ! max wavenumber is half number of points
+      model_wavenumber_max = cells_per_side / 2_i_def
+    end if
 
   end subroutine um_domain_init
 

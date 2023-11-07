@@ -959,6 +959,7 @@
         <field id="processed__pressure_in_w3" name="pressure_in_w3" long_name="pressure_at_cell_centres" unit="Pa" grid_ref="half_level_face_grid" />
         <field id="processed__pressure_in_wth" name="pressure_in_wth" long_name="pressure_at_cell_interfaces" unit="Pa" grid_ref="full_level_face_grid" />
 	<field id="processed__pmsl" name="pmsl" long_name="air_pressure_at_mean_sea_level" unit="Pa" domain_ref="face" />
+	<field id="processed__pmsl_unsmooth" name="pmsl_unsmooth" long_name="unsmoothed_air_pressure_at_mean_sea_level" unit="Pa" domain_ref="face" />
 	<field id="processed__temperature" name="temperature" long_name="air_temperature" standard_name="air_temperature" unit="K" grid_ref="full_level_face_grid"> theta * exner_in_wth </field>
 	<field id="processed__total_prec" name="total_prec" long_name="precipitation_rate" standard_name="precipitation_flux" unit="kg m-2 s-1" domain_ref="face"> microphysics__ls_rain + microphysics__ls_snow + convection__conv_rain + convection__conv_snow </field>
       </field_group>

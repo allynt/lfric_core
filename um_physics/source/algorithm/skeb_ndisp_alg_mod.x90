@@ -55,8 +55,8 @@ module skeb_ndisp_alg_mod
   use timestepping_config_mod,   only: dt
   use planet_constants_mod,      only: planet_radius
   use constants_mod,             only: degrees_to_radians
+  use um_domain_init_mod,        only: model_wavenumber_max
 
-  use stochastic_physics_config_mod,  only: model_wavenumber_max
   ! Gemoetrical and vectorial operators
   use geometric_constants_mod,        only: get_coordinates, &
                                             get_panel_id

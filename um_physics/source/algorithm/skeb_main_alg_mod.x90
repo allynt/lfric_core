@@ -27,7 +27,7 @@ module skeb_main_alg_mod
     ! initialise diagnostics
     use initialise_diagnostics_mod,    only: init_diag => init_diagnostic_field
     ! configs
-    use um_domain_init_mod,            only: level2km
+    use um_domain_init_mod,            only: level2km, model_wavenumber_max
     use planet_constants_mod,          only: g
     use geometric_constants_mod,       only: get_da_at_w2, get_panel_id, get_height
     use set_any_dof_kernel_mod,        only: set_any_dof_kernel_type
@@ -111,8 +111,6 @@ module skeb_main_alg_mod
                                             skeb_add_increments,                    &
                                             skeb_rot_du, skeb_rot_du_fe,            &
                                             skeb_div_du, skeb_div_du_fe,            &
-                                            ! Maximun wavenumber (see [*1])
-                                            model_wavenumber_max,                   &
                                             ! SKEB levels
                                             skeb_level_bottom,                      &
                                             skeb_level_bottom_cap,                  &
@@ -417,9 +415,6 @@ module skeb_main_alg_mod
                                            skeb_level_top, g ) )
 
     !!! 2.c modulate the convective dissipation to resolution
-    ! [*1] TO DO, get the model_wavenumber_max from the grid details instead
-    !      At the moment the value is hardwired via a namelist and needs to be
-    !      changed by hand when resolution changes
     if (skeb_convective_dissipation_modulation) then
       convective_resolution_factor=SQRT(216.0_r_def/model_wavenumber_max)
       call invoke( inc_a_times_X(convective_resolution_factor, cdisp) )
