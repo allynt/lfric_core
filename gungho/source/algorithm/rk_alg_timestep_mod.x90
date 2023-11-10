@@ -154,14 +154,6 @@ contains
     call vorticity%initialise( vector_space = &
       function_space_collection%get_fs(mesh, element_order, vorticity_fs) )
 
-
-    !=== Copy prognostic field data to state arrays ===========================!
-    call invoke( name = "copy_fields_to_state",   &
-                 setval_X(state(igh_u), u    ), &
-                 setval_X(state(igh_t), theta), &
-                 setval_X(state(igh_d), rho  ), &
-                 setval_X(state(igh_p), exner) )
-
     call gungho_transport_control_alg_init(mesh)
 
     call log_event( "Gungho: initialised timestepping algorithm", LOG_LEVEL_INFO )
@@ -235,6 +227,14 @@ contains
     ! Get coordinates
     chi => get_coordinates(mesh_id)
     panel_id => get_panel_id(mesh_id)
+
+    !=== Copy prognostic field data to state arrays ===========================!
+    call invoke( name = "copy_fields_to_state",   &
+                 setval_X(state(igh_u), u    ), &
+                 setval_X(state(igh_t), theta), &
+                 setval_X(state(igh_d), rho  ), &
+                 setval_X(state(igh_p), exner) )
+
     !=== Do a single timestep ==============================================!
 
     ! Runge-Kutta algorithm

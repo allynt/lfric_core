@@ -270,14 +270,6 @@ contains
     !--------------------------------------------------------------------
     call create_si_operators( mesh )
 
-    !--------------------------------------------------------------------
-    ! Copy prognostic field data to state arrays
-    !--------------------------------------------------------------------
-    call invoke( name = "copy_init_fields_to_state", &
-                 setval_X(state(igh_u), u    ),      &
-                 setval_X(state(igh_t), theta),      &
-                 setval_X(state(igh_d), rho  ),      &
-                 setval_X(state(igh_p), exner) )
     call gungho_transport_control_alg_init( mesh )
 
     ! Construct semi-implicit solver
@@ -410,6 +402,15 @@ contains
 
     mm_wt  => get_mass_matrix(Wtheta, mesh%get_id())
     mm_vel => get_mass_matrix(W2, mesh%get_id())
+
+    !--------------------------------------------------------------------
+    ! Copy prognostic field data to state arrays
+    !--------------------------------------------------------------------
+    call invoke( name = "copy_init_fields_to_state", &
+                 setval_X(state(igh_u), u    ),      &
+                 setval_X(state(igh_t), theta),      &
+                 setval_X(state(igh_d), rho  ),      &
+                 setval_X(state(igh_p), exner) )
 
     !--------------------------------------------------------------------
     ! If winds are being spunup overwrite the local copy of the winds

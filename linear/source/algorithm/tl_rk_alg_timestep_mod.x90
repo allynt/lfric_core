@@ -182,20 +182,6 @@ contains
         function_space_collection%get_fs(mesh, element_order, vorticity_fs) )
     end do
 
-    !=== Copy prognostic field data to state arrays ===========================!
-    call invoke( name = "copy_fields_to_state",   &
-                 setval_X(state(igh_u), u    ), &
-                 setval_X(state(igh_t), theta), &
-                 setval_X(state(igh_d), rho  ), &
-                 setval_X(state(igh_p), exner) )
-
-    !=== Copy LS field data to ls_state arrays ===========================!
-    call invoke( name = "copy_ls_fields_to_ls_state",   &
-                 setval_X(ls_state(igh_u), ls_u    ), &
-                 setval_X(ls_state(igh_t), ls_theta), &
-                 setval_X(ls_state(igh_d), ls_rho  ), &
-                 setval_X(ls_state(igh_p), ls_exner) )
-
     call gungho_transport_control_alg_init( mesh )
 
     call log_event( "TL: initialised timestepping algorithm", LOG_LEVEL_INFO )
@@ -278,11 +264,25 @@ contains
     chi => get_coordinates(mesh_id)
     panel_id => get_panel_id(mesh_id)
 
+    !=== Copy prognostic field data to state arrays ===========================!
+    call invoke( name = "copy_fields_to_state",   &
+                 setval_X(state(igh_u), u    ), &
+                 setval_X(state(igh_t), theta), &
+                 setval_X(state(igh_d), rho  ), &
+                 setval_X(state(igh_p), exner) )
+
     !=== Do a single timestep ==============================================!
 
     !-----------------------------------------------------------------
     !            Linearisation state
     !-----------------------------------------------------------------
+
+    !=== Copy LS field data to ls_state arrays ===========================!
+    call invoke( name = "copy_LS_fields_to_ls_state",   &
+    setval_X(ls_state(igh_u), ls_u    ), &
+    setval_X(ls_state(igh_t), ls_theta), &
+    setval_X(ls_state(igh_d), ls_rho  ), &
+    setval_X(ls_state(igh_p), ls_exner) )
 
     ! Runge-Kutta algorithm
     call copy_bundle(ls_state, ls_state_stage(:,1), bundle_size)

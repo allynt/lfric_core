@@ -289,15 +289,6 @@ contains
     !--------------------------------------------------------------------
     call create_si_operators( mesh )
 
-    !--------------------------------------------------------------------
-    ! Copy prognostic field data to state arrays
-    !--------------------------------------------------------------------
-    call invoke( name = "copy_init_fields_to_state", &
-                 setval_X(state(igh_u), u    ),      &
-                 setval_X(state(igh_t), theta),      &
-                 setval_X(state(igh_d), rho  ),      &
-                 setval_X(state(igh_p), exner) )
-
     call gungho_transport_control_alg_init( mesh )
 
     ! Construct semi-implicit solver
@@ -386,6 +377,15 @@ contains
       varalpha = alpha
     end if
     varbeta = 1.0 - varalpha
+
+    !--------------------------------------------------------------------
+    ! Copy prognostic field data to state arrays
+    !--------------------------------------------------------------------
+    call invoke( name = "copy_init_fields_to_state", &
+                 setval_X(state(igh_u), u    ),      &
+                 setval_X(state(igh_t), theta),      &
+                 setval_X(state(igh_d), rho  ),      &
+                 setval_X(state(igh_p), exner) )
 
 !--------------------------------------------------------------------
 ! Linearisation state
