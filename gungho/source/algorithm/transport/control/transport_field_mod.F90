@@ -13,8 +13,7 @@ module transport_field_mod
   use field_mod,                        only: field_type
   use r_tran_field_mod,                 only: r_tran_field_type
   use log_mod,                          only: log_event, LOG_LEVEL_ERROR
-  use ffsl_control_alg_mod,             only: ffsl_conservative_control, &
-                                              ffsl_advective_control
+  use ffsl_control_alg_mod,             only: ffsl_control
   use split_transport_mod,              only: split_transport_control
   use transport_metadata_mod,           only: transport_metadata_type
   use transport_runtime_alg_mod,        only: transport_runtime_type
@@ -129,13 +128,9 @@ contains
     case ( scheme_ffsl_3d )
       ! Choose form of transport equation
       select case ( transport_metadata%get_equation_form() )
-      case ( equation_form_conservative )
-        call ffsl_conservative_control(field_np1, field_n, direction_3d, &
-                                       model_dt, transport_metadata)
-
-      case ( equation_form_advective )
-        call ffsl_advective_control(field_np1, field_n, direction_3d, &
-                                    model_dt, transport_metadata)
+      case ( equation_form_conservative, equation_form_advective )
+        call ffsl_control(field_np1, field_n, direction_3d, &
+                          model_dt, transport_metadata)
 
       case default
         call log_event('Trying to solve unrecognised form of transport equation', &

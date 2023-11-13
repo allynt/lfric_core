@@ -40,7 +40,16 @@ module transport_runtime_alg_mod
   use mesh_collection_mod,            only: mesh_collection
   use model_clock_mod,                only: model_clock_type
   use runtime_tools_mod,              only: check_initialised_field
-  use transport_enumerated_types_mod, only: scheme_split
+  use transport_enumerated_types_mod, only: scheme_split,         &
+                                            direction_h,          &
+                                            direction_v,          &
+                                            direction_3d,         &
+                                            splitting_strang_hvh, &
+                                            splitting_strang_vhv, &
+                                            splitting_hv,         &
+                                            splitting_vh,         &
+                                            splitting_none
+
   use psykal_lite_mod,                only: invoke_copy_to_rtran, &
                                             invoke_rtran_field_min_max
 
@@ -65,7 +74,8 @@ module transport_runtime_alg_mod
     type(r_tran_field_type),    allocatable, dimension(:)   :: advecting_wind
     type(r_tran_field_type),    allocatable, dimension(:)   :: horizontal_advecting_wind
     type(r_tran_field_type),    allocatable, dimension(:)   :: vertical_advecting_wind
-    type(r_tran_field_type),    allocatable, dimension(:)   :: detj_at_w2_transport
+    type(r_tran_field_type),    allocatable, dimension(:)   :: detj_at_w2h_transport
+    type(r_tran_field_type),    allocatable, dimension(:)   :: detj_at_w2v_transport
     type(r_tran_field_type),    allocatable, dimension(:)   :: departure_points_x_w2
     type(r_tran_field_type),    allocatable, dimension(:)   :: departure_points_y_w2
     type(r_tran_field_type),    allocatable, dimension(:)   :: departure_points_z_w2
@@ -226,6 +236,7 @@ contains
     type(r_tran_field_type), target  :: shifted_wind_np1
     type(field_type),        target  :: shifted_wind_n_rdef
     type(field_type),        target  :: shifted_wind_np1_rdef
+    type(r_tran_field_type)          :: detj_at_w2_transport
     real(kind=r_tran)                :: cfl_min, cfl_max
     real(kind=r_tran)                :: dep_min, dep_max
     real(kind=r_tran)                :: h_cfl_min, h_cfl_max
@@ -313,7 +324,8 @@ contains
                 self%advecting_wind(self%n_meshes),            &
                 self%horizontal_advecting_wind(self%n_meshes), &
                 self%vertical_advecting_wind(self%n_meshes),   &
-                self%detj_at_w2_transport(self%n_meshes),      &
+                self%detj_at_w2h_transport(self%n_meshes),     &
+                self%detj_at_w2v_transport(self%n_meshes),     &
                 self%departure_points_x_w2(self%n_meshes),     &
                 self%departure_points_y_w2(self%n_meshes),     &
                 self%departure_points_z_w2(self%n_meshes),     &
@@ -400,7 +412,8 @@ contains
       call self%advecting_wind(mesh_idx)%initialise( w2_fs )
       call self%horizontal_advecting_wind(mesh_idx)%initialise( w2h_fs )
       call self%vertical_advecting_wind(mesh_idx)%initialise( w2v_fs )
-      call self%detj_at_w2_transport(mesh_idx)%initialise( w2_fs )
+      call self%detj_at_w2h_transport(mesh_idx)%initialise( w2h_fs )
+      call self%detj_at_w2v_transport(mesh_idx)%initialise( w2v_fs )
       call self%departure_points_z_w2(mesh_idx)%initialise( w2v_fs )
       call self%departure_points_x_w2(mesh_idx)%initialise( w2h_fs )
       call self%departure_points_y_w2(mesh_idx)%initialise( w2h_fs )
@@ -460,7 +473,12 @@ contains
       ! Compute departure points
 
       ! Get detj_at_w2 using wind_n
-      call select_detj_at_w2( wind_n, self%detj_at_w2_transport(mesh_idx) )
+      w2_fs => function_space_collection%get_fs(tmp_mesh, element_order, W2)
+      call detj_at_w2_transport%initialise( w2_fs )
+      call select_detj_at_w2( wind_n, detj_at_w2_transport )
+      call invoke( split_w2_field_kernel_type(self%detj_at_w2h_transport(mesh_idx), &
+                                              self%detj_at_w2v_transport(mesh_idx), &
+                                              detj_at_w2_transport) )
 
       ! Set winds for computing departure points based on cheap update flag
       if (any_vert_dep_pts .OR. any_horz_dep_pts) then
@@ -488,7 +506,7 @@ contains
                                 cfl_dep,                              &
                                 dep_pt_wind_n,                        &
                                 dep_pt_wind_np1,                      &
-                                self%detj_at_w2_transport(mesh_idx),  &
+                                detj_at_w2_transport,                 &
                                 cast_dt )
       end if
 
@@ -498,7 +516,7 @@ contains
                                 self%departure_points_y_w2(mesh_idx),  &
                                 dep_pt_wind_n,                         &
                                 dep_pt_wind_np1,                       &
-                                self%detj_at_w2_transport(mesh_idx),   &
+                                detj_at_w2_transport,                  &
                                 cast_dt )
 
         ! Get the required stencil size from the departure points
@@ -520,7 +538,7 @@ contains
                 function_space_collection%get_fs(tmp_mesh, element_order, W3) )
 
       call invoke( setval_X(cfl, self%advecting_wind(mesh_idx)),               &
-                   inc_X_divideby_Y(cfl, self%detj_at_w2_transport(mesh_idx)), &
+                   inc_X_divideby_Y(cfl, detj_at_w2_transport),                &
                    inc_a_times_X(cast_dt, cfl),                                &
                    split_w2_field_kernel_type(horizontal_cfl,                  &
                                               vertical_cfl,                    &
@@ -579,7 +597,8 @@ contains
         call ffsl_unity_transport_alg( self%departure_points_x_w2(mesh_idx), &
                                        self%departure_points_y_w2(mesh_idx), &
                                        self%departure_points_z_w2(mesh_idx), &
-                                       self%detj_at_w2_transport(mesh_idx),  &
+                                       self%detj_at_w2h_transport(mesh_idx), &
+                                       self%detj_at_w2v_transport(mesh_idx), &
                                        self%dep_stencil_extent_x(mesh_idx),  &
                                        self%dep_stencil_extent_y(mesh_idx),  &
                                        cast_dt,                              &
@@ -749,7 +768,8 @@ contains
     if ( allocated( self%advecting_wind ) )            deallocate( self%advecting_wind )
     if ( allocated( self%horizontal_advecting_wind ) ) deallocate( self%horizontal_advecting_wind )
     if ( allocated( self%vertical_advecting_wind ) )   deallocate( self%vertical_advecting_wind )
-    if ( allocated( self%detj_at_w2_transport ) )      deallocate( self%detj_at_w2_transport )
+    if ( allocated( self%detj_at_w2h_transport ) )     deallocate( self%detj_at_w2h_transport )
+    if ( allocated( self%detj_at_w2v_transport ) )     deallocate( self%detj_at_w2v_transport )
     if ( allocated( self%departure_points_x_w2 ) )     deallocate( self%departure_points_x_w2 )
     if ( allocated( self%departure_points_y_w2 ) )     deallocate( self%departure_points_y_w2 )
     if ( allocated( self%departure_points_z_w2 ) )     deallocate( self%departure_points_z_w2 )
@@ -1073,11 +1093,6 @@ contains
     use transport_config_mod,           only: cfl_mol_3d_stab, &
                                               cfl_mol_2d_stab, &
                                               cfl_mol_1d_stab
-    use transport_enumerated_types_mod, only: direction_h,          &
-                                              direction_v,          &
-                                              direction_3d,         &
-                                              splitting_strang_vhv, &
-                                              splitting_strang_hvh
     implicit none
 
     class(transport_runtime_type), intent(in) :: self
@@ -1145,10 +1160,6 @@ contains
   !> @param[in] splitting  A transport splitting enumerator
   !> @return dt_substep  The dt for MoL substeps
   function get_dt_substep(self, mesh_id, direction, splitting) result(dt_substep)
-    use transport_enumerated_types_mod, only: direction_v,          &
-                                              direction_h,          &
-                                              splitting_strang_vhv, &
-                                              splitting_strang_hvh
 
     implicit none
 
@@ -1220,10 +1231,6 @@ contains
   !> @return The advecting wind for that mesh and specified direction
   function get_directional_advecting_wind(self, mesh_id, direction) result(advecting_wind)
 
-    use transport_enumerated_types_mod, only: direction_h,          &
-                                              direction_v,          &
-                                              direction_3d
-
     implicit none
 
     class(transport_runtime_type), target, intent(in) :: self
@@ -1287,19 +1294,30 @@ contains
 
   !> @brief Returns a pointer to det(J) at W2 DoFs
   !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @param[in] direction Integer indicating direction (horizontal or vertical)
   !> @return det(J) evaluated at W2 DoFs
-  function get_detj_at_w2_transport(self, mesh_id) result(detj_at_w2_transport)
+  function get_detj_at_w2_transport(self, mesh_id, direction) result(detj_at_w2_transport)
 
     implicit none
 
     class(transport_runtime_type), target, intent(in) :: self
     integer(kind=i_def),                   intent(in) :: mesh_id
+    integer(kind=i_def),                   intent(in) :: direction
     type(r_tran_field_type),               pointer    :: detj_at_w2_transport
     character(str_def)                                :: field_name
 
-    field_name = 'detj_at_w2_transport'
-    detj_at_w2_transport => self%detj_at_w2_transport(self%idx_from_mesh_id(mesh_id))
-    call check_initialised_field(detj_at_w2_transport, field_name, mesh_id)
+    select case (direction)
+    case (direction_v)
+      field_name = 'detj_at_w2v_transport'
+      detj_at_w2_transport => self%detj_at_w2v_transport(self%idx_from_mesh_id(mesh_id))
+      call check_initialised_field(detj_at_w2_transport, field_name, mesh_id)
+    case (direction_h)
+      field_name = 'detj_at_w2h_transport'
+      detj_at_w2_transport => self%detj_at_w2h_transport(self%idx_from_mesh_id(mesh_id))
+      call check_initialised_field(detj_at_w2_transport, field_name, mesh_id)
+    case default
+      call log_event('DetJ at W2 not implemented for this direction', LOG_LEVEL_ERROR)
+    end select
 
   end function get_detj_at_w2_transport
 
@@ -1887,11 +1905,6 @@ contains
                                               field_names,            &
                                               splitting,              &
                                               dry_field_name
-    use transport_enumerated_types_mod, only: splitting_strang_hvh,   &
-                                              splitting_strang_vhv,   &
-                                              splitting_hv,           &
-                                              splitting_vh,           &
-                                              splitting_none
 
     implicit none
 
@@ -1945,11 +1958,6 @@ contains
                                               field_names,            &
                                               splitting,              &
                                               dry_field_name
-    use transport_enumerated_types_mod, only: splitting_strang_hvh,   &
-                                              splitting_strang_vhv,   &
-                                              splitting_hv,           &
-                                              splitting_vh,           &
-                                              splitting_none
 
     implicit none
 

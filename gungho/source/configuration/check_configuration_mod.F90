@@ -32,7 +32,9 @@ module check_configuration_mod
                                   dry_field_name,              &
                                   field_names,                 &
                                   use_density_predictor,       &
-                                  enforce_min_value
+                                  enforce_min_value,           &
+                                  horizontal_monotone,         &
+                                  vertical_monotone
   use transport_enumerated_types_mod,                          &
                             only: scheme_mol_3d,               &
                                   scheme_ffsl_3d,              &
@@ -45,7 +47,15 @@ module check_configuration_mod
                                   equation_form_consistent,    &
                                   splitting_strang_hvh,        &
                                   splitting_strang_vhv,        &
-                                  splitting_none
+                                  splitting_none,              &
+                                  vertical_monotone_koren,     &
+                                  vertical_monotone_relaxed,   &
+                                  vertical_monotone_strict,    &
+                                  vertical_monotone_clipping,  &
+                                  horizontal_monotone_koren,   &
+                                  horizontal_monotone_relaxed, &
+                                  horizontal_monotone_strict,  &
+                                  horizontal_monotone_clipping
 
   implicit none
 
@@ -340,6 +350,45 @@ contains
             'be used with the FEM operators'
           call log_event(log_scratch_space, LOG_LEVEL_ERROR)
         end if
+
+        if ( (vertical_monotone(i) == vertical_monotone_strict .or.    &
+              vertical_monotone(i) == vertical_monotone_relaxed) .and. &
+              .not. (vertical_method(i) == split_method_ffsl .or.      &
+                     vertical_method(i) == split_method_sl) ) then
+          write( log_scratch_space, '(A)') trim(field_names(i)) // ' variable ' // &
+            'is set to use strict/relaxed vertical monotonicity, but this is ' // &
+            'incompatible with the choice of vertical method'
+          call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+        end if
+
+        if ( (horizontal_monotone(i) == horizontal_monotone_strict .or.    &
+              horizontal_monotone(i) == horizontal_monotone_relaxed) .and. &
+              .not. (horizontal_method(i) == split_method_ffsl .or.        &
+                     horizontal_method(i) == split_method_sl) ) then
+          write( log_scratch_space, '(A)') trim(field_names(i)) // ' variable ' // &
+            'is set to use strict/relaxed horizontal monotonicity, but this is ' // &
+            'incompatible with the choice of horizontal method'
+          call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+        end if
+
+        if ( (vertical_monotone(i) == vertical_monotone_koren .or.      &
+              vertical_monotone(i) == vertical_monotone_clipping) .and. &
+              .not. (vertical_method(i) == split_method_mol) ) then
+          write( log_scratch_space, '(A)') trim(field_names(i)) // ' variable ' // &
+            'is set to use Koren/clipping vertical monotonicity, but this is ' // &
+            'incompatible with the choice of vertical method'
+          call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+        end if
+
+        if ( (horizontal_monotone(i) == horizontal_monotone_koren .or.      &
+              horizontal_monotone(i) == horizontal_monotone_clipping) .and. &
+              .not. (horizontal_method(i) == split_method_mol) ) then
+          write( log_scratch_space, '(A)') trim(field_names(i)) // ' variable ' // &
+            'is set to use Koren/clipping horizontal monotonicity, but this is ' // &
+            'incompatible with the choice of horizontal method'
+          call log_event(log_scratch_space, LOG_LEVEL_ERROR)
+        end if
+
       end do
 
       ! Check the departure points namelist
