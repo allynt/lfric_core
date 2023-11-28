@@ -360,6 +360,10 @@ contains
     call invoke( setval_X(rho_n, rho) )
     call transport_field( rho, rho_n, cast_dt, transport_metadata )
 
+    ! Compute anything required for consistency
+    dynamics_transport_runtime => get_transport_runtime(primary_mesh)
+    call dynamics_transport_runtime%shift_dry_fields()
+
     ! Transport conservative W3 tracer
     call log_event( "Transporting conservative tracer...", LOG_LEVEL_INFO)
     transport_metadata => transport_metadata_collection%get_transport_metadata('tracer_con')
@@ -424,10 +428,9 @@ contains
 
     ! Copy dry fields from fine transport runtime to coarse
     if (use_multires_coupling .and. (use_w3_aerosol .or. use_wt_aerosol)) then
-      dynamics_transport_runtime => get_transport_runtime(primary_mesh)
       aerosol_transport_runtime => get_transport_runtime(aerosol_prime_mesh)
-      call aerosol_transport_runtime%copy_all_dry_fields(dynamics_transport_runtime)
-      nullify(dynamics_transport_runtime, aerosol_transport_runtime)
+      call aerosol_transport_runtime%restrict_dry_fields(dynamics_transport_runtime)
+      call aerosol_transport_runtime%shift_dry_fields()
     end if
 
     ! Transport coarse W3 tracer
@@ -448,7 +451,9 @@ contains
       call transport_field( wt_aerosol, wt_aerosol_n, cast_dt, transport_metadata )
     end if
 
-    nullify(primary_mesh, shifted_mesh, aerosol_prime_mesh, aerosol_shifted_mesh)
+    nullify(primary_mesh, shifted_mesh, aerosol_prime_mesh, &
+            aerosol_shifted_mesh, dynamics_transport_runtime, &
+            aerosol_transport_runtime)
 
   end subroutine transport_step
 

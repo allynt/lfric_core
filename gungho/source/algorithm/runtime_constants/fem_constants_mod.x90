@@ -18,6 +18,7 @@ module fem_constants_mod
   use constants_mod,                      only: i_def, r_def, r_second, str_def, l_def
   use field_mod,                          only: field_type
   use r_solver_field_mod,                 only: r_solver_field_type
+  use r_tran_field_mod,                   only: r_tran_field_type
   use fs_continuity_mod,                  only: W0, W1, W2, W2broken, &
                                                 W2H, W2V, W3, Wtheta
   use function_space_collection_mod,      only: function_space_collection
@@ -48,11 +49,13 @@ module fem_constants_mod
   use extrusion_config_mod,               only: domain_top
   use planet_config_mod,                  only: scaled_omega, radius
   use base_mesh_config_mod,               only: f_lat
-  use transport_config_mod,               only: broken_w2_projection
-
+  use transport_config_mod,               only: broken_w2_projection, &
+                                                extended_mesh
 
   ! Other algorithms
-  use geometric_constants_mod,            only: get_coordinates, get_panel_id
+  use geometric_constants_mod,            only: get_coordinates,            &
+                                                get_panel_id,               &
+                                                get_extended_coordinates
   use runtime_tools_mod,                  only: primary_mesh_label,         &
                                                 shifted_mesh_label,         &
                                                 double_level_mesh_label,    &
@@ -84,7 +87,9 @@ module fem_constants_mod
   use project_w3_to_w2b_operator_kernel_mod,  only: project_w3_to_w2b_operator_kernel_type
   use w2_normalisation_kernel_mod,            only: w2_normalisation_kernel_type
   use psykal_lite_mod,                        only: invoke_copy_to_rsolver, &
-                                                    invoke_operator_setval_x_rtran
+                                                    invoke_copy_to_rtran,   &
+                                                    invoke_operator_setval_x_rtran, &
+                                                    invoke_extended_detj_at_w3_kernel_type
 
   use compute_mass_matrix_kernel_w_scalar_mod, only: compute_mass_matrix_kernel_w_scalar_type
 
@@ -142,6 +147,7 @@ module fem_constants_mod
   type(inventory_by_mesh_type) :: nodal_rmultiplicity_w2h_inventory
   type(inventory_by_mesh_type) :: nodal_rmultiplicity_w2_inventory
   type(inventory_by_mesh_type) :: w2_normalisation_inventory
+  type(inventory_by_mesh_type) :: detj_at_w3_r_def_inventory
   type(inventory_by_mesh_type) :: detj_at_w2_inventory
   type(inventory_by_mesh_type) :: detj_at_w2_above_inventory
   type(inventory_by_mesh_type) :: detj_at_w2_below_inventory
@@ -150,7 +156,6 @@ module fem_constants_mod
   type(inventory_by_mesh_type) :: project_xdot_to_w2_inventory
   type(inventory_by_mesh_type) :: project_ydot_to_w2_inventory
   type(inventory_by_mesh_type) :: project_zdot_to_w2_inventory
-
 
   ! r_solver versions of operators
   type(inventory_by_mesh_type) :: div_r_solver_inventory
@@ -161,12 +166,13 @@ module fem_constants_mod
   type(inventory_by_mesh_type) :: w2_normalisation_r_solver_inventory
   type(inventory_by_mesh_type) :: wt_normalisation_r_solver_inventory
   type(inventory_by_mesh_type) :: detj_at_w3_r_solver_inventory
-  ! r_tran versions of operators
+  ! r_tran versions of operators / fields
   type(inventory_by_mesh_type) :: im3_div_r_tran_inventory
   type(inventory_by_mesh_type) :: im3_div_h_r_tran_inventory
   type(inventory_by_mesh_type) :: im3_div_v_r_tran_inventory
   type(inventory_by_mesh_type) :: mm_w3_r_tran_inventory
   type(inventory_by_mesh_type) :: mm_w3_inv_r_tran_inventory
+  type(inventory_by_mesh_type) :: detj_at_w3_r_tran_inventory
 
   ! Quadrature objects
   type( quadrature_xyoz_type ),target   :: qr
@@ -195,6 +201,7 @@ module fem_constants_mod
   public :: get_directional_im3_div
   public :: get_normalisation
   public :: get_rmultiplicity
+  public :: get_detj_at_w3_r_def
   public :: get_detj_at_w2
   public :: get_detj_at_w2_above
   public :: get_detj_at_w2_below
@@ -217,6 +224,7 @@ module fem_constants_mod
   public :: get_directional_im3_div_r_tran
   public :: get_mass_matrix_r_tran
   public :: get_inverse_w3_mass_matrix_r_tran
+  public :: get_detj_at_w3_r_tran
 
   private :: create_w1_fem_constants
   private :: create_directional_w2_mass_matrices
@@ -292,6 +300,7 @@ contains
     type(field_type),    pointer :: nodal_rmultiplicity_w2 => null()
     type(field_type),    pointer :: w2_normalisation => null()
     type(field_type),    pointer :: detj_at_w2 => null()
+    type(field_type),    pointer :: detj_at_w3_r_def => null()
     type(field_type),    pointer :: detj_at_w2_above => null()
     type(field_type),    pointer :: detj_at_w2_below => null()
 
@@ -316,6 +325,7 @@ contains
     type(r_tran_operator_type),   pointer :: im3_div_v_r_tran => null()
     type(r_tran_operator_type),   pointer :: mm_w3_r_tran => null()
     type(r_tran_operator_type),   pointer :: mm_w3_inv_r_tran => null()
+    type(r_tran_field_type),      pointer :: detj_at_w3_r_tran => null()
 
     ! Temporary operators for computing other operators
     type(operator_type) :: coriolis
@@ -343,6 +353,7 @@ contains
 
     type(mesh_type), pointer :: mesh => null()
     real(r_second) :: delta_t
+    type(field_type), pointer :: extended_chi(:) => null()
 
     logical(kind=l_def), parameter :: extend_mesh = .false.
     logical(kind=l_def) :: any_scheme_slice
@@ -392,6 +403,8 @@ contains
     call detj_at_w2_above_inventory%initialise(name="detj_at_w2_above", table_len=num_meshes)
     call detj_at_w2_below_inventory%initialise(name="detj_at_w2_below", table_len=num_meshes)
     call detj_at_w3_r_solver_inventory%initialise(name="detj_at_w3_r_solver", table_len=num_meshes)
+    call detj_at_w3_r_tran_inventory%initialise(name="detj_at_w3_r_tran", table_len=num_meshes)
+    call detj_at_w3_r_def_inventory%initialise(name="detj_at_w3_r_def", table_len=num_meshes)
     call im3_div_r_tran_inventory%initialise(name="im3_div_r_tran", table_len=num_meshes)
     call im3_div_h_r_tran_inventory%initialise(name="im3_div_h_r_tran", table_len=num_meshes)
     call im3_div_v_r_tran_inventory%initialise(name="im3_div_v_r_tran", table_len=num_meshes)
@@ -574,10 +587,24 @@ contains
         call invoke_operator_setval_x_rtran( im3_div_r_tran, im3_div )
         call invoke_operator_setval_x_rtran( im3_div_h_r_tran, im3_div_h )
         call invoke_operator_setval_x_rtran( im3_div_v_r_tran, im3_div_v )
+
+        call detj_at_w3_r_def_inventory%add_field(detj_at_w3_r_def, w3_fs, mesh)
+        call detj_at_w3_r_tran_inventory%add_field(detj_at_w3_r_tran, w3_fs, mesh)
+        call invoke( setval_c(detj_at_w3_r_def, 0.0_r_def),           &
+                     mm_diagonal_kernel_type(detj_at_w3_r_def, mm_w3) )
+        if (extended_mesh) then
+          extended_chi => get_extended_coordinates(mesh%get_id())
+          call invoke_extended_detj_at_w3_kernel_type(detj_at_w3_r_tran, &
+                                                      extended_chi,      &
+                                                      panel_id_list(i))
+        else
+          call invoke_copy_to_rtran(detj_at_w3_r_tran, detj_at_w3_r_def)
+        end if
       end if
 
       nullify(im3_div, im3_div_r_tran, im3_div_h_r_tran, im3_div_v_r_tran, &
-              div, div_h, mm_w3_inv_r_tran, mm_w3_inv)
+              div, div_h, mm_w3_inv_r_tran, mm_w3_inv, detj_at_w3_r_tran,  &
+              extended_chi, detj_at_w3_r_def)
 
       !======================== Inverse W2b mass matrix =======================!
 
@@ -1576,6 +1603,21 @@ contains
   !> @brief Returns the Det(J) values at W3 dof locations
   !> @param[in] mesh_id The ID of the mesh to get the object for
   !> @return The Det(J) field
+  function get_detj_at_w3_r_def(mesh_id) result(rdef_detj)
+    implicit none
+    integer(kind=i_def), intent(in)    :: mesh_id
+    type(mesh_type),           pointer :: mesh => null()
+    type(field_type),          pointer :: rdef_detj
+
+    mesh => mesh_collection%get_mesh(mesh_id)
+    call detj_at_w3_r_def_inventory%get_field(mesh, rdef_detj)
+    nullify(mesh)
+
+  end function get_detj_at_w3_r_def
+
+  !> @brief Returns the Det(J) values at W3 dof locations
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The Det(J) field
   function get_detj_at_w3_r_solver(mesh_id) result(rsol_detj)
     implicit none
     integer(kind=i_def), intent(in)    :: mesh_id
@@ -1587,6 +1629,21 @@ contains
     nullify(mesh)
 
   end function get_detj_at_w3_r_solver
+
+  !> @brief Returns the Det(J) values at W3 dof locations
+  !> @param[in] mesh_id The ID of the mesh to get the object for
+  !> @return The Det(J) field
+  function get_detj_at_w3_r_tran(mesh_id) result(rtran_detj)
+    implicit none
+    integer(kind=i_def), intent(in)    :: mesh_id
+    type(mesh_type),           pointer :: mesh => null()
+    type(r_tran_field_type),   pointer :: rtran_detj
+
+    mesh => mesh_collection%get_mesh(mesh_id)
+    call detj_at_w3_r_tran_inventory%get_field(mesh, rtran_detj)
+    nullify(mesh)
+
+  end function get_detj_at_w3_r_tran
 
   !> @brief Returns the Det(J) values at W2 dof locations
   !> @param[in] mesh_id The ID of the mesh to get the object for
@@ -1765,6 +1822,9 @@ contains
     call im3_div_r_tran_inventory%clear()
     call im3_div_v_r_tran_inventory%clear()
     call im3_div_h_r_tran_inventory%clear()
+    call detj_at_w3_r_solver_inventory%clear()
+    call detj_at_w3_r_def_inventory%clear()
+    call detj_at_w3_r_tran_inventory%clear()
 
     ! Quadrature
     call qr%quadrature_final()

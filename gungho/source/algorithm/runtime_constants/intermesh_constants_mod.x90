@@ -61,8 +61,6 @@ module intermesh_constants_mod
 
   ! Constants for changing extrusion
   type(inventory_by_mesh_type) :: proj_mr_to_sh_rho_inventory
-  type(inventory_by_mesh_type) :: consist_w3_to_sh_w3_rdef_inventory
-  type(inventory_by_mesh_type) :: consist_w3_to_sh_w3_rtran_inventory
   ! Constants for changing horizontal mesh
   type(inventory_by_mesh_type) :: intermesh_wghts_w2_inventory
   type(inventory_by_mesh_type) :: intermesh_wghts_rdef_w3_inventory
@@ -73,8 +71,6 @@ module intermesh_constants_mod
   public :: create_intermesh_constants
   public :: final_intermesh_constants
   public :: get_proj_mr_to_sh_rho_rhs_op
-  public :: get_consist_w3_to_sh_w3_rdef
-  public :: get_consist_w3_to_sh_w3_rtran
   public :: get_intermesh_weights_w3_rdef
   public :: get_intermesh_weights_w3_rtran
   public :: get_intermesh_weights_w2
@@ -105,8 +101,6 @@ contains
     type(function_space_type),  pointer :: target_w3_fs => null()
     type(function_space_type),  pointer :: source_w2_fs => null()
     type(function_space_type),  pointer :: source_w3_fs => null()
-    type(operator_type),        pointer :: mm_w3 => null()
-    type(operator_type),        pointer :: mm_inv_sh_w3 => null()
     type(operator_type),        pointer :: mm_w3_full_fine => null()
     type(operator_type),        pointer :: mm_w3_full_coarse => null()
     type(field_type),           target  :: mm_w3_diag_fine_tmp
@@ -114,8 +108,6 @@ contains
     type(quadrature_xyoz_type), pointer :: qr => null()
     type(field_type)                    :: dummy_theta
     type(field_type)                    :: dummy_w2_field
-    type(field_type),           pointer :: consist_w3_to_sh_w3_rdef(:) => null()
-    type(r_tran_field_type),    pointer :: consist_w3_to_sh_w3_rtran(:) => null()
     type(field_type),           pointer :: proj_mr_to_sh_rho_rhs_op(:) => null()
     type(field_type),           pointer :: intermesh_weights_w2 => null()
     type(field_type),           pointer :: intermesh_weights_w3_rdef => null()
@@ -146,8 +138,6 @@ contains
     !======================== Initialise inventories ==========================!
 
     call proj_mr_to_sh_rho_inventory%initialise(name="proj_mr_to_sh_rho_rhs_op", table_len=max_num_shifted)
-    call consist_w3_to_sh_w3_rdef_inventory%initialise(name="consist_w3_to_sh_w3_rdef", table_len=max_num_shifted)
-    call consist_w3_to_sh_w3_rtran_inventory%initialise(name="consist_w3_to_sh_w3_rtran", table_len=max_num_shifted)
     call intermesh_wghts_w2_inventory%initialise(name="intermesh_weights_w2", table_len=max_num_mesh_maps)
     call intermesh_wghts_rdef_w3_inventory%initialise(name="intermesh_weights_w3_rdef", table_len=max_num_mesh_maps)
     call intermesh_wghts_rtran_w3_inventory%initialise(name="intermesh_weights_w3_rtran", table_len=max_num_mesh_maps)
@@ -169,27 +159,6 @@ contains
 
         prime_extrusion_mesh => mesh_collection%get_mesh(target_mesh, PRIME_EXTRUSION)
         w3_fs => function_space_collection%get_fs(prime_extrusion_mesh, 0, W3)
-
-        ! ============== Operator for mapping W3 to shifted W3 =============== !
-        call consist_w3_to_sh_w3_rtran_inventory%add_field_array(              &
-                      consist_w3_to_sh_w3_rtran, w3_fs, 2, prime_extrusion_mesh)
-
-        mm_w3 => get_mass_matrix(W3, prime_extrusion_mesh%get_id())
-        mm_inv_sh_w3 => get_inverse_W3_mass_matrix(target_mesh%get_id())
-
-        call consist_w3_to_sh_w3_rdef_inventory%add_field_array(               &
-                      consist_w3_to_sh_w3_rdef, w3_fs, 2, prime_extrusion_mesh)
-        call invoke( consist_w3_to_sh_w3_op_kernel_type(                  &
-                                                consist_w3_to_sh_w3_rdef, &
-                                                mm_inv_sh_w3,             &
-                                                mm_w3 ) )
-        do k = 1, 2
-          call invoke_copy_to_rtran(consist_w3_to_sh_w3_rtran(k), &
-                                    consist_w3_to_sh_w3_rdef(k))
-        end do
-
-        nullify( mm_w3, mm_inv_sh_w3, consist_w3_to_sh_w3_rtran, &
-                 consist_w3_to_sh_w3_rdef )
 
         if ( any_wt_eqn_conservative ) then
 
@@ -294,8 +263,8 @@ contains
                                         intermesh_weights_w3_rdef)
 
               nullify( source_w2_fs, target_w2_fs, source_w3_fs, target_w3_fs, &
-                      mm_w3_fine, mm_w3_coarse, intermesh_weights_w2,         &
-                      intermesh_weights_w3_rdef, intermesh_weights_w3_rtran )
+                       mm_w3_fine, mm_w3_coarse, intermesh_weights_w2,         &
+                       intermesh_weights_w3_rdef, intermesh_weights_w3_rtran )
             end if
           end if
           nullify( source_mesh )
@@ -321,28 +290,6 @@ contains
     call proj_mr_to_sh_rho_inventory%get_field_array(prime_extrusion_mesh, ptr)
 
   end function get_proj_mr_to_sh_rho_rhs_op
-
-  !> @brief Returns a pointer to the r_def W3 to shifted W3 consistent operator
-  !> @param[in] prime_extrusion_mesh  The prime extrusion mesh for the transform
-  !> @return The r_def operator for transforming from W3 to shifted W3
-  function get_consist_w3_to_sh_w3_rdef(prime_extrusion_mesh) result(ptr)
-    implicit none
-    type(mesh_type),  intent(in) :: prime_extrusion_mesh
-    type(field_type), pointer    :: ptr(:)
-    call consist_w3_to_sh_w3_rdef_inventory%get_field_array(prime_extrusion_mesh, ptr)
-
-  end function get_consist_w3_to_sh_w3_rdef
-
-  !> @brief Returns a pointer to the r_tran W3 to shifted W3 consistent operator
-  !> @param[in] prime_extrusion_mesh  The prime extrusion mesh for the transform
-  !> @return The r_tran operator for transforming from W3 to shifted W3
-  function get_consist_w3_to_sh_w3_rtran(prime_extrusion_mesh) result(ptr_r_tran)
-    implicit none
-    type(mesh_type),         intent(in) :: prime_extrusion_mesh
-    type(r_tran_field_type), pointer    :: ptr_r_tran(:)
-    call consist_w3_to_sh_w3_rtran_inventory%get_field_array(prime_extrusion_mesh, ptr_r_tran)
-
-  end function get_consist_w3_to_sh_w3_rtran
 
   !> @brief Returns a pointer to the weights for W2 prolongation
   !> @param[in] fine_mesh    The fine mesh for the transform
@@ -390,8 +337,6 @@ contains
     implicit none
 
     call proj_mr_to_sh_rho_inventory%clear()
-    call consist_w3_to_sh_w3_rdef_inventory%clear()
-    call consist_w3_to_sh_w3_rtran_inventory%clear()
     call intermesh_wghts_w2_inventory%clear()
     call intermesh_wghts_rdef_w3_inventory%clear()
     call intermesh_wghts_rtran_w3_inventory%clear()

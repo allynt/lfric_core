@@ -72,7 +72,7 @@ contains
     implicit none
 
     ! Arguments
-    type(r_tran_field_type),         intent(inout) :: field_np1
+    type(r_tran_field_type), target, intent(inout) :: field_np1
     type(r_tran_field_type), target, intent(in)    :: field_n
     integer(kind=i_def),             intent(in)    :: direction
     real(kind=r_tran),               intent(in)    :: step_dt
@@ -86,14 +86,14 @@ contains
     type(mesh_type),              pointer :: shifted_mesh => null()
     type(transport_runtime_type), pointer :: transport_runtime => null()
 
-    ! Use pointers inside of this algorithm for field_n and increment
+    ! Use pointers inside of this algorithm for field_n and field_np1
     ! which saves on a field copy
     type(r_tran_field_type),   pointer :: field_n_ptr => null()
-    type(r_tran_field_type),   pointer :: increment_ptr => null()
+    type(r_tran_field_type),   pointer :: field_np1_ptr => null()
     type(r_tran_field_type),   target  :: field_n_w3_shifted
-    type(r_tran_field_type),   target  :: increment_wtheta
+    type(r_tran_field_type),   target  :: field_np1_w3_shifted
     type(r_tran_field_type)            :: mass_flux
-    type(r_tran_field_type),   target  :: increment
+    type(r_tran_field_type)            :: increment
 
     call log_event('Conservative FFSL transport', LOG_LEVEL_INFO)
 
@@ -114,11 +114,14 @@ contains
       shifted_mesh => mesh_collection%get_mesh(mesh, SHIFTED)
       w3_shifted_fs => function_space_collection%get_fs(shifted_mesh, 0_i_def, W3)
       call field_n_w3_shifted%initialise( vector_space = w3_shifted_fs )
+      call field_np1_w3_shifted%initialise( vector_space = w3_shifted_fs )
       call invoke( inject_wt_to_sh_w3_kernel_type(field_n_w3_shifted, field_n) )
       field_n_ptr => field_n_w3_shifted
+      field_np1_ptr => field_np1_w3_shifted
     else
       ! Stay on current mesh
       field_n_ptr => field_n
+      field_np1_ptr => field_np1
     end if
 
     ! ======================================================================== !
@@ -127,17 +130,18 @@ contains
 
     select case (direction)
     case (direction_v)
-      call ffsl_vert_transport_alg(mass_flux, increment, field_n_ptr,           &
-                                   step_dt, transport_metadata, vertical_order, &
-                                   compute_adv_inc=compute_adv_field)
+      call ffsl_vert_transport_alg(mass_flux, increment, field_np1_ptr,        &
+                                   field_n_ptr, step_dt, transport_metadata,   &
+                                   vertical_order, compute_adv_inc=.false.,    &
+                                   compute_field_np1=compute_adv_field)
 
     case (direction_h)
-      call ffsl_hori_splitting_alg(mass_flux, increment, field_n_ptr, &
-                                   step_dt, transport_metadata,       &
-                                   compute_adv_inc=compute_adv_field)
+      call ffsl_hori_splitting_alg(mass_flux, field_np1_ptr, field_n_ptr,      &
+                                   step_dt, transport_metadata,                &
+                                   compute_field_np1=compute_adv_field)
 
     case (direction_3d)
-      call ffsl_3d_splitting_alg(mass_flux, increment, field_n_ptr, &
+      call ffsl_3d_splitting_alg(mass_flux, field_np1_ptr, field_n_ptr,        &
                                  step_dt, transport_metadata)
 
     case default
@@ -146,25 +150,12 @@ contains
     end select
 
     ! ======================================================================== !
-    ! Convert increment back to Wtheta, if required
+    ! Convert field_np1 back to Wtheta, if required
     ! ======================================================================== !
 
-    if (function_space == Wtheta) then
-      ! If Wtheta variable, move increment back to Wtheta
-      call increment_wtheta%initialise( field_n%get_function_space() )
-      call invoke( inject_sh_w3_to_wt_kernel_type(increment_wtheta, increment) )
-      increment_ptr => increment_wtheta
-    else
-      ! Stay on current mesh
-      increment_ptr => increment
-    end if
-
-    ! ======================================================================== !
-    ! Use increment to update field_np1, if necessary
-    ! ======================================================================== !
-
-    if ( compute_adv_field ) then
-      call invoke( X_minus_bY(field_np1, field_n, step_dt, increment_ptr) )
+    if (function_space == Wtheta .and. compute_adv_field) then
+      ! If Wtheta variable, move field_np1 back to Wtheta
+      call invoke( inject_sh_w3_to_wt_kernel_type(field_np1, field_np1_w3_shifted) )
     end if
 
     ! ======================================================================== !
@@ -193,8 +184,8 @@ contains
 
     end select
 
-    nullify(mesh, shifted_mesh, field_n_ptr, increment_ptr, w3_shifted_fs, &
-            transport_runtime)
+    nullify(mesh, shifted_mesh, field_np1_ptr, field_n_ptr, &
+            w3_shifted_fs, transport_runtime)
 
   end subroutine ffsl_control
 
@@ -273,8 +264,8 @@ contains
 
     ! Get dry density from transport runtime, for this split step
     split_step = transport_runtime%get_tracer_step_ctr()
-    rho_d_n => transport_runtime%get_rho_d_n(transport_mesh_id, split_step)
-    rho_d_np1 => transport_runtime%get_rho_d_np1(transport_mesh_id, split_step)
+    rho_d_n => transport_runtime%get_rho_d(transport_mesh_id, split_step)
+    rho_d_np1 => transport_runtime%get_rho_d(transport_mesh_id, split_step+1)
 
     ! ------------------------------------------------------------------------ !
     ! Turn field into density (possibly on shifted mesh)

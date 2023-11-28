@@ -73,7 +73,10 @@ contains
   !> @param[in,out] mass_flux          Mass flux used to transport the field.
   !> @param[in,out] increment          Increment for the field change over the
   !!                                   time step (per unit time). Only used when
-  !!                                   specified throught the optional argument
+  !!                                   specified through the optional argument
+  !> @param[in,out] field_np1          The updated advected field from the time
+  !!                                   step. Only used when specified through
+  !!                                   the optional logical argument.
   !> @param[in]     field_n            Field at the start of the transport step
   !> @param[in]     step_dt            The dt for this time step
   !> @param[in]     transport_metadata Contains the configuration options for
@@ -82,20 +85,25 @@ contains
   !!                                   the underlying vertical flux algorithm
   !> @param[in]     compute_adv_inc    Optional argument as to whether advective
   !!                                   increment should be computed
-  subroutine ffsl_vert_transport_alg( mass_flux, increment, field_n, &
-                                      step_dt, transport_metadata,   &
-                                      order, compute_adv_inc )
+  !> @param[in]     compute_field_np1  Optional argument as to whether advected
+  !!                                   field should be computed
+  subroutine ffsl_vert_transport_alg( mass_flux, increment,               &
+                                      field_np1, field_n,                 &
+                                      step_dt, transport_metadata, order, &
+                                      compute_adv_inc, compute_field_np1 )
 
     implicit none
 
     ! Arguments ----------------------------------------------------------------
     type(r_tran_field_type),       intent(inout) :: mass_flux
     type(r_tran_field_type),       intent(inout) :: increment
+    type(r_tran_field_type),       intent(inout) :: field_np1
     type(r_tran_field_type),       intent(in)    :: field_n
     real(kind=r_tran),             intent(in)    :: step_dt
     type(transport_metadata_type), intent(in)    :: transport_metadata
     integer(kind=i_def),           intent(in)    :: order
     logical(kind=l_def), optional, intent(in)    :: compute_adv_inc
+    logical(kind=l_def), optional, intent(in)    :: compute_field_np1
 
     ! Internal variables -------------------------------------------------------
     ! Pointers to existing objects
@@ -109,6 +117,7 @@ contains
 
     ! Transport options
     logical(kind=l_def) :: to_compute_adv_inc
+    logical(kind=l_def) :: to_compute_field_np1
 
     ! Subroutine name for timer
     character(*), parameter :: routine_name = 'ffsl_vert_transport_alg'
@@ -129,12 +138,18 @@ contains
       to_compute_adv_inc = .true.
     end if
 
+    if (present(compute_field_np1)) then
+      to_compute_field_np1 = compute_field_np1
+    else
+      to_compute_field_np1 = .true.
+    end if
+
     ! Vertical FFSL ------------------------------------------------------------
     call ffsl_1d_vert_flux_alg( mass_flux, field_n, step_dt, &
                                 transport_metadata, order )
 
     ! Compute advected field, if required --------------------------------------
-    if (to_compute_adv_inc) then
+    if (to_compute_adv_inc .or. to_compute_field_np1) then
       ! Get pre-computed objects
       mesh_id = field_n%get_mesh_id()
       mesh => field_n%get_mesh()
@@ -142,12 +157,12 @@ contains
       field_fs => field_n%get_function_space()
       m3_inv => get_inverse_w3_mass_matrix(mesh_id)
 
+      one_over_dt = 1.0_r_tran / step_dt
+
       call increment%initialise( vector_space = field_fs )
       call conservative_field_np1%initialise( vector_space = field_fs )
       call inc_part%initialise( vector_space = field_fs )
       call divide_part%initialise( vector_space = field_fs )
-
-      one_over_dt = 1.0_r_tran / step_dt
 
       ! Get unity transport
       if ( transport_metadata%get_splitting() ==  splitting_strang_vhv ) then
@@ -156,7 +171,8 @@ contains
         adv_one => transport_runtime%get_adv_unity_z(mesh_id)
       end if
 
-      call invoke( fv_divergence_z_kernel_type(increment, mass_flux, m3_inv),  &
+      call invoke( fv_divergence_z_kernel_type(increment, mass_flux,           &
+                                                m3_inv),                       &
                    X_minus_bY(conservative_field_np1, field_n,                 &
                               step_dt, increment),                             &
 
@@ -165,9 +181,12 @@ contains
       ! adv_one   = 1 - dt * F(1)
       ! inc_part  = q - conservative_field_np1 / adv_one
       ! increment = inc_part / dt
-                   X_divideby_Y(divide_part, conservative_field_np1, adv_one), &
-                   X_minus_Y(inc_part, field_n, divide_part),                  &
-                   a_times_X(increment, one_over_dt, inc_part) )
+                   X_divideby_Y(divide_part, conservative_field_np1,           &
+                                adv_one),                                      &
+                   X_minus_Y(inc_part, field_n, divide_part) )
+
+      if (to_compute_adv_inc) call invoke( a_times_X(increment, one_over_dt, inc_part) )
+      if (to_compute_field_np1) call invoke( X_minus_Y(field_np1, field_n, inc_part) )
     end if
 
     nullify( mesh, transport_runtime, field_fs, adv_one, m3_inv )

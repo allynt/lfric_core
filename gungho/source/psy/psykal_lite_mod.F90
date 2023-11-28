@@ -2240,5 +2240,118 @@ stencil_dofmap(:,:,cell), ndf_adspc1_target_field, &
 
 !==============================================================================
 
+  ! Psykal-lite implementation required because we want to loop up to the edge
+  ! of the halo, and mark this field as clean so that no halo swaps are performed
+  SUBROUTINE invoke_extended_detj_at_w3_kernel_type(detj_at_w3_r_tran, chi_list, panel_id_list)
+    USE calc_detj_at_w3_kernel_mod, ONLY: calc_detj_at_w3_code
+    USE function_space_mod, ONLY: BASIS, DIFF_BASIS
+    USE mesh_mod, ONLY: mesh_type
+    TYPE(r_tran_field_type), intent(in) :: detj_at_w3_r_tran
+    TYPE(field_type), intent(in) :: chi_list(3), panel_id_list
+    INTEGER(KIND=i_def) cell
+    INTEGER(KIND=i_def) loop0_start, loop0_stop
+    INTEGER(KIND=i_def) df_aspc1_chi_list, df_nodal
+    REAL(KIND=r_def), allocatable :: basis_aspc1_chi_list_on_w3(:,:,:), diff_basis_aspc1_chi_list_on_w3(:,:,:)
+    INTEGER(KIND=i_def) dim_aspc1_chi_list, diff_dim_aspc1_chi_list
+    REAL(KIND=r_def), pointer :: nodes_w3(:,:) => null()
+    INTEGER(KIND=i_def) nlayers
+    TYPE(field_proxy_type) chi_list_proxy(3), panel_id_list_proxy
+    TYPE(r_tran_field_proxy_type) detj_at_w3_r_tran_proxy
+    INTEGER(KIND=i_def), pointer :: map_adspc3_panel_id_list(:,:) => null(), map_aspc1_chi_list(:,:) => null(), &
+&map_w3(:,:) => null()
+    INTEGER(KIND=i_def) ndf_w3, undf_w3, ndf_aspc1_chi_list, undf_aspc1_chi_list, ndf_adspc3_panel_id_list, &
+&undf_adspc3_panel_id_list
+    INTEGER(KIND=i_def) max_halo_depth_mesh
+    TYPE(mesh_type), pointer :: mesh => null()
+    !
+    ! Initialise field and/or operator proxies
+    !
+    detj_at_w3_r_tran_proxy = detj_at_w3_r_tran%get_proxy()
+    chi_list_proxy(1) = chi_list(1)%get_proxy()
+    chi_list_proxy(2) = chi_list(2)%get_proxy()
+    chi_list_proxy(3) = chi_list(3)%get_proxy()
+    panel_id_list_proxy = panel_id_list%get_proxy()
+    !
+    ! Initialise number of layers
+    !
+    nlayers = detj_at_w3_r_tran_proxy%vspace%get_nlayers()
+    !
+    ! Create a mesh object
+    !
+    mesh => detj_at_w3_r_tran_proxy%vspace%get_mesh()
+    max_halo_depth_mesh = mesh%get_halo_depth()
+    !
+    ! Look-up dofmaps for each function space
+    !
+    map_w3 => detj_at_w3_r_tran_proxy%vspace%get_whole_dofmap()
+    map_aspc1_chi_list => chi_list_proxy(1)%vspace%get_whole_dofmap()
+    map_adspc3_panel_id_list => panel_id_list_proxy%vspace%get_whole_dofmap()
+    !
+    ! Initialise number of DoFs for w3
+    !
+    ndf_w3 = detj_at_w3_r_tran_proxy%vspace%get_ndf()
+    undf_w3 = detj_at_w3_r_tran_proxy%vspace%get_undf()
+    !
+    ! Initialise number of DoFs for aspc1_chi_list
+    !
+    ndf_aspc1_chi_list = chi_list_proxy(1)%vspace%get_ndf()
+    undf_aspc1_chi_list = chi_list_proxy(1)%vspace%get_undf()
+    !
+    ! Initialise number of DoFs for adspc3_panel_id_list
+    !
+    ndf_adspc3_panel_id_list = panel_id_list_proxy%vspace%get_ndf()
+    undf_adspc3_panel_id_list = panel_id_list_proxy%vspace%get_undf()
+    !
+    ! Initialise evaluator-related quantities for the target function spaces
+    !
+    nodes_w3 => detj_at_w3_r_tran_proxy%vspace%get_nodes()
+    !
+    ! Allocate basis/diff-basis arrays
+    !
+    dim_aspc1_chi_list = chi_list_proxy(1)%vspace%get_dim_space()
+    diff_dim_aspc1_chi_list = chi_list_proxy(1)%vspace%get_dim_space_diff()
+    ALLOCATE (basis_aspc1_chi_list_on_w3(dim_aspc1_chi_list, ndf_aspc1_chi_list, ndf_w3))
+    ALLOCATE (diff_basis_aspc1_chi_list_on_w3(diff_dim_aspc1_chi_list, ndf_aspc1_chi_list, ndf_w3))
+    !
+    ! Compute basis/diff-basis arrays
+    !
+    DO df_nodal=1,ndf_w3
+      DO df_aspc1_chi_list=1,ndf_aspc1_chi_list
+        basis_aspc1_chi_list_on_w3(:,df_aspc1_chi_list,df_nodal) = &
+&chi_list_proxy(1)%vspace%call_function(BASIS,df_aspc1_chi_list,nodes_w3(:,df_nodal))
+      END DO
+    END DO
+    DO df_nodal=1,ndf_w3
+      DO df_aspc1_chi_list=1,ndf_aspc1_chi_list
+        diff_basis_aspc1_chi_list_on_w3(:,df_aspc1_chi_list,df_nodal) = &
+&chi_list_proxy(1)%vspace%call_function(DIFF_BASIS,df_aspc1_chi_list,nodes_w3(:,df_nodal))
+      END DO
+    END DO
+    !
+    ! Set-up all of the loop bounds
+    !
+    loop0_start = 1
+    loop0_stop = mesh%get_last_halo_cell(mesh%get_halo_depth())
+    !
+    ! Call kernels and communication routines
+    !
+    DO cell=loop0_start,loop0_stop
+      !
+      CALL calc_detj_at_w3_code(nlayers, detj_at_w3_r_tran_proxy%data, chi_list_proxy(1)%data, chi_list_proxy(2)%data, &
+&chi_list_proxy(3)%data, panel_id_list_proxy%data, ndf_w3, undf_w3, map_w3(:,cell), ndf_aspc1_chi_list, undf_aspc1_chi_list, &
+&map_aspc1_chi_list(:,cell), basis_aspc1_chi_list_on_w3, diff_basis_aspc1_chi_list_on_w3, ndf_adspc3_panel_id_list, &
+&undf_adspc3_panel_id_list, map_adspc3_panel_id_list(:,cell))
+    END DO
+    !
+    ! Set halos dirty/clean for fields modified in the above loop
+    !
+    call detj_at_w3_r_tran_proxy%set_clean(mesh%get_halo_depth())
+    !
+    !
+    ! Deallocate basis arrays
+    !
+    DEALLOCATE (basis_aspc1_chi_list_on_w3, diff_basis_aspc1_chi_list_on_w3)
+    !
+  END SUBROUTINE invoke_extended_detj_at_w3_kernel_type
 
 end module psykal_lite_mod

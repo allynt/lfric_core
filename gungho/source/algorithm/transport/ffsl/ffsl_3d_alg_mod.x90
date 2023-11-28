@@ -48,7 +48,7 @@ contains
   !> @brief Algorithm for the full 3D FFSL transport scheme.
   !> @details Solves the 3D transport equation, in advective or conservative
   !!          form, including controlling the splitting between different
-  !!          dimensions. Returns an updated field for advective form and a mass
+  !!          dimensions. Returns an updated field for advective form or a mass
   !!          flux for conservative form (these are then passed to the generic
   !!          end_of_transport routines).
   !!          One-dimensional flux differences are denoted F, G, H (while
@@ -56,21 +56,21 @@ contains
   !> @param[in,out] mass_flux          Mass flux used to transport the field.
   !!                                   This is only used when the equation is in
   !!                                   conservative form.
-  !> @param[in,out] increment          Increment for the field change over the
-  !!                                   time step (per unit time). Only used when
-  !!                                   the equation is in advective form.
+  !> @param[in,out] field_np1          The updated advected field from the time
+  !!                                   step. Only used when the equation is in
+  !!                                   advective form.
   !> @param[in]     field_n            Field at the start of the transport step
   !> @param[in]     step_dt            The dt for this time step
   !> @param[in]     transport_metadata Contains the configuration options for
   !!                                   transporting this field
-  subroutine ffsl_3d_splitting_alg( mass_flux, increment, field_n, &
+  subroutine ffsl_3d_splitting_alg( mass_flux, field_np1, field_n, &
                                     step_dt, transport_metadata )
 
     implicit none
 
     ! Arguments ----------------------------------------------------------------
     type(r_tran_field_type),       intent(inout) :: mass_flux
-    type(r_tran_field_type),       intent(inout) :: increment
+    type(r_tran_field_type),       intent(inout) :: field_np1
     type(r_tran_field_type),       intent(in)    :: field_n
     real(kind=r_tran),             intent(in)    :: step_dt
     type(transport_metadata_type), intent(in)    :: transport_metadata
@@ -98,6 +98,7 @@ contains
     type(r_tran_field_type) :: field_xy
 
     ! Field increments and fluxes in given direction
+    type(r_tran_field_type) :: increment
     type(r_tran_field_type) :: increment_x
     type(r_tran_field_type) :: increment_y
     type(r_tran_field_type) :: increment_z
@@ -114,6 +115,7 @@ contains
     type(r_tran_field_type) :: flux_y
     type(r_tran_field_type) :: flux_z
     type(r_tran_field_type) :: mass_flux_h
+    type(r_tran_field_type) :: dummy_np1
 
     ! Useful constants
     real(kind=r_tran)   :: half_dt
@@ -186,9 +188,10 @@ contains
     ! 1st advective step -------------------------------------------------------
     call ffsl_hori_first_alg( half_increment_x, half_increment_y, field_n,     &
                               step_dt, transport_metadata )
-    call ffsl_vert_transport_alg( flux_z, half_increment_z, field_n,           &
-                                  step_dt, transport_metadata, inner_order,    &
-                                  compute_adv_inc=.true. )
+    call ffsl_vert_transport_alg( flux_z, half_increment_z, dummy_np1,         &
+                                  field_n, step_dt, transport_metadata,        &
+                                  inner_order, compute_adv_inc=.true.,         &
+                                  compute_field_np1=.false. )
 
     call invoke( X_minus_bY(field_x, field_n, third_dt, half_increment_x),     &
                  X_minus_bY(field_y, field_n, third_dt, half_increment_y),     &
@@ -197,18 +200,20 @@ contains
     ! 2nd advective step -------------------------------------------------------
     call ffsl_hori_final_alg( flux_x, flux_y,                                  &
                               half_increment_xy, half_increment_yx,            &
-                              field_x, field_y, step_dt,                       &
+                              dummy_np1, field_n, field_x, field_y, step_dt,   &
                               transport_metadata, inner_order,                 &
-                              compute_adv_inc=.true.)
+                              compute_adv_inc=.true., compute_field_np1=.false.)
     call ffsl_hori_first_alg( half_increment_xz, half_increment_yz, field_z,   &
                               step_dt, transport_metadata )
 
-    call ffsl_vert_transport_alg( flux_z, half_increment_zx, field_x,          &
-                                  step_dt, transport_metadata, inner_order,    &
-                                  compute_adv_inc=.true. )
-    call ffsl_vert_transport_alg( flux_z, half_increment_zy, field_y,          &
-                                  step_dt, transport_metadata, inner_order,    &
-                                  compute_adv_inc=.true. )
+    call ffsl_vert_transport_alg( flux_z, half_increment_zx, dummy_np1,        &
+                                  field_x, step_dt, transport_metadata,        &
+                                  inner_order, compute_adv_inc=.true.,         &
+                                  compute_field_np1=.false. )
+    call ffsl_vert_transport_alg( flux_z, half_increment_zy, dummy_np1,        &
+                                  field_y, step_dt, transport_metadata,        &
+                                  inner_order, compute_adv_inc=.true.,         &
+                                  compute_field_np1=.false. )
 
     call invoke( X_minus_bY(field_f, field_n, half_dt, half_increment_yz),     &
                  X_minus_bY(field_g, field_n, half_dt, half_increment_xz),     &
@@ -221,11 +226,14 @@ contains
     compute_adv_inc = (transport_metadata%get_equation_form() == equation_form_advective)
 
     call ffsl_hori_final_alg( flux_x, flux_y, increment_x, increment_y,        &
-                              field_g, field_f, step_dt, transport_metadata,   &
-                              outer_order, compute_adv_inc=compute_adv_inc )
-    call ffsl_vert_transport_alg( flux_z, increment_z, field_h,                &
+                              dummy_np1, field_n, field_g, field_f, step_dt,   &
+                              transport_metadata, outer_order,                 &
+                              compute_adv_inc=compute_adv_inc,                 &
+                              compute_field_np1=.false. )
+    call ffsl_vert_transport_alg( flux_z, increment_z, dummy_np1, field_h,     &
                                   step_dt, transport_metadata, vertical_order, &
-                                  compute_adv_inc=compute_adv_inc )
+                                  compute_adv_inc=compute_adv_inc,             &
+                                  compute_field_np1=.false. )
 
     ! Bring together final fluxes or increments --------------------------------
     select case ( transport_metadata%get_equation_form() )
@@ -238,7 +246,8 @@ contains
     case ( equation_form_advective )
       call increment%initialise( vector_space = field_fs )
       call invoke( X_plus_Y(increment, increment_x, increment_y), &
-                   inc_X_plus_Y(increment, increment_z) )
+                   inc_X_plus_Y(increment, increment_z),                       &
+                   X_minus_bY(field_np1, field_n, step_dt, increment) )
 
     case default
       call log_event('FFSL_3D: equation not implemented', LOG_LEVEL_ERROR)

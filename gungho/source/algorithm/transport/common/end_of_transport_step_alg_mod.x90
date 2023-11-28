@@ -40,7 +40,10 @@ module end_of_transport_step_alg_mod
   use transport_config_mod,           only: dry_field_name,  &
                                             min_val_abs_tol, &
                                             min_val_max_iterations
-  use transport_enumerated_types_mod, only: direction_3d, splitting_none
+  use transport_enumerated_types_mod, only: direction_3d, &
+                                            direction_h,  &
+                                            direction_v,  &
+                                            splitting_none
   use transport_metadata_mod,         only: transport_metadata_type
   use transport_runtime_alg_mod,      only: transport_runtime_type
   use transport_runtime_collection_mod,   &
@@ -54,7 +57,6 @@ module end_of_transport_step_alg_mod
   public  :: end_of_conservative_step_alg
   public  :: end_of_consistent_step_alg
   public  :: build_up_flux
-  private :: adjust_dry_fluxes
 
 contains
 
@@ -132,14 +134,14 @@ contains
     type(transport_metadata_type), intent(in)    :: transport_metadata
 
     ! Internal variables
-    integer(kind=i_def)                   :: mesh_id
+    integer(kind=i_def)                   :: mesh_id, step, fs_idx
     integer(kind=i_def)                   :: limit_iteration
     integer(kind=i_def)                   :: num_limiting_steps
     type(mesh_type),              pointer :: mesh => null()
     type(r_tran_field_type)               :: increment
-    type(r_tran_field_type)               :: dry_flux_before_adjustment
-    type(r_tran_field_type)               :: flux_last_step
     type(r_tran_field_type)               :: sum_flux
+    type(r_tran_field_type)               :: conservative_field_np1
+    type(r_tran_field_type),      pointer :: conservative_field_n => null()
     type(r_tran_field_type),      pointer :: field_start => null()
     type(r_tran_operator_type),   pointer :: div => null()
     type(operator_type),          pointer :: div_r_def => null()
@@ -153,6 +155,7 @@ contains
     real(kind=r_tran)                     :: adv_dt
     real(kind=r_tran)                     :: acceptable_min
     real(kind=r_tran)                     :: field_min, field_max
+    integer(kind=i_def)                   :: direction
 
     ! Extract transport runtime
     mesh => field_np1%get_mesh()
@@ -165,7 +168,7 @@ contains
     final_split_step = ( transport_runtime%get_tracer_step_ctr() &
                          == transport_runtime%get_num_dry_steps() )
 
-    call transport_runtime%set_flux(flux)
+    if (.not. final_split_step) call transport_runtime%set_flux(flux)
 
     ! ------------------------------------------------------------------------ !
     ! Compute increment from all split steps
@@ -173,7 +176,7 @@ contains
 
     if ( final_split_step ) then
 
-      field_start => transport_runtime%get_field_n(mesh_id)
+      field_start => transport_runtime%get_field_n()
       div => get_directional_im3_div_r_tran(mesh_id, direction_3d)
       ! TODO #3706: the flux limiter should use r_tran precision
       div_r_def => get_directional_im3_div(mesh_id, direction_3d)
@@ -183,17 +186,13 @@ contains
 
       ! Get final field at end of transport
       ! First sum the fluxes from all previous steps
-      call build_up_flux(sum_flux, transport_runtime)
+      call build_up_flux(sum_flux, flux, transport_runtime)
 
       ! ---------------------------------------------------------------------- !
       ! Conservative clipping by limiting flux, if specified
       ! ---------------------------------------------------------------------- !
 
       if ( enforce_min_value ) then
-        if (is_dry_field) then
-          call sum_flux%copy_field_properties(dry_flux_before_adjustment)
-          call invoke( setval_X(dry_flux_before_adjustment, sum_flux) )
-        end if
 
         min_value = transport_metadata%get_min_value()
         acceptable_min = real(min_val_abs_tol, r_tran)
@@ -268,21 +267,55 @@ contains
     ! Store field in transport_runtime for conservative transport
     ! if this is the underlying dry field
     if ( is_dry_field ) then
-      ! Recompute the flux for this split step if it has been limited
-      if ( enforce_min_value .and. final_split_step ) then
-        call flux_last_step%initialise(flux%get_function_space())
-        call adjust_dry_fluxes(transport_runtime, flux_last_step, flux, &
-                               sum_flux, dry_flux_before_adjustment)
-        call transport_runtime%set_dry_fields(field_in, field_np1, flux_last_step)
-      else
-        call transport_runtime%set_dry_fields(field_in, field_np1, flux)
+      ! Determine direction of transport
+      fs_idx = flux%which_function_space()
+      select case (fs_idx)
+      case (W2H)
+        direction = direction_h
+      case (W2V)
+        direction = direction_v
+      case (W2)
+        direction = direction_3d
+      end select
+
+      step = transport_runtime%get_tracer_step_ctr()
+
+      ! Store rho_d from the start of the whole transport step
+      if (step == 1) then
+        call transport_runtime%set_rho_d(field_in, step)
       end if
+
+      ! Store rho_d from the end of this step
+      if ( final_split_step ) then
+        call transport_runtime%set_rho_d(field_np1, step + 1)
+
+      else
+        ! field_np1 is advective so need to compute the conservative update
+        div => get_directional_im3_div_r_tran(mesh_id, direction)
+        conservative_field_n => transport_runtime%get_rho_d(mesh_id, step)
+        call conservative_field_np1%initialise(field_in%get_function_space())
+        call increment%initialise(field_np1%get_function_space())
+
+        call invoke_dg_matrix_vector_rtran(increment, flux, div)
+        call invoke( X_minus_Y(conservative_field_np1, conservative_field_n, &
+                               increment) )
+
+        if ( limited_area .and. topology == topology_non_periodic ) then
+          call overwrite_blending_zone_rtran(conservative_field_np1, conservative_field_n, depth=transport_boundary_depth)
+        end if
+
+        call transport_runtime%set_rho_d(conservative_field_np1, step + 1)
+      end if
+
+      ! Store the dry flux
+      call transport_runtime%set_dry_flux(flux, step)
     end if
 
     ! Increment the step counter in the transport runtime
     call transport_runtime%inc_tracer_step_ctr()
 
-    nullify(mesh, div, div_r_def, transport_runtime, field_start)
+    nullify(mesh, div, div_r_def, transport_runtime, field_start, &
+            conservative_field_n)
 
   end subroutine end_of_conservative_step_alg
 
@@ -355,13 +388,17 @@ contains
     final_split_step = ( transport_runtime%get_tracer_step_ctr() &
                          == transport_runtime%get_num_dry_steps() )
 
-    call transport_runtime%set_flux(flux)
+    ! ------------------------------------------------------------------------ !
+    ! Store flux
+    ! ------------------------------------------------------------------------ !
 
-    ! ---------------------------------------------------------------------- !
+    if (.not. final_split_step) call transport_runtime%set_flux(flux)
+
+    ! ------------------------------------------------------------------------ !
     ! Compute increment from all split steps
-    ! ---------------------------------------------------------------------- !
+    ! ------------------------------------------------------------------------ !
 
-    mr_start => transport_runtime%get_field_n(prime_extrusion_mesh_id)
+    mr_start => transport_runtime%get_field_n()
 
     if ( final_split_step ) then
 
@@ -375,8 +412,8 @@ contains
       case ( W3 )
         w3_fs => function_space_collection%get_fs(prime_extrusion_mesh, 0, W3)
         w2_fs => function_space_collection%get_fs(prime_extrusion_mesh, 0, W2)
-        rho_d_start => transport_runtime%get_rho_d_n(prime_extrusion_mesh_id, 1_i_def)
-        rho_d_np1 => transport_runtime%get_rho_d_np1(prime_extrusion_mesh_id, last_step)
+        rho_d_start => transport_runtime%get_rho_d(prime_extrusion_mesh_id, 1)
+        rho_d_np1 => transport_runtime%get_rho_d(prime_extrusion_mesh_id, last_step+1)
         div => get_directional_im3_div_r_tran(prime_extrusion_mesh_id, direction_3d)
         ! TODO #3706: the flux limiter should use r_tran precision
         div_r_def => get_directional_im3_div(prime_extrusion_mesh_id, direction_3d)
@@ -392,8 +429,8 @@ contains
         shifted_mesh => mesh_collection%get_mesh(prime_extrusion_mesh, SHIFTED)
         sh_w3_fs => function_space_collection%get_fs(shifted_mesh, 0, W3)
         sh_w2_fs => function_space_collection%get_fs(shifted_mesh, 0, W2)
-        rho_d_start => transport_runtime%get_rho_d_n(shifted_mesh%get_id(), 1_i_def)
-        rho_d_np1 => transport_runtime%get_rho_d_np1(shifted_mesh%get_id(), last_step)
+        rho_d_start => transport_runtime%get_rho_d(shifted_mesh%get_id(), 1)
+        rho_d_np1 => transport_runtime%get_rho_d(shifted_mesh%get_id(), last_step+1)
         div => get_directional_im3_div_r_tran(shifted_mesh%get_id(), direction_3d)
         ! TODO #3706: the flux limiter should use r_tran precision
         div_r_def => get_directional_im3_div(shifted_mesh%get_id(), direction_3d)
@@ -414,7 +451,7 @@ contains
       ! Conservative clipping by limiting flux, if specified
       ! ---------------------------------------------------------------------- !
 
-      call build_up_flux(sum_flux, transport_runtime)
+      call build_up_flux(sum_flux, flux, transport_runtime)
 
       if ( enforce_min_value ) then
         min_value = transport_metadata%get_min_value()
@@ -518,16 +555,18 @@ contains
   !> @details Takes the mass fluxes saved in the transport runtime, and builds
   !!          up the fluxes from those for each transport step.
   !> @param[in,out] sum_flux           The 3D total flux to be computed
+  !> @param[in]     flux_last_step     The flux from the final transport step
   !> @param[in]     transport_runtime  The transport runtime object
-  subroutine build_up_flux(sum_flux, transport_runtime)
+  subroutine build_up_flux(sum_flux, flux_last_step, transport_runtime)
 
     use combine_w2_field_kernel_mod, only: combine_w2_field_kernel_type
 
     implicit none
 
     ! Arguments
-    type(r_tran_field_type),      intent(inout) :: sum_flux
-    type(transport_runtime_type), intent(in)    :: transport_runtime
+    type(r_tran_field_type),         intent(inout) :: sum_flux
+    type(r_tran_field_type), target, intent(in)    :: flux_last_step
+    type(transport_runtime_type),    intent(in)    :: transport_runtime
 
     ! Internal variables
     integer(kind=i_def)                :: mesh_id, step
@@ -560,7 +599,12 @@ contains
     is_flux_split = .false.
 
     do step = 1, transport_runtime%get_num_dry_steps()
-      old_flux => transport_runtime%get_flux(mesh_id, step)
+      if (step == transport_runtime%get_num_dry_steps()) then
+        old_flux => flux_last_step
+      else
+        old_flux => transport_runtime%get_flux(mesh_id, step)
+      end if
+
       select case ( old_flux%which_function_space() )
       case ( W2 )
         is_flux_3d = .true.
@@ -592,127 +636,5 @@ contains
     nullify(mesh, w2_fs, w2h_fs, w2v_fs, old_flux)
 
   end subroutine build_up_flux
-
-  !> @brief Adjusts the dry fluxes stored in the transport runtime.
-  !> @details The dry mass flux used to transport the dry density may have been
-  !!          limited to avoid generation of negative values. To ensure that
-  !!          mixing ratios are still transported consistently, the fluxes that
-  !!          are stored in the transport runtime object must be adjusted
-  !!          respectively to take this into account. This is not trivial, as
-  !!          the 3D flux has been limited but it may have been built from
-  !!          fluxes of horizontal or vertical directions.
-  !> @param[in,out] transport_runtime  The transport runtime object
-  !> @param[in,out] flux_last_step     The flux to be computed for the final
-  !!                                   (split) transport step
-  !> @param[in]     sum_flux           The total 3D flux for the transport of
-  !!                                   dry density for the whole transport step
-  !> @param[in]     dry_flux_before_adjustment  The total 3D flux, before it
-  !!                                   was limited
-
-  subroutine adjust_dry_fluxes(transport_runtime, new_flux_last_step, &
-                               old_flux_last_step, sum_flux,          &
-                               dry_flux_before_adjustment)
-
-    use split_w2_field_kernel_mod,   only: split_w2_field_kernel_type
-
-    implicit none
-
-    ! Arguments
-    type(transport_runtime_type), intent(inout) :: transport_runtime
-    type(r_tran_field_type),      intent(inout) :: new_flux_last_step
-    type(r_tran_field_type),      intent(in)    :: old_flux_last_step
-    type(r_tran_field_type),      intent(in)    :: sum_flux
-    type(r_tran_field_type),      intent(in)    :: dry_flux_before_adjustment
-
-    ! Internal variables
-    integer(kind=i_def)                :: mesh_id, step
-    integer(kind=i_def)                :: flux_fs_to_adjust, fs
-    type(mesh_type),           pointer :: mesh => null()
-    type(r_tran_field_type)            :: flux_diff_3d
-    type(r_tran_field_type),   target  :: flux_diff_hori
-    type(r_tran_field_type),   target  :: flux_diff_vert
-    type(r_tran_field_type)            :: new_flux
-    type(r_tran_field_type)            :: new_flux_hori
-    type(r_tran_field_type)            :: new_flux_vert
-    type(r_tran_field_type),   pointer :: old_flux => null()
-    type(r_tran_field_type),   pointer :: opposite_flux_diff => null()
-    type(function_space_type), pointer :: w2_fs => null()
-    type(function_space_type), pointer :: w2h_fs => null()
-    type(function_space_type), pointer :: w2v_fs => null()
-
-    mesh => sum_flux%get_mesh()
-    mesh_id = mesh%get_id()
-    w2_fs => function_space_collection%get_fs(mesh, 0, W2)
-
-    call flux_diff_3d%initialise(w2_fs)
-    call invoke( X_minus_Y(flux_diff_3d, sum_flux, dry_flux_before_adjustment))
-
-    ! ------------------------------------------------------------------------ !
-    ! 3D flux
-    ! ------------------------------------------------------------------------ !
-
-    if ( new_flux_last_step%which_function_space() &
-         == sum_flux%which_function_space() ) then
-      ! Simple case as we had a 3D step and don't need to do any adjustment
-      call invoke( X_plus_Y(new_flux_last_step, old_flux_last_step, flux_diff_3d) )
-
-    ! ------------------------------------------------------------------------ !
-    ! Split into horizontal and vertical fluxes
-    ! ------------------------------------------------------------------------ !
-
-    else
-      ! Separate into horizontal and vertical parts
-      w2h_fs => function_space_collection%get_fs(mesh, 0, W2H)
-      w2v_fs => function_space_collection%get_fs(mesh, 0, W2V)
-
-      call flux_diff_hori%initialise(w2h_fs)
-      call flux_diff_vert%initialise(w2v_fs)
-      call new_flux_hori%initialise(w2h_fs)
-      call new_flux_vert%initialise(w2v_fs)
-
-      call invoke( setval_c(flux_diff_hori, 0.0_r_tran),                      &
-                   split_w2_field_kernel_type(flux_diff_hori, flux_diff_vert, &
-                                              flux_diff_3d) )
-
-      select case ( old_flux_last_step%which_function_space() )
-      case ( W2H )
-        call invoke( X_plus_Y(new_flux_last_step, old_flux_last_step, flux_diff_hori) )
-        flux_fs_to_adjust = W2V
-        opposite_flux_diff => flux_diff_vert
-      case ( W2V )
-        call invoke( X_plus_Y(new_flux_last_step, old_flux_last_step, flux_diff_vert) )
-        flux_fs_to_adjust = W2H
-        opposite_flux_diff => flux_diff_hori
-      case default
-        call log_event('Function space for flux not recognised', LOG_LEVEL_ERROR)
-      end select
-
-      ! ---------------------------------------------------------------------- !
-      ! Adjust the fluxes stored in the transport runtime
-      ! ---------------------------------------------------------------------- !
-      ! The limited flux was 3D, but we store only horizontal/vertical fluxes
-      ! for a split scheme. Therefore we need to go back and find horizontal and
-      ! vertical fluxes and adjust them. We have already adjusted the flux for
-      ! the final step (in the previous section), so we just need to find and
-      ! adjust a flux of the opposite direction
-
-      ! Find the last flux whose function space was flux_fs_to_adjust
-      do step = transport_runtime%get_num_dry_steps() - 1, 1, -1
-        fs = transport_runtime%direction_w2_fs(step)
-        if ( fs == flux_fs_to_adjust ) then
-          old_flux => transport_runtime%get_dry_flux(mesh_id, step)
-          call new_flux%initialise( old_flux%get_function_space() )
-          call invoke( X_plus_Y(new_flux, old_flux, opposite_flux_diff) )
-          call transport_runtime%adjust_dry_flux(mesh_id, step, new_flux)
-          exit
-        end if
-      end do
-
-    end if
-
-    nullify(mesh, old_flux, opposite_flux_diff, w2_fs, w2h_fs, w2v_fs)
-
-  end subroutine adjust_dry_fluxes
-
 
 end module end_of_transport_step_alg_mod

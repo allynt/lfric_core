@@ -100,10 +100,10 @@ contains
       call rho_field_np1%initialise( vector_space=w3_fs)
 
       ! rho_d_n is from first step
-      rho_d_n => transport_runtime%get_rho_d_n(primary_mesh%get_id(), 1)
+      rho_d_n => transport_runtime%get_rho_d(primary_mesh%get_id(), 1)
       ! rho_d_np1 is from final step
       num_dry_steps = transport_runtime%get_num_dry_steps()
-      rho_d_np1 => transport_runtime%get_rho_d_np1(primary_mesh%get_id(), num_dry_steps)
+      rho_d_np1 => transport_runtime%get_rho_d(primary_mesh%get_id(), num_dry_steps+1)
 
       ! multiply field by rho in native space
       call invoke(X_times_Y( rho_field_n, rho_d_n, field_n_rdef))
@@ -124,10 +124,10 @@ contains
       call rho_field_np1%initialise( vector_space=w3_shifted_fs)
 
       ! rho_d_n is from first step
-      rho_d_n => transport_runtime%get_rho_d_n(shifted_mesh%get_id(), 1)
+      rho_d_n => transport_runtime%get_rho_d(shifted_mesh%get_id(), 1)
       ! rho_d_np1 is from final step
       num_dry_steps = transport_runtime%get_num_dry_steps()
-      rho_d_np1 => transport_runtime%get_rho_d_np1(shifted_mesh%get_id(), num_dry_steps)
+      rho_d_np1 => transport_runtime%get_rho_d(shifted_mesh%get_id(), num_dry_steps+1)
 
       ! multiply field by rho in shifted space
       call invoke( inject_wt_to_sh_w3_kernel_type(field_n_sh_w3, field_n_rtran), &

@@ -17,7 +17,8 @@ module gungho_model_mod
                                          filelist_populator
   use driver_mesh_mod,            only : init_mesh
   use check_configuration_mod,    only : get_required_stencil_depth, &
-                                         check_any_shifted
+                                         check_any_shifted,          &
+                                         check_any_wt_eqn_conservative
   use conservation_algorithm_mod, only : conservation_algorithm
   use constants_mod,              only : i_def, r_def, l_def, &
                                          PRECISION_REAL, r_second, str_def
@@ -461,11 +462,13 @@ contains
       end if
 
       ! Transfer mesh names from temporary array to an array of appropriate size
-      allocate(double_level_mesh_names(mesh_ctr))
-      do i = 1, mesh_ctr
-        double_level_mesh_names(i) = tmp_mesh_names(i)
-      end do
-      deallocate(tmp_mesh_names)
+      if ( check_any_wt_eqn_conservative() ) then
+        allocate(double_level_mesh_names(mesh_ctr))
+        do i = 1, mesh_ctr
+          double_level_mesh_names(i) = tmp_mesh_names(i)
+        end do
+        deallocate(tmp_mesh_names)
+      end if
     end if
 
     !-------------------------------------------------------------------------

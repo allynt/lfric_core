@@ -78,7 +78,7 @@ contains
     real(kind=r_def),    allocatable :: rhs_w3_sh(:)
     real(kind=r_def),    allocatable :: field_w3(:)
     real(kind=r_def),    allocatable :: rhs_answer(:)
-    real(kind=r_def),    allocatable :: T_ip1(:), T_i(:)
+    real(kind=r_def),    allocatable :: detj_shifted(:), detj_prime(:)
 
     integer(kind=i_def)              :: i, j, k, cell
     integer(kind=i_def)              :: nlayers, nlayers_sh, ncells, ncells_sh
@@ -111,8 +111,8 @@ contains
     allocate( rhs_w3_sh( undf_w3_sh ) )
     allocate( rhs_answer( undf_w3_sh ) )
     allocate( field_w3( undf_w3 ) )
-    allocate( T_ip1( undf_w3 ) )
-    allocate( T_i( undf_w3 ) )
+    allocate( detj_shifted( undf_w3_sh ) )
+    allocate( detj_prime( undf_w3 ) )
 
     rhs_w3_sh(:) = 0.0_r_def
 
@@ -121,12 +121,15 @@ contains
       do k = 0, nlayers - 1
         ! Density increasing linearly with height
         field_w3(map_w3(1, cell) + k) = real(k+1, r_def)
-
-        ! These are the values that the transform matrix should have
-        ! for a uniform mesh
-        T_ip1(map_w3(1, cell) + k) = dV / 2.0_r_def
-        T_i(map_w3(1, cell) + k) = dV / 2.0_r_def
+        detj_prime(map_w3(1, cell) + k) = dV
       end do
+
+      detj_shifted(map_w3_sh(1, cell)) = dV / 2.0_r_def
+      detj_shifted(map_w3_sh(1, cell)+nlayers) = dV / 2.0_r_def
+      do k = 1, nlayers - 1
+        detj_shifted(map_w3_sh(1, cell) + k) = dV
+      end do
+
     end do
 
     cell = 1
@@ -134,8 +137,8 @@ contains
                                  nlayers_sh,        &
                                  rhs_w3_sh,         &
                                  field_w3,          &
-                                 T_ip1,             &
-                                 T_i,               &
+                                 detj_shifted,      &
+                                 detj_prime,        &
                                  ndf_w3_sh,         &
                                  undf_w3_sh,        &
                                  map_w3_sh(:,cell), &
@@ -146,10 +149,10 @@ contains
 
     ! Look at first column
     rhs_answer(:) = 0.0_r_def
-    rhs_answer(map_w3_sh(1,cell)+0) = dV / 2.0_r_def
-    rhs_answer(map_w3_sh(1,cell)+1) = 3.0_r_def * dV / 2.0_r_def
-    rhs_answer(map_w3_sh(1,cell)+2) = 5.0_r_def * dV / 2.0_r_def
-    rhs_answer(map_w3_sh(1,cell)+3) = 3.0_r_def * dV / 2.0_r_def
+    rhs_answer(map_w3_sh(1,cell)+0) = 1.0_r_def
+    rhs_answer(map_w3_sh(1,cell)+1) = 1.5_r_def
+    rhs_answer(map_w3_sh(1,cell)+2) = 2.5_r_def
+    rhs_answer(map_w3_sh(1,cell)+3) = 3.0_r_def
 
     do k = 0, nlayers_sh - 1
         @assertEqual(rhs_answer(map_w3_sh(1, cell)+k), rhs_w3_sh(map_w3_sh(1, cell)+k), tol)
@@ -159,8 +162,8 @@ contains
     deallocate( rhs_w3_sh )
     deallocate( rhs_answer )
     deallocate( field_w3 )
-    deallocate( T_ip1 )
-    deallocate( T_i )
+    deallocate( detj_shifted )
+    deallocate( detj_prime )
     deallocate( map_w3_sh )
     deallocate( map_w3 )
 

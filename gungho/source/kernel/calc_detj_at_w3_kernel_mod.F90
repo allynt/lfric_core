@@ -14,7 +14,7 @@ module calc_detj_at_w3_kernel_mod
                                 ANY_DISCONTINUOUS_SPACE_3,   &
                                 CELL_COLUMN, GH_EVALUATOR
 
-  use constants_mod,     only : r_def, r_solver, i_def
+  use constants_mod,     only : r_def, r_single, r_double, i_def
   use fs_continuity_mod, only : W3
   use kernel_mod,        only : kernel_type
 
@@ -40,14 +40,19 @@ module calc_detj_at_w3_kernel_mod
          /)
     integer :: operates_on = CELL_COLUMN
     integer :: gh_shape = GH_EVALUATOR
-  contains
-    procedure, nopass :: calc_detj_at_w3_code
   end type
 
   !---------------------------------------------------------------------------
   ! Contained functions/subroutines
   !---------------------------------------------------------------------------
   public :: calc_detj_at_w3_code
+
+  ! Generic interface for real32 and real64 types
+  interface calc_detj_at_w3_code
+    module procedure  &
+      calc_detj_at_w3_code_r_single, &
+      calc_detj_at_w3_code_r_double
+  end interface
 
 contains
 
@@ -70,15 +75,17 @@ contains
 !> @param[in]  undf_pid       Number of unique degrees of freedom for panel_id
 !> @param[in]  map_pid        Dofmap for the cell at the base of the column for panel_id
 
-subroutine calc_detj_at_w3_code( nlayers,                                  &
-                                 detj_w3,                                  &
-                                 chi1, chi2, chi3,                         &
-                                 panel_id,                                 &
-                                 ndf_w3, undf_w3, map_w3,                  &
-                                 ndf_chi, undf_chi, map_chi,               &
-                                 basis_chi, diff_basis_chi,                &
-                                 ndf_pid, undf_pid, map_pid                &
-                                )
+! R_SINGLE PRECISION
+! ==================
+subroutine calc_detj_at_w3_code_r_single( nlayers,                             &
+                                          detj_w3,                             &
+                                          chi1, chi2, chi3,                    &
+                                          panel_id,                            &
+                                          ndf_w3, undf_w3, map_w3,             &
+                                          ndf_chi, undf_chi, map_chi,          &
+                                          basis_chi, diff_basis_chi,           &
+                                          ndf_pid, undf_pid, map_pid           &
+                                        )
 
   use coordinate_jacobian_mod, only: pointwise_coordinate_jacobian
 
@@ -92,7 +99,7 @@ subroutine calc_detj_at_w3_code( nlayers,                                  &
   integer(kind=i_def),                            intent(in)    :: undf_chi
   integer(kind=i_def),                            intent(in)    :: ndf_pid
   integer(kind=i_def),                            intent(in)    :: undf_pid
-  real(kind=r_solver), dimension(undf_w3),        intent(inout) :: detj_w3
+  real(kind=r_single), dimension(undf_w3),        intent(inout) :: detj_w3
   real(kind=r_def), dimension(undf_chi),          intent(in)    :: chi1, chi2, chi3
   real(kind=r_def), dimension(undf_pid),          intent(in)    :: panel_id
   integer(kind=i_def), dimension(ndf_w3),         intent(in)    :: map_w3
@@ -123,11 +130,73 @@ subroutine calc_detj_at_w3_code( nlayers,                                  &
                                          ipanel, basis_chi(:,:,df),       &
                                          diff_basis_chi(:,:,df),          &
                                          jacobian, detj)
-      detj_w3(map_w3(df)+k) = real(detj, r_solver)
+      detj_w3(map_w3(df)+k) = real(detj, r_single)
     end do
 
   end do
 
-end subroutine calc_detj_at_w3_code
+end subroutine calc_detj_at_w3_code_r_single
+
+! R_DOUBLE PRECISION
+! ==================
+subroutine calc_detj_at_w3_code_r_double( nlayers,                             &
+                                          detj_w3,                             &
+                                          chi1, chi2, chi3,                    &
+                                          panel_id,                            &
+                                          ndf_w3, undf_w3, map_w3,             &
+                                          ndf_chi, undf_chi, map_chi,          &
+                                          basis_chi, diff_basis_chi,           &
+                                          ndf_pid, undf_pid, map_pid           &
+                                        )
+
+  use coordinate_jacobian_mod, only: pointwise_coordinate_jacobian
+
+  implicit none
+
+  ! Arguments
+  integer(kind=i_def),                            intent(in)    :: nlayers
+  integer(kind=i_def),                            intent(in)    :: ndf_w3
+  integer(kind=i_def),                            intent(in)    :: undf_w3
+  integer(kind=i_def),                            intent(in)    :: ndf_chi
+  integer(kind=i_def),                            intent(in)    :: undf_chi
+  integer(kind=i_def),                            intent(in)    :: ndf_pid
+  integer(kind=i_def),                            intent(in)    :: undf_pid
+  real(kind=r_double), dimension(undf_w3),        intent(inout) :: detj_w3
+  real(kind=r_def), dimension(undf_chi),          intent(in)    :: chi1, chi2, chi3
+  real(kind=r_def), dimension(undf_pid),          intent(in)    :: panel_id
+  integer(kind=i_def), dimension(ndf_w3),         intent(in)    :: map_w3
+  integer(kind=i_def), dimension(ndf_chi),        intent(in)    :: map_chi
+  integer(kind=i_def), dimension(ndf_pid),        intent(in)    :: map_pid
+  real(kind=r_def), dimension(3,ndf_chi,ndf_w3),  intent(in)    :: diff_basis_chi
+  real(kind=r_def), dimension(1,ndf_chi,ndf_w3),  intent(in)    :: basis_chi
+
+  ! Internal variables
+  integer(kind=i_def)                  :: df, k
+  integer(kind=i_def)                  :: ipanel
+  real(kind=r_def), dimension(ndf_chi) :: chi1_e, chi2_e, chi3_e
+  real(kind=r_def), dimension(3,3)     :: jacobian
+  real(kind=r_def)                     :: detj
+
+  ipanel = int(panel_id(map_pid(1)), i_def)
+
+  do k = 0, nlayers-1
+
+    do df = 1,ndf_chi
+      chi1_e(df) = chi1(map_chi(df) + k)
+      chi2_e(df) = chi2(map_chi(df) + k)
+      chi3_e(df) = chi3(map_chi(df) + k)
+    end do
+
+    do df = 1,ndf_w3
+      call pointwise_coordinate_jacobian(ndf_chi, chi1_e, chi2_e, chi3_e, &
+                                         ipanel, basis_chi(:,:,df),       &
+                                         diff_basis_chi(:,:,df),          &
+                                         jacobian, detj)
+      detj_w3(map_w3(df)+k) = real(detj, r_double)
+    end do
+
+  end do
+
+end subroutine calc_detj_at_w3_code_r_double
 
 end module calc_detj_at_w3_kernel_mod

@@ -321,6 +321,12 @@ contains
     call invoke( X_minus_Y( advection_inc(igh_d), fields_np1(igh_d), &
                             advected_fields(igh_d) ) )
 
+    ! Compute any quantities required for consistent transport
+    if ( check_any_shifted() ) then
+      dynamics_transport_runtime => get_transport_runtime(primary_mesh)
+      call dynamics_transport_runtime%shift_dry_fields()
+    end if
+
     ! ------------------------------------------------------------------------ !
     ! Transport wind field
     call log_event( "Transporting wind...", LOG_LEVEL_INFO)
@@ -403,10 +409,10 @@ contains
                                         model_clock, outer, .false.,      &
                                         aerosol_shifted_mesh )
 
-            ! Copy over dry fields
-            dynamics_transport_runtime => get_transport_runtime(primary_mesh)
+            ! Restrict dry fields
             aerosol_transport_runtime => get_transport_runtime(aerosol_primary_mesh)
-            call aerosol_transport_runtime%copy_all_dry_fields(dynamics_transport_runtime)
+            call aerosol_transport_runtime%restrict_dry_fields(dynamics_transport_runtime)
+            call aerosol_transport_runtime%shift_dry_fields()
 
             nullify(aerosol_primary_mesh, aerosol_shifted_mesh, aerosol_w2_fs, &
                     dynamics_transport_runtime, aerosol_transport_runtime)

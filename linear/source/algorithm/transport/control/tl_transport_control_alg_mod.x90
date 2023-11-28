@@ -155,6 +155,8 @@ contains
     call invoke( X_minus_Y( advection_inc(igh_d), fields_np1(igh_d), &
                             advected_fields(igh_d) ) )
 
+    ! TODO: implement computation of consistent quantities here
+
     ! ------------------------------------------------------------------------ !
     ! Transport wind field
     call log_event( "Transporting wind...", LOG_LEVEL_INFO)

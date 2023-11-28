@@ -8,7 +8,7 @@
 !>
 module calc_detj_at_w3_kernel_mod_test
 
-    use constants_mod,                 only : i_def, r_def, r_solver
+    use constants_mod,                 only : i_def, r_def, r_single, r_double
     use pFUnit_Mod
 
     use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w0_m3x3_q3x3x3_size, &
@@ -17,15 +17,15 @@ module calc_detj_at_w3_kernel_mod_test
     use get_unit_test_m3x3_dofmap_mod,       only : get_w0_m3x3_dofmap, &
                                                     get_w3_m3x3_dofmap
 
-    use get_unit_test_q3x3x3_basis_mod, only: get_w0_q3x3x3_diff_basis, &
-                                              get_w0_q3x3x3_basis
+    use get_unit_test_w3nodal_basis_mod, only: get_w0_w3nodal_diff_basis, &
+                                               get_w0_w3nodal_basis
 
     use get_unit_test_3x3x3_chi_mod,    only : get_w0_3x3x3_field
 
   implicit none
 
   private
-  public :: test_all
+  public :: test_real64, test_real32
 
   @TestCase
   type, extends(TestCase), public :: calc_detj_at_w3_test_type
@@ -33,7 +33,8 @@ module calc_detj_at_w3_kernel_mod_test
   contains
     procedure setUp
     procedure tearDown
-    procedure test_all
+    procedure test_real64
+    procedure test_real32
   end type calc_detj_at_w3_test_type
 
 contains
@@ -91,35 +92,33 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   @Test
-  subroutine test_all( this )
+  subroutine test_real64( this )
 
-    use, intrinsic :: iso_fortran_env, only: real64
     use calc_detj_at_w3_kernel_mod,    only: calc_detj_at_w3_code
 
     implicit none
 
     class(calc_detj_at_w3_test_type), intent(inout) :: this
 
-    real(kind=r_solver), parameter :: tol = 1.0e-6_r_solver
-    real(kind=r_def), parameter :: dx = 11.0_r_def
-    real(kind=r_def), parameter :: dy = 17.0_r_def
-    real(kind=r_def), parameter :: dz = 23.0_r_def
-    real(kind=r_solver)            :: use_tol
+    real(kind=r_double), parameter :: tol = 1.0e-6_r_double
+    real(kind=r_def),    parameter :: dx = 11.0_r_def
+    real(kind=r_def),    parameter :: dy = 17.0_r_def
+    real(kind=r_def),    parameter :: dz = 23.0_r_def
 
     ! Fields
-    real(r_solver), allocatable :: detj_w3_p(:)
-    real(r_def), allocatable :: chi1(:), chi2(:), chi3(:), panel_id(:)
+    real(kind=r_double), allocatable :: detj_w3_p(:)
+    real(kind=r_def),    allocatable :: chi1(:), chi2(:), chi3(:), panel_id(:)
 
     integer(kind=i_def) :: i, j, k, cell
 
     ! Dofmaps
-    integer(i_def), allocatable :: map_w0(:,:)
-    integer(i_def), allocatable :: map_w3(:,:)
-    integer(i_def), allocatable :: map_pid(:,:)
+    integer(kind=i_def), allocatable :: map_w0(:,:)
+    integer(kind=i_def), allocatable :: map_w3(:,:)
+    integer(kind=i_def), allocatable :: map_pid(:,:)
 
     ! Basis functions
-    real(r_def),    allocatable :: diff_basis_w0(:,:,:,:)
-    real(r_def),    allocatable :: basis_w0(:,:,:,:)
+    real(kind=r_def),    allocatable :: diff_basis_w0(:,:,:)
+    real(kind=r_def),    allocatable :: basis_w0(:,:,:)
 
     ! Sizes
     integer(kind=i_def) :: nlayers, ncells
@@ -144,8 +143,8 @@ contains
     call get_w3_m3x3_dofmap(map_w3)
     call get_w3_m3x3_dofmap(map_pid)
 
-    call get_w0_q3x3x3_diff_basis(diff_basis_w0)
-    call get_w0_q3x3x3_basis(basis_w0)
+    call get_w0_w3nodal_diff_basis(diff_basis_w0)
+    call get_w0_w3nodal_basis(basis_w0)
 
     allocate(detj_w3_p(undf_w3))
 
@@ -156,11 +155,11 @@ contains
     allocate(panel_id(undf_pid))
 
     call get_w0_3x3x3_field(chi1, chi2, chi3, dx, dy, dz, &
-                            map_w0,nlayers)
-    panel_id(:) = 1_r_def
+                            map_w0, nlayers)
+    panel_id(:) = 1.0_r_def
 
     ! Initialise the data
-    detj_w3_p(:) = 0.0_r_solver
+    detj_w3_p(:) = 0.0_r_double
 
     cell = 1
 
@@ -180,16 +179,11 @@ contains
                                diff_basis_w0,    &
                                ndf_pid,          &
                                undf_pid,         &
-                               map_pid           &
-                               )
+                               map_pid(:,cell)   &
+                             )
 
     ! dx = 11, dy = 17, dz = 23, hence volume is 11*17*23 = 4301
-    if ( r_solver == real64 ) then
-      use_tol = tol
-    else
-      use_tol = 10.0_r_solver*spacing( maxval(detj_w3_p(1:6)) )
-    endif
-    @assertEqual(4301.0_r_solver, detj_w3_p(1), use_tol)
+    @assertEqual(4301.0_r_double, detj_w3_p(1), tol)
 
     deallocate(detj_w3_p)
     deallocate(chi1)
@@ -202,6 +196,114 @@ contains
     deallocate(basis_w0)
     deallocate(diff_basis_w0)
 
-  end subroutine test_all
+  end subroutine test_real64
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  @Test
+  subroutine test_real32( this )
+
+    use calc_detj_at_w3_kernel_mod,    only: calc_detj_at_w3_code
+
+    implicit none
+
+    class(calc_detj_at_w3_test_type), intent(inout) :: this
+
+    real(kind=r_single), parameter :: tol = 1.0e-6_r_single
+    real(kind=r_def),    parameter :: dx = 11.0_r_def
+    real(kind=r_def),    parameter :: dy = 17.0_r_def
+    real(kind=r_def),    parameter :: dz = 23.0_r_def
+
+    ! Fields
+    real(kind=r_single), allocatable :: detj_w3_p(:)
+    real(kind=r_def),    allocatable :: chi1(:), chi2(:), chi3(:), panel_id(:)
+
+    integer(kind=i_def) :: i, j, k, cell
+
+    ! Dofmaps
+    integer(kind=i_def), allocatable :: map_w0(:,:)
+    integer(kind=i_def), allocatable :: map_w3(:,:)
+    integer(kind=i_def), allocatable :: map_pid(:,:)
+
+    ! Basis functions
+    real(kind=r_def),    allocatable :: diff_basis_w0(:,:,:)
+    real(kind=r_def),    allocatable :: basis_w0(:,:,:)
+
+    ! Sizes
+    integer(kind=i_def) :: nlayers, ncells
+    integer(kind=i_def) :: ndf_w0, undf_w0, ndf_w3, undf_w3, ndf_pid, undf_pid
+    integer(kind=i_def) :: nqp_h, nqp_v
+    integer(kind=i_def) :: dim_space, dim_space_diff
+
+    nlayers = 3
+    call get_w0_m3x3_q3x3x3_size( ndf_w0, undf_w0, ncells,   &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v,              &
+                                  nlayers )
+    call get_w3_m3x3_q3x3x3_size( ndf_w3, undf_w3, ncells,   &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v,              &
+                                  nlayers )
+    call get_w3_m3x3_q3x3x3_size( ndf_pid, undf_pid, ncells, &
+                                  dim_space, dim_space_diff, &
+                                  nqp_h, nqp_v, 1)
+
+    call get_w0_m3x3_dofmap(map_w0)
+    call get_w3_m3x3_dofmap(map_w3)
+    call get_w3_m3x3_dofmap(map_pid)
+
+    call get_w0_w3nodal_diff_basis(diff_basis_w0)
+    call get_w0_w3nodal_basis(basis_w0)
+
+    allocate(detj_w3_p(undf_w3))
+
+    ! Compute coordinates
+    allocate(chi1(undf_w0))
+    allocate(chi2(undf_w0))
+    allocate(chi3(undf_w0))
+    allocate(panel_id(undf_pid))
+
+    call get_w0_3x3x3_field(chi1, chi2, chi3, dx, dy, dz, &
+                            map_w0,nlayers)
+    panel_id(:) = 1.0_r_def
+
+    ! Initialise the data
+    detj_w3_p(:) = 0.0_r_single
+
+    cell = 1
+
+    call calc_detj_at_w3_code( nlayers,          &
+                               detj_w3_p,        &
+                               chi1,             &
+                               chi2,             &
+                               chi3,             &
+                               panel_id,         &
+                               ndf_w3,           &
+                               undf_w3,          &
+                               map_w3(:,cell),   &
+                               ndf_w0,           &
+                               undf_w0,          &
+                               map_w0(:,cell),   &
+                               basis_w0,         &
+                               diff_basis_w0,    &
+                               ndf_pid,          &
+                               undf_pid,         &
+                               map_pid(:,cell)   &
+                              )
+
+    ! dx = 11, dy = 17, dz = 23, hence volume is 11*17*23 = 4301
+    @assertEqual(4301.0_r_single, detj_w3_p(1), tol)
+
+    deallocate(detj_w3_p)
+    deallocate(chi1)
+    deallocate(chi2)
+    deallocate(chi3)
+    deallocate(panel_id)
+    deallocate(map_w0)
+    deallocate(map_w3)
+    deallocate(map_pid)
+    deallocate(basis_w0)
+    deallocate(diff_basis_w0)
+
+  end subroutine test_real32
 
 end module calc_detj_at_w3_kernel_mod_test

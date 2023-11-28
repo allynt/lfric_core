@@ -65,8 +65,8 @@ contains
   subroutine obtain_shifted_rho(shifted_rho, primary_rho)
 
     use extrusion_mod,                  only: SHIFTED
-    use intermesh_constants_mod,        only: get_consist_w3_to_sh_w3_rdef
     use apply_w3_to_sh_w3_kernel_mod,   only: apply_w3_to_sh_w3_kernel_type
+    use fem_constants_mod,              only: get_detj_at_w3_r_def
 
     implicit none
 
@@ -75,23 +75,26 @@ contains
 
     type(mesh_type),  pointer :: prime_extrusion_mesh => null()
     type(mesh_type),  pointer :: shifted_mesh => null()
-    type(field_type), pointer :: consist_w3_to_sh_w3_op(:) => null()
+    type(field_type), pointer :: detj_shifted => null()
+    type(field_type), pointer :: detj_primary => null()
     type(function_space_type), pointer :: sh_w3_fs => null()
 
     ! Obtain shifted densities
     prime_extrusion_mesh => primary_rho%get_mesh()
     shifted_mesh => mesh_collection%get_mesh(prime_extrusion_mesh, SHIFTED)
+    detj_primary => get_detj_at_w3_r_def(prime_extrusion_mesh%get_id())
+    detj_shifted => get_detj_at_w3_r_def(shifted_mesh%get_id())
 
     sh_w3_fs => function_space_collection%get_fs(shifted_mesh, element_order, W3)
-    consist_w3_to_sh_w3_op => get_consist_w3_to_sh_w3_rdef(prime_extrusion_mesh)
 
     call shifted_rho%initialise( sh_w3_fs )
 
-    call invoke( apply_w3_to_sh_w3_kernel_type(shifted_rho,          &
-                                               primary_rho,          &
-                                               consist_w3_to_sh_w3_op) )
+    call invoke( apply_w3_to_sh_w3_kernel_type(shifted_rho,  &
+                                               primary_rho,  &
+                                               detj_shifted, &
+                                               detj_primary) )
 
-    nullify(prime_extrusion_mesh, shifted_mesh, sh_w3_fs, consist_w3_to_sh_w3_op)
+    nullify(prime_extrusion_mesh, shifted_mesh, sh_w3_fs, detj_shifted, detj_primary)
 
   end subroutine obtain_shifted_rho
 

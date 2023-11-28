@@ -317,11 +317,13 @@ contains
   !> @
   subroutine calculate_null_flux(flux, field_np1, direction)
 
+    use extrusion_mod,                 only: SHIFTED
     use mesh_mod,                      only: mesh_type
+    use mesh_collection_mod,           only: mesh_collection
     use function_space_mod,            only: function_space_type
     use function_space_collection_mod, only: function_space_collection
     use finite_element_config_mod,     only: element_order
-    use fs_continuity_mod,             only: W2, W2H, W2V
+    use fs_continuity_mod,             only: W2, W2H, W2V, Wtheta
 
     implicit none
 
@@ -332,7 +334,8 @@ contains
 
     ! Internal variables
     integer(kind=i_def)                :: fs_idx
-    type(mesh_type),           pointer :: mesh => null()
+    type(mesh_type),           pointer :: prime_extrusion_mesh => null()
+    type(mesh_type),           pointer :: shifted_mesh => null()
     type(function_space_type), pointer :: w2_fs => null()
 
     ! Turn direction into the appropriate function space
@@ -347,12 +350,19 @@ contains
       call log_event('Direction for flux is not recognised', LOG_LEVEL_ERROR)
     end select
 
-    mesh => field_np1%get_mesh()
-    w2_fs => function_space_collection%get_fs(mesh, element_order, fs_idx)
+    ! For transport of Wtheta variable, need shifted mesh
+    prime_extrusion_mesh => field_np1%get_mesh()
+    if (field_np1%which_function_space() == Wtheta) then
+      shifted_mesh => mesh_collection%get_mesh(prime_extrusion_mesh, SHIFTED)
+      w2_fs => function_space_collection%get_fs(shifted_mesh, element_order, fs_idx)
+    else
+      w2_fs => function_space_collection%get_fs(prime_extrusion_mesh, element_order, fs_idx)
+    end if
+
     call flux%initialise( w2_fs )
     call invoke( setval_c(flux, 0.0_r_tran) )
 
-    nullify(mesh, w2_fs)
+    nullify(prime_extrusion_mesh, shifted_mesh, w2_fs)
 
   end subroutine calculate_null_flux
 
