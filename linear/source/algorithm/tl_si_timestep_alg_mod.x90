@@ -41,7 +41,8 @@ module tl_si_timestep_alg_mod
                                          bundle_axpy,       &
                                          add_bundle,        &
                                          copy_bundle,       &
-                                         set_bundle_scalar
+                                         set_bundle_scalar, &
+                                         bundle_is_zero
   use fs_continuity_mod,           only: Wtheta, W2
 
   ! PsyKAl PSYClone kernels
@@ -778,10 +779,17 @@ contains
           !--------------------------------------------------------------------
           ! Solve semi-implicit system: A*inc = rhs, and increment state by inc
           !--------------------------------------------------------------------
-          call semi_implicit_solver_alg_step( state, rhs_np1,       &
-                                              moist_dyn(gas_law),   &
-                                              mr,                   &
-                                              write_moisture_diag )
+
+          ! If rhs_np1 is zero, there is no need to call the SI solver
+          if ( bundle_is_zero(1e-10_r_def, rhs_np1, bundle_size) ) then
+            call set_bundle_scalar(0.0_r_def, state, bundle_size)
+          else
+            call semi_implicit_solver_alg_step( state, rhs_np1,     &
+                                                moist_dyn(gas_law), &
+                                                mr,                 &
+                                                write_moisture_diag )
+          endif
+
           ! Update factors for moist dynamics
           if (use_moisture) then
             call tl_moist_dyn_factors_alg(moist_dyn, mr )

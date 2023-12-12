@@ -65,7 +65,7 @@
 {#                                      "mpi_parts_xios":2} } } )'        #}
 {#========================================================================#}
 
-{%- set application_configurations = { 'linear_model' : [ 'nwp_gal9', 'runge-kutta', 'semi-implicit', 'dcmip301' ] } %}
+{%- set application_configurations = { 'linear_model' : [ 'nwp_gal9', 'nwp_gal9_random', 'nwp_gal9_zero', 'runge-kutta', 'semi-implicit', 'dcmip301' ] } %}
 
 {%- set canned_configurations = ['linear_model'] %}
 
@@ -82,6 +82,16 @@
                                                         "directives":{"C12":{"mpi_parts":6,
                                                                              "wallclock":"00:10:00"} } },
                      plotstr="linear.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR 70 linear_model-nwp-gal9 theta:exner:rho:u_in_w2h:v_in_w2h:w_in_wth:m_v:m_cl:m_r:m_ci 120:0:5")',
+    'run_application("linear_model", "nwp_gal9_random",
+                     resolutions=[("C12",1800.0)], env={"nrun":12,
+                                                        "directives":{"C12":{"mpi_parts":6,
+                                                                             "wallclock":"00:10:00"} } },
+                     plotstr="linear.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR 70 linear_model-nwp-gal9_random theta:exner:rho:u_in_w2h:v_in_w2h:w_in_wth:m_v:m_cl:m_r:m_ci 120:0:5")',
+    'run_application("linear_model", "nwp_gal9_zero",
+                     resolutions=[("C12",1800.0)], env={"nrun":12,
+                                                        "directives":{"C12":{"mpi_parts":6,
+                                                                             "wallclock":"00:10:00"} } },
+                     plotstr="linear.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR 70 linear_model-nwp-gal9_zero theta:exner:rho:u_in_w2h:v_in_w2h:w_in_wth:m_v:m_cl:m_r:m_ci 120:0:5")',
     'run_application("linear_model", "runge-kutta",
                      resolutions=[("C12",1.0)], env={"nrun":20}, 
                      plotstr="linear.py $NODAL_DATA_DIR/lfric_diag.nc $PLOT_DIR 5 linear_model-runge-kutta rho 120:0:3")',

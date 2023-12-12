@@ -27,11 +27,15 @@ module linear_model_data_mod
                                              linear_init_pert_random,  &
                                              init_ls_file_alg,         &
                                              linear_init_reference_ls, &
-                                             linear_init_pert_analytical
+                                             linear_init_pert_analytical, &
+                                             init_ls_file_alg,            &
+                                             linear_init_pert_zero
+
   use linear_config_mod,              only : pert_option,          &
                                              pert_option_analytic, &
                                              pert_option_random,   &
-                                             pert_option_file
+                                             pert_option_file,     &
+                                             pert_option_zero
   use linked_list_mod,                only : linked_list_type
   use log_mod,                        only : log_event,         &
                                              log_scratch_space, &
@@ -274,7 +278,7 @@ contains
 
           call linear_init_reference_ls( modeldb )
 
-        case( pert_option_file )
+        case( pert_option_file, pert_option_zero )
           call log_event("This pert_option not available with ls_option_analytic ", LOG_LEVEL_ERROR)
 
         case default
@@ -333,9 +337,7 @@ contains
 
       case( pert_option_random )
 
-        call linear_init_pert_random( mesh,      &
-                                      twod_mesh, &
-                                      modeldb )
+        call linear_init_pert_random( modeldb )
 
       case( pert_option_analytic )
 
@@ -345,7 +347,11 @@ contains
 
       case( pert_option_file )
 
-          call linear_map_fd_to_prognostics(modeldb)
+        call linear_map_fd_to_prognostics( modeldb )
+
+      case( pert_option_zero )
+
+        call linear_init_pert_zero( modeldb )
 
       case default
 

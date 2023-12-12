@@ -8,7 +8,7 @@
 !!       Effectively these are generally wrapper functions to pointwise kernels
 module field_bundle_builtins_mod
 
-  use constants_mod,                   only: i_def, r_def
+  use constants_mod,                   only: i_def, r_def, l_def
   use field_mod,                       only: field_type
   use function_space_collection_mod,   only: function_space_collection
   use finite_element_config_mod,       only: element_order
@@ -216,6 +216,34 @@ contains
       call invoke( inc_aX_plus_bY( a, x(i), b, y(i) ) )
     end do
   end subroutine bundle_inc_axpby
+
+!=============================================================================!
+
+!> @brief Return true if all fields in a bundle are zero to a given tolerance
+!> @param[in] bundle      The bundle to evaluate
+!> @param[in] tolerance   The tolerance to assess closeness to zero
+!> @param[in] bundle_size Number of fields in the bundle
+!> @return    is_zero     Logical value that is true when all fields are zero
+  function bundle_is_zero(tolerance, bundle, bundle_size) result(is_zero)
+    implicit none
+    integer(kind=i_def), intent(in)    :: bundle_size
+    real(kind=r_def),    intent(in)    :: tolerance
+    type(field_type),    intent(in)    :: bundle(bundle_size)
+    logical(kind=l_def)                :: is_zero
+
+    integer(kind=i_def) :: i
+    real(kind=r_def)    :: fmin
+    real(kind=r_def)    :: fmax
+
+    is_zero = .true.
+    do i = 1,bundle_size
+      call bundle(i)%field_minmax( fmin, fmax )
+      if ( abs(fmin) > tolerance .or. abs(fmax) > tolerance ) then
+        is_zero = .false.
+        return
+      endif
+    end do
+  end function bundle_is_zero
 
 !=============================================================================!
 
