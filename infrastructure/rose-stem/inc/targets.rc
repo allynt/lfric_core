@@ -274,7 +274,7 @@
                 'directives' : [
                     '-A="' + get_accountname() + '"',
                     '-P="' + get_accountname() + '"',
-                    '-l select=1:ncpus=6:mem=12GB:tmpsize=4GB',
+                    '-l select=1:ncpus=6:mem=18GB:tmpsize=4GB',
                     '-l walltime=00:45:00',
                     '-q=shared'
                 ]
