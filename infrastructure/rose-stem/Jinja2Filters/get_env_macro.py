@@ -54,11 +54,17 @@ def get_env_macro(context, call):
     else:
         environment_dictionary = {}
 
+    if 'compiler_special' in argument_dictionary:
+        compiler_special = '-'+argument_dictionary['compiler_special']
+    else:
+        compiler_special = ''
+
+
     if len(normal_arguments) >= 2:
         app_name = argument_list[0]
         key = app_name + '_' + argument_list[1]
-        return_value = app_name, key, environment_dictionary, macro_name
+        return_value = app_name, key, compiler_special, environment_dictionary, macro_name
     else:
-        return_value = None, None, None, None
+        return_value = None, None, None, None, None
 
     return return_value

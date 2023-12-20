@@ -131,6 +131,16 @@ build: ALWAYS
 	$Q$(MAKE) $(QUIET_ARG) -C $(WORKING_DIR) -f $(LFRIC_BUILD)/compile.mk
 
 ##############################################################################
+# Pat_build step - This runs after the build step as relies on exe
+
+# Pass $(PROJECT_NAME) which is the exe name gungho_model which pat_report needs 
+pat_build: build
+	bash $(PAT_BUILD_PATH) $(PROJECT_NAME)
+	$(call MESSAGE,=========================================================)
+	$(call MESSAGE, Pat Build of gungho_model executable)
+	$(call MESSAGE,=========================================================)
+
+##############################################################################
 # Clean
 #
 .PHONY: clean

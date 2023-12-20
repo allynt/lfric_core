@@ -11,7 +11,8 @@
 {%- macro run_application( appName, configuration,
                            plotstr=None, resolutions=[('')],
                            precisions=[rdef_default],
-                           run_with_compilers=[TARGET_SCIENCE_COMPILER],
+                           run_with_compilers_out=[TARGET_SCIENCE_COMPILER],
+                           compiler_special=None,
                            support_meshes=[''], env=None, checkkgo=True,
                            publish=False ) %}
 
@@ -28,8 +29,23 @@
 {%      endif %}
 {%    endif %}
 
+{#    This sections should be fine                                        #}
+{#    We know they are all appearing in the graph with the name extension #}
+{%    set run_with_compilers = [] %}
+{%    for compiler in run_with_compilers_out -%}
+{%      if compiler_special != None -%}
+{%          set compiler_mod = compiler + '-' + compiler_special -%} 
+{%      else  -%}
+{%          set compiler_mod = compiler -%} 
+{%      endif -%}  
+{%          do run_with_compilers.append(compiler_mod) -%}
+{%     endfor -%}
+
+{# Below is where apps to run is then used to form the graph #}
+
 {%-   set appLabel = appName + '_' + configuration %}
 
+{# Update the appConfigsCompilerRuns with the label and compiler #}
 {%-   if appLabel not in appConfigsCompilerRuns.keys() %}
 {%-     do appConfigsCompilerRuns.update({appLabel : []}) %}
 {%-     do appConfigsCompilerRuns[appLabel].extend(run_with_compilers) %}
@@ -89,9 +105,8 @@
 {%-           endif %} {#- TARGET_SCIENCE_COMPILER in TARGET_PERFORM_RUN #}
 
             compile_{{projectName}}_with_{{label}} => run_{{appName_res_label}}_{{label}}
-
-
                     """
+
          [[[R{{crun}}/P1/{{crun}}]]] {#- Repeat cycle times, once per cycle ending on last cycle #}
             graph = """
             run_{{appName_res_label}}_{{label}}[-P1] => run_{{appName_res_label}}_{{label}}
@@ -162,17 +177,20 @@
 
 
 {#- #########################################################################}
+{#- Setup the app enviroment - IE what config it will run with #}
+{#- - we get it from the suite_control via the python script and populate the array to use#}
 {%- macro setTaskEnv(scheduledTasksDict, compilers) %}
 
 {%-   for group in groupsToRun %}
 {%-     if group in groups.keys() %}
 {%-       for mission in groups[group] %}
-{%-         set appName, key, env_dict, macro_name = mission | get_env_macro() %}
+{%-         set appName, key, compiler_special, env_dict, macro_name = mission | get_env_macro() %}
 {%-         if macro_name == 'run_application' %}
 {%-           if appName not in appsToRun %}
 {%-             do appsToRun.append(appName) %}
+{#            We are updating scheduledTasksDict with for example gungho_model from the suite_control #}
 {%-           endif %}
-{%-           set appKey = key + '_' + science_label %}
+{%-           set appKey = key + '_' + science_label_p1 + compiler_special + science_label_p2%}
 {%-           do scheduledTasksDict.update({appKey: env_dict}) %}
 
 {#            Add env dictionary to any additional tasks
@@ -298,7 +316,7 @@
 {%-   set all_compilers = target[PRIMARY_TARGET['platform']]['setup']['compiler'].keys() %}
 {%-   set compilers = [] %}
 {%-   set appLabel = appName + '_' + configuration %}
-{%-   set science_key = appName + '_' + configuration + '_' + science_label %}
+{%-   set science_key = appName + '_' + configuration + '_' + science_label_p1 + science_label_p2 %}
 {%-   set environment = scheduledTasksDict[science_key] %}
 
 {%-   if compiler in all_compilers %}

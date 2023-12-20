@@ -19,9 +19,10 @@
 {%- set scheduledTasksDict = {} %}
 {%- set mesh_names = [] %}
 
-{%- set science_label = TARGET_SCIENCE_COMPILER + '_'
-                      + rdef_default + '-bit_'
-                      + run_application_profile|default('fast-debug', true) %}
+{%- set science_label_p1 = TARGET_SCIENCE_COMPILER %}
+{%- set science_label_p2 = '_'
+                            + rdef_default + '-bit_'
+                            + run_application_profile|default('fast-debug', true) %}
 
 {%- if RUN_NAMES is defined %}
 {%-   if RUN_NAMES is string %}
@@ -205,7 +206,7 @@
             execution polling intervals  = PT1M, 2*PT2M, 3*PT3M, 4*PT4M, PT5M
 {%- endif %}
         [[[environment]]]
-            SOURCE_DIRECTORY      = $SOURCE_ROOT/{{appPathFragment}}/{{projectName}}
+            SOURCE_DIRECTORY      = $SOURCE_ROOT/{{appPathFragment}}{{projectName}}
             DESTINATION_DIRECTORY = $OUTPUT_ROOT/{{SECONDARY_TARGET['compiler']}}_fast-debug
             WORKING_DIR = {{ get_target_property(SECONDARY_TARGET, 'build_root') }}/{{SECONDARY_TARGET['compiler']}}_fast-debug
 
@@ -364,6 +365,16 @@
     [[compile_{{projectName}}_with_{{label}}]]
         inherit = {{family}}, TARGET
 
+{# Check to see if it is a Perftools compile, as we need to change the Makefile target#}
+{%- set THE_TARGET = "build" -%}
+{%  set PAT_BUILD_APP = "" %}  
+{%- if PRIMARY_TARGET['platform'] == 'meto-xc40' or PRIMARY_TARGET['platform'] == 'meto-xcs' %}
+{%-     if 'perf' in label %}
+{%- set THE_TARGET = "pat_build" -%}
+{%  set PAT_BUILD_APP = "$CYLC_SUITE_RUN_DIR/app/pat_build/bin/launch_pat_build" %}
+{%-     endif %}
+{%- endif %}
+
         {{ scripting(
                PRIMARY_TARGET,
                ['base', 'compiler.'+compiler, 'build'],
@@ -378,13 +389,14 @@
           ) }}
 
         [[[environment]]]
-            WORKING_DIR           = {{get_target_property( PRIMARY_TARGET, 'build_root')}}/{{label}}/{{projectName}}
-            TARGET                = build
-            PROFILE               = {{build}}
+            WORKING_DIR             = {{get_target_property( PRIMARY_TARGET, 'build_root')}}/{{label}}/{{projectName}}
+            TARGET                  = {{THE_TARGET}}
+            PROFILE                 = {{build}}
             PSYCLONE_TRANSFORMATION = {{TARGET_OPT}}
-            MAKE_THREADS          = 4
-            RDEF_PRECISION        = {{precision}}
-            R_TRAN_PRECISION      = {{precision}}
+            MAKE_THREADS            = 4
+            RDEF_PRECISION          = {{precision}}
+            R_TRAN_PRECISION        = {{precision}}
+            PAT_BUILD_PATH          = {{PAT_BUILD_APP}}   
 
         {{ directives(PRIMARY_TARGET, 'build') }}
 {%-       endif %}
@@ -512,7 +524,7 @@
 {# This Jinja section is to get the rose suite tree in the gui right           #}
 {%- for appName in appsToRun %}
 {%-   for configuration in application_configurations[appName] %}
-
+{#      Then for each configuration in the suite_control #}
 {%-     set appLabel = appName + '_' + configuration %}
 
 {%-     if appLabel in appConfigsCompilerRuns.keys() %}
@@ -661,6 +673,7 @@
               prescript=block | join(';'),
               script='rose task-run --app-key='+appName+' --command-key='+command_key+' '+config_opt+' '+res_opt+' '+xios_server_opt+' --opt-conf-key=suite_controlled',
               postscript='''
+
 find . -regex ".*PET0+\..+\.Log" -exec cp {} $ROSE_TASK_LOG_DIR \;
 find . -regex ".*PET0+\..+\.Log" -exec cat {} \;
 
@@ -700,6 +713,46 @@ test -f $CYLC_TASK_WORK_DIR/lfric_initial.nc && \
 test -f $CYLC_TASK_WORK_DIR/lfric_averages.nc && \
     cp $CYLC_TASK_WORK_DIR/lfric_averages.nc \
         $DESTINATION_DIRECTORY/'+pathFragment+'/results/ || true
+
+if [[ $TEST_APP_NAME =~ "perf" ]]; then 
+    RECENT_PAT_REPORT=$(lfs ls -t | grep -m 1 "$APP_NAME+pat+*")
+    echo "#####################################################################"
+    echo "Perftools Profile $RECENT_PAT_REPORT Created"
+    echo "#####################################################################"
+    
+    module load perftools-base
+    module load perftools
+
+    echo "#####################################################################"
+    echo "Pat Report Run on file to open it - Gungho Model Exe can be removed"
+    echo "#####################################################################"
+    pat_report $RECENT_PAT_REPORT
+    
+    DATEVAR=$(date +"%d%m%y%H%M%S")
+    FILETYPE=".txt"
+    PAT_REPORT_NAMED='+appLabel+'"_"$DATEVAR$FILETYPE
+    pat_report -v -o $PAT_REPORT_NAMED $RECENT_PAT_REPORT
+
+    echo "#####################################################################"
+    echo "Pat Report text output generated as "$PAT_REPORT_NAMED
+    echo "#####################################################################"
+
+    module unload perftools-base
+    module unload perftools
+    
+    if [[ "$PERF_USE_CUSTOM_PATH" = "true" ]]; then
+        
+        PAT_ARCHIVE_DIR="$DATADIR/pat_report_archive/$APP_NAME/"'+configuration+'
+        mkdir -p $PAT_ARCHIVE_DIR
+
+        echo "#####################################################################"
+        echo "Perftools Profile moved to "$PAT_ARCHIVE_DIR 
+        echo "#####################################################################"
+
+        mv $RECENT_PAT_REPORT $PAT_ARCHIVE_DIR/
+        cp $PAT_REPORT_NAMED $PAT_ARCHIVE_DIR/
+    fi
+fi
                          ''',
               finalscript='''
 mkdir -p $DESTINATION_DIRECTORY/'+pathFragment+'/results
@@ -734,6 +787,31 @@ echo $RELATIVE_LOG_ROOT > $DESTINATION_DIRECTORY/'+pathFragment+'/run.log.path
 
 {%-                   endif %} {# configuration_label #}
 
+{# Pat_build outputs a binary with +pat, for ease this section adds a blank addition  
+   if it is a normal gungho_model run, or the pat extension. 
+   Furthermore for the post script, if the user wishes to export to their datadir to
+   preserve the reports, this is builtin, with this toggle                           #}
+            PAT_EXE_EXTEN         =''
+{%- if PRIMARY_TARGET['platform'] == 'meto-xc40' or PRIMARY_TARGET['platform'] == 'meto-xcs' %}
+{%-     if 'perf' in configuration_label_res %}        
+            PAT_EXE_EXTEN         ='+pat'
+{%        if PERF_USE_CUSTOM_PATH_J2 is defined %}
+            PERF_USE_CUSTOM_PATH = {{PERF_USE_CUSTOM_PATH_J2}}
+{%        endif %}                 
+{%-     endif %}  
+
+{# Cray Env Variables for perfomance jobs on Crays #}
+{%-     if 'gungho_model_gh_profile' in configuration_label_res %}
+            MPICH_GNI_MAX_EAGER_MSG_SIZE  =65536
+            MPICH_GNI_MAX_VSHORT_MSG_SIZE =8192
+            MPICH_GNI_ROUTING_MODE        =ADAPTIVE_2
+            MPICH_MAX_THREAD_SAFETY       =multiple
+            OMP_WAIT_POLICY               =active
+{%-     endif %}
+{%- endif %}
+
+            APP_NAME          = {{appName}}
+            TEST_APP_NAME     = {{configuration_label_res}}
             BIG_DATA_DIR      = {{TARGET_BIG_DATA_DIR}}
             MESH_DIR          = $OUTPUT_ROOT/{{mesh_label}}/meshes
             APP_NAME          = {{appName}}
@@ -935,9 +1013,9 @@ echo $RELATIVE_LOG_ROOT > $DESTINATION_DIRECTORY/'+pathFragment+'/run.log.path
 {%-   endfor %}  {# configuration #}
 {%- endfor %}  {# appName #}
 
-##############################################################################
-# MESH GENERATION
-##############################################################################
+{##############################################################################}
+{# MESH GENERATION #}
+{##############################################################################}
 {%- set mesh_label = (TARGET_MESH_COMPILER|lower + '_' +
                       mesh_rdef + '-bit_' +
                       mesh_build|lower) %}
@@ -970,7 +1048,7 @@ echo $RELATIVE_LOG_ROOT > $DESTINATION_DIRECTORY/'+pathFragment+'/run.log.path
 {%-         endif %}
 {%-       endfor %}  {# mesh_name #}
 
-##############################################################################
-# NULL TASKS
-##############################################################################
+{##############################################################################}
+{# NULL TASKS #}
+{##############################################################################}
 {{null_tasks()}}

@@ -190,7 +190,7 @@
 {%-   for group in groupsToRun %}
 {%-     if group in groups.keys() %}
 {%-       for mission in groups[group] %}
-{%-         set appName, key, env_dict, macro_name = mission | get_env_macro() %}
+{%-         set appName, key, compiler_special, env_dict, macro_name = mission | get_env_macro() %}
 {%-         set appKey, resPrecisions = mission | get_precision_macro() %}
 
 {%-         if macro_name == 'run_application' %}
