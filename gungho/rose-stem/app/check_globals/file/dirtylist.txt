@@ -28,11 +28,10 @@ source/driver/gungho_model_mod.F90
 source/driver/init_ancils_mod.f90
 source/field/field_indices_mod.F90
 source/initialisation/runge_kutta_init_mod.F90
-source/kernel/assign_field_single_column_kernel_mod.F90
 source/kernel/external_forcing/earth_like_forcings_mod.F90
 source/kernel/external_forcing/shallow_hot_jupiter_forcings_mod.F90
 source/kernel/external_forcing/tidally_locked_earth_forcings_mod.F90
-source/kernel/profile_interp_kernel_mod.F90
+source/kernel/initialisation/profile_interp_kernel_mod.F90
 source/kernel/transport/fem/rtheta_bd_kernel_mod.F90
 source/kernel/transport/mol/poly1d_vert_w3_reconstruction_kernel_mod.F90
 source/kernel/transport/mol/polyh_w3_koren_kernel_mod.F90
