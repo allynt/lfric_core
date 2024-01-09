@@ -125,7 +125,7 @@ contains
 
     ! Build up answer
     flux_answer(:) = 0.0_r_tran
-    do k = 0, nlayers_shifted - 1
+    do k = 1, nlayers_shifted - 2
       flux_answer(map_w2_shifted(1)+k) = 0.25_r_tran*dtheta_dz*deltaz*dF_dz_W
       flux_answer(map_w2_shifted(2)+k) = 0.25_r_tran*dtheta_dz*deltaz*dF_dz_S
       flux_answer(map_w2_shifted(3)+k) = 0.25_r_tran*dtheta_dz*deltaz*dF_dz_E

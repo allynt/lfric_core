@@ -86,11 +86,9 @@ subroutine consistent_dispersion_code( nlayers_shifted,    &
   ! -------------------------------------------------------------------------- !
 
   do face = 1, 4
-    ! Faces in bottom layer: use dry fluxes from lowest two layers
+    ! Faces in bottom layer: zero contribution
     k = 0
-    flux_X_correction(map_w2_shifted(face)+k) =                                &
-      theta_factor(map_w2_shifted(face)+k)                                     &
-      * (dry_flux_prime(map_w2_prime(face)+k+1) - dry_flux_prime(map_w2_prime(face)+k))
+    flux_X_correction(map_w2_shifted(face)+k) = 0.0_r_tran
 
     ! No contributions to bottom or top layers, so loop over internal layers
     do k = 1, nlayers_shifted - 2
@@ -99,11 +97,9 @@ subroutine consistent_dispersion_code( nlayers_shifted,    &
         * (dry_flux_prime(map_w2_prime(face)+k) - dry_flux_prime(map_w2_prime(face)+k-1))
     end do
 
-    ! Faces in top layer: use dry fluxes from highest two layers
+    ! Faces in top layer: zero contribution
     k = nlayers_shifted - 1
-    flux_X_correction(map_w2_shifted(face)+k) =                                &
-      theta_factor(map_w2_shifted(face)+k)                                     &
-      * (dry_flux_prime(map_w2_prime(face)+k-1) - dry_flux_prime(map_w2_prime(face)+k-2))
+    flux_X_correction(map_w2_shifted(face)+k) = 0.0_r_tran
   end do
 
 
