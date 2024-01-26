@@ -360,6 +360,15 @@
                          },
                      plotstr="plot_map.py -encorr $NODAL_DATA_DIR/lfric_gal_diagnostics.nc  $PLOT_DIR"
                      )',
+   'run_application("lfric_atm", "nwp_gal9_ls_and_jedi", checkkgo=False,
+                    resolutions=[("C12",1800.0)],
+                    env={"crun":1, "nrun":14,
+                         "directives":{"C12":{"mpi_parts":1,
+                                              "threads":2,
+                                              "wallclock":"01:00:00"},
+                                      },
+                        }
+                   )',
    'check_compilers("lfric_atm", "nwp_gal9_mg_copy", "full-debug",
                     resolution=("C48_MG",1800.0))',
    'publish_commit'

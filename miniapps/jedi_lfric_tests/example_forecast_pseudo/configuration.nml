@@ -1,6 +1,6 @@
 &jedi_lfric_tests
 write_data=.true.
-test_trajectory_path='/data/users/lfric/data/jedi-lfric/test_trajectory_3959'
+test_trajectory_path='/data/users/lfric/data/jedi-lfric/Ticket4141/jedi_trajectory'
 test_field='theta'
 /
 

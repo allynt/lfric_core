@@ -1,7 +1,7 @@
 <file_definition type="one_file" par_access="collective" time_counter="none">
 	
-  <!-- Diagnostic output file for da-dev application (jedi-nwp) global runs -->
-  <file id="lfric_jedi" name="lfric_jedi" output_freq="1h" split_freq="6h" split_end_offset="0h" split_freq_format="%y%mo%d%h" convention="UGRID" enabled=".TRUE.">
+  <!-- Diagnostic output file for jedi_lfric_tests and linear_model application runs -->
+  <file id="ls_and_jedi_trajectory" name="ls_and_jedi_trajectory" output_freq="1h" time_counter_name="time" time_counter="exclusive" split_freq="7h" split_end_offset="0h" split_freq_format="%y%mo%d%h" convention="UGRID" enabled=".TRUE.">
     <field_group operation="instant" freq_op="1h">
       <field field_ref="aerosol__cloud_drop_no_conc" />
       <field field_ref="aerosol__acc_ins_du" />
@@ -35,8 +35,10 @@
       <field field_ref="rho" />
       <field field_ref="surface__grid_surface_temperature" />
       <field field_ref="surface__rh1p5m" />
+      <field field_ref="surface__sea_ice_fraction" />
       <field field_ref="surface__t1p5m" />
       <field field_ref="surface__tile_fraction" />
+      <field field_ref="surface__land_fraction" />
       <field field_ref="surface__u10m" />
       <field field_ref="surface__ustar" />
       <field field_ref="surface__v10m" />

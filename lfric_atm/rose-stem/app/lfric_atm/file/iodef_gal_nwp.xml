@@ -34,7 +34,6 @@
     <file_definition src="./file_def_diags_gal_nwp.xml"/>
     <file_definition src="./file_def_diags_ave.xml"/>
     <file_definition src="./file_def_diags_var_ops_ver.xml"/>
-    <file_definition src="./file_def_diags_jedi.xml"/>
     <file_definition src="./file_def_initial_diags.xml"/>
 
     <!-- Local file definitions -->
