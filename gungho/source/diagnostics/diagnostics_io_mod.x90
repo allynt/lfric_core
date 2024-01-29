@@ -181,6 +181,8 @@ subroutine write_vector_diagnostic( field_name, field, &
   type(field_type)                :: level
   type(field_type)                :: u1_wind, u2_wind, u3_wind
   type(field_type)                :: h_wind, v_wind
+  type(field_type)                :: temp_field
+
   character(len=str_max_filename) :: fname
   character(len=1)                :: uchar
   character(len=str_max_filename) :: field_name_new
@@ -189,6 +191,11 @@ subroutine write_vector_diagnostic( field_name, field, &
   integer(i_timestep)             :: timestep
 
   procedure(write_interface), pointer  :: tmp_write_ptr => null()
+
+  ! Copy the input field to avoid risk of it being halo swapped which can cause
+  ! spurious numerical differences between runs with and without diagnostic output
+  call field%copy_field_properties(temp_field)
+  call invoke( setval_X(temp_field, field) )
 
   ! Nodal output
   if ( .not. (use_xios_io) )  then
@@ -210,7 +217,7 @@ subroutine write_vector_diagnostic( field_name, field, &
 
     call vector_nodal_diagnostic_alg( output_field, output_dim, &
                                       nodal_coordinates, level, &
-                                      field_name, field )
+                                      field_name, temp_field )
 
     ! Call write routine
     call nodal_write_field(nodal_coordinates, level, output_field, &
@@ -223,7 +230,7 @@ subroutine write_vector_diagnostic( field_name, field, &
       output_dim = 3
 
       ! Project the field to the output field
-      call project_output( field, projected_field, output_dim, W3 , mesh )
+      call project_output( temp_field, projected_field, output_dim, W3 , mesh )
 
       do i =1,output_dim
          ! Write the component number into a new field name
@@ -263,7 +270,7 @@ subroutine write_vector_diagnostic( field_name, field, &
       output_dim = 3
 
       ! Project the field to the output field
-      call project_output( field, projected_field, output_dim, W3 , mesh )
+      call project_output( temp_field, projected_field, output_dim, W3 , mesh )
 
       ! Set up correct I/O handler for Xi projected to W3
       tmp_write_ptr => write_field_generic
@@ -299,7 +306,7 @@ subroutine write_vector_diagnostic( field_name, field, &
               function_space_collection%get_fs(mesh,element_order, Wtheta) )
 
       call split_wind_alg( u1_wind, u2_wind, u3_wind, &
-                           field, mesh )
+                           temp_field, mesh )
 
       ! Set up I/O handler as these are derived fields
       tmp_write_ptr => write_field_generic
@@ -335,7 +342,7 @@ subroutine write_vector_diagnostic( field_name, field, &
         !---- Output wind as w2h and wtheta fluxes ----
 
         ! Convert u to w2h (h_wind) and wtheta (v_wind)
-        call extract_w2h_diagnostic_alg( h_wind, v_wind, field )
+        call extract_w2h_diagnostic_alg( h_wind, v_wind, temp_field )
 
         tmp_write_ptr => write_field_generic
         call v_wind%set_write_behaviour(tmp_write_ptr)
