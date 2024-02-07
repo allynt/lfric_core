@@ -23,6 +23,12 @@ module lfric_xios_diag_mod
                                         xios_get_axis_attr,                   &
                                         xios_set_axis_attr,                   &
                                         xios_is_valid_axis,                   &
+                                        xios_zoom_axis,                       &
+                                        xios_is_valid_zoom_axis,              &
+                                        xios_get_handle,                      &
+                                        xios_set_attr,                        &
+                                        xios_setvar,                          &
+                                        xios_getvar,                          &
                                         lfric_xios_mock_pull_in
 #else
   use lfric_xios_mock_mod,            only: lfric_xios_mock_pull_in
@@ -42,7 +48,8 @@ module lfric_xios_diag_mod
                                         xios_is_valid_zoom_axis,              &
                                         xios_get_handle,                      &
                                         xios_set_attr,                        &
-                                        xios_setvar
+                                        xios_setvar,                          &
+                                        xios_getvar
 #endif
 
   use log_mod,                         only:                                  &
@@ -70,7 +77,8 @@ module lfric_xios_diag_mod
     get_axis_dimension,                                                        &
     set_axis_dimension,                                                        &
     set_zoom_axis_attr,                                                        &
-    set_variable
+    set_variable,                                                              &
+    get_variable
 
 contains
 
@@ -310,7 +318,6 @@ contains
     integer(i_def), intent(in) :: begin
     integer(i_def), intent(in) :: n
     logical(l_def), optional, intent(in) :: tolerant
-#ifndef UNIT_TEST
     type(xios_zoom_axis) :: zoom_axis_hdl
     logical(l_def) :: strict
     strict = .true.
@@ -325,19 +332,17 @@ contains
         call log_event(log_scratch_space, LOG_LEVEL_ERROR)
       end if
     end if
-#endif
   end subroutine set_zoom_axis_attr
 
   !> @brief Set the value of a real XIOS variable
-  !> @param[in]    unique_id    XIOS id of the variable
-  !> @param[in]    value        Value to be set
-  !> @param[in]    tolerant     Tolerate missing variable?
+  !> @param[in]              unique_id    XIOS id of the variable
+  !> @param[in]              value        Value to be set
+  !> @param[in, optional]    tolerant     Tolerate missing variable?
   subroutine set_variable(unique_id, value, tolerant)
     implicit none
     character(*), intent(in) :: unique_id
     real(real64), intent(in) :: value
     logical(l_def), optional, intent(in) :: tolerant
-#ifndef UNIT_TEST
     ! The XIOS call was ifdef'ed out to avoid having to write a mocking
     ! version of the XIOS routine called. Such a mocking version would
     ! currently add little value. Note that the error handling could not
@@ -353,9 +358,27 @@ contains
       else
         level = log_level_warning
       end if
-      call log_event('Failed to set variable ' // unique_id, level)
+      call log_event('Failed to set variable ' // trim(unique_id), level)
     end if
-#endif
   end subroutine set_variable
+
+  !> @brief Get the value of a real XIOS variable
+  !> @param[in]              var_id    XIOS id of the variable
+  !> @param[in, optional]    dflt      Value to return if no such variable
+  !> @return                           Value of the variable
+  function get_variable(unique_id, dflt) result(value)
+    implicit none
+    character(*), intent(in) :: unique_id
+    real(real64), optional, intent(in) :: dflt
+    real(real64) :: value
+    if (.not. xios_getvar(unique_id, value)) then
+      if (present(dflt)) then
+        value = dflt
+      else
+        call log_event('Failed to get value of variable ' // &
+          trim(unique_id), log_level_error)
+      end if
+    end if
+  end function get_variable
 
 end module lfric_xios_diag_mod

@@ -9,6 +9,8 @@
 !>
 module lfric_xios_mock_mod
 
+  use, intrinsic :: iso_fortran_env,  &
+                                only: real64
   use constants_mod,            only: i_def, str_def, l_def
   use lfric_xios_constants_mod, only: dp_xios
   use lfric_xios_mock_data_mod, only: xios_mock_data_type
@@ -19,6 +21,7 @@ module lfric_xios_mock_mod
   implicit none
 
   private
+
   public :: xios_recv_field,      &
             xios_send_field,      &
             xios_get_domain_attr, &
@@ -33,13 +36,27 @@ module lfric_xios_mock_mod
             xios_get_file_attr,                   &
             xios_is_valid_field,                  &
             xios_is_defined_field_attr,           &
+            xios_zoom_axis,                       &
+            xios_is_valid_zoom_axis,              &
+            xios_get_handle,                      &
+            xios_set_attr,                        &
+            xios_setvar,                          &
+            xios_getvar,                          &
             get_latest_data,                      &
             lfric_xios_mock_pull_in
+
+type :: xios_zoom_axis
+  ! intentionally left empty
+end type xios_zoom_axis
 
 !> Public mock XIOS data type used to hold data for read/write testing
 type(xios_mock_data_type), public :: mock_xios_data
 
+!> Private test data
+real(real64), private :: var_var1
+
   contains
+
 
   !> Dummy function for pulling mock implementation into the build.
   function lfric_xios_mock_pull_in() result(pulled_in)
@@ -406,5 +423,89 @@ type(xios_mock_data_type), public :: mock_xios_data
         field_id == 'diag_field_no_flag'
     end if
   end subroutine xios_is_defined_field_attr
+
+  !> Mock zoom axis existence test
+  !> @param[in]    axis_id  ID of test axis
+  !> @return                True iff test axis exists
+  function xios_is_valid_zoom_axis(axis_id) result(status)
+    implicit none
+    character(*), intent(in) :: axis_id
+
+    logical(l_def) :: status
+
+    select case (axis_id)
+    case('zoom1')
+      status = .true.
+    case default
+      status = .false.
+    end select
+  end function xios_is_valid_zoom_axis
+
+  !> Mock XIOS handle creator
+  !> @param[in]    unique_id  ID of test object
+  !> @param[out]   axis_hdl   Test zoom axis handle
+  subroutine xios_get_handle(unique_id, axis_hdl)
+    implicit none
+    character(*), intent(in) :: unique_id
+    type(xios_zoom_axis), optional, intent(inout) :: axis_hdl
+
+    select case (unique_id)
+    case ('zoom1')
+      ! intentionally left empty
+    case default
+      call log_event('unknown XIOS id ' // unique_id, log_level_error)
+    end select
+  end subroutine xios_get_handle
+
+  !> Mock XIOS mutator
+  !> @param[in]    unique_id  ID of test object
+  !> @param[out]   axis_hdl   Test zoom axis handle
+  subroutine xios_set_attr(handle, begin, n)
+    implicit none
+    type(xios_zoom_axis), intent(inout) :: handle
+    integer(i_def), optional, intent(in) :: begin
+    integer(i_def), optional, intent(in) :: n
+    ! intentionally left empty
+  end subroutine xios_set_attr
+
+  !> Sets value of a test variable
+  !> @param[in]    var_id                ID of test variable
+  !> @param[in]    value                 value to be set
+  !> @return                             True iff the variable exists
+  function xios_setvar(var_id, value) result(status)
+    implicit none
+    character(*), intent(in) :: var_id
+    real(real64), intent(in) :: value
+
+    logical(l_def) :: status
+
+    select case (var_id)
+      case ('var1')
+        status = .true.
+        var_var1 = value
+      case default
+        status = .false.
+    end select
+  end function xios_setvar
+
+  !> Get value of a test variable
+  !> @param[in]    var_id                ID of test avariable
+  !> @param[in]    value                 Value read
+  !> @return                             True iff the variable exists
+  function xios_getvar(var_id, value) result(status)
+    implicit none
+    character(*), intent(in) :: var_id
+    real(real64), intent(out) :: value
+
+    logical(l_def) :: status
+
+    select case (var_id)
+      case ('var1')
+        status = .true.
+        value = var_var1
+      case default
+        status = .false.
+    end select
+  end function xios_getvar
 
 end module lfric_xios_mock_mod
