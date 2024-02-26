@@ -30,10 +30,10 @@
   "um2lfric-spice_ifort_gcc_safe-basicgal_N96L70_C12L70"                            : BASE~"_t3614",
   "um2lfric-spice_ifort_gcc_rigorous-basicgal_N96L70_C12L70"                        : BASE~"_t3614",
 
-  "um2lfric-spice_gfortran_gcc_safe-protogal_N96L70_C12L70"                         : BASE~"_t3614",
-  "um2lfric-spice_gfortran_gcc_rigorous-protogal_N96L70_C12L70"                     : BASE~"_t3614",
-  "um2lfric-spice_ifort_gcc_safe-protogal_N96L70_C12L70"                            : BASE~"_t3614",
-  "um2lfric-spice_ifort_gcc_rigorous-protogal_N96L70_C12L70"                        : BASE~"_t3614",
+  "um2lfric-spice_gfortran_gcc_safe-protogal_N96L70_C12L70"                         : BASE~"_t4290",
+  "um2lfric-spice_gfortran_gcc_rigorous-protogal_N96L70_C12L70"                     : BASE~"_t4290",
+  "um2lfric-spice_ifort_gcc_safe-protogal_N96L70_C12L70"                            : BASE~"_t4290",
+  "um2lfric-spice_ifort_gcc_rigorous-protogal_N96L70_C12L70"                        : BASE~"_t4290",
 
   "um2lfric-spice_gfortran_gcc_safe-protogal_chem_N96L70_C12L70"                    : BASE~"_t3542",
   "um2lfric-spice_gfortran_gcc_rigorous-protogal_chem_N96L70_C12L70"                : BASE~"_t3542",
@@ -89,8 +89,8 @@
 
   "um2lfric-xc40_crayftn_craycc_safe-protogal_N96L70_C12L70"                        : BASE,
   "um2lfric-xc40_crayftn_craycc_rigorous-protogal_N96L70_C12L70"                    : BASE,
-  "um2lfric-xc40_ifort_icc_safe-protogal_N96L70_C12L70"                             : BASE~"_t3613",
-  "um2lfric-xc40_ifort_icc_rigorous-protogal_N96L70_C12L70"                         : BASE~"_t3613",
+  "um2lfric-xc40_ifort_icc_safe-protogal_N96L70_C12L70"                             : BASE~"_t4290",
+  "um2lfric-xc40_ifort_icc_rigorous-protogal_N96L70_C12L70"                         : BASE~"_t4290",
 
   "um2lfric-xc40_ifort_icc_safe-protogal_chem_N96L70_C48L70"                        : BASE~"_t3542",
   "um2lfric-xc40_ifort_icc_rigorous-protogal_chem_N96L70_C48L70"                    : BASE~"_t3542",
