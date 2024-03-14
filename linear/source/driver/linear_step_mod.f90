@@ -96,8 +96,10 @@ module linear_step_mod
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
     ! Get pointers to field collections for use downstream
-    prognostic_fields => modeldb%model_data%prognostic_fields
-    diagnostic_fields => modeldb%model_data%diagnostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
+    diagnostic_fields => modeldb%fields%get_field_collection(&
+                                          "diagnostic_fields")
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)
     call moisture_fields%get_field("moist_dyn", moist_dyn_array)

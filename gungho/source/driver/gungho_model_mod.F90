@@ -329,7 +329,8 @@ contains
     type(field_type), pointer :: chi(:) => null()
 
 #ifdef COUPLED
-    type(field_collection_type),  pointer :: depository         => null()
+    type(field_collection_type), pointer :: depository
+    type(field_collection_type), pointer :: prognostic_fields
 #endif
     type(inventory_by_mesh_type), pointer :: chi_inventory      => null()
     type(inventory_by_mesh_type), pointer :: panel_id_inventory => null()
@@ -663,8 +664,10 @@ contains
        call log_event("Initialising coupler", LOG_LEVEL_INFO)
        ! Add fields used in coupling
        depository => modeldb%fields%get_field_collection("depository")
+       prognostic_fields => modeldb%fields%get_field_collection( &
+                                                         "prognostic_fields")
        call cpl_fields( mesh, twod_mesh, depository, &
-                        modeldb%model_data%prognostic_fields )
+                        prognostic_fields )
        ! Define coupling interface
        call modeldb%model_data%cpl_snd%initialise(name="cpl_snd")
        call modeldb%model_data%cpl_rcv%initialise(name="cpl_rcv")
@@ -823,7 +826,8 @@ contains
     use_moisture = ( moisture_formulation /= moisture_formulation_dry )
 
     ! Get pointers to field collections for use downstream
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection( &
+                                                         "prognostic_fields")
 
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)
@@ -937,11 +941,12 @@ contains
     type( modeldb_type ), target,     intent(inout) :: modeldb
     character(*),         optional,   intent(in)    :: program_name
 
-    type( field_collection_type ), pointer :: prognostic_fields => null()
+    type( field_collection_type ), pointer :: diagnostic_fields => null()
     type( field_collection_type ), pointer :: moisture_fields => null()
     type( field_array_type ),      pointer :: mr_array
     type( field_type ),            pointer :: mr(:) => null()
     type( field_collection_type ), pointer :: fd_fields => null()
+    type( field_collection_type ), pointer :: prognostic_fields => null()
 
     type( field_type), pointer :: theta => null()
     type( field_type), pointer :: u => null()
@@ -955,7 +960,10 @@ contains
 
     if ( present(program_name) ) then
       ! Get pointers to field collections for use downstream
-      prognostic_fields => modeldb%model_data%prognostic_fields
+      prognostic_fields => modeldb%fields%get_field_collection( &
+                                                           "prognostic_fields")
+      diagnostic_fields => modeldb%fields%get_field_collection( &
+                                                           "diagnostic_fields")
       moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
       call moisture_fields%get_field("mr", mr_array)
       mr => mr_array%bundle

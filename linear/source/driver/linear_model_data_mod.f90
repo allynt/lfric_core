@@ -99,7 +99,7 @@ contains
     character(len=*), parameter :: axis_id="ls_axis"
 
     depository => modeldb%fields%get_field_collection("depository")
-    prognostics => modeldb%model_data%prognostic_fields
+    prognostics => modeldb%fields%get_field_collection("prognostic_fields")
 
     ! Get model_axes out of modeldb
     model_axes => get_time_axes_from_collection(modeldb%values, "model_axes" )

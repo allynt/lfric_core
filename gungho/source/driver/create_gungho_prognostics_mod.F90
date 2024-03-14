@@ -119,7 +119,7 @@ contains
 
     type(field_collection_type), intent(inout):: depository
     type(field_collection_type), intent(inout):: prognostic_fields
-    type(field_collection_type), intent(out)  :: diagnostic_fields
+    type(field_collection_type), intent(inout):: diagnostic_fields
     type(field_collection_type), intent(inout):: adv_tracer_all_outer
     type(field_collection_type), intent(inout):: adv_tracer_last_outer
     type(field_collection_type), intent(inout):: con_tracer_all_outer

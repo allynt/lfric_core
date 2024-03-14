@@ -72,7 +72,8 @@ contains
     type(field_array_type), pointer      :: mr_array => null()
     type(field_array_type), pointer      :: moist_dyn_array => null()
 
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)
     call moisture_fields%get_field("moist_dyn", moist_dyn_array)

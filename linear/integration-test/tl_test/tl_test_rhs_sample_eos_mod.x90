@@ -96,7 +96,8 @@ contains
     call log_event( "TL Test: " // trim(label), &
                      LOG_LEVEL_INFO )
 
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection( &
+                                           "prognostic_fields")
 
     ls_fields         => modeldb%model_data%ls_fields
 

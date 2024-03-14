@@ -100,7 +100,8 @@ module tl_test_vorticity_mod
     panel_id => get_panel_id(mesh%get_id())
     qr => get_qr()
 
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
     ls_fields         => modeldb%model_data%ls_fields
 
     ! Input

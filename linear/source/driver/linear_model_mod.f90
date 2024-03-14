@@ -70,7 +70,8 @@ contains
     type(field_array_type), pointer      :: ls_moist_dyn_array => null()
 
     ! Get pointers to field collections for use downstream
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)
     mr => mr_array%bundle

@@ -205,7 +205,7 @@ module linear_data_algorithm_mod
 
     type( modeldb_type ), target, intent(inout) :: modeldb
 
-    type( field_collection_type ), pointer :: prognostics => null()
+    type( field_collection_type ), pointer :: prognostic_fields => null()
     type( field_collection_type ), pointer :: ls_fields => null()
     type( field_type ),            pointer :: ls_mr(:) => null()
     type( field_type ),            pointer :: mr(:) => null()
@@ -225,25 +225,26 @@ module linear_data_algorithm_mod
     call log_event(log_scratch_space, LOG_LEVEL_INFO)
 
     ls_fields => modeldb%model_data%ls_fields
-    prognostics => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
 
     call ls_fields%get_field("ls_u", l_field)
-    call prognostics%get_field("u", n_field)
+    call prognostic_fields%get_field("u", n_field)
     call invoke( setval_X( l_field, n_field), &
                  setval_C( n_field, 0.0_r_def) )
 
     call ls_fields%get_field("ls_exner", l_field)
-    call prognostics%get_field("exner", n_field)
+    call prognostic_fields%get_field("exner", n_field)
     call invoke( setval_X( l_field, n_field) , &
                  setval_C( n_field, 0.0_r_def) )
 
     call ls_fields%get_field("ls_rho", l_field)
-    call prognostics%get_field("rho", n_field)
+    call prognostic_fields%get_field("rho", n_field)
     call invoke( setval_X( l_field, n_field) , &
                  setval_C( n_field, 0.0_r_def) )
 
     call ls_fields%get_field("ls_theta", l_field)
-    call prognostics%get_field("theta", n_field)
+    call prognostic_fields%get_field("theta", n_field)
     call invoke( setval_X( l_field, n_field) , &
                  setval_C( n_field, 0.0_r_def) )
 
@@ -302,6 +303,7 @@ module linear_data_algorithm_mod
     integer( kind=i_def ) :: element_order
     integer( kind=i_def ) :: i
 
+    type(field_collection_type), pointer :: prognostic_fields => null()
     type(field_collection_type), pointer :: moisture_fields => null()
     type(field_array_type), pointer      :: mr_array => null()
     type(field_array_type), pointer      :: moist_dyn_array => null()
@@ -313,13 +315,15 @@ module linear_data_algorithm_mod
     gamma_mr = 1.e-1
     gamma_u = 1.e2
 
-    call modeldb%model_data%prognostic_fields%get_field("rho", field)
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
+    call prognostic_fields%get_field("rho", field)
     call invoke( assign_field_random_kernel_type( field, gamma_rho ))
 
-    call modeldb%model_data%prognostic_fields%get_field("theta", field)
+    call prognostic_fields%get_field("theta", field)
     call invoke( assign_field_random_kernel_type( field, gamma_theta ))
 
-    call modeldb%model_data%prognostic_fields%get_field("exner", field)
+    call prognostic_fields%get_field("exner", field)
     call invoke( assign_field_random_kernel_type( field, gamma_exner ))
 
     ! Apply randomization to W3/Wtheta cell centre wind fields and Interpolate
@@ -342,7 +346,7 @@ module linear_data_algorithm_mod
                  assign_field_random_kernel_type( w_in_wth, gamma_u) )
 
     ! Interpolate cell centred zonal/meridional winds to the W2 wind
-    call modeldb%model_data%prognostic_fields%get_field("u", field)
+    call prognostic_fields%get_field("u", field)
     call set_wind( field, u_in_w3, v_in_w3, w_in_wth )
 
     ! Apply randomization to moisture fields
@@ -390,7 +394,8 @@ module linear_data_algorithm_mod
 
 
     ! Prognostic fields
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
 
     call prognostic_fields%get_field('u', u)
     call prognostic_fields%get_field('theta', theta)
@@ -463,7 +468,8 @@ module linear_data_algorithm_mod
     integer( kind=i_def )  :: i
 
     ls_fields => modeldb%model_data%ls_fields
-    prognostic_fields => modeldb%model_data%prognostic_fields
+     prognostic_fields => modeldb%fields%get_field_collection(&
+                                          "prognostic_fields")
 
     call ls_fields%get_field('ls_theta', ls_theta)
     call ls_fields%get_field('ls_u', ls_u)

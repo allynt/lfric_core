@@ -834,9 +834,6 @@ contains
 
     endif  ! if chem_scheme_strattrop/ strat_test
 
-    ! Now the field collection is set up, the fields will be initialised in
-    ! gungho_model_data_mod
-
   end subroutine create_fd_ancils
 
   !> @details Adds fields to the ancil collection, sets up their read and write

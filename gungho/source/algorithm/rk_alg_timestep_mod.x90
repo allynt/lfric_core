@@ -138,7 +138,7 @@ contains
     type( field_type), pointer :: exner
 
     ! Get pointer to the field collection containing required fields
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection("prognostic_fields")
 
     ! Extract required fields
     call prognostic_fields%get_field('theta', theta)
@@ -178,7 +178,7 @@ contains
     type( field_type ),            pointer :: moist_dyn(:)
 
     ! Get pointer to field collection containing required fields
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection("prognostic_fields")
 
     ! Get clock
     model_clock => modeldb%clock

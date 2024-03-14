@@ -315,12 +315,14 @@ module update_iau_inc_alg_mod
     type( field_type ),            pointer :: rho               => null()
     type( field_type ),            pointer :: exner             => null()
 
+
+
     model_clock => modeldb % clock
     write(log_scratch_space,'(A,I10)') 'IAU: calling iau on timestep ', model_clock % get_step()
     call log_event( log_scratch_space, log_level_info )
 
     iau_fields => modeldb % fields % get_field_collection("iau_fields")
-    prognostic_fields => modeldb % model_data % prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection("prognostic_fields")
     cloud_fields => modeldb % model_data % cloud_fields
     derived_fields => modeldb % model_data % derived_fields
 

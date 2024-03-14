@@ -35,7 +35,6 @@ module gungho_diagnostics_driver_mod
                                         moisture_formulation,    &
                                         moisture_formulation_dry
   use fs_continuity_mod,         only : W3, Wtheta
-  use gungho_modeldb_mod,        only : modeldb_type
   use integer_field_mod,         only : integer_field_type
   use initialization_config_mod, only : ls_option,          &
                                         ls_option_analytic, &
@@ -50,6 +49,7 @@ module gungho_diagnostics_driver_mod
   use timer_mod,                 only: timer
   use transport_config_mod,      only: transport_ageofair
   use physical_op_constants_mod, only: get_da_msl_proj
+  use gungho_modeldb_mod,        only: modeldb_type
 
 #ifdef UM_PHYSICS
   use pmsl_alg_mod,              only : pmsl_alg
@@ -137,7 +137,7 @@ contains
     call log_event("Gungho: writing diagnostic output", LOG_LEVEL_INFO)
 
     ! Get pointers to field collections for use downstream
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection("prognostic_fields")
     lbc_fields => modeldb%model_data%lbc_fields
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)

@@ -227,8 +227,8 @@ contains
     character(*), intent(in)          :: program_name
     type(modeldb_type), intent(inout) :: modeldb
 
-    ! Output the fields stored in the model_data (checkpoint and dump)
-    call output_model_data( modeldb%model_data, modeldb%clock )
+    ! Write out the model state
+    call output_model_data( modeldb )
 
     ! Model configuration finalisation
     call finalise_model( modeldb,               &

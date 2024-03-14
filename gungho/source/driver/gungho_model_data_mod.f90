@@ -23,10 +23,6 @@ module gungho_model_data_mod
     !> @name Fields needed to time-step the model.
     !> @{
 
-    !> All the prognostic fields (except for field arrays: auxiliary prognostic)
-    type( field_collection_type ), public   :: prognostic_fields
-    !> All the diagnostic fields
-    type( field_collection_type ), public   :: diagnostic_fields
     !> Tracers that should be advected
     type( field_collection_type ), public   :: adv_tracer_last_outer
     type( field_collection_type ), public   :: adv_tracer_all_outer

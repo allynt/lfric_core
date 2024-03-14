@@ -211,7 +211,7 @@ contains
     type( field_type ),           pointer :: mr(:)
 
     ! Get pointers to field collections for use downstream
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection("prognostic_fields")
 
     ! Get pointers to fields in the prognostic/diagnostic field collections
     ! for use downstream
@@ -285,7 +285,7 @@ contains
     real( r_def )    :: dtemp_encorr
 
     ! Get pointers to field collections for use downstream
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection("prognostic_fields")
     model_data => modeldb%model_data
     model_clock => modeldb%clock
 

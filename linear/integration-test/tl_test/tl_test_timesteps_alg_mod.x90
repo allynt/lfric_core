@@ -137,7 +137,8 @@ module tl_test_timesteps_alg_mod
              log_level_error )
     end if
 
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection( &
+                                           "prognostic_fields")
     ls_fields         => modeldb%model_data%ls_fields
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)

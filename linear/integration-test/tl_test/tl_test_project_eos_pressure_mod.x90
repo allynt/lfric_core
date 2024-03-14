@@ -109,7 +109,8 @@ module tl_test_project_eos_pressure_mod
     qr => get_qr()
     m3_inv => get_inverse_w3_mass_matrix(mesh%get_id())
 
-    prognostic_fields => modeldb%model_data%prognostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection( &
+                                           "prognostic_fields")
     ls_fields         => modeldb%model_data%ls_fields
 
     ! Input fields

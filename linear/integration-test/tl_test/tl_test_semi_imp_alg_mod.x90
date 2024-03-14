@@ -140,8 +140,10 @@ module tl_test_semi_imp_alg_mod
 
 
     ls_fields         => modeldb%model_data%ls_fields
-    prognostic_fields => modeldb%model_data%prognostic_fields
-    diagnostic_fields => modeldb%model_data%diagnostic_fields
+    prognostic_fields => modeldb%fields%get_field_collection( &
+                                           "prognostic_fields")
+    diagnostic_fields => modeldb%fields%get_field_collection( &
+                                           "diagnostic_fields")
 
     moisture_fields => modeldb%fields%get_field_collection("moisture_fields")
     call moisture_fields%get_field("mr", mr_array)
