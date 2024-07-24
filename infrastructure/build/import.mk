@@ -14,7 +14,9 @@ TYPE_TABLE_int32 = integer
 .PHONY: import-infrastructure
 import-infrastructure: $(WORKING_DIR)/field/field_real32_mod.f90 \
                        $(WORKING_DIR)/field/field_real64_mod.f90 \
-		       $(WORKING_DIR)/field/field_int32_mod.f90
+                       $(WORKING_DIR)/field/field_int32_mod.f90 \
+                       $(WORKING_DIR)/operator/operator_real32_mod.f90 \
+                       $(WORKING_DIR)/operator/operator_real64_mod.f90
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/extract.mk SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source
 	$Q$(MAKE) $(QUIET_ARG) -f $(LFRIC_BUILD)/psyclone/psyclone.mk \
 	          SOURCE_DIR=$(LFRIC_INFRASTRUCTURE)/source \
@@ -26,4 +28,12 @@ $(WORKING_DIR)/field/field_%_mod.f90: $(LFRIC_INFRASTRUCTURE)/source/field/field
 	$Q$(TEMPLATE_TOOL) $< -o $@ -s type=$(TYPE_TABLE_$*) -s kind=$*
 
 $(WORKING_DIR)/field:
+	$Qmkdir -p $@
+
+$(WORKING_DIR)/operator/operator_%_mod.f90: $(LFRIC_INFRASTRUCTURE)/source/operator/operator_mod.t90 \
+                                      | $(WORKING_DIR)/operator
+	$(call MESSAGE, Templating, $<)
+	$Q$(TEMPLATE_TOOL) $< -o $@ -s kind=$*
+
+$(WORKING_DIR)/operator:
 	$Qmkdir -p $@

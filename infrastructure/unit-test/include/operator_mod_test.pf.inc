@@ -1,13 +1,13 @@
-!-----------------------------------------------------------------------------
-! Copyright (c) 2024,  Met Office, on behalf of HMSO and Queen's Printer
-! For further details please refer to the file LICENCE.original which you
-! should have received as part of this distribution.
-!-----------------------------------------------------------------------------
+! Preprocessor is used to template test code.
 
-!> Test the Operator representation
-!>
+#define TMPL_PASTE(a) a
+#define TMPL_MODULE_NAME TMPL_PASTE(TMPL_PASTE(operator_)TMPL_KIND)_mod_test
+#define TMPL_TEST_CLASS TMPL_PASTE(TMPL_PASTE(operator_)TMPL_KIND)_test_type
+#define TMPL_OPERATOR_MOD TMPL_PASTE(TMPL_PASTE(operator_)TMPL_KIND)_mod
+#define TMPL_OPERATOR_TYPE TMPL_PASTE(TMPL_PASTE(operator_)TMPL_KIND)_type
+#define TMPL_OPERATOR_PROXY_TYPE TMPL_PASTE(TMPL_PASTE(operator_)TMPL_KIND)_proxy_type
 
-module operator_real64_mod_test
+module TMPL_MODULE_NAME
 
   use constants_mod,                 only : i_def, r_def
   use function_space_collection_mod, only : function_space_collection_type, &
@@ -26,13 +26,13 @@ module operator_real64_mod_test
   public :: test_all
 
   @TestCase
-  type, extends(MPITestCase), public :: operator_real64_test_type
+  type, extends(MPITestCase), public :: TMPL_TEST_CLASS
     private
   contains
     procedure setUp
     procedure tearDown
     procedure test_all
-  end type operator_real64_test_type
+  end type TMPL_TEST_CLASS
 
   integer(i_def), parameter :: element_order = 0
 contains
@@ -42,10 +42,10 @@ contains
 
     implicit none
 
-    class(operator_real64_test_type), intent(inout) :: this
+    class(TMPL_TEST_CLASS), intent(inout) :: this
 
     !Store the MPI communicator for later use
-     call global_mpi%initialise(this%getMpiCommunicator())
+    call global_mpi%initialise(this%getMpiCommunicator())
 
     ! Create top level mesh collection
     mesh_collection = mesh_collection_type()
@@ -59,7 +59,7 @@ contains
 
     implicit none
 
-    class(operator_real64_test_type), intent(inout) :: this
+    class(TMPL_TEST_CLASS), intent(inout) :: this
 
     call function_space_collection%clear()
     call mesh_collection%clear()
@@ -73,18 +73,18 @@ contains
   @Test( npes=[1] )
   subroutine test_all( this )
 
-    use operator_real64_mod, only: operator_real64_type, &
-                                   operator_real64_proxy_type
+    use TMPL_OPERATOR_MOD, only: TMPL_OPERATOR_TYPE, &
+                                   TMPL_OPERATOR_PROXY_TYPE
     use mesh_mod,            only: mesh_type, PLANE_BI_PERIODIC
     use function_space_mod,  only: function_space_type
     use fs_continuity_mod,   only: W1, W2
 
     implicit none
 
-    class(operator_real64_test_type), intent(inout) :: this
+    class(TMPL_TEST_CLASS), intent(inout) :: this
 
-    type( operator_real64_type )       :: Op
-    type( operator_real64_proxy_type ) :: Op_p
+    type( TMPL_OPERATOR_TYPE )       :: Op
+    type( TMPL_OPERATOR_PROXY_TYPE ) :: Op_p
 
     type(local_mesh_type), target  :: unit_test_local_mesh
     type(local_mesh_type), pointer :: unit_test_local_mesh_ptr
@@ -175,4 +175,4 @@ contains
 
   end  subroutine test_all
 
-end module operator_real64_mod_test
+end module TMPL_MODULE_NAME
