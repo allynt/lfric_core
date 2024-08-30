@@ -1,0 +1,73 @@
+{# ########################################################################### #}
+{# (c) Crown copyright 2024 Met Office. All rights reserved. #}
+{# The file LICENCE, distributed with this code, contains details of the terms #}
+{# under which the code may be used. #}
+{# ########################################################################### #}
+{% do LOG.debug("Entered site/meto/groups/group_science.cylc") %}
+
+{# SPICE Groups #}
+{% do site_groups.update({
+    "science_spice_developer": [
+        "science_spice_unit_tests"
+    ],
+    "science_spice": [
+        "science_spice_developer"
+    ],
+    "science_spice_unit_tests": [
+        "science_unit_tests_spice_intel_32bit",
+        "science_unit_tests_spice_intel_64bit",
+        "science_unit_tests_spice_gnu_32bit",
+        "science_unit_tests_spice_gnu_64bit"
+    ]
+    }) %}
+
+
+{# XC40 Groups #}
+{% do site_groups.update({
+    "science_xc40_developer": [
+        "science_xc40_unit_tests"
+    ],
+    "science_xc40": [
+        "science_xc40_developer"
+    ],
+    "science_xc40_unit_tests": [
+        "science_unit_tests_xc40_intel_32bit",
+        "science_unit_tests_xc40_intel_64bit"
+    ]
+    }) %}
+
+{# Platform Generic Groups #}
+{% do site_groups.update({
+    "science_developer": [
+        "scripts",
+        "science_spice_developer",
+        "science_xc40_developer",
+        "science_unit_tests"
+    ],
+    "science": [
+        "science_developer",
+        "science_spice",
+        "science_xc40"
+    ],
+    "science_unit_tests": [
+        "science_spice_unit_tests",
+        "science_xc40_unit_tests"
+    ]
+    }) %}
+
+{# Platform Generic Extends #}
+{% do site_groups.developer.extend(site_groups.science_developer) %}
+{% do site_groups.all.extend(site_groups.science) %}
+{% do site_groups.unit_tests.extend(site_groups.science_unit_tests) %}
+
+{# Spice Extends #}
+{% do site_groups.spice_developer.extend(site_groups.science_spice_developer) %}
+{% do site_groups.spice.extend(site_groups.science_spice) %}
+{% do site_groups.spice_unit_tests.extend(site_groups.science_spice_unit_tests) %}
+
+{# XC40 Extends #}
+{% do site_groups.xc40_developer.extend(site_groups.science_xc40_developer) %}
+{% do site_groups.xc40.extend(site_groups.science_xc40) %}
+{% do site_groups.xc40_unit_tests.extend(site_groups.science_xc40_unit_tests) %}
+
+{% do LOG.debug("Finished in site/meto/groups/group_science.cylc") %}

@@ -6,6 +6,8 @@
 !> Test the sample_w3_to_wtheta_kernel
 module sample_w3_to_wtheta_kernel_mod_test
 
+  use, intrinsic :: iso_fortran_env, only : real32, real64
+
   use constants_mod,                       only : i_def, r_def
   use get_unit_test_m3x3_q3x3x3_sizes_mod, only : get_w3_m3x3_q3x3x3_size, &
                                                   get_wtheta_m3x3_q3x3x3_size
@@ -70,7 +72,6 @@ contains
 
     class(sample_w3_to_wtheta_test_type), intent(inout) :: this
 
-    real(kind=r_def),      parameter :: tol = 1.0e-12_r_def
     real(kind=r_def),      parameter :: theta0 = 300.0_r_def
     real(kind=r_def),      parameter :: dtheta_dz = - 0.5_r_def
 
@@ -92,6 +93,14 @@ contains
     ! Dofmaps
     integer(kind=i_def), allocatable :: map_wt(:,:)
     integer(kind=i_def), allocatable :: map_w3(:,:)
+
+#if (RDEF_PRECISION == 64)
+    real(real64), parameter :: tol = 1.0e-12_real64
+#elif (RDEF_PRECISION == 32)
+    real(real32), parameter :: tol = 1.0e-4_real32
+#else
+    @assertFail("Unsupported default precission")
+#endif
 
     nlayers = 3
     call get_w3_m3x3_q3x3x3_size( ndf_w3, undf_w3, ncells,      &

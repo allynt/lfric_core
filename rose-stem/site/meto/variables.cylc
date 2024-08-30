@@ -8,6 +8,7 @@
 {% do site_vars.update({"known_applications": ["driver",
                                                "infrastructure",
                                                "mesh",
+                                               "science",
                                                "skeleton"]}) %}
 
 {% do site_vars.update({"site_platforms": ["spice",
