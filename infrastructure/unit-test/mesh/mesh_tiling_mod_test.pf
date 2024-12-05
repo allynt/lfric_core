@@ -9,7 +9,7 @@
 module mesh_tiling_mod_test
 !-------------------------------------------------------------------------------
 
-  use constants_mod, only: r_def, i_def, str_max_filename, str_def
+  use constants_mod, only: r_def, i_def, l_def, str_max_filename, str_def
   use global_mesh_collection_mod, only: global_mesh_collection_type, &
                                         global_mesh_collection
   use mesh_mod, only : mesh_type
@@ -83,7 +83,8 @@ contains
 !-------------------------------------------------------------------------------
 
   function get_mesh( filename, xyprocs, max_stencil_depth, local_rank,      &
-                     total_ranks, num_layers, tile_size, inner_halo_tiles ) &
+                     total_ranks, num_layers, generate_inner_haloes,        &
+                     tile_size, inner_halo_tiles ) &
                      result ( mesh )
 
     use ugrid_mesh_data_mod, only : ugrid_mesh_data_type
@@ -103,7 +104,8 @@ contains
     integer(i_def), intent(in)                    :: total_ranks
     integer(i_def), intent(in)                    :: num_layers
     integer(i_def), intent(in)                    :: tile_size(2)
-    logical(i_def), intent(in)                    :: inner_halo_tiles
+    logical(l_def), intent(in)                    :: inner_halo_tiles
+    logical(l_def), intent(in)                    :: generate_inner_haloes
     type(mesh_type)                               :: mesh
 
     character(str_def), parameter             :: mesh_name ='unit_test'
@@ -127,12 +129,13 @@ contains
     global_mesh_ptr => global_mesh_collection%get_global_mesh( global_mesh_id )
 
     partitioner_ptr => partitioner_planar
-    partition = partition_type( global_mesh_ptr,   &
-                                partitioner_ptr,   &
-                                xyprocs(1),        &
-                                xyprocs(2),        &
-                                max_stencil_depth, &
-                                local_rank,        &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xyprocs(1),            &
+                                xyprocs(2),            &
+                                max_stencil_depth,     &
+                                generate_inner_haloes, &
+                                local_rank,            &
                                 total_ranks )
 
     call local_mesh%initialise( global_mesh_ptr, partition )
@@ -179,6 +182,7 @@ contains
     integer(i_def), allocatable       :: last_inner_cells(:,:,:)
     integer(i_def), allocatable       :: last_edge_cells(:,:)
     integer(i_def), allocatable       :: last_halo_cells(:,:,:)
+    logical(l_def)                    :: generate_inner_haloes
 
     select case ( this%total_ranks )
       case (1)
@@ -187,11 +191,14 @@ contains
         xyprocs = 2
     end select
     max_stencil_depth = 2
+    generate_inner_haloes = .true.
+
     filename = 'data/mesh_BiP8x8-750x250.nc'
 
     ! Initialise mesh, this also initialises tiling
-    mesh = get_mesh( filename , xyprocs, max_stencil_depth, this%local_rank, &
-                     this%total_ranks, this%num_layers, tile_size, .false. )
+    mesh = get_mesh( filename , xyprocs, max_stencil_depth, this%local_rank,  &
+                     this%total_ranks, this%num_layers,                       &
+                     generate_inner_haloes, tile_size, .false. )
 
     ! Retrieve colouring data through mesh_type API and fill comparison arrays
     ncolours = mesh%get_ncolours()
@@ -276,10 +283,12 @@ contains
     integer(i_def)                    :: last_edge_cells( ncolours, ntiles )
     integer(i_def)                    :: &
          last_halo_cells( ncolours, ntiles, ndepths )
+    logical(l_def)                    :: generate_inner_haloes
 
     xyprocs = 2
     max_stencil_depth = 4
     filename = 'data/mesh_planar-32x32.nc'
+    generate_inner_haloes = .true.
 
     ! The global mesh will be partitioned into 2x2 rectangular local meshes
     ! with 16x16 cells each, and outer halos along two of the 4 partition
@@ -399,8 +408,9 @@ contains
     end select
 
     ! Initialise mesh, this also initialises tiling
-    mesh = get_mesh( filename , xyprocs, max_stencil_depth, this%local_rank, &
-                     this%total_ranks, this%num_layers, tile_size, .true. )
+    mesh = get_mesh( filename , xyprocs, max_stencil_depth, this%local_rank,   &
+                     this%total_ranks, this%num_layers, generate_inner_haloes, &
+                     tile_size, .true. )
 
     ! Edge and inner tiles are the same when inner halos are tiled separately
     call check_tiling_results( mesh, ncolours, ntiles, ndepths, ndepths,   &
@@ -437,10 +447,12 @@ contains
     integer(i_def)                    :: last_edge_cells( ncolours, ntiles )
     integer(i_def)                    :: &
          last_halo_cells( ncolours, ntiles, ndepths )
+    logical(l_def)                    :: generate_inner_haloes
 
     xyprocs = 2
     max_stencil_depth = 4
     filename = 'data/mesh_planar-32x32.nc'
+    generate_inner_haloes = .true.
 
     ! Same test as "test_partitioned_planar_mesh_separated_halo", but without
     ! separating inner halo and partition interior. This leads to the
@@ -566,8 +578,9 @@ contains
     end select
 
     ! Initialise mesh, this also initialises tiling
-    mesh = get_mesh( filename , xyprocs, max_stencil_depth, this%local_rank, &
-                     this%total_ranks, this%num_layers, tile_size, .false. )
+    mesh = get_mesh( filename , xyprocs, max_stencil_depth, this%local_rank,   &
+                     this%total_ranks, this%num_layers, generate_inner_haloes, &
+                     tile_size, .false. )
 
     call check_tiling_results( mesh, ncolours, ntiles, ndepths, ndepths,   &
                                ncells, last_inner_tiles, last_inner_cells, &

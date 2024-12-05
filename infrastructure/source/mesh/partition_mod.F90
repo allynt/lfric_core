@@ -25,7 +25,8 @@ module partition_mod
   use sort_mod,        only : bubble_sort
   use log_mod,         only : log_event,         &
                               log_scratch_space, &
-                              LOG_LEVEL_ERROR
+                              LOG_LEVEL_ERROR,   &
+                              LOG_LEVEL_DEBUG
   use constants_mod,   only: i_def, r_def, l_def
 
   implicit none
@@ -126,6 +127,8 @@ module partition_mod
     !> @param[in]  total_ranks  Total number of MPI ranks.
     !> @param[in] max_stencil_depth  The maximum depth of stencil that will be
     !>                               used with this partition
+    !> @param[in] generate_inner_haloes Flag to control the generation of inner
+    !>                                  haloes
     !> @param[inout] global_cell_id  Holds the global IDs of all cells in
     !>                               local partition.
     !> @param[out] num_inner  Number of cells that are inner halo cells.
@@ -146,13 +149,14 @@ module partition_mod
                                       local_rank, &
                                       total_ranks, &
                                       max_stencil_depth, &
+                                      generate_inner_haloes, &
                                       global_cell_id, &
                                       num_inner, &
                                       num_edge, &
                                       num_halo, &
                                       num_ghost )
       import :: global_mesh_type
-      import :: i_def
+      import :: i_def, l_def
 
       type(global_mesh_type), intent(in), pointer :: global_mesh
 
@@ -161,6 +165,7 @@ module partition_mod
                                                     local_rank,   &
                                                     total_ranks
       integer(i_def), intent(in)                 :: max_stencil_depth
+      logical(l_def), intent(in)                 :: generate_inner_haloes
       integer(i_def), intent(inout), allocatable :: global_cell_id(:)
       integer(i_def), intent(out)                :: num_inner(:), &
                                                     num_edge,     &
@@ -194,6 +199,7 @@ contains
                                   xproc, &
                                   yproc, &
                                   max_stencil_depth, &
+                                  generate_inner_haloes, &
                                   local_rank, &
                                   total_ranks) result(self)
 
@@ -206,6 +212,7 @@ contains
   integer(i_def),                   intent(in) :: max_stencil_depth
   integer(i_def),                   intent(in) :: local_rank
   integer(i_def),                   intent(in) :: total_ranks
+  logical(l_def),                   intent(in) :: generate_inner_haloes
 
   type(partition_type), target :: self
 
@@ -229,6 +236,7 @@ contains
                     local_rank, &
                     total_ranks, &
                     self%max_stencil_depth, &
+                    generate_inner_haloes, &
                     self%global_cell_id, &
                     self%num_inner, &
                     self%num_edge, &
@@ -375,6 +383,8 @@ contains
   !> @param[in] total_ranks  Total number of MPI ranks.
   !> @param[in] max_stencil_depth  The maximum depth of stencil that will be
   !>                               used with this partition.
+  !> @param [in] generate_inner_haloes Flag to control the generation of inner
+  !>                                   haloes
   !> @param[inout] partitioned_cells  Returned array that holds the global IDs
   !>                                  of all cells in local partition.
   !> @param[out] num_inner  Number of cells that are inner halo cells.
@@ -387,17 +397,18 @@ contains
   !>                        required to fully describe the cells in the
   !>                        partitioned domain.
   !>
-  subroutine partitioner_planar( global_mesh,       &
-                                 num_panels,        &
-                                 xproc,             &
-                                 yproc,             &
-                                 local_rank,        &
-                                 total_ranks,       &
-                                 max_stencil_depth, &
-                                 partitioned_cells, &
-                                 num_inner,         &
-                                 num_edge,          &
-                                 num_halo,          &
+  subroutine partitioner_planar( global_mesh,           &
+                                 num_panels,            &
+                                 xproc,                 &
+                                 yproc,                 &
+                                 local_rank,            &
+                                 total_ranks,           &
+                                 max_stencil_depth,     &
+                                 generate_inner_haloes, &
+                                 partitioned_cells,     &
+                                 num_inner,             &
+                                 num_edge,              &
+                                 num_halo,              &
                                  num_ghost )
     implicit none
 
@@ -414,6 +425,7 @@ contains
     integer(i_def),              intent(out)   :: num_edge
     integer(i_def),              intent(out)   :: num_halo( : )
     integer(i_def),              intent(out)   :: num_ghost
+    logical(l_def),              intent(in)    :: generate_inner_haloes
 
     ! A biperiodic mesh has 1 panel
     num_panels = 1
@@ -425,6 +437,7 @@ contains
                                         local_rank, &
                                         total_ranks, &
                                         max_stencil_depth, &
+                                        generate_inner_haloes, &
                                         partitioned_cells, &
                                         num_inner, &
                                         num_edge, &
@@ -447,6 +460,8 @@ contains
   !> @param[in]  total_ranks  Total number of MPI ranks.
   !> @param[in] max_stencil_depth  Maximum depth of stencil that will be used
   !>                               with this partition.
+  !> @param [in] generate_inner_haloes Flag to control the generation of inner
+  !>                                   haloes
   !> @param[inout] partitioned_cells  Holds the global IDs of all cells in
   !>                                  local partition.
   !> @param[out] num_inner  Number of cells that are inner halo cells.
@@ -460,17 +475,18 @@ contains
   !>                        required to fully describe the cells in the
   !>                        partitioned domain.
   !>
-  subroutine partitioner_cubedsphere( global_mesh,       &
-                                      num_panels,        &
-                                      xproc,             &
-                                      yproc,             &
-                                      local_rank,        &
-                                      total_ranks,       &
-                                      max_stencil_depth, &
-                                      partitioned_cells, &
-                                      num_inner,         &
-                                      num_edge,          &
-                                      num_halo,          &
+  subroutine partitioner_cubedsphere( global_mesh,            &
+                                      num_panels,             &
+                                      xproc,                  &
+                                      yproc,                  &
+                                      local_rank,             &
+                                      total_ranks,            &
+                                      max_stencil_depth,      &
+                                      generate_inner_haloes,  &
+                                      partitioned_cells,      &
+                                      num_inner,              &
+                                      num_edge,               &
+                                      num_halo,               &
                                       num_ghost )
     implicit none
 
@@ -487,6 +503,7 @@ contains
     integer(i_def),              intent(out)   :: num_edge
     integer(i_def),              intent(out)   :: num_halo( : )
     integer(i_def),              intent(out)   :: num_ghost
+    logical(l_def),              intent(in)    :: generate_inner_haloes
 
     ! A cubed sphere has 6 panels
     num_panels = 6
@@ -503,6 +520,7 @@ contains
                                         local_rank, &
                                         total_ranks, &
                                         max_stencil_depth, &
+                                        generate_inner_haloes, &
                                         partitioned_cells, &
                                         num_inner, &
                                         num_edge, &
@@ -522,6 +540,8 @@ contains
   !> @param[in]  total_ranks  Total number of MPI ranks.
   !> @param[in]  max_stencil_depth  Maximum depth of stencil that will be used
   !>                                with this partition.
+  !> @param [in] generate_inner_haloes Flag to control the generation of inner
+  !>                                   haloes
   !> @param[inout] partitioned_cells  Holds the global IDs of all cells in
   !>                                  local partition.
   !> @param[out] num_inner  Number of cells that are inner halo cells.
@@ -534,17 +554,18 @@ contains
   !>                        required to fully describe the cells in the
   !>                        partitioned domain
   !>
-  subroutine partitioner_cubedsphere_serial( global_mesh,       &
-                                             num_panels,        &
-                                             xproc,             &
-                                             yproc,             &
-                                             local_rank,        &
-                                             total_ranks,       &
-                                             max_stencil_depth, &
-                                             partitioned_cells, &
-                                             num_inner,         &
-                                             num_edge,          &
-                                             num_halo,          &
+  subroutine partitioner_cubedsphere_serial( global_mesh,           &
+                                             num_panels,            &
+                                             xproc,                 &
+                                             yproc,                 &
+                                             local_rank,            &
+                                             total_ranks,           &
+                                             max_stencil_depth,     &
+                                             generate_inner_haloes, &
+                                             partitioned_cells,     &
+                                             num_inner,             &
+                                             num_edge,              &
+                                             num_halo,              &
                                              num_ghost )
 
   ! The general partitioner for a cubed-sphere mesh returns a minimum of one
@@ -566,6 +587,7 @@ contains
     integer(i_def),              intent(out)   :: num_edge
     integer(i_def),              intent(out)   :: num_halo( : )
     integer(i_def),              intent(out)   :: num_ghost
+    logical(l_def),              intent(in)    :: generate_inner_haloes
 
     integer(i_def) :: i
 
@@ -599,17 +621,18 @@ contains
   ! Helper routine that partitions a mesh that is formed from a number
   ! of rectangular panels.
   !-------------------------------------------------------------------------------
-  subroutine partitioner_rectangular_panels( global_mesh, &
-                                             num_panels, &
-                                             xproc, &
-                                             yproc, &
-                                             local_rank, &
-                                             total_ranks, &
-                                             max_stencil_depth, &
-                                             partitioned_cells, &
-                                             num_inner, &
-                                             num_edge, &
-                                             num_halo, &
+  subroutine partitioner_rectangular_panels( global_mesh,           &
+                                             num_panels,            &
+                                             xproc,                 &
+                                             yproc,                 &
+                                             local_rank,            &
+                                             total_ranks,           &
+                                             max_stencil_depth,     &
+                                             generate_inner_haloes, &
+                                             partitioned_cells,     &
+                                             num_inner,             &
+                                             num_edge,              &
+                                             num_halo,              &
                                              num_ghost )
 
     use linked_list_int_mod,   only : linked_list_int_type
@@ -637,6 +660,7 @@ contains
     integer(i_def),              intent(out)   :: num_halo( : )           ! Number of cells that are halo cells.
     integer(i_def),              intent(out)   :: num_ghost               ! Number of cells that are ghost cells - surrounding,
                                                                           ! but not in the partitioned domain
+    logical(l_def),              intent(in)    :: generate_inner_haloes   ! Flag to control the generation of inner haloes
 
     integer(i_def) :: face       ! which face of the cube is implied by local_rank (0->5)
     integer(i_def) :: start_cell ! lowest cell id of the face implaced by local_rank
@@ -766,6 +790,7 @@ contains
 
     endif
 
+    ! Ensure xproc and yproc are sensible values
     if(xproc > num_cells_x .or. yproc > num_cells_y) then
       write(log_scratch_space, '(2a,i0,a,i0,a,i0,a,i0,a)')      &
         "There needs to be more cells than partitions",         &
@@ -775,7 +800,7 @@ contains
       call log_event( log_scratch_space, LOG_LEVEL_ERROR)
     end if
 
-    !convert the local rank number into a face number and a local xproc and yproc
+    ! Convert the local rank number into a face number and a local xproc and yproc
     face = ((num_panels*local_rank)/total_ranks) + 1
     start_cell = sw_corner_cells(face)
     start_rank = xproc*yproc*(face-1)
@@ -784,15 +809,15 @@ contains
 
     deallocate(sw_corner_cells)
 
-    !Work out the start index and number of cells (in x- and y-dirn) for
-    !the local partition - this algorithm should spread out the number of
-    !cells each partition gets fairly evenly
+    ! Work out the start index and number of cells (in x- and y-dirn) for
+    ! the local partition - this algorithm should spread out the number of
+    ! cells each partition gets fairly evenly
     start_x = ( (local_xproc*num_cells_x) / xproc ) + 1
     num_x   = ( ((local_xproc+1)*num_cells_x) / xproc ) - start_x + 1
     start_y = ( (local_yproc*num_cells_y) / yproc ) + 1
     num_y   = ( ((local_yproc+1)*num_cells_y) / yproc ) - start_y + 1
 
-    !Create a linked list of all cells that are part of this partition (not halos)
+    ! Create a linked list of all cells that are part of this partition (not halos)
 
     partition = linked_list_type()
 
@@ -881,39 +906,42 @@ contains
       end if
     end do
 
-
     ! Add all cells from the inner halos (up to max_stencil_depth) that are in a
     ! stencil around each of the owned cells, but are not part of the outer halos
-
-    ! Point to start of known_cells list
-    start_subsect => known_cells%get_head()
-    ! insert point is head of known cells list as we want to insert before it
-    insert_point => known_cells%get_head()
-    ! num cells to apply stencil to is the number of edge cells only (not halo cells)
-    num_apply=num_edge
-    do depth = 1,max_stencil_depth-1
-      ! update number of cells currently in known_cells
-      orig_num_in_list = known_cells%get_length()
-      call apply_stencil( global_mesh, &
-                          known_cells, &
-                          start_subsect, &
-                          num_apply, &
-                          insert_point=insert_point, & ! where to insert in list
-                          placement=before )
-      ! num inner halo cells at this depth is the number we just added to known_cells
-      num_inner(depth) = known_cells%get_length()  - orig_num_in_list
-      ! num cells to apply stencil to next is the number of cells just added to known_cells
-      num_apply = num_inner(depth)
-      ! reset start point to current head of known_cells list
+    if ( generate_inner_haloes ) then
+      call log_event( 'Generating Inner Haloes', LOG_LEVEL_DEBUG )
+      ! Point to start of known_cells list
       start_subsect => known_cells%get_head()
-      ! and reset insert point also
+      ! insert point is head of known cells list as we want to insert before it
       insert_point => known_cells%get_head()
-    end do
+      ! num cells to apply stencil to is the number of edge cells only (not halo cells)
+      num_apply=num_edge
+      do depth = 1,max_stencil_depth-1
+        ! update number of cells currently in known_cells
+        orig_num_in_list = known_cells%get_length()
+        call apply_stencil( global_mesh, &
+                            known_cells, &
+                            start_subsect, &
+                            num_apply, &
+                            insert_point=insert_point, & ! where to insert in list
+                            placement=before )
+        ! num inner halo cells at this depth is the number we just added to known_cells
+        num_inner(depth) = known_cells%get_length()  - orig_num_in_list
+        ! num cells to apply stencil to next is the number of cells just added to known_cells
+        num_apply = num_inner(depth)
+        ! reset start point to current head of known_cells list
+        start_subsect => known_cells%get_head()
+        ! and reset insert point also
+        insert_point => known_cells%get_head()
+      end do
+    !Cells of depth max_stencil_depth
+    num_inner(max_stencil_depth)=0
+    else
+      ! Do not create any inner haloes
+      num_inner(:) = 0
+    end if
 
     ! Now check partition list for any cells not yet added. These must be inner halo
-    ! cells of depth max_stencil_depth
-
-    num_inner(max_stencil_depth)=0
     ! update number of cells currently in known_cells
     orig_num_in_list = known_cells%get_length()
     ! point at head of partition list
@@ -940,7 +968,6 @@ contains
     allocate(partitioned_cells(known_cells%get_length()))
     ! reset loop to start of known_cells
     loop => known_cells%get_head()
-
 
 
     ! Copy cell ids from known_cells list to partitioned_cells array

@@ -8,7 +8,7 @@
 !>
 module mesh_collection_mod_test
 
-    use constants_mod,        only : i_def, r_def, str_def, l_def
+    use constants_mod,        only : i_def, r_def, str_def
     use extrusion_mod,        only : uniform_extrusion_type, PRIME_EXTRUSION
     use global_mesh_mod,      only : global_mesh_type
     use partition_mod,        only : partition_type

@@ -8,7 +8,7 @@
 !>
 module mesh_map_collection_mod_test
 
-  use constants_mod,              only: r_def, i_def, IMDI, &
+  use constants_mod,              only: r_def, i_def, l_def, IMDI, &
                                         str_max_filename, str_def
   use extrusion_mod,              only: uniform_extrusion_type, PRIME_EXTRUSION
   use global_mesh_mod,            only: global_mesh_type
@@ -42,15 +42,16 @@ module mesh_map_collection_mod_test
   end type mesh_map_collection_test_type
 
   character(str_max_filename), &
-                  parameter :: filename    = 'data/mesh_C32_MG.nc'
-  integer(i_def), parameter :: local_rank  = 0_i_def
-  integer(i_def), parameter :: total_ranks = 1_i_def
-  integer(i_def), parameter :: max_stencil_depth = 1_i_def
-  integer(i_def), parameter :: xproc       = 1_i_def
-  integer(i_def), parameter :: yproc       = 1_i_def
-  integer(i_def), parameter :: nlayers     = 5_i_def
-  real(r_def),    parameter :: domain_top  = 10000.0_r_def
-  real(r_def),    parameter :: radius      = 6371229.0_r_def
+                  parameter :: filename              = 'data/mesh_C32_MG.nc'
+  integer(i_def), parameter :: local_rank            = 0_i_def
+  integer(i_def), parameter :: total_ranks           = 1_i_def
+  integer(i_def), parameter :: max_stencil_depth     = 1_i_def
+  integer(i_def), parameter :: xproc                 = 1_i_def
+  integer(i_def), parameter :: yproc                 = 1_i_def
+  integer(i_def), parameter :: nlayers               = 5_i_def
+  real(r_def),    parameter :: domain_top            = 10000.0_r_def
+  real(r_def),    parameter :: radius                = 6371229.0_r_def
+  logical(l_def), parameter :: generate_inner_haloes = .true.
 
 
 contains
@@ -103,6 +104,7 @@ contains
                                        partitioner_ptr,        &
                                        xproc, yproc,           &
                                        max_stencil_depth,      &
+                                       generate_inner_haloes,  &
                                        local_rank, total_ranks )
 
     call coarse_local_mesh%initialise( coarse_global_mesh_ptr, &
@@ -122,6 +124,7 @@ contains
                                        partitioner_ptr,        &
                                        xproc, yproc,           &
                                        max_stencil_depth,      &
+                                       generate_inner_haloes,  &
                                        local_rank, total_ranks )
 
     call fine_local_mesh%initialise( fine_global_mesh_ptr, &

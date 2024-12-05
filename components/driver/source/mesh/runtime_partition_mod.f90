@@ -219,20 +219,23 @@ end subroutine get_partition_parameters
 !> @brief  Loads the given list of global meshes names, partitions them
 !!         and creates local meshes from them.
 !>
-!> @param[in]  input_mesh_file    Input file to load meshes from.
-!> @param[in]  mesh_names[:]      Array of requested mesh names to load
-!!                                from the mesh input file
-!> @param[in]  local_rank         Number of the local MPI rank
-!> @param[in]  total_ranks        Total number of MPI ranks in this job
-!> @param[in]  xproc              Number of ranks in mesh panel x-direction
-!> @param[in]  yproc              Number of ranks in mesh panel y-direction
-!> @param[in]  stencil_depth      Depth of cells outside the base cell
-!!                                of stencil.
-!> @param[in]  partitioner_ptr    Mesh partitioning strategy
+!> @param[in]  input_mesh_file        Input file to load meshes from.
+!> @param[in]  mesh_names[:]          Array of requested mesh names to load
+!!                                    from the mesh input file
+!> @param[in]  local_rank             Number of the local MPI rank
+!> @param[in]  total_ranks            Total number of MPI ranks in this job
+!> @param[in]  xproc                  Number of ranks in mesh panel x-direction
+!> @param[in]  yproc                  Number of ranks in mesh panel y-direction
+!> @param[in]  generate_inner_haloes  Generate inner halo regions
+!!                                    to overlap comms & compute
+!> @param[in]  stencil_depth          Depth of cells outside the base cell
+!!                                    of stencil.
+!> @param[in]  partitioner_ptr        Mesh partitioning strategy
 subroutine create_local_mesh( mesh_names,              &
                               local_rank, total_ranks, &
                               xproc, yproc,            &
                               stencil_depth,           &
+                              generate_inner_haloes,   &
                               partitioner_ptr )
 
   implicit none
@@ -244,6 +247,8 @@ subroutine create_local_mesh( mesh_names,              &
   integer(i_def), intent(in) :: xproc
   integer(i_def), intent(in) :: yproc
   integer(i_def), intent(in) :: stencil_depth
+
+  logical(l_def), intent(in) :: generate_inner_haloes
 
   procedure(partitioner_interface), intent(in), pointer :: partitioner_ptr
 
@@ -258,10 +263,11 @@ subroutine create_local_mesh( mesh_names,              &
     global_mesh_ptr => global_mesh_collection%get_global_mesh( mesh_names(i) )
 
     ! Create partition
-    partition = partition_type( global_mesh_ptr, &
-                                partitioner_ptr, &
-                                xproc, yproc,    &
-                                stencil_depth,   &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xproc, yproc,          &
+                                stencil_depth,         &
+                                generate_inner_haloes, &
                                 local_rank, total_ranks )
     ! Create local_mesh
     call local_mesh%initialise( global_mesh_ptr, partition )

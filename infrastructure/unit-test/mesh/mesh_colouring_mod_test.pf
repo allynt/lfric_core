@@ -8,7 +8,7 @@
 !-------------------------------------------------------------------------------
 module mesh_colouring_mod_test
 !-------------------------------------------------------------------------------
-  use constants_mod,              only : i_def, imdi, r_def, &
+  use constants_mod,              only : i_def, imdi, r_def, l_def, &
                                          str_def, str_max_filename
   use extrusion_mod,              only : uniform_extrusion_type, PRIME_EXTRUSION
   use global_mesh_mod,            only : global_mesh_type
@@ -122,6 +122,8 @@ subroutine test_compute_colours_cubedsphere(this)
   integer(i_def)   :: err
   character( 200 ) :: message
 
+  logical(l_def), parameter   :: generate_inner_haloes = .true.
+
   filename = "data/mesh_C4.nc"
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
   global_mesh = global_mesh_type( ugrid_mesh_data )
@@ -129,12 +131,13 @@ subroutine test_compute_colours_cubedsphere(this)
   global_mesh_ptr => global_mesh
 
   partitioner_ptr => partitioner_cubedsphere_serial
-  partition = partition_type( global_mesh_ptr, &
-                            partitioner_ptr, &
-                            this%xproc, &
-                            this%yproc, &
-                            halo_depth, &
-                            this%local_rank, &
+  partition = partition_type( global_mesh_ptr,     &
+                            partitioner_ptr,       &
+                            this%xproc,            &
+                            this%yproc,            &
+                            halo_depth,            &
+                            generate_inner_haloes, &
+                            this%local_rank,       &
                             this%total_ranks)
 
   call local_mesh%initialise( global_mesh_ptr, partition )
@@ -242,6 +245,8 @@ subroutine test_compute_colours_biperiodic(this)
   type(mesh_type) :: mesh
   integer(i_def)  :: err
 
+  logical(l_def), parameter   :: generate_inner_haloes = .true.
+
   filename = "data/mesh_BiP8x8-750x250.nc"
   call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
   global_mesh = global_mesh_type( ugrid_mesh_data )
@@ -249,12 +254,13 @@ subroutine test_compute_colours_biperiodic(this)
   global_mesh_ptr => global_mesh
 
   partitioner_ptr => partitioner_planar
-  partition = partition_type(global_mesh_ptr, &
-                            partitioner_ptr, &
-                            this%xproc, &
-                            this%yproc, &
-                            1, &
-                            this%local_rank, &
+  partition = partition_type(global_mesh_ptr,      &
+                            partitioner_ptr,       &
+                            this%xproc,            &
+                            this%yproc,            &
+                            1,                     &
+                            generate_inner_haloes, &
+                            this%local_rank,       &
                             this%total_ranks)
 
   call local_mesh%initialise( global_mesh_ptr, partition )
@@ -338,6 +344,8 @@ subroutine test_compute_colours_generic(this)
   type(mesh_type) :: mesh
   integer(i_def)  :: err
 
+  logical(l_def), parameter   :: generate_inner_haloes = .true.
+
   ! Force colour generator to use generic colour routine by not saying
   ! it's a cubed sphere
   filename = "data/mesh_C4.nc"
@@ -347,12 +355,13 @@ subroutine test_compute_colours_generic(this)
   global_mesh_ptr => global_mesh
 
   partitioner_ptr => partitioner_cubedsphere_serial
-  partition = partition_type( global_mesh_ptr, &
-                            partitioner_ptr, &
-                            this%xproc, &
-                            this%yproc, &
-                            1, &
-                            this%local_rank, &
+  partition = partition_type( global_mesh_ptr,     &
+                            partitioner_ptr,       &
+                            this%xproc,            &
+                            this%yproc,            &
+                            1,                     &
+                            generate_inner_haloes, &
+                            this%local_rank,       &
                             this%total_ranks)
 
   call local_mesh%initialise( global_mesh_ptr, partition )

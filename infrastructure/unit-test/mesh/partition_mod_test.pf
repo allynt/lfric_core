@@ -8,7 +8,7 @@
 !>
 module partition_mod_test
 
-  use constants_mod,              only: r_def, i_def, str_max_filename, &
+  use constants_mod,              only: r_def, i_def, l_def, str_max_filename, &
                                         str_def
   use global_mesh_mod,            only: global_mesh_type
   use global_mesh_collection_mod, only: global_mesh_collection_type, &
@@ -122,6 +122,8 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
+    logical(l_def) :: generate_inner_haloes
+
     character(len = str_max_filename) :: filename
 
     num_processes = this%context%getNumProcesses()
@@ -138,6 +140,8 @@ contains
     total_ranks = this%total_ranks
     max_stencil_depth = 2
 
+    generate_inner_haloes = .true.
+
     filename = 'data/mesh_BiP8x8-750x250.nc'
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
     global_mesh = global_mesh_type( ugrid_mesh_data )
@@ -149,12 +153,13 @@ contains
     partitioner_ptr => partitioner_planar
     !
     ! Generate the partition
-    partition = partition_type( global_mesh_ptr, &
-                                partitioner_ptr, &
-                                xproc, &
-                                yproc, &
-                                max_stencil_depth, &
-                                local_rank, &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xproc,                 &
+                                yproc,                 &
+                                max_stencil_depth,     &
+                                generate_inner_haloes, &
+                                local_rank,            &
                                 total_ranks )
 
     ! Test functionality of the partition object we've just created on both 1
@@ -261,6 +266,8 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
+    logical(l_def) :: generate_inner_haloes
+
     character(len = str_max_filename) :: filename
 
     num_processes = this%context%getNumProcesses()
@@ -277,6 +284,8 @@ contains
     total_ranks = this%total_ranks
     max_stencil_depth = 2
 
+    generate_inner_haloes = .true.
+
     filename = 'data/mesh_planar.nc'
 
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -290,12 +299,13 @@ contains
     partitioner_ptr => partitioner_planar
     !
     ! Generate the partition
-    partition = partition_type( global_mesh_ptr, &
-                                partitioner_ptr, &
-                                xproc, &
-                                yproc, &
-                                max_stencil_depth, &
-                                local_rank, &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xproc,                 &
+                                yproc,                 &
+                                max_stencil_depth,     &
+                                generate_inner_haloes, &
+                                local_rank,            &
                                 total_ranks )
     ! Test functionality of the partition object we've just created on both 1
     ! and 4 processes
@@ -401,6 +411,8 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
+    logical(l_def) :: generate_inner_haloes
+
     character(len = str_max_filename) :: filename
 
     num_processes = this%context%getNumProcesses()
@@ -417,6 +429,8 @@ contains
     total_ranks = this%total_ranks
     max_stencil_depth = 2
 
+    generate_inner_haloes = .true.
+
     filename = 'data/mesh_trench_x.nc'
 
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -430,12 +444,13 @@ contains
     partitioner_ptr => partitioner_planar
     !
     ! Generate the partition
-    partition = partition_type( global_mesh_ptr, &
-                                partitioner_ptr, &
-                                xproc, &
-                                yproc, &
-                                max_stencil_depth, &
-                                local_rank, &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xproc,                 &
+                                yproc,                 &
+                                max_stencil_depth,     &
+                                generate_inner_haloes, &
+                                local_rank,            &
                                 total_ranks )
     ! Test functionality of the partition object we've just created on both 1
     ! and 4 processes
@@ -541,6 +556,8 @@ contains
     integer(i_def) :: global_mesh_id
     integer(i_def) :: num_processes
 
+    logical(l_def) :: generate_inner_haloes
+
     character(len = str_max_filename) :: filename
 
     num_processes = this%context%getNumProcesses()
@@ -557,6 +574,8 @@ contains
     total_ranks = this%total_ranks
     max_stencil_depth = 2
 
+    generate_inner_haloes = .true.
+
     filename = 'data/mesh_trench_y.nc'
 
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -570,12 +589,13 @@ contains
     partitioner_ptr => partitioner_planar
     !
     ! Generate the partition
-    partition = partition_type( global_mesh_ptr, &
-                                partitioner_ptr, &
-                                xproc, &
-                                yproc, &
-                                max_stencil_depth, &
-                                local_rank, &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xproc,                 &
+                                yproc,                 &
+                                max_stencil_depth,     &
+                                generate_inner_haloes, &
+                                local_rank,            &
                                 total_ranks )
     ! Test functionality of the partition object we've just created on both 1
     ! and 4 processes
@@ -683,6 +703,8 @@ contains
 
     integer(i_def) :: global_mesh_id
 
+    logical(l_def) :: generate_inner_haloes
+
     character(len = str_max_filename) :: filename
 
     xproc = 1
@@ -690,6 +712,8 @@ contains
     local_rank = this%local_rank
     total_ranks = this%total_ranks
     max_stencil_depth = 2
+
+    generate_inner_haloes = .true.
 
     filename = 'data/mesh_C4.nc'
     call ugrid_mesh_data%read_from_file(trim(filename), mesh_name)
@@ -701,12 +725,13 @@ contains
 
     partitioner_ptr => partitioner_cubedsphere_serial
 
-    partition = partition_type( global_mesh_ptr, &
-                                partitioner_ptr, &
-                                xproc, &
-                                yproc, &
-                                max_stencil_depth, &
-                                local_rank, &
+    partition = partition_type( global_mesh_ptr,       &
+                                partitioner_ptr,       &
+                                xproc,                 &
+                                yproc,                 &
+                                max_stencil_depth,     &
+                                generate_inner_haloes, &
+                                local_rank,            &
                                 total_ranks )
     !
     ! Test functionality of the partition object we've just created
@@ -758,12 +783,13 @@ contains
     !  global_mesh = global_mesh_type( filename )
     !  partitioner_ptr => partitioner_cubedsphere
     !
-    !  partition = partition_type( global_mesh, &
-    !                              partitioner_ptr, &
-    !                              xproc, &
-    !                              yproc, &
-    !                              max_stencil_depth, &
-    !                              local_rank, &
+    !  partition = partition_type( global_mesh,           &
+    !                              partitioner_ptr,       &
+    !                              xproc,                 &
+    !                              yproc,                 &
+    !                              max_stencil_depth,     &
+    !                              generate_inner_haloes, &
+    !                              local_rank,            &
     !                              total_ranks )
     !  !
     !  ! Test functionality of the partition object we've just created

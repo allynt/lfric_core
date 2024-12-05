@@ -113,11 +113,13 @@ subroutine init_mesh( configuration,           &
   ! Namelist variables
   type(namelist_type), pointer :: base_mesh_nml      => null()
   type(namelist_type), pointer :: finite_element_nml => null()
+  type(namelist_type), pointer :: partitioning_nml   => null()
 
   character(str_max_filename)  :: file_prefix
 
   integer(i_def) :: cellshape
   logical        :: prepartitioned
+  logical(l_def) :: generate_inner_haloes
 
 
   ! Local variables
@@ -138,13 +140,16 @@ subroutine init_mesh( configuration,           &
   !============================================================================
   base_mesh_nml      => configuration%get_namelist('base_mesh')
   finite_element_nml => configuration%get_namelist('finite_element')
+  partitioning_nml   => configuration%get_namelist('partitioning')
 
   call base_mesh_nml%get_value( 'prepartitioned', prepartitioned )
   call base_mesh_nml%get_value( 'file_prefix',    file_prefix )
   call finite_element_nml%get_value( 'cellshape', cellshape )
+  call partitioning_nml%get_value( 'generate_inner_haloes', generate_inner_haloes )
 
   base_mesh_nml      => null()
   finite_element_nml => null()
+  partitioning_nml   => null()
 
   !============================================================================
   ! 0.1 Some basic checks
@@ -294,6 +299,7 @@ subroutine init_mesh( configuration,           &
                             local_rank, total_ranks, &
                             xproc, yproc,            &
                             stencil_depth,           &
+                            generate_inner_haloes,   &
                             partitioner_ptr )
 
 

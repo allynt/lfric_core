@@ -147,6 +147,7 @@ program planar_mesh_generator
   integer(i_def) :: topology
   integer(i_def) :: geometry
 
+  logical(l_def) :: generate_inner_haloes
   integer(i_def) :: max_stencil_depth
   integer(i_def) :: n_partitions
   integer(i_def), allocatable :: partition_range(:)
@@ -219,6 +220,8 @@ program planar_mesh_generator
     call nml_obj%get_value( 'max_stencil_depth', max_stencil_depth )
     call nml_obj%get_value( 'n_partitions', n_partitions )
     call nml_obj%get_value( 'partition_range', partition_range )
+    call nml_obj%get_value( 'partition_range', partition_range )
+    call nml_obj%get_value( 'generate_inner_haloes', generate_inner_haloes )
   end if
 
   if (configuration%namelist_exists('rotation')) then
@@ -822,17 +825,18 @@ program planar_mesh_generator
     allocate( local_mesh_collection, source=local_mesh_collection_type() )
 
     if ( create_lbc_mesh ) then
-      call generate_op_local_objects( local_mesh_collection,               &
-                                      mesh_names, global_mesh_collection,  &
-                                      n_partitions, partition_range,       &
-                                      max_stencil_depth, xproc, yproc,     &
+      call generate_op_local_objects( local_mesh_collection,                    &
+                                      mesh_names, global_mesh_collection,       &
+                                      n_partitions, partition_range,            &
+                                      max_stencil_depth, generate_inner_haloes, &
+                                      xproc, yproc,     &
                                       partitioner_ptr, lbc_parent_mesh )
     else
-      call generate_op_local_objects( local_mesh_collection,               &
-                                      mesh_names, global_mesh_collection,  &
-                                      n_partitions, partition_range,       &
-                                      max_stencil_depth, xproc, yproc,     &
-                                      partitioner_ptr )
+      call generate_op_local_objects( local_mesh_collection,                    &
+                                      mesh_names, global_mesh_collection,       &
+                                      n_partitions, partition_range,            &
+                                      max_stencil_depth, generate_inner_haloes, &
+                                      xproc, yproc, partitioner_ptr )
     end if
 
     !---------------------------------------------------------------
