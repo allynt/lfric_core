@@ -75,15 +75,15 @@
             'compiler' : {
                 'intel' : [
                     'module unload ifort/17.0_64',
-                    'module load environment/lfric/ifort/19.0_64/7'
+                    'module load environment/lfric/ifort/19.0_64/9'
                 ],
                 'gnu' : [
-                    'module load environment/lfric/gcc/11.2.0/7'
+                    'module load environment/lfric/gcc/11.2.0/9'
                 ]
             },
             'plot' : ['module load scitools/production-os45-1'],
             'reveal' : ['module list 2>&1', 'export'],
-            'tech' : ['module load environment/lfric/common/15'],
+            'tech' : ['module load environment/lfric/common/17'],
             'run'  : ['ulimit -s unlimited'],
         },
         'teardown' : {
@@ -133,15 +133,15 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/9'
+                    'module load meto-environment/lfric/intel/17.0.0.098/10'
                 ],
                 'intel-perf' : [
-                    'module load meto-environment/lfric-perftools/intel/17.0.0.098/2'
+                    'module load meto-environment/lfric-perftools/intel/17.0.0.098/3'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
             'run' : [],
-            'tech' : ['module load meto-common/lfric/17',
+            'tech' : ['module load meto-common/lfric/18',
                       'module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
@@ -200,15 +200,15 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/9'
+                    'module load meto-environment/lfric/intel/17.0.0.098/10'
                 ],
                 'intel-perf' : [
-                    'module load meto-environment/lfric-perftools/intel/17.0.0.098/2'
+                    'module load meto-environment/lfric-perftools/intel/17.0.0.098/3'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
             'run' : [],
-            'tech' : ['module load meto-common-environment/lfric/17',
+            'tech' : ['module load meto-common-environment/lfric/18',
                       'module load cray-snplauncher/$CRAY_MPICH2_VER']
         },
         'teardown' : {
@@ -267,7 +267,7 @@
             ],
             'compiler' : {
                 'intel' : [
-                    'module load meto-environment/lfric/intel/17.0.0.098/6'
+                    'module load meto-environment/lfric/intel/17.0.0.098/10'
                 ]
             },
             'reveal' : ['module list 2>&1', 'export'],
