@@ -13,8 +13,11 @@ Developer Guide
    :maxdepth: 2
 
    templated_source
+
    build_system/index
    using_doxygen
+   unit_testing/index
+
 
 Requirements
 ------------
