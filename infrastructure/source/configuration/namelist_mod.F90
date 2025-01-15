@@ -40,7 +40,11 @@ module namelist_mod
     character(:), allocatable :: listname
     character(str_def) :: profile_name = trim(cmdi)
 
+#ifdef __NVCOMPILER
+    class(namelist_item_type), allocatable :: members(:)
+#else
     type(namelist_item_type), allocatable :: members(:)
+#endif
 
   contains
 
@@ -118,7 +122,11 @@ contains
     end if
 
     allocate( self%listname, source=listname )
+#ifndef __NVCOMPILER
     allocate( self%members,  source=members )
+#else
+    self%members = members
+#endif
 
   end subroutine namelist_initialise
 
