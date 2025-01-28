@@ -153,14 +153,7 @@
         "build",
         "plot",
         "check",
-        "publish",
-        "phystest",
-        "fcm_make",
-        "fcm_make2",
-        "configurate",
-        "psyclone",
-        "generate_weights",
-        "rose_ana"] %}
+        "publish"] %}
 
     {# Remove a task prefix if listed above #}
     {% for prefix in task_prefixes %}

@@ -43,7 +43,7 @@
             {% endif %}
         {% endfor %}
         {% if app_ns.found %}
-            {% if task.startswith("build") or task.startswith("fcm_make") %}
+            {% if task.startswith("build") %}
                 {% do set_add(app_build_families, app_ns.name) %}
             {% else %}
                 {% do set_add(app_families, app_ns.name) %}

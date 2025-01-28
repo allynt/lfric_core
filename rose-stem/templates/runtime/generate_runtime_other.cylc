@@ -6,7 +6,7 @@
 {% do LOG.debug("Entered templates/runtime/generate_runtime_other.cylc") %}
 
 {# Generate runtime section for tasks not included elsewhere #}
-{# Currently plot, checksum and phystest #}
+{# Currently plot and checksum #}
 
 {# Set the family inheritance for this task #}
 {% set inherit = namespace(str="") %}
@@ -98,20 +98,6 @@
         [[[environment]]]
             CURRENT_KGO = {{current_kgo}}
             NEW_KGO = {{new_kgo}}
-
-{% elif task.startswith("phystest") %}
-{# Phystest Tasks #}
-
-    {% for family in task_values["phystest_families"] %}
-        {% set inherit.str = inherit.str~","~family|upper %}
-    {% endfor %}
-
-    [[{{task}}]]
-        inherit={{inherit.str|upper}}
-        script = rose task-run --app-key=phystest
-        [[[environment]]]
-            PHYSTEST_DIR = {{task_output_dir}}
-            PHYSTEST_SCRIPT = {{task_values["phystest_str"]}}
 
 {% endif %}
 

@@ -78,10 +78,6 @@
 
         {% include "templates/runtime/generate_runtime_technical-tests.cylc" %}
 
-    {% elif task_ns.application == "lfricinputs" %}
-
-        {% include "templates/runtime/generate_runtime_lfricinputs.cylc" %}
-
     {% elif task.startswith("build") %}
 
         {% include "templates/runtime/generate_runtime_build.cylc" %}
@@ -95,12 +91,7 @@
 
         {% include "templates/runtime/generate_runtime_application.cylc" %}
 
-    {# fcm_make tasks for lfric_coupled are dealt with here #}
-    {% elif task_ns.application == "lfric_coupled" and task.startswith("fcm_make") %}
-
-        {% include "templates/runtime/generate_runtime_lfric_coupled.cylc" %}
-
-    {# Everything else - plot, phystest and checksum for now #}
+    {# Everything else - plot and checksum for now #}
     {% else %}
 
         {% include "templates/runtime/generate_runtime_other.cylc" %}

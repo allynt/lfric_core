@@ -14,7 +14,6 @@
 {# https://cylc.github.io/cylc-doc/nightly_8.3/html/7-to-8/major-changes/cylc-install.html#admonition-5 #}
 {# The solution is to run a "dummy" task on that platform first #}
 {# Set the export-source task to depend on these tasks, 1 per platform #}
-{# Some fcm_make tasks for lfricinputs and coupled have this set in their files #}
 {% set remote_init_task = "remote-init_" %}
 {% for platform in requested_platforms %}
     {% do tasks_to_run.update({remote_init_task~platform: {} }) %}
@@ -59,11 +58,6 @@
                          "graph file.") }}
             {% endif %}
 
-        {% elif task_ns.application == "lfricinputs" %}
-
-            {# lfricinputs graphs are different due to building from fcm_make #}
-            {% include "templates/graph/populate_graph_lfricinputs.cylc" %}
-
         {% else %}
 
             {# Otherwise populate the graph using the templating #}
@@ -77,24 +71,15 @@
 {# a kgo check task, any scintelapi task and a script #}
 {# These bits of info are needed later #}
 {% set running_kgo = namespace(bool=false) %}
-{% set running_gen_weights = namespace(bool=false) %}
 {% set running_scripts = namespace(bool=false) %}
 {% for t in tasks_to_run %}
     {% if t.startswith("check") %}
         {% set running_kgo.bool = true %}
     {% endif %}
-    {% if "um2lfric" in t or "lfric2um" in t %}
-        {% set running_gen_weights.bool = true %}
-    {% endif %}
     {% if t in scripts_list %}
         {% set running_scripts.bool = true %}
     {% endif %}
 {% endfor %}
-
-{# Add task to export github scripts from SimSys_Scripts repo #}
-{# Runtime section in runtime/generate_runtime_scripts #}
-{% do graph_sections.append(["export_simsys_scripts"]) %}
-{% do tasks_to_run.update({"export_simsys_scripts": {} }) %}
 
 
 {# Set Housekeeping task if housekeeping is true - default value #}
@@ -119,12 +104,6 @@
                 {% do graph_sections.append([
                     "SCRIPTS"~":succeed-all?",
                     housekeeping_task]) %}
-            {% endif %}
-            {% if running_gen_weights.bool %}
-                {% do graph_sections.append([
-                    "GENERATE_WEIGHTS:succeed-all?",
-                    housekeeping_task
-                    ]) %}
             {% endif %}
         {% endif %}
     {% endfor %}

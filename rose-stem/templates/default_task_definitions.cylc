@@ -128,7 +128,7 @@
 {% endif %}
 
 {% if "task_family" not in task_dict %}
-    {% if task.startswith("build") or task.startswith("fcm_make") %}
+    {% if task.startswith("build") %}
         {% do task_dict.update({"task_family": "build"}) %}
     {% else %}
         {% do task_dict.update({"task_family": generated_task_name}) %}
@@ -170,12 +170,6 @@
 {% endif %}
 
 
-{# If application is lfric_coupled read in default values specific to coupled runs #}
-{% if task_ns.application == "lfric_coupled" %}
-    {% include "templates/default_task_definitions_lfric_coupled.cylc" %}
-{% endif %}
-
-
 {# ############################ #}
 {# Default Inheritance Families #}
 {# ############################ #}
@@ -198,10 +192,6 @@
 
 {% if "checksum_families" not in task_dict %}
     {% do task_dict.update({"checksum_families": [task_ns.platform|upper~"_CHECK"]}) %}
-{% endif %}
-
-{% if "phystest_families" not in task_dict %}
-    {% do task_dict.update({"phystest_families": [task_ns.platform|upper~"_TECH"]}) %}
 {% endif %}
 
 {% if "techtests_families" not in task_dict %}

@@ -51,27 +51,6 @@
             SOURCE_DIRECTORY = $SOURCE_ROOT
             SOURCE_LFRIC = {{SOURCE_LFRIC}}
 
-{% elif task.startswith("export-weights") %}
-{# Task to rsync generated weights files from platform where they are generated #}
-{# to remote platforms which have lfricinputs tasks #}
-{# Only runs once all weights tasks have finished #}
-
-    {% set platform = task.split('_')[1] %}
-
-    [[{{task}}]]
-        inherit = GENERATE_WEIGHTS, {{platform|upper}}_EXPORT-SOURCE
-
-    {% if platform == site_vars["scripts_platform"] %}
-        script=echo "Running on weight generation platform - nothing to do"
-    {% else %}
-        script="""
-               RELATIVE_DIR=`echo $CYLC_WORKFLOW_WORK_DIR | sed "s|$HOME/||"`
-               rsync -avz $CYLC_WORKFLOW_WORK_DIR/1/generate_weights_* $hostname:$RELATIVE_DIR/1/
-               sleep 5
-               """
-
-    {% endif %}
-
 {% elif task.startswith("housekeep") %}
 
     {% set platform = task.split('_')[1] %}

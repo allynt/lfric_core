@@ -34,13 +34,6 @@
     {% set plot = false %}
 {% endif %}
 
-{# phystest settings #}
-{% if "phystest_str" in task_values %}
-    {% set phystest = true %}
-{% else %}
-    {% set phystest = false %}
-{% endif %}
-
 {# If the task has a restart and has set crun_compare=false, there is no #}
 {# nrun-crun comparison to be made, so don't run the nrun test #}
 {% set running_nrun = true %}
@@ -165,7 +158,7 @@
         mesh_run_task]) %}
 {% endif %}
 
-{# If running the nrun task, define application, plot, check and phystest #}
+{# If running the nrun task, define application, plot and check #}
 {% if running_nrun and task.startswith("run") %}
     {% if application_run_task %}
         {% do graph_sections.append([
@@ -208,25 +201,6 @@
             plot_task]) %}
     {% endif %}
 
-    {% if phystest %}
-        {% set phystest_task = "phystest_"~
-                               task_ns.application~"_"~
-                               task_ns.conf_name~"_"~
-                               task_ns.platform~"_"~
-                               task_ns.compiler~"_"~
-                               task_ns.extras %}
-        {% if phystest_task not in tasks_to_run %}
-            {% do tasks_to_run.update({phystest_task: task_values}) %}
-        {% endif %}
-        {% do graph_sections.append([
-            application_run_task,
-            phystest_task]) %}
-    {% endif %}
-{% endif %}
-
-{# lfric_coupled graphs require fcm_make tasks before the application run #}
-{% if task_ns.application == "lfric_coupled" %}
-    {% include "templates/graph/populate_graph_lfric_coupled.cylc" %}
 {% endif %}
 
 {% if task_values["crun"] > 1 %}
