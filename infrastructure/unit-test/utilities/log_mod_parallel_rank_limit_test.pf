@@ -22,8 +22,7 @@ module log_mod_parallel_rank_limit_test
   private
 
   public log_output_test_single_debug, &
-         log_output_test_debug_sole_numbered_rank_zero, &
-         log_output_test_debug_sole_numbered_rank_one
+         log_output_test_debug_sole_numbered_rank_zero
   !
   ! pFUnit requires symbol spill
   !
@@ -90,7 +89,7 @@ contains
     class(log_test_type), intent(inout) :: context
 
     call initialise_logging( context%getMpiCommunicator(), name, &
-                             sole_log_file_rank_number=0 )
+                             log_to_rank_zero_only=.true. )
     call log_forget_timestep()
     call log_output_test_serial( log_level_debug, ':DEBUG:' )
     call finalise_logging()
@@ -108,7 +107,7 @@ contains
 
     ! initialise logger with sole rank limit on
     call initialise_logging( context%getMpiCommunicator(), name, &
-                             sole_log_file_rank_number=0 )
+                             log_to_rank_zero_only=.true. )
     call log_forget_timestep()
     this_rank = context%getProcessRank()
     ! Validate that rank 0 outputs the expected log information
@@ -121,31 +120,6 @@ contains
     endif
 
   end subroutine log_output_test_debug_sole_numbered_rank_zero
-
-
-  @test(npes=[2, 3, 4])
-  subroutine log_output_test_debug_sole_numbered_rank_one( context )
-
-    implicit none
-
-    class(log_test_type), intent(inout) :: context
-    integer(i_def) :: this_rank
-
-    ! initialise logger with sole rank limit on and choose rank #1
-    call initialise_logging( context%getMpiCommunicator(), name, &
-                             sole_log_file_rank_number=1 )
-    call log_forget_timestep()
-    this_rank = context%getProcessRank()
-    ! Validate that rank 1 outputs the expected log information
-    if (this_rank == 1) then
-      call log_output_test( context%getProcessRank(), log_level_debug, &
-                            expected_tag=':DEBUG :' )
-    else
-      ! validate that all other ranks produce no file
-      call log_output_test_exists( context%getProcessRank(), exists=.false. )
-    endif
-
-  end subroutine log_output_test_debug_sole_numbered_rank_one
 
 
   !> Test the default behaviour of the logger.

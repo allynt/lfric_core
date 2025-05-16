@@ -20,7 +20,8 @@ use logging_config_mod,   only: run_log_level,          &
                                 RUN_LOG_LEVEL_INFO,     &
                                 RUN_LOG_LEVEL_DEBUG,    &
                                 RUN_LOG_LEVEL_TRACE,    &
-                                RUN_LOG_LEVEL_WARNING
+                                RUN_LOG_LEVEL_WARNING,  &
+                                log_to_rank_zero_only
 
 implicit none
 
@@ -43,7 +44,8 @@ subroutine init_logger(communicator, program_name)
 
   integer(i_def) :: log_level
 
-  call initialise_logging( communicator%get_comm_mpi_val(), program_name )
+  call initialise_logging( communicator%get_comm_mpi_val(), program_name, &
+                           log_to_rank_zero_only=log_to_rank_zero_only)
 
   select case (run_log_level)
   case( RUN_LOG_LEVEL_ERROR )

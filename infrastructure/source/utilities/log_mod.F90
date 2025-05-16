@@ -87,18 +87,19 @@ contains
   !> @param[in] communicator MPI communicator to operate in.
   !> @param[in] file_name Appears in output filename.
   !> @param[in] trace_on_warnings Output a backtrace on warnings.
-  !> @param[in] log_file_one_rank_only Rank number of single MPI rank to log.
+  !> @param[in] log_to_rank_zero_only Only log to rank zero.
   !>
   subroutine initialise_logging( communicator, &
                                  file_name,    &
                                  trace_on_warnings, &
-                                 sole_log_file_rank_number)
+                                 log_to_rank_zero_only)
+
     implicit none
 
     integer(i_def),           intent(in) :: communicator
     character(*),             intent(in) :: file_name
     logical, optional,        intent(in) :: trace_on_warnings
-    integer(i_def), optional, intent(in) :: sole_log_file_rank_number
+    logical, optional,        intent(in) :: log_to_rank_zero_only
 
 #ifdef NO_MPI
     ! The logging is running with no MPI communications
@@ -111,6 +112,7 @@ contains
     character(len=12)             :: fmt
     integer(i_def)                :: this_rank
     integer(i_def)                :: total_ranks
+    logical                       :: log_to_rank_0_only
 
     ! default behaviour: log to all ranks
     emit_log_message = .true.
@@ -121,16 +123,11 @@ contains
              "('Cannot determine communicator size. (',i0,')')" ) status
       call abort_model()
     end if
-    ! Check that a selected sole_log_ranks exists in the rank pool.
-    if (present(sole_log_file_rank_number)) then
-      if (sole_log_file_rank_number < 0 .or. &
-          sole_log_file_rank_number > total_ranks) then
-        write( error_unit, &
-               "('Cannot only log to rank (',i0,')')" ) sole_log_file_rank_number
-        write( error_unit, &
-               "('Total ranks: (',i0,')')" ) total_ranks
-        call abort_model()
-      end if
+
+    if (present(log_to_rank_zero_only)) then
+      log_to_rank_0_only = log_to_rank_zero_only
+    else
+      log_to_rank_0_only = .false.
     end if
 
     if (total_ranks /= 1) then
@@ -143,8 +140,8 @@ contains
       end if
 
       if (allocated(mpi_communicator)) then
-        if (present(sole_log_file_rank_number)) then
-          if (this_rank /= sole_log_file_rank_number) then
+        if (log_to_rank_0_only) then
+          if (this_rank /= 0) then
             ! Sole rank identified for logging, do not log this rank.
             emit_log_message = .false.
           end if
