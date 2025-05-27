@@ -329,6 +329,9 @@ subroutine init_mesh( configuration,           &
     !===========================================================
     call create_local_mesh_maps( input_mesh_file )
 
+    ! Clear the global mesh
+    call global_mesh_collection%clear()
+
   end if  ! prepartitioned
 
 
