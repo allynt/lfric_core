@@ -11,17 +11,17 @@ module check_local_mesh_mod
   use local_mesh_mod,            only: local_mesh_type
   use log_mod,                   only: log_event,         &
                                        log_scratch_space, &
-                                       LOG_LEVEL_ERROR
+                                       log_level_error
   use namelist_collection_mod,   only: namelist_collection_type
   use namelist_mod,              only: namelist_type
 
 
   use base_mesh_config_mod, only: key_from_geometry,       &
                                   key_from_topology,       &
-                                  GEOMETRY_SPHERICAL,      &
-                                  GEOMETRY_PLANAR,         &
-                                  TOPOLOGY_FULLY_PERIODIC, &
-                                  TOPOLOGY_NON_PERIODIC
+                                  geometry_spherical,      &
+                                  geometry_planar,         &
+                                  topology_fully_periodic, &
+                                  topology_non_periodic
   implicit none
 
   private
@@ -74,10 +74,10 @@ subroutine check_local_mesh( configuration, &
     valid_geometry = .false.
     select case ( geometry )
 
-    case ( GEOMETRY_SPHERICAL )
+    case ( geometry_spherical )
       if ( local_mesh%is_geometry_spherical() ) valid_geometry = .true.
 
-    case ( GEOMETRY_PLANAR )
+    case ( geometry_planar )
       if ( local_mesh%is_geometry_planar() ) valid_geometry = .true.
 
     end select
@@ -87,7 +87,7 @@ subroutine check_local_mesh( configuration, &
           'Mesh (' // trim(mesh_names(i)) // &
           ') in file is not valid as a ' //  &
           trim(key_from_geometry(geometry)) // ' domain geometry'
-      call log_event(log_scratch_space, LOG_LEVEL_ERROR )
+      call log_event(log_scratch_space, log_level_error )
     end if
 
 
@@ -96,10 +96,10 @@ subroutine check_local_mesh( configuration, &
     valid_topology = .false.
     select case ( topology )
 
-    case ( TOPOLOGY_FULLY_PERIODIC )
+    case ( topology_fully_periodic )
       if ( local_mesh%is_topology_periodic() ) valid_topology = .true.
 
-    case ( TOPOLOGY_NON_PERIODIC )
+    case ( topology_non_periodic )
       if ( local_mesh%is_topology_non_periodic() ) valid_topology = .true.
 
     end select
@@ -109,7 +109,7 @@ subroutine check_local_mesh( configuration, &
           'Mesh (' // trim(mesh_names(i)) //    &
           ') in file does not have a valid ' // &
           trim(key_from_topology(topology)) // ' topology'
-      call log_event(log_scratch_space, LOG_LEVEL_ERROR )
+      call log_event(log_scratch_space, log_level_error )
     end if
 
     ! Check if local meshes are able to
@@ -117,12 +117,11 @@ subroutine check_local_mesh( configuration, &
     !=====================================
     max_stencil_depth = local_mesh%get_max_stencil_depth()
     if ( max_stencil_depth < stencil_depth ) then
-
-      write(log_scratch_space,'(2(A,I0),A)')                                &
-         'Insufficient stencil depth, mesh "'//trim(mesh_names(i))//'" ' // &
-         'supports a max. stencil depth of ', max_stencil_depth, '.'
-
-      call log_event( log_scratch_space, LOG_LEVEL_ERROR )
+      write(log_scratch_space,'(2(A,I0),A)')                     &
+          'Insufficient stencil depth, configuration requires ', &
+          stencil_depth, '. Mesh "'//trim(mesh_names(i))//       &
+          '" supports a maximum stencil depth of ', max_stencil_depth, '.'
+      call log_event( log_scratch_space, log_level_error )
     end if
 
   end do
