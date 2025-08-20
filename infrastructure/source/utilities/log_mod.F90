@@ -32,7 +32,9 @@ module log_mod
   ! No uses of the mpi library and no calls to parallel_abort a non-mpi build
 #else
   use lfric_abort_mod, only : parallel_abort
-  use mpi, only : mpi_comm_rank, mpi_comm_size
+  use mpi, only : mpi_comm_rank, mpi_comm_size, &
+                  mpi_comm_dup, mpi_comm_free,  &
+                  mpi_barrier
 #endif
 
   implicit none

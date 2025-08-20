@@ -20,14 +20,23 @@ module lfric_mpi_mod
   use mpi, only: mpi_comm_world,mpi_sum, mpi_min, mpi_max, mpi_success, &
                  mpi_real4, mpi_double_precision, mpi_logical,          &
                  mpi_integer1, mpi_integer2, mpi_integer, mpi_integer8, &
-                 mpi_character
+                 mpi_character,                                         &
+                 mpi_init, mpi_finalize,                                &
+                 mpi_comm_dup, mpi_comm_free,                           &
+                 mpi_comm_size, mpi_comm_rank
 #else
   use mpi_f08, only: mpi_comm, mpi_datatype, mpi_comm_world,                &
                      mpi_sum, mpi_min, mpi_max, mpi_success,                &
                      mpi_real4, mpi_double_precision, mpi_logical,          &
                      mpi_integer1, mpi_integer2, mpi_integer, mpi_integer8, &
-                     mpi_character
+                     mpi_character,                                         &
+                     mpi_init, mpi_finalize,                                &
+                     mpi_comm_dup, mpi_comm_free,                           &
+                     mpi_comm_size, mpi_comm_rank
 #endif
+! The above use statement should include mpi_bcast, mpi_allreduce and
+! mpi_allgather, but an apparent bug in Cray mpich causes a failure if
+! they are included, so they have been pragmatically omitted.
 #endif
   use log_mod,       only : log_event, LOG_LEVEL_ERROR
 
