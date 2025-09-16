@@ -22,8 +22,9 @@ program cubedsphere_mesh_generator
   use gencube_ps_mod,      only: gencube_ps_type, &
                                  set_partition_parameters
 
-  use generate_op_global_objects_mod, only: generate_op_global_objects
-  use generate_op_local_objects_mod,  only: generate_op_local_objects
+  use generate_global_objects_mod, only: generate_global_objects
+  use generate_local_objects_mod,  only: generate_local_objects
+
   use global_mesh_collection_mod,     only: global_mesh_collection, &
                                             global_mesh_collection_type
   use halo_comms_mod,                 only: initialise_halo_comms, &
@@ -32,8 +33,7 @@ program cubedsphere_mesh_generator
   use namelist_collection_mod,        only: namelist_collection_type
   use lfric_mpi_mod,                  only: global_mpi, create_comm, &
                                             destroy_comm, lfric_comm_type
-  use local_mesh_collection_mod,      only: local_mesh_collection, &
-                                            local_mesh_collection_type
+  use local_mesh_collection_mod,      only: local_mesh_collection_type
 
   use log_mod,       only: initialise_logging, finalise_logging, &
                            log_event, log_set_level,             &
@@ -44,11 +44,14 @@ program cubedsphere_mesh_generator
   use namelist_mod,            only: namelist_type
 
   use ncdf_quad_mod, only: ncdf_quad_type
-  use partition_mod, only: partition_type, partitioner_interface
+  use omp_lib,       only: omp_get_thread_num
+  use partition_mod, only: partition_type, &
+                           partitioner_interface
 
   use remove_duplicates_mod,  only: any_duplicates
   use rotation_mod,           only: get_target_north_pole, &
                                     get_target_null_island
+  use timer_mod,              only: timer, init_timer, output_timer
   use ugrid_2d_mod,           only: ugrid_2d_type
   use ugrid_file_mod,         only: ugrid_file_type
   use write_local_meshes_mod, only: write_local_meshes
@@ -104,7 +107,7 @@ program cubedsphere_mesh_generator
   logical(l_def) :: any_duplicate_names = .false.
 
   ! Partition variables.
-  procedure(partitioner_interface), pointer :: partitioner_ptr => null()
+  procedure(partitioner_interface), pointer :: partitioner_ptr
   integer(i_def) :: start_partition
   integer(i_def) :: end_partition
   integer(i_def) :: partition_id
@@ -133,7 +136,7 @@ program cubedsphere_mesh_generator
   integer(i_def) :: i, j, k, l, n_voids
 
   type(namelist_collection_type), save :: configuration
-  type(namelist_type), pointer         :: nml_obj => null()
+  type(namelist_type), pointer         :: nml_obj
 
   ! Configuration variables to obtain from configuration.
   character(str_max_filename) :: mesh_file_prefix
@@ -160,6 +163,14 @@ program cubedsphere_mesh_generator
   integer(i_def), allocatable :: edge_cells(:)
   integer(i_def) :: smooth_passes
   real(r_def)    :: equatorial_latitude
+
+  type(local_mesh_collection_type) :: local_mesh_collection
+
+  integer(i_def) :: thread_id
+  character(9), parameter :: timer_file = 'timer.txt'
+
+  nullify(partitioner_ptr)
+  nullify(nml_obj)
 
   !===================================================================
   ! Set the logging level for the run, should really be able
@@ -223,6 +234,9 @@ program cubedsphere_mesh_generator
     call nml_obj%get_value( 'smooth_passes',  smooth_passes )
     call nml_obj%get_value( 'equatorial_latitude', equatorial_latitude )
   end if
+
+  call init_timer(timer_file)
+  call timer('Setup-Checks')
 
   ! The number of mesh maps in the namelist array is unbounded
   ! and so may contain unset/empty array elements. Remove
@@ -436,8 +450,8 @@ program cubedsphere_mesh_generator
         call log_event( log_scratch_space, log_level_error )
       end if
 
-      ! 4.6e Check that the number of edge cells for one mesh is a
-      !      factor of the number of edges cells on the other mesh.
+      ! Check that the number of edge cells for one mesh is a
+      ! factor of the number of edges cells on the other mesh.
       if ( mod(first_mesh_edge_cells, second_mesh_edge_cells) /= 0 .and. &
            mod(second_mesh_edge_cells, first_mesh_edge_cells) /= 0 ) then
         write( log_scratch_space,'(2(A,I0))' )                           &
@@ -605,10 +619,15 @@ program cubedsphere_mesh_generator
 
   end if
 
+  call timer('Setup-Checks')
+
   write( log_scratch_space,'(A)' ) &
       '===================================================================='
   call log_event( log_scratch_space, log_level_info )
   call log_event( "Generating mesh(es):", log_level )
+
+  call timer('Global mesh generation')
+
   do i=1, n_meshes
     cpp(i)    = edge_cells(i)*edge_cells(i)
     ncells(i) = cpp(i)*mesh_gen(i)%get_number_of_panels()
@@ -705,6 +724,8 @@ program cubedsphere_mesh_generator
   if ( allocated(target_edge_cells) ) deallocate(target_edge_cells)
   if ( allocated(ncells)            ) deallocate(ncells)
 
+  call timer('Global mesh generation')
+
   call log_event( "...generation complete.", log_level_info )
   write( log_scratch_space,'(A)' ) &
       '===================================================================='
@@ -714,6 +735,8 @@ program cubedsphere_mesh_generator
 
   if (partition_mesh) then
 
+    call timer('Partition meshes')
+
     !===============================================================
     ! Mesh partitioning.
     !===============================================================
@@ -722,14 +745,12 @@ program cubedsphere_mesh_generator
     ! Create global meshes.
     !---------------------------------------------------------------
     allocate( global_mesh_collection, source=global_mesh_collection_type() )
-    call generate_op_global_objects( ugrid_2d, global_mesh_collection )
+    call generate_global_objects( ugrid_2d, global_mesh_collection )
 
     !---------------------------------------------------------------
     ! Get partitioning parameters.
     !---------------------------------------------------------------
     call set_partition_parameters( decomposition, partitioner_ptr )
-
-    allocate( local_mesh_collection, source=local_mesh_collection_type() )
 
     write( log_scratch_space,'(A)' )          &
         '=================================='//&
@@ -741,14 +762,21 @@ program cubedsphere_mesh_generator
     start_partition = partition_range(1)
     end_partition   = partition_range(2)
 
+    thread_id = 0
+
+!$omp parallel default(firstprivate) shared(global_mesh_collection)
+!$omp do schedule(static)
+
     do partition_id=start_partition, end_partition
 
-      call generate_op_local_objects( local_mesh_collection,           &
-                                      global_mesh_collection,          &
-                                      mesh_names, partition_id,        &
-                                      n_partitions, max_stencil_depth, &
-                                      generate_inner_halos,           &
-                                      decomposition, partitioner_ptr )
+      thread_id = omp_get_thread_num()
+
+      call generate_local_objects( local_mesh_collection,           &
+                                   global_mesh_collection,          &
+                                   mesh_names, partition_id,        &
+                                   n_partitions, max_stencil_depth, &
+                                   generate_inner_halos,            &
+                                   decomposition, partitioner_ptr )
 
       !---------------------------------------------------------------
       ! Output local meshes to UGRID file.
@@ -758,7 +786,14 @@ program cubedsphere_mesh_generator
                                local_mesh_collection,  &
                                output_basename )
 
+      call local_mesh_collection%clear()
+
     end do ! partition_id
+
+!$omp end do
+!$omp end parallel
+
+    call timer('Partition meshes')
 
   else
 
@@ -793,6 +828,7 @@ program cubedsphere_mesh_generator
 
   end if ! partition_mesh
 
+  call output_timer()
   !===================================================================
   ! Clean up and Finalise.
   !===================================================================

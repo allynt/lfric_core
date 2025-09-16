@@ -661,10 +661,10 @@ contains
     type(linked_list_type)         :: partition   ! a list of all cells in the partition
     type(linked_list_type), target :: known_cells ! a list of cells known to this partition
 
-    type(linked_list_item_type), pointer :: last=>null() ! location of the last added cell in the list of cells
-    type(linked_list_item_type), pointer :: start_subsect=>null() ! start position when looping over subsections of cells
-    type(linked_list_item_type), pointer :: insert_point=>null() ! where to insert in a list
-    type(linked_list_item_type), pointer :: loop => null() ! temp ptr to loop through list
+    type(linked_list_item_type), pointer :: last          ! location of the last added cell in the list of cells
+    type(linked_list_item_type), pointer :: start_subsect ! start position when looping over subsections of cells
+    type(linked_list_item_type), pointer :: insert_point  ! where to insert in a list
+    type(linked_list_item_type), pointer :: loop          ! temp ptr to loop through list
 
     integer :: i, j         ! loop counters
     integer :: cells(4)     ! The cells around the vertex being queried
@@ -687,6 +687,11 @@ contains
     periodic_xy = global_mesh%get_mesh_periodicity()
     void_cell   = global_mesh%get_void_cell()
     any_maps    = global_mesh%get_nmaps() > 0
+
+    nullify( last )
+    nullify( start_subsect )
+    nullify( insert_point )
+    nullify( loop )
 
     if (num_panels==1) then
       ! A single panelled mesh might be rectangluar - so find the dimensions
@@ -1042,12 +1047,14 @@ contains
     integer(i_def), allocatable :: verts(:)
     integer(i_def), allocatable :: cells(:)
 
-    type(linked_list_item_type), pointer :: loop => null() ! temp ptr to loop through list
-    type(linked_list_item_type), pointer :: insert_ptr => null() ! pointer to access insert_point
+    type(linked_list_item_type), pointer :: loop       ! temp ptr to loop through list
+    type(linked_list_item_type), pointer :: insert_ptr ! pointer to access insert_point
 
     allocate( cells( global_mesh%get_max_cells_per_vertex() ) )
     allocate( verts(global_mesh%get_nverts_per_cell()) )
 
+    nullify( loop )
+    nullify( insert_ptr )
 
     ! point at where we want to start
     loop => input_cells

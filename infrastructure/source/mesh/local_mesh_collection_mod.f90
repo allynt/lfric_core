@@ -124,8 +124,9 @@ contains
     type(local_mesh_type), pointer :: local_mesh
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type), pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
 
+    nullify(loop)
     n_meshes = self%local_mesh_list%get_length()
 
     if (n_meshes > 0) then
@@ -189,7 +190,9 @@ contains
 
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type),pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
+
+    nullify(loop)
 
     ! start at the head of the mesh collection linked list
     loop => self%local_mesh_list%get_head()
@@ -246,7 +249,9 @@ contains
 
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type),pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
+
+    nullify(loop)
 
     ! start at the head of the mesh collection linked list
     loop => self%local_mesh_list%get_head()
@@ -292,9 +297,11 @@ contains
     class(local_mesh_collection_type), intent(in) :: self
     character(str_def),                intent(in) :: mesh_name
 
-    type(local_mesh_type), pointer :: mesh => null()
+    type(local_mesh_type), pointer :: mesh
 
     logical :: answer
+
+    nullify(mesh)
 
     answer = .false.
     mesh => self%get_mesh_by_name(mesh_name)

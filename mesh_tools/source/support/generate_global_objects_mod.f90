@@ -5,11 +5,11 @@
 !-----------------------------------------------------------------------------
 !> @brief   Support routine to generate global mesh objects for mesh generators.
 !> @details Mesh generators were initially based on outputting meshes from
-!>          ugrid_2d_types. Longer term, global mesh objects are to used.
+!>          ugrid_2d_types. Longer term, global mesh objects are to be used.
 !>          This routine produces the required global mesh objects for
 !>          cubedsphere and planar mesh generators in preparation for
 !>          partitioning.
-module generate_op_global_objects_mod
+module generate_global_objects_mod
 
   use constants_mod,                  only: i_def, r_def, str_def
   use global_mesh_collection_mod,     only: global_mesh_collection_type
@@ -22,7 +22,7 @@ module generate_op_global_objects_mod
   implicit none
 
   private
-  public :: generate_op_global_objects
+  public :: generate_global_objects
 
 contains
 
@@ -41,9 +41,9 @@ contains
 !>                                the lbc-mesh
 !-----------------------------------------------------------------------------
 
-subroutine generate_op_global_objects( ugridders,        &
-                                       global_mesh_bank, &
-                                       ugridder_lbc )
+subroutine generate_global_objects( ugridders,        &
+                                    global_mesh_bank, &
+                                    ugridder_lbc )
 
   implicit none
 
@@ -155,6 +155,6 @@ subroutine generate_op_global_objects( ugridders,        &
 
   if (allocated( cell_map )) deallocate( cell_map )
 
-end subroutine generate_op_global_objects
+end subroutine generate_global_objects
 
-end module generate_op_global_objects_mod
+end module generate_global_objects_mod

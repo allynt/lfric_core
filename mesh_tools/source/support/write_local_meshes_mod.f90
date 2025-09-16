@@ -17,7 +17,8 @@ module write_local_meshes_mod
                            radians_to_degrees,    &
                            degrees_to_radians
   use log_mod,       only: log_event, log_scratch_space, &
-                           LOG_LEVEL_INFO
+                           log_level_info
+  use omp_lib,       only: omp_get_thread_num
   use sci_query_mod, only: valid_for_global_model
 
   ! Derived types
@@ -70,20 +71,19 @@ subroutine write_local_meshes( partition_id,     &
   type(local_mesh_collection_type),  intent(in) :: local_mesh_bank
   character(str_max_filename),       intent(in) :: output_basename
 
-
   ! Local variables
   !-----------------
   class(ugrid_file_type), allocatable :: ugrid_file
 
   type(ugrid_2d_type) :: ugrid_2d
 
-  type(global_mesh_type), pointer :: global_mesh_ptr     => null()
-  type(global_mesh_type), pointer :: global_lbc_mesh_ptr => null()
-  type(local_mesh_type),  pointer :: local_mesh_ptr      => null()
-  type(local_mesh_type),  pointer :: local_lbc_mesh_ptr  => null()
+  type(global_mesh_type), pointer :: global_mesh_ptr
+  type(global_mesh_type), pointer :: global_lbc_mesh_ptr
+  type(local_mesh_type),  pointer :: local_mesh_ptr
+  type(local_mesh_type),  pointer :: local_lbc_mesh_ptr
 
-  type(global_mesh_map_collection_type), pointer :: global_lbc_mesh_maps_ptr => null()
-  type(global_mesh_map_type),            pointer :: global_lbc_mesh_map_ptr  => null()
+  type(global_mesh_map_collection_type), pointer :: global_lbc_mesh_maps_ptr
+  type(global_mesh_map_type),            pointer :: global_lbc_mesh_map_ptr
 
 
   integer(i_def), allocatable :: global_ids(:)
@@ -102,13 +102,19 @@ subroutine write_local_meshes( partition_id,     &
   character(str_def) :: source_name
   character(str_def) :: lbc_name
   character(str_def) :: name
-  integer(i_def)     :: fsize
+  integer(i_def)     :: fsize, cell, thread_id
   real(r_def)        :: dx
   real(r_def)        :: dy
   real(r_def)        :: factor
 
+  integer(i_def)     :: n_digit
+  character(str_def) :: fmt_str, number_str
+
   ! Counters
-  integer(i_def) :: i, cell
+  integer(i_def) :: i
+
+  nullify(global_lbc_mesh_maps_ptr)
+  nullify(global_lbc_mesh_map_ptr)
 
   !===================================================================
 
@@ -134,7 +140,6 @@ subroutine write_local_meshes( partition_id,     &
     call local_mesh_ptr%as_ugrid_2d(ugrid_2d)
     call ugrid_2d%set_metadata( mesh_name    = mesh_names(i), &
                                 partition_of = partition_of )
-
 
     ! Create cell coords for output file
     !---------------------------------------------
@@ -207,21 +212,27 @@ subroutine write_local_meshes( partition_id,     &
     ! Add ugrid_2d mesh to the output file
     ! for this partition.
     !---------------------------------------------
-    write(output_file,'(2(A,I0),A)') &
-        trim(output_basename)//'_',partition_id,'-',n_partitions,'.nc'
+    n_digit = int(log10(real(n_partitions))) + 1
+    write(fmt_str, '(A,I0,A,I0,A)') "(I", n_digit, ".", n_digit, ")"
+    write(number_str, fmt_str) partition_id
+    write(output_file, '(A, "_", A, "-", I0, ".nc")') &
+        trim(output_basename), trim(number_str), n_partitions
+
+!$omp critical
+    thread_id = omp_get_thread_num()
 
     if (i==1) then
       call ugrid_2d%write_to_file( trim(output_file) )
     else
       call ugrid_2d%append_to_file( trim(output_file) )
     end if
-    inquire(file=output_file, size=fsize)
-    write( log_scratch_space, '(A,I0,A)')       &
-        'Adding mesh (' // trim(source_name) // &
-        ') to ' // trim(output_file) // ' - ',  &
-        fsize, ' bytes written.'
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
+    inquire(file=output_file, size=fsize)
+    write( log_scratch_space, '(A,I0,A,I0,A)' )                       &
+        'Thread ',thread_id, ' adding mesh (' // trim(source_name) // &
+        ') to ' // trim(output_file) // ' - ', fsize, ' bytes written.'
+    call log_event( log_scratch_space, log_level_info )
+!$omp end critical
 
     !---------------------------------------------
     ! Add the lbc-mesh to the output file for
@@ -269,36 +280,27 @@ subroutine write_local_meshes( partition_id,     &
               global_cell_coords(:, global_lbc_lam_cell_map(1,1,global_ids(cell)))
         end do
 
+
         call ugrid_2d%set_coords( face_coords=local_cell_coords*factor )
 
+!$omp critical
+        thread_id = omp_get_thread_num()
+
         call ugrid_2d%append_to_file( trim(output_file) )
+
         inquire(file=output_file, size=fsize)
-        write( log_scratch_space, '(A,I0,A)' )     &
-            'Adding mesh (' // trim(name) //       &
-            ') to ' // trim(output_file) // ' - ', &
-            fsize, ' bytes written.'
-        call log_event( log_scratch_space, LOG_LEVEL_INFO )
+        write( log_scratch_space, '(A,I0,A,I0,A)' )                &
+            'Thread ',thread_id, ' adding mesh (' // trim(name) // &
+            ') to ' // trim(output_file) // ' - ', fsize,          &
+            ' bytes written.'
+        call log_event( log_scratch_space, log_level_info )
+!$omp end critical
 
       end if ! local mesh pointer associated
 
     end if ! lbc required
 
   end do ! i (n_meshes)
-
-  ! Clear memory for meshes in th collections that have
-  ! now been written.
-  if (allocated(ugrid_file)) deallocate(ugrid_file)
-  call ugrid_2d%clear()
-
-  if (associated(local_mesh_ptr)) then
-    call local_mesh_ptr%clear()
-    nullify(local_mesh_ptr)
-  end if
-
-  if (associated(local_lbc_mesh_ptr)) then
-    call local_lbc_mesh_ptr%clear()
-    nullify(local_lbc_mesh_ptr)
-  end if
 
 end subroutine write_local_meshes
 

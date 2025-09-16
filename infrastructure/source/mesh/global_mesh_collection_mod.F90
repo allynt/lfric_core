@@ -51,7 +51,7 @@ module global_mesh_collection_mod
     ! when the next global mesh is added to the collection.
     ! THIS IS TEMPORARY AND SHOULD BE REMOVED WHEN GLOBAL MESH MAPS ARE
     ! READ DIRECTLY FROM THE UGRID MESH FILE
-    type(global_mesh_type),  pointer :: source_global_mesh => null()
+    type(global_mesh_type),  pointer :: source_global_mesh
 
   contains
     procedure, public  :: add_new_global_mesh
@@ -74,7 +74,7 @@ module global_mesh_collection_mod
 
   interface global_mesh_collection_type
     module procedure global_mesh_collection_constructor
-  end interface
+  end interface global_mesh_collection_type
 
   !> @brief Singleton instance of a global_mesh_collection_type object.
   !>
@@ -95,6 +95,8 @@ contains
     type(global_mesh_collection_type) :: self
 
     self%global_mesh_list = linked_list_type()
+
+    nullify(self%source_global_mesh)
 
   end function global_mesh_collection_constructor
 
@@ -137,7 +139,7 @@ contains
     class(global_mesh_collection_type), intent(inout) :: self
     type (global_mesh_type),            intent(in)    :: global_mesh_to_add
 
-    character(str_def)      :: global_mesh_name
+    character(str_def) :: global_mesh_name
 
     global_mesh_name = global_mesh_to_add%get_mesh_name()
 
@@ -249,7 +251,9 @@ contains
     type(global_mesh_type), pointer :: global_mesh
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type),pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
+
+    nullify(loop)
 
     ! Start at the head of the mesh collection linked list
     loop => self%global_mesh_list%get_head()
@@ -308,7 +312,9 @@ contains
 
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type), pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
+
+    nullify(loop)
 
     ! start at the head of the mesh collection linked list
     loop => self%global_mesh_list%get_head()
@@ -357,7 +363,9 @@ contains
     type(global_mesh_type), pointer :: global_mesh
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type), pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
+
+    nullify(loop)
 
     n_meshes = self%global_mesh_list%get_length()
 
@@ -418,7 +426,9 @@ contains
     type(global_mesh_type), pointer :: global_mesh
 
     ! Pointer to linked list - used for looping through the list
-    type(linked_list_item_type), pointer :: loop => null()
+    type(linked_list_item_type), pointer :: loop
+
+    nullify(loop)
 
     mesh_id  = imdi
     n_meshes = self%global_mesh_list%get_length()
@@ -477,9 +487,11 @@ contains
     class(global_mesh_collection_type), intent(in) :: self
     character(str_def),                 intent(in) :: global_mesh_name
 
-    type(global_mesh_type), pointer :: global_mesh => null()
+    type(global_mesh_type), pointer :: global_mesh
 
     logical :: answer
+
+    nullify(global_mesh)
 
     answer = .false.
     global_mesh => self%get_mesh_by_name(global_mesh_name)

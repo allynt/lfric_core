@@ -611,8 +611,8 @@ contains
   integer(i_def), allocatable :: edge_lbc_lid_gid_map(:)
   integer(i_def), allocatable :: vert_lbc_lid_gid_map(:)
 
-  type(global_mesh_map_collection_type), pointer :: global_lbc_mesh_maps => null()
-  type(global_mesh_map_type),            pointer :: global_lbc_mesh_map  => null()
+  type(global_mesh_map_collection_type), pointer :: global_lbc_mesh_maps
+  type(global_mesh_map_type),            pointer :: global_lbc_mesh_map
 
   integer(i_def) :: global_lbc_ncells
   integer(i_def), allocatable :: global_lbc_lam_map(:)
@@ -648,6 +648,9 @@ contains
   ! as a 0 (from the LAM cell next) will indicate the looping
   ! cell is on the outer edge of domain.
   integer(i_def) :: no_cell_next
+
+  nullify( global_lbc_mesh_maps )
+  nullify( global_lbc_mesh_map )
 
   !     0000000000000000000000
   !     0+------------------+0
@@ -1391,15 +1394,18 @@ contains
 
     implicit none
     class (local_mesh_type), intent(inout), target :: self
-    type(halo_routing_type), pointer :: halo_routing => null()
+    type(halo_routing_type), pointer :: halo_routing
     integer(i_halo_index), allocatable :: cell_id(:)
-    integer(i_def), pointer :: cell_owner_ptr( : ) => null()
+    integer(i_def), pointer :: cell_owner_ptr(:)
     integer(i_def) :: cell
     integer(i_def) :: i
     integer(i_def) :: last_owned_cell
     integer(i_def) :: total_inners
     integer(i_def) :: halo_start(1), halo_finish(1)
     integer(i_def) :: local_rank
+
+    nullify( halo_routing )
+    nullify( cell_owner_ptr )
 
     allocate( self%cell_owner(self%num_cells_in_layer+self%num_ghost) )
     self%cell_owner = 0_i_def

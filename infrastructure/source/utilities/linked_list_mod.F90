@@ -11,8 +11,8 @@
 
 module linked_list_mod
 
-  use linked_list_data_mod, only    : linked_list_data_type
-  use constants_mod,        only    : i_def
+  use linked_list_data_mod, only: linked_list_data_type
+  use constants_mod,        only: i_def
 
   implicit none
 
@@ -22,7 +22,7 @@ module linked_list_mod
   integer(i_def), parameter, public :: before = -1
   integer(i_def), parameter, public :: after = 1
 
-  type, public                           :: linked_list_type
+  type, public :: linked_list_type
     private
     integer(i_def) :: length = 0 ! The number of items in the list
 
@@ -46,7 +46,7 @@ module linked_list_mod
     procedure, public :: clear
 
     !> Object finaliser
-    final             :: linked_list_destructor
+    final :: linked_list_destructor
 
   end type linked_list_type
 
@@ -60,6 +60,10 @@ module linked_list_mod
      module procedure linked_list_constructor
   end interface linked_list_type
 
+  interface linked_list_item_type
+     module procedure linked_list_item_constructor
+  end interface linked_list_item_type
+
 contains
 
 !> Linked list constructor
@@ -71,7 +75,24 @@ type(linked_list_type) function linked_list_constructor()
 
   linked_list_constructor%length = 0
 
+  nullify( linked_list_constructor%head )
+  nullify( linked_list_constructor%tail )
+  nullify( linked_list_constructor%current )
+
 end function linked_list_constructor
+
+!> Linked list constructor
+!> Ensures that the list length and pointers to head, tail, and
+!> current items are initialised
+type(linked_list_item_type) function linked_list_item_constructor()
+
+  implicit none
+
+  nullify( linked_list_item_constructor%payload )
+  nullify( linked_list_item_constructor%prev )
+  nullify( linked_list_item_constructor%next )
+
+end function linked_list_item_constructor
 
 !> Gets the current length of the list
 !> @return list length
@@ -176,25 +197,24 @@ function item_exists(this, id, start, finish) result(exists)
 
   implicit none
 
-  class(linked_list_type), intent(in)   :: this
-  integer(i_def), intent(in)            :: id
-  logical                               :: exists
+  class(linked_list_type), intent(in) :: this
+  integer(i_def), intent(in)          :: id
+  logical                             :: exists
 
 
   ! optional start and end points if not considering entire list
-  type(linked_list_item_type),optional,pointer,intent(in)  :: start
-  type(linked_list_item_type),optional,pointer,intent(in)  :: finish
-
+  type(linked_list_item_type), optional, pointer, intent(in) :: start
+  type(linked_list_item_type), optional, pointer, intent(in) :: finish
 
   ! temp ptr to loop through list
-  type(linked_list_item_type),pointer      :: loop => null()
+  type(linked_list_item_type), pointer :: loop
+
+  nullify (loop)
 
   ! assume item does not exist at first
-
   exists = .false.
 
-
-  if(present(start)) then
+  if (present(start)) then
     ! start from specified element
     loop => start
   else
@@ -204,20 +224,22 @@ function item_exists(this, id, start, finish) result(exists)
 
   ! Check the main list between the specified limits
   do
-     ! if it isn't pointing at anything or we finished just exit
-     ! Compilers may interpret the order of evaluation of conditionals
-     ! This structure avoids ambiguity
-     if(.not.associated(loop)) exit
-     if(present(finish)) then
-        if(associated(loop,finish)) exit
-     end if
-     if (loop%payload%get_id() == id) then
-        exists = .true.
-        exit
-     else
-        exists = .false.
-     end if
-     loop=>loop%next
+    ! if it isn't pointing at anything or we finished just exit
+    ! Compilers may interpret the order of evaluation of conditionals
+    ! This structure avoids ambiguity
+    if (.not.associated(loop)) exit
+
+    if (present(finish)) then
+      if (associated(loop,finish)) exit
+    end if
+
+    if (loop%payload%get_id() == id) then
+      exists = .true.
+      exit
+    else
+      exists = .false.
+    end if
+    loop => loop%next
   end do
 
 return
@@ -431,6 +453,7 @@ subroutine clear(self)
 
   nullify(self%current)
   nullify(self%tail)
+  nullify(self%head)
 
   ! reset number of elements in container
   self%length = 0
@@ -448,10 +471,6 @@ subroutine linked_list_destructor(self)
   type (linked_list_type), intent(inout) :: self
 
   call self%clear()
-
-  nullify(self%head)
-  nullify(self%tail)
-  nullify(self%current)
 
   return
 end subroutine linked_list_destructor

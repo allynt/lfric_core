@@ -346,8 +346,11 @@ subroutine define_dimensions(self)
   character(str_long) :: dim_name
   character(nf90_max_name) :: target_mesh_name
 
-  type(global_mesh_map_type), pointer :: global_mesh_map => null()
-  type(local_mesh_map_type),  pointer :: local_mesh_map  => null()
+  type(global_mesh_map_type), pointer :: global_mesh_map
+  type(local_mesh_map_type),  pointer :: local_mesh_map
+
+  nullify( global_mesh_map )
+  nullify( local_mesh_map )
 
   ! If the file is being appended to, constants may already exist
   ! in the NetCDF file. Trying to redefine the same variable name
@@ -2839,8 +2842,8 @@ subroutine write_mesh( self,                                              &
 
   integer(i_def), allocatable :: cell_map(:,:,:), tmp_cell_map(:,:,:)
 
-  type(global_mesh_map_type), pointer :: global_mesh_map => null()
-  type(local_mesh_map_type),  pointer :: local_mesh_map  => null()
+  type(global_mesh_map_type), pointer :: global_mesh_map
+  type(local_mesh_map_type),  pointer :: local_mesh_map
 
   ! We need to ensure that netcdf receives data with the appropriate
   ! precision to create temporary arrays to hold real data
@@ -2851,6 +2854,9 @@ subroutine write_mesh( self,                                              &
   real(r_ncdf)              :: domain_extents_ncdf(2,4)
 
   integer(i_def) :: lower1,upper1,lower2,upper2
+
+  nullify(global_mesh_map)
+  nullify(local_mesh_map)
 
   lower1 = lbound(node_coordinates, 1)
   lower2 = lbound(node_coordinates, 2)

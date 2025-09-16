@@ -4,7 +4,7 @@
 ! under which the code may be used.
 !-----------------------------------------------------------------------------
 !> @brief Support routine to generate local mesh objects for mesh generators.
-module generate_op_local_objects_mod
+module generate_local_objects_mod
 
   use constants_mod,                  only: i_def, l_def, str_def
   use local_mesh_mod,                 only: local_mesh_type
@@ -23,7 +23,7 @@ module generate_op_local_objects_mod
   implicit none
 
   private
-  public :: generate_op_local_objects
+  public :: generate_local_objects
 
 contains
 
@@ -49,16 +49,16 @@ contains
 !>                                              corresponding local LBC meshes
 !>                                              (Planar meshes only).
 !-----------------------------------------------------------------------------
-subroutine generate_op_local_objects( local_mesh_bank,       &
-                                      global_mesh_bank,      &
-                                      mesh_names,            &
-                                      partition_id,          &
-                                      n_partitions,          &
-                                      max_stencil_depth,     &
-                                      generate_inner_halos,  &
-                                      decomposition,         &
-                                      partitioner,           &
-                                      lbc_parent_name )
+subroutine generate_local_objects( local_mesh_bank,       &
+                                   global_mesh_bank,      &
+                                   mesh_names,            &
+                                   partition_id,          &
+                                   n_partitions,          &
+                                   max_stencil_depth,     &
+                                   generate_inner_halos,  &
+                                   decomposition,         &
+                                   partitioner,           &
+                                   lbc_parent_name )
 
   implicit none
 
@@ -80,15 +80,15 @@ subroutine generate_op_local_objects( local_mesh_bank,       &
   type(local_mesh_type) :: local_mesh
   type(partition_type)  :: partition
 
-  type(global_mesh_type), pointer :: source_global_mesh_ptr => null()
-  type(global_mesh_type), pointer :: target_global_mesh_ptr => null()
-  type(local_mesh_type),  pointer :: source_local_mesh_ptr  => null()
-  type(local_mesh_type),  pointer :: target_local_mesh_ptr  => null()
+  type(global_mesh_type), pointer :: source_global_mesh_ptr
+  type(global_mesh_type), pointer :: target_global_mesh_ptr
+  type(local_mesh_type),  pointer :: source_local_mesh_ptr
+  type(local_mesh_type),  pointer :: target_local_mesh_ptr
 
-  type(global_mesh_map_collection_type), pointer :: global_mesh_maps_ptr => null()
-  type(local_mesh_map_collection_type),  pointer :: local_mesh_maps_ptr  => null()
+  type(global_mesh_map_collection_type), pointer :: global_mesh_maps_ptr
+  type(local_mesh_map_collection_type),  pointer :: local_mesh_maps_ptr
 
-  type(global_mesh_map_type), pointer :: global_mesh_map_ptr => null()
+  type(global_mesh_map_type), pointer :: global_mesh_map_ptr
 
   integer(i_def), allocatable :: cell_map(:,:,:)
   integer(i_def), allocatable :: local_map_gid(:,:,:)
@@ -108,7 +108,7 @@ subroutine generate_op_local_objects( local_mesh_bank,       &
   type(local_mesh_type)       :: local_lbc_mesh
   integer(i_def), allocatable :: cell_lbc_lam_map(:)
 
-  n_meshes        = size(mesh_names)
+  n_meshes = size(mesh_names)
 
   !====================================================================
   ! Create requested range of partitions for each mesh and store in
@@ -121,6 +121,10 @@ subroutine generate_op_local_objects( local_mesh_bank,       &
 
     call log_event( 'Partitioning mesh:'//trim(source_name), log_level_debug )
 
+    write( name,'(A,I0)' ) trim(adjustl(source_name))//'_', partition_id
+    call log_event( 'Initialising local mesh object '//trim(name), &
+                    log_level_debug )
+
     partition = partition_type( source_global_mesh_ptr, &
                                 partitioner,            &
                                 decomposition,          &
@@ -128,18 +132,12 @@ subroutine generate_op_local_objects( local_mesh_bank,       &
                                 generate_inner_halos,   &
                                 partition_id, n_partitions )
 
-    write( name,'(A,I0)' ) trim(source_name)//'_', partition_id
-
-    call log_event( 'Initialising local mesh object '//trim(name), &
-                    log_level_debug )
-
     call local_mesh%initialise( source_global_mesh_ptr, &
                                 partition, name=name )
 
     local_id = local_mesh_bank%add_new_local_mesh(local_mesh)
 
   end do ! i
-
 
   !====================================================================
   ! Partition an LBC mesh if an lbc_parent_name is provided.
@@ -308,6 +306,6 @@ subroutine generate_op_local_objects( local_mesh_bank,       &
   if (allocated( local_map_gid )) deallocate( local_map_gid )
   if (allocated( local_map_lid )) deallocate( local_map_lid )
 
-end subroutine generate_op_local_objects
+end subroutine generate_local_objects
 
-end module generate_op_local_objects_mod
+end module  generate_local_objects_mod

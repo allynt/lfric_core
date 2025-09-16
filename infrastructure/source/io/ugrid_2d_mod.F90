@@ -178,12 +178,27 @@ contains
   !> Object finalizer
   final     :: ugrid_2d_destructor
 
-end type
+end type ugrid_2d_type
+
+interface ugrid_2d_type
+  module procedure ugrid_2d_constructor
+end interface ugrid_2d_type
 
 !-------------------------------------------------------------------------------
 ! Contained functions/subroutines.
 !-------------------------------------------------------------------------------
 contains
+
+  function ugrid_2d_constructor() result(self)
+
+    implicit none
+
+    type(ugrid_2d_type) :: self
+
+    nullify(self%target_global_mesh_maps)
+    nullify(self%target_local_mesh_maps)
+
+  end function ugrid_2d_constructor
 
 !-------------------------------------------------------------------------------
 !>  @brief Gets number of nodes, edges, faces etc.

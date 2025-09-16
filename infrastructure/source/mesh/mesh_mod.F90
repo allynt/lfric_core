@@ -2322,9 +2322,9 @@ contains
     type(mesh_type),  intent(in), pointer :: target_mesh
 
 
-    type(local_mesh_type), pointer      :: source_local_mesh  => null()
-    type(local_mesh_type), pointer      :: target_local_mesh  => null()
-    type(local_mesh_map_type), pointer  :: source_mesh_map    => null()
+    type(local_mesh_type), pointer      :: source_local_mesh
+    type(local_mesh_type), pointer      :: target_local_mesh
+    type(local_mesh_map_type), pointer  :: source_mesh_map
 
     integer(i_def) :: source_mesh_id
     integer(i_def) :: target_mesh_id
@@ -2335,6 +2335,10 @@ contains
     integer(i_def) :: nsource_cells
     logical(l_def) :: mesh_map_exists
     integer(i_def), allocatable :: local_map(:,:,:)
+
+    nullify(source_local_mesh)
+    nullify(target_local_mesh)
+    nullify(source_mesh_map)
 
     target_mesh_id = target_mesh%get_id()
     source_mesh_id = self%get_id()

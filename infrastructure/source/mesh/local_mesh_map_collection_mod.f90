@@ -67,7 +67,7 @@ end function local_mesh_map_collection_constructor
 !>            should have dimensions of
 !>            [number of target cells for each source cell,
 !>             number of source cells]
-subroutine add_local_mesh_map( self,                  &
+subroutine add_local_mesh_map( self,                 &
                                source_local_mesh_id, &
                                target_local_mesh_id, &
                                map )
@@ -142,7 +142,9 @@ function get_local_mesh_map( self,                  &
   logical(l_def) :: local_mesh_map_exists
 
   ! Pointer to linked list - used for looping through the list
-  type(linked_list_item_type),pointer :: loop => null()
+  type(linked_list_item_type), pointer :: loop
+
+  nullify(loop)
 
   local_mesh_map => null()
 

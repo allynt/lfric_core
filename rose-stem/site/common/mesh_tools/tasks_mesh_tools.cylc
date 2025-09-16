@@ -10,7 +10,6 @@
       task_ns.conf_name == "cubedsphere-c3" or
       task_ns.conf_name == "cubedsphere-rotated" or
       task_ns.conf_name == "cubedsphere-maps" or
-      task_ns.conf_name == "cubedsphere-op" or
       task_ns.conf_name == "cubedsphere" %}
 
     {% do task_dict.update({
@@ -20,8 +19,17 @@
         "opt_confs": task_ns.conf_name
     }) %}
 
-{% elif task_ns.conf_name == "planar-op-lam" or
-        task_ns.conf_name == "equator" or
+{% elif task_ns.conf_name == "cubedsphere-op" %}
+
+    {% do task_dict.update({
+        "resolution": "",
+        "env_application": "cubedsphere_mesh_generator",
+        "configuration_file": "mesh_generation.nml",
+        "opt_confs": task_ns.conf_name,
+        "threads": 2
+    }) %}
+
+{% elif task_ns.conf_name == "equator" or
         task_ns.conf_name == "equator-band" or
         task_ns.conf_name == "lam" or
         task_ns.conf_name == "polar" or
@@ -45,6 +53,16 @@
         "env_application": "planar_mesh_generator",
         "configuration_file": "mesh_generation.nml",
         "opt_confs": task_ns.conf_name,
+    }) %}
+
+{% elif task_ns.conf_name == "planar-op-lam" %}
+
+    {% do task_dict.update({
+        "resolution": "",
+        "env_application": "planar_mesh_generator",
+        "configuration_file": "mesh_generation.nml",
+        "opt_confs": task_ns.conf_name,
+        "threads": 2
     }) %}
 
 {% elif task_ns.conf_name == "unit_tests" %}
