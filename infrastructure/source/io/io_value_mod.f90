@@ -21,8 +21,6 @@ module io_value_mod
 
   use constants_mod,                     only : str_def, r_def, r_double, l_def
   use key_value_mod,                     only : key_value_type
-  use key_value_collection_mod,          only : key_value_collection_type
-  use key_value_collection_iterator_mod, only : key_value_collection_iterator_type
   use log_mod,                           only : log_event, log_scratch_space, &
                                                 LOG_LEVEL_INFO, LOG_LEVEL_ERROR
 
@@ -35,7 +33,8 @@ module io_value_mod
   public :: int32_arr_io_value_type,  int64_arr_io_value_type
   public :: real32_io_value_type,     real64_io_value_type
   public :: real32_arr_io_value_type, real64_arr_io_value_type
-  public :: get_io_value, io_read_interface, io_write_interface
+  !!public :: get_io_value, io_read_interface, io_write_interface
+  public :: io_read_interface, io_write_interface
 
   !> @brief Value with associated I/O methods
   !>        that can be stored in a key-value pair
@@ -47,18 +46,36 @@ module io_value_mod
 
     contains
 
-      procedure, public :: set_write_behaviour
-      procedure, public :: set_checkpoint_write_behaviour
-      procedure, public :: set_checkpoint_read_behaviour
-      procedure, public :: can_write_checkpoint
-      procedure, public :: write_value
-      procedure, public :: write_checkpoint
-      procedure, public :: read_checkpoint
+      procedure, public  :: set_write_behaviour
+      procedure, public  :: set_checkpoint_write_behaviour
+      procedure, public  :: set_checkpoint_read_behaviour
+      procedure, public  :: can_write_checkpoint
+      procedure, public  :: write_value
+      procedure, public  :: write_checkpoint
+      procedure, public  :: read_checkpoint
+      procedure, private :: get_int32_value
+      procedure, private :: get_int64_value
+      procedure, private :: get_int32_arr_value
+      procedure, private :: get_int64_arr_value
+      procedure, private :: get_real32_value
+      procedure, private :: get_real64_value
+      procedure, private :: get_real32_arr_value
+      procedure, private :: get_real64_arr_value
+      generic            :: get_value => get_int32_value,       &
+                                         get_int64_value,       &
+                                         get_int32_arr_value,   &
+                                         get_int64_arr_value,   &
+                                         get_real32_value,      &
+                                         get_real64_value,      &
+                                         get_real32_arr_value,  &
+                                         get_real64_arr_value
+
+    
 
   end type io_value_type
 
 !===============================================
-! Concrete Types of Abstract: io_value_type
+! Concrete Types of Abstract io_value_type
 !===============================================
 
   type, extends(io_value_type) :: int32_io_value_type
@@ -294,6 +311,138 @@ subroutine read_checkpoint(self, value_name)
 end subroutine read_checkpoint
 
 !===============================================
+! get_value subroutines 
+!===============================================
+
+subroutine get_int32_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  integer(kind=int32), intent(out) :: value
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (int32_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get int32 value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_int32_value
+
+subroutine get_int64_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  integer(kind=int64), intent(out) :: value
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (int64_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get int64 value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_int64_value
+
+subroutine get_int32_arr_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  integer(kind=int32), intent(out) :: value(:)
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (int32_arr_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get int32 array value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_int32_arr_value
+
+subroutine get_int64_arr_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  integer(kind=int64), intent(out) :: value(:)
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (int64_arr_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get int64 array value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_int64_arr_value
+
+subroutine get_real32_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  real(kind=real32), intent(out) :: value
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (real32_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get real32 value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real32_value
+
+subroutine get_real64_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  real(kind=real64), intent(out) :: value
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (real64_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get real64 value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real64_value
+
+subroutine get_real32_arr_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  real(kind=real32), intent(out) :: value(:)
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (real32_arr_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get real32 array value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real32_arr_value
+
+subroutine get_real64_arr_value(self, value)
+
+  class(io_value_type), intent(in) :: self
+  real(kind=real64), intent(out) :: value(:)
+
+  ! 'cast' to the expected value type
+  select type(concrete_io_value => self)
+    type is (real64_arr_io_value_type)
+      value = concrete_io_value%value
+    class default
+      call log_event("Error trying to get real64 array value from " // &
+                     concrete_io_value%get_key(), LOG_LEVEL_ERROR)
+  end select
+
+end subroutine get_real64_arr_value
+
+!===============================================
 ! helper functions
 !===============================================
 
@@ -316,45 +465,38 @@ function can_write_checkpoint(self) result(checkpointable)
 
 end function can_write_checkpoint
 
-!> @brief A helper function to retrieve an io_value_type object
-!>        from a key-value collection
-!> @param[in] collection The collection from which to get the io_value
-!> @param[in] key The key of the io_value
-!> @return io_value Pointer to the extracted io_value; null if there is none
-function get_io_value(collection, key) result(io_value)
-  type(key_value_collection_type), intent(in) :: collection
-  character(*),                    intent(in) :: key
 
-  class(io_value_type), pointer :: io_value
-  class(key_value_type), pointer :: abstract_value
-
-  type(key_value_collection_iterator_type) :: iterator
-
-  io_value => null()
-  call iterator%initialise(collection)
-  do
-    if (.not. iterator%has_next()) exit
-    abstract_value => iterator%next()
-    select type (abstract_value)
-      class is (io_value_type)
-         if (trim(abstract_value%get_key()) == trim(key)) then
-           io_value => abstract_value
-         end if
-    end select
-
-  end do
-
-  ! type(io_value_type),        pointer :: io_value
-  ! class(key_value_type), pointer :: abstract_value
-
-  ! TODO: THIS IS FAILING B/C THE KEY_VALUE_COLLECTION_TYPE MODULE ONLY KNOWS ABOUT KEY_VALUE_TYPE, NOT IO_VALUE_TYPE
-  ! call collection%get_value(trim(key), abstract_value)
-  ! io_value => null()
-  ! select type (abstract_value)
-  !   type is (io_value_type)
-  !     io_value => abstract_value
-  ! end select
-
-end function get_io_value
+!!!> @brief A helper function to retrieve an io_value_type object
+!!!>        from a key-value collection
+!!!> @param[in] collection The collection from which to get the io_value
+!!!> @param[in] key The key of the io_value
+!!!> @return io_value Pointer to the extracted io_value; null if there is none
+!!function get_io_value(collection, key) result(io_value)
+!!  
+!!  type(key_value_collection_type), intent(in) :: collection
+!!  character(*),                    intent(in) :: key
+!!
+!!  class(io_value_type),  pointer :: io_value
+!!  class(key_value_type), pointer :: abstract_value
+!!
+!!  type(key_value_collection_iterator_type) :: iterator
+!!
+!!  io_value => null()
+!!  call iterator%initialise(collection)
+!!  do
+!!    if (.not. iterator%has_next()) exit
+!!    abstract_value => iterator%next()
+!!    if (trim(abstract_value%get_key()) == trim(key)) then
+!!      select type (concrete_value => abstract_value)
+!!        class is (io_value_type)
+!!          io_value => concrete_value
+!!        class default
+!!          call log_event( "Item in collection w/ key " // trim(key) // &
+!!                          "is not io_value_type", LOG_LEVEL_ERROR )
+!!      end select
+!!    end if
+!!  end do
+!!
+!!end function get_io_value
 
 end module io_value_mod
