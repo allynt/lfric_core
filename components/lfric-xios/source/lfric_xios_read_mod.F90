@@ -115,39 +115,6 @@ subroutine checkpoint_read_xios(xios_field_name, file_name, field_proxy)
 
 end subroutine checkpoint_read_xios
 
-! TODO: I AM HERE
-! TODO: DO I NEED A SEPARATE INTERFACE FOR checkpoint_read_value ?
-! TODO: (one per concrete type?)
-
-! subroutine checkpoint_read_int32_value(io_value, value_name)
-!   class(int32_arr_io_value_type), intent(inout) :: io_value
-!   character(*), optional, intent(in)  :: value_name
-
-!   integer(i_def) :: array_dims
-
-!   if ( LPROF ) call start_timing(timing_id, 'lfric_xios.chkpt_readv')
-
-!   if(present(value_name)) then
-!     restart_id = trim(value_name)
-!   else
-!     restart_id = "restart_" // io_value%get_key()
-!   end if
-
-!   if ( .not. xios_is_valid_field(trim(restart_id)) ) then
-!     call log_event( 'No XIOS field with id="' // restart_id // '" is defined', &
-!                     LOG_LEVEL_ERROR )
-!   end if
-
-!   array_dims = size(io_value%value)
-!   allocate(dp_equiv(array_dims))
-!   call xios_recv_field( restart_id, dp_equiv(1:array_dims) )
-!   io_value%value = int(dp_equiv, int32)
-!   deallocate(dp_equiv)
-
-!   if ( LPROF ) call stop_timing(timing_id, 'lfric_xios.chkpt_readv')
-
-! end subroutine checkpoint_read_int32_value
-
 !> @brief Read the data from an XIOS checkpoint file into the io_value
 !> @param[in,out] io_value The io_value to read data into
 !> @param[in]  value_name The id defined in the XIOS context

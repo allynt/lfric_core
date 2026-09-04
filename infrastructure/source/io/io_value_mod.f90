@@ -70,7 +70,7 @@ module io_value_mod
                                          get_real32_arr_value,  &
                                          get_real64_arr_value
 
-    
+
 
   end type io_value_type
 
@@ -154,12 +154,10 @@ function initialise_io_value_type_sca(key, value) result(instance)
 
   class(io_value_type), pointer :: instance
 
-  type(int32_io_value_type) :: concrete_int32_instance
-  type(int64_io_value_type) :: concrete_int64_instance
+  type(int32_io_value_type)  :: concrete_int32_instance
+  type(int64_io_value_type)  :: concrete_int64_instance
   type(real32_io_value_type) :: concrete_real32_instance
   type(real64_io_value_type) :: concrete_real64_instance
-
-  write(6,*) "calling: initialise_io_value_type"
 
   select type (value)
 
@@ -201,12 +199,10 @@ function initialise_io_value_type_arr(key, value) result(instance)
 
   class(io_value_type), pointer :: instance
 
-  type(int32_arr_io_value_type) :: concrete_int32_arr_instance
-  type(int64_arr_io_value_type) :: concrete_int64_arr_instance
+  type(int32_arr_io_value_type)  :: concrete_int32_arr_instance
+  type(int64_arr_io_value_type)  :: concrete_int64_arr_instance
   type(real32_arr_io_value_type) :: concrete_real32_arr_instance
   type(real64_arr_io_value_type) :: concrete_real64_arr_instance
-
-  write(6,*) "calling: initialise_io_value_type"
 
   select type (value)
 
@@ -311,7 +307,7 @@ subroutine read_checkpoint(self, value_name)
 end subroutine read_checkpoint
 
 !===============================================
-! get_value subroutines 
+! get_value subroutines
 !===============================================
 
 subroutine get_int32_value(self, value)
@@ -465,14 +461,14 @@ function can_write_checkpoint(self) result(checkpointable)
 
 end function can_write_checkpoint
 
-
+!! moved to "key_value_collection_iterator_mod.f90"
 !!!> @brief A helper function to retrieve an io_value_type object
 !!!>        from a key-value collection
 !!!> @param[in] collection The collection from which to get the io_value
 !!!> @param[in] key The key of the io_value
 !!!> @return io_value Pointer to the extracted io_value; null if there is none
 !!function get_io_value(collection, key) result(io_value)
-!!  
+!!
 !!  type(key_value_collection_type), intent(in) :: collection
 !!  character(*),                    intent(in) :: key
 !!

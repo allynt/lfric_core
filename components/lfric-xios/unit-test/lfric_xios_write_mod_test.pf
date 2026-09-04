@@ -279,7 +279,6 @@ contains
            '("io_value_type with unsupported value")' )
         stop EXIT_CODE_ON_ERROR
     end select
-    ! @assertEqual(this%value_real%value, real(W0_result, r_def))
 
     ! Underlying code converts this to a real for writing to XIOS
     call checkpoint_write_value(this%value_int)
@@ -294,7 +293,6 @@ contains
            '("io_value_type with unsupported value")' )
         stop EXIT_CODE_ON_ERROR
     end select
-    ! @assertEqual(this%value_int%value, int_result)
 
     ! Test the generic write methods
     W0_result = -999.0_dp_xios
@@ -309,7 +307,6 @@ contains
            '("io_value_type with unsupported value")' )
         stop EXIT_CODE_ON_ERROR
     end select
-    !@assertEqual(real(this%value_real%value, dp_xios), W0_result)
 
     W0_result = -999.0_dp_xios
     call write_value_generic(this%value_int)
@@ -323,7 +320,6 @@ contains
            '("io_value_type with unsupported value")' )
         stop EXIT_CODE_ON_ERROR
     end select
-    !@assertEqual(this%value_int%value, int(W0_result))
 
     deallocate(W0_result, int_result, int_data)
 

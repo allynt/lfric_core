@@ -109,7 +109,7 @@ end function has_next
 !> @param[in] key The key of the io_value
 !> @return io_value Pointer to the extracted io_value; null if there is none
 function get_io_value(collection, key) result(io_value)
-  
+
   type(key_value_collection_type), intent(in) :: collection
   character(*),                    intent(in) :: key
 

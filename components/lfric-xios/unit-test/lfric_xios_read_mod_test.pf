@@ -257,7 +257,6 @@ contains
            '("io_value_type with unsupported value")' )
         stop EXIT_CODE_ON_ERROR
     end select
-    ! @assertEqual(this%value_real%value, real(expected_real_result, r_def))
 
     select type(concrete_value_int => this%value_int)
       type is (int32_arr_io_value_type)
@@ -267,7 +266,6 @@ contains
            '("io_value_type with unsupported value")' )
         stop EXIT_CODE_ON_ERROR
     end select
-    ! @assertEqual(this%value_int%value, expected_int_result)
 
     deallocate(int_data, expected_real_result, expected_int_result)
 
